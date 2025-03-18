@@ -1,8 +1,34 @@
-  placementName: "Placement #1",
-    client: "Client #1",
-    market: "N/A",
-    inceptionDate: "2/1/2025",
-    expirationDate: "2/1/2026",
-    status: "Negotiation",
-    leadBroker: "Broker #1",
-    products: [ /* Products yahan add honge */ ]
+return (
+  <table className="placement-table">
+    <thead>
+      <tr>
+        <th>Details</th>
+        <th>Client</th>
+        <th>Market</th>
+        <th>Inception Date</th>
+        <th>Expiration Date</th>
+        <th>Status</th>
+        <th>Lead Broker</th>
+      </tr>
+    </thead>
+    <tbody>
+      {placements.map((placement, index) => (
+        <React.Fragment key={index}>
+          <tr onClick={() => handlePlacementClick(placement.placementName)}>
+            <td>
+              {selectedPlacement === placement.placementName ? "-" : "+"}{" "}
+              {placement.placementName}
+            </td>
+            <td>{placement.client}</td>
+            <td>{placement.market}</td>
+            <td>{placement.inceptionDate}</td>
+            <td>{placement.expirationDate}</td>
+            <td>{placement.status}</td>
+            <td>{placement.leadBroker}</td>
+          </tr>
+          {/* Products ka rendering yahan aayega */}
+        </React.Fragment>
+      ))}
+    </tbody>
+  </table>
+);
