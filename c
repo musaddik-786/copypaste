@@ -1,8 +1,4 @@
-const handlePlacementClick = (placementName) => {
-  setSelectedPlacement((prev) =>
-    prev === placementName ? null : placementName
-  );
-  setSelectedProduct(null);
-  setSelectedSubmission(null);
-  setSelectedQuoteRequest(null);
-};
+ {
+    name: "Product #1",
+    submissions: [ /* Submissions yahan add honge */ ]
+  },
