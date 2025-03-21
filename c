@@ -1,1 +1,7 @@
-The data and trends outlined above reveal a pivotal moment for the insurance industry. As natural disasters become more frequent and severe, rising premiums, declining renewals, and market exits underscore an urgent need for innovation. Insurers are now compelled to adopt advanced analytics, parametric models, and robust ESG strategies to remain resilient amid mounting climate risks. The industry’s future will depend on collaborative efforts among regulators, insurers, and communities to craft sustainable solutions. Embracing these challenges head-on isn’t just a necessity—it’s an opportunity to redefine risk management for a rapidly changing world.
+Founded: 1863
+
+Headquarters: Zurich, Switzerland
+
+Global Presence: Operates through around 70 offices worldwide with approximately 14,400 employees
+
+Core Business: One of the world’s leading providers of reinsurance, insurance, and other forms of insurance-based risk transfer, with a mission to help make the world more resilient
