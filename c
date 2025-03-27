@@ -1,90 +1,183 @@
-User Story No	User Story Title	User Story	Acceptance Criteria
-US1	System Notifies Customer About Upcoming Renewal 	"As a system,
-I want to automatically send renewal reminders to customers via email/SMS,
-So that they are aware of their upcoming policy renewal and can take timely action.
+US1 – System Validates & Acknowledges Claim
+User Story:
+"As a system, I want to validate policy eligibility and send a claim submission confirmation, so that customers know their claim is being processed."
 
-Note: This is not a part of the POC. To show the continuity of the Use Case this User Story is created."	"1. The system should check the policy database for policies expiring within the next 45 days.
-2. The system should trigger an automated email/SMS reminding the customer of renewal includes the renewal quotes
-3. The notification should include below details:
--Policy number
--Expiry date
--Instructions to renew via the contact center or online
-4. If the customer has already renewed, the system should suppress the notification.
+Acceptance Criteria:
 
-Pre-requisites: 
-1. This notification is sent based on renewal conditions and prompts the customer to contact the CC for any clarifications. 
-2. Renewal quotes are generated prior 45 days from the expiration date. These are only renewal quotes without change in coverage"
-US2.1	Option #1: AI Agent Initiates Outbound Call for Renewal Verification	"As an AI agent,
-I want to call the customer based on 
- - the policy renewal date or 
- - post 15 days of renewal reminder 
-   And verify Customer identity
-So that if the caller is not the valid customer I can instruct them to transfer the call, and if they are the valid customer, I can proceed with processing their renewal."	"1. The AI agent must greet the customer to confirm the name from the policy record with the caller
-2. If the caller is NOT the customer:
- - The AI agent must request to transfer the call to the customer
- - The incident shall be logged and escalated for follow-up by a human agent.
-3. If the caller is the valid customer:
- - The AI agent must confirm the customer identity with DOB. 
- - Once confirmed, the AI agent must confirm key details including the policy number and expiry date.
-4. AI Agent proceeds with the further renewal process"
-US2.2	Option #2: Customer calls AI Agent after receiving the Renewal Notice	"As an AI agent, given the customer calls for the renewal then
-I want to ask for the reason of the call and identity proof
-So that I validate the customer's identity and guide them as per the reason of the call"	"1. The AI agent must inform the customer that the call may be recorded.
-2. The AI agent must ask the customer to confirm the purpose of the call.
-3. The AI agent must prompt the customer to provide the DOB if the call is for the renewal
-4. The AI must validate the DOB against the system details
-5. If the provided data is incorrect or does not match system records, the AI agent must prompt the customer to re-enter the information with valid error message
-5. If the details are verified, AI agent should proceed; otherwise, transfer to a human agent."
-US3	AI Agent Provides Policy Renewal Details	"As an AI agent, 
-I want to inform the customer about their policy expiration and want to understand whether any change in Coverage 
-So that the Customer can renew the policy with updated Coverage (if applicable)."	"1. AI agent should retrieve the details and communicate the policy expiry date.
-2. AI agent should ask for the updates in the policy:
--Coverage type
--Vehicle details
--Named drivers
-3. If changes are requested, (refer to sheet ""with change in coverage"" for user stories
-4. If no changes are needed, AI should proceed with the renewal process."
-US4	AI Agent Confirms Renewal Amount and Payment Option	"As an AI agent,
-I want to retrieve the updated renewal premium based on the coverage changes (if applicable) and offer customer multiple payment options
-So that the customer can confirm the premium and complete the renewal transaction conveniently."	"1. The AI agent shall fetch the updated premium amount from the system reflecting the coverage changes.
-2. The agent shall confirm the renewal cost with the customer and explain any adjustments due to coverage modifications.
-3. AI agent confirms to proceed with the payment from the customer
-3. AI should offer multiple payment methods:
--Credit card
--Debit card
--Bank transfer
--Payment link
-5. AI should confirm the selected payment method and proceed accordingly.
-6. If the customer has additional queries with the pricing, the AI agent must transfer the call to the human agent"
-US5	AI Agent Collects and Processes Payment	"As an AI agent,
-I want to securely collect and process the customer's payment details
-So that I can complete the policy renewal transaction that includes the updated coverage modifications (where applicable)."	"1. The AI agent confirms one of the payment method: 
-- Credit card
-- Debit card
-- Account transfer
-- Payment link
-2. When the customer opts to pay via card, the AI must request the following details:
-- Card number
-- Expiry date
-3. The AI agent should validate the provided card details before processing the payment.
-4. When the customer chooses to pay via a payment link, the AI must send the payment link to the customer
-5. The AI agent must validate all payment details (card or payment link) before initiating the transaction.
-6. If the payment fails:
-The AI agent should allow the user to retry the payment.
-7. Upon successful payment:
-The AI agent must confirm the transaction with the user."
-US6	AI Agent Confirms Successful Renewal and Sends Policy Documents	"As an AI agent,
-I want to confirm the successful renewal and send the updated policy documents that include the new coverage changes,
-So that the customer receives complete and accurate documentation of their renewed policy."	"1. The AI agent must confirm that the payment was successful and that the renewal is complete with the existing coverage and confirms the policy number
-2. The AI agent notifies the PAS system with the details
-3. System generates the documents and sends to the customer via email/SMS within next 24hrs and AI agent communicates that the physical letter will reach in 7-10 business days. 
-4. The AI agent should log the completion of the renewal process, including timestamps for all key steps."
-US7	AI Agent Closes the Call 	"As an AI agent,
-I want to close the call after confirming successful renewal,
-So that the Customer is fully informed, satisfied with the renewal process, and has clear instructions for future support."	"1. The AI agent confirms the policy renewal details with successful payment
-2. The AI agent must provide instructions for contacting support if customer wants 
--  Any further queries/additional information 
-- In case of any queries AI agent asks the customer to contact support or transfer the call to the human agent
-3.The AI agent must for the feedback
-4. The AI agent should log the call closure and any additional customer remarks.
-5. The system should archive the call transcript for audit and future reference."
+Validate the policy status (ensure active coverage and no duplicate claims).
+
+If valid, send an email/SMS containing the claim number, submission date, and a tracking link.
+
+If invalid (for example, due to an expired policy), notify the customer via email/SMS with the rejection reason.
+
+Log the validation results for auditing purposes.
+
+
+
+---
+
+US2.1 – AI Agent Initiates Outbound Claim Verification
+User Story:
+"As an AI agent, I want to call the customer post-claim submission to verify details, so that inaccuracies are minimized."
+
+Acceptance Criteria:
+
+Greet the customer and confirm identity using the claim or policy number.
+
+If the caller is invalid, request transfer to the customer and log the incident.
+
+If the caller is valid, confirm details such as the incident date, loss type, and location.
+
+Escalate the call to a human agent immediately if urgent keywords (e.g., “injury”) are detected.
+
+
+
+---
+
+US2.2 – Customer Calls AI Agent for Claim Support
+User Story:
+"As an AI agent, I want to authenticate inbound callers and address their claim concerns, so that they receive timely assistance."
+
+Acceptance Criteria:
+
+Announce that the call is being recorded.
+
+Request the claim number and the purpose of the call.
+
+Validate the provided claim number against the system.
+
+If the claim number is invalid, reprompt with an error message; if valid, proceed with assistance.
+
+
+
+---
+
+US2.3 – AI Agent Prioritizes Urgent Claims
+User Story:
+"As an AI agent, I want to detect urgent claims (such as accidents involving injuries) and escalate them immediately, so that critical cases receive priority."
+
+Acceptance Criteria:
+
+Flag urgency based on keywords or phrases (e.g., “car crash,” “hospital”).
+
+Immediately transfer the call to a human agent with a high-priority alert.
+
+Send an SMS/email to the customer with emergency contact details.
+
+
+
+---
+
+US3 – AI Agent Gathers Incident Details
+User Story:
+"As an AI agent, I want to collect any missing claim information (for example, a detailed incident description), so that the claim file is complete."
+
+Acceptance Criteria:
+
+Retrieve preliminary claim data from the system.
+
+Ask context-specific questions (such as “Were there any witnesses?”).
+
+Log all responses and flag any inconsistencies for further fraud review.
+
+
+
+---
+
+US3.1 – AI Agent Detects Fraud Indicators
+User Story:
+"As an AI agent, I want to identify suspicious claim patterns, so that potential fraud is flagged early."
+
+Acceptance Criteria:
+
+Analyze the claim for any contradictions in the incident details (for example, mismatches in time versus location).
+
+Escalate the case to a human agent with a clear fraud alert.
+
+Log all red flags for further investigation.
+
+
+
+---
+
+US3.2 – AI Agent Confirms Claim Accuracy
+User Story:
+"As an AI agent, I want to summarize claim details for customer confirmation, so that any errors can be corrected before processing."
+
+Acceptance Criteria:
+
+Summarize the incident details, reported damages, and attached documents.
+
+Provide the customer an opportunity to correct any inaccuracies.
+
+Update the claim record with the finalized, confirmed details.
+
+
+
+---
+
+US4 – AI Agent Provides Real-Time Claim Status
+User Story:
+"As an AI agent, I want to share real-time updates on the claim’s progress, so that customers are kept informed throughout the process."
+
+Acceptance Criteria:
+
+Retrieve the current claim status from the system.
+
+Communicate the next steps clearly (for example, “A surveyor will inspect the damage within 48 hours”).
+
+If any documents are pending, resend the submission instructions to the customer.
+
+
+
+---
+
+US5 – AI Agent Manages Documentation
+User Story:
+"As an AI agent, I want to guide customers through the submission of required documents and validate their quality, so that claims are processed faster."
+
+Acceptance Criteria:
+
+List the required documents (such as repair invoices).
+
+Provide a secure upload link or email for document submission.
+
+Validate that submitted files are clear and in the correct format (rejecting, for example, blurry images).
+
+Confirm receipt of the documents and update the claim accordingly.
+
+
+
+---
+
+US6 – AI Agent Confirms Claim Resolution
+User Story:
+"As an AI agent, I want to notify customers of their claim’s approval or denial and explain the next steps, so that they understand the outcome."
+
+Acceptance Criteria:
+
+Verify the claim resolution status (approved or denied) and any payment details if approved.
+
+Send a confirmation email/SMS with a summary of the resolution.
+
+Provide clear instructions for document retrieval or the appeals process, as applicable.
+
+
+
+---
+
+US7 – AI Agent Closes FNOL Interaction
+User Story:
+"As an AI agent, I want to conclude the call after confirming resolution, so that the customer receives closure and knows how to seek further assistance if needed."
+
+Acceptance Criteria:
+
+Ensure that all claim details and concerns have been resolved.
+
+Provide the customer with relevant support contact information for any follow-up.
+
+Log the call duration, capture customer feedback, and note the final resolution status.
+
+Archive the call transcript for future reference.
+
+
