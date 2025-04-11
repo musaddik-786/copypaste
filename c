@@ -9,8 +9,6 @@
 
 Create New Submission
 
-Save
-
 Details
 
 Submission
