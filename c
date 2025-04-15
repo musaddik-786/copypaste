@@ -1,29 +1,24 @@
-Step 3. Submission of Data via FCA Systems 
+Step 4. Ongoing Monitoring, Feedback, and Remediation 
 
 What Firms Must Do: 
 
-Submission of Returns: 
+Supervisory Review: 
 
-Personal lines insurers are required to submit their reports electronically via FCA-designated systems: 
+After submission, the FCA (and the PRA for prudential returns) reviews the data for accuracy and consistency. 
 
- • RegData: Commonly used for detailed financial and prudential returns.  
+Follow-Up: 
 
-• BEEDS (Bank of England Electronic Data Submission): Often used for supervisory returns. 
+In cases of discrepancies, the FCA may require corrections or additional information. 
 
-Format and Validation: 
+Regular Reporting Cycles: 
 
-Returns are typically required in machine-readable formats (for some returns, XBRL is used) and must pass automated validation checks. Once submitted, the system provides an acknowledgement. 
+Firms are expected to adhere to periodic reporting (annual, quarterly, etc.) as defined in the reporting schedules. 
 
-Verified FCA Guidance: 
+Verified FCA References: 
 
-The FCA’s online guidance for RegData and BEEDS (found via the FCA website) provides detailed instructions on the technical submission process and deadlines. 
+SUP 16 and Associated Supervisory Statements: 
 
-Connect: 
-
-Maintaining upto-date standing data via the Connect system is also part of the overall process. 
-
-Current practice mandates electronic submission via RegData/BEEDS per FCA guidance. The file formats are defined by the technical instructions (often XBRL for certain returns) rather than simply XML or CSV.  
-
+– These provide details on the review and follow-up process. For instance, supervisory letters and circulars (which refer back to SUP 16) outline expected timelines for corrections. 
   
 
  
