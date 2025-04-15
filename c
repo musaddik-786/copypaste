@@ -1,35 +1,29 @@
-Step 2. Preparing and Formatting the Regulatory Return 
+Step 1. Internal Data Collection, Validation, and Control Processes  
 
 What Firms Must Do: 
 
-Template Completion & Data Formatting: 
+Data Capture & Aggregation: 
 
-Data must be organized into the prescribed reporting templates covering: 
+Personal lines insurers must ensure that all critical data is captured consistently across areas such as policy administration (premiums, policy counts, distribution channels), claims handling (acceptance/rejection, payouts, complaint details), underwriting, and product information. 
 
-• Financial Returns: Profit & loss, balance sheet, capital measures, etc. 
+Data Validation & Reconciliation: 
 
-• Claims, Persistency, and Product Data: Aggregated claims performance metrics (acceptance rates, average claim amounts), persistency data, and product pricing details. 
+Firms must have internal controls and reconciliation processes in place to verify the accuracy and completeness of the data before submission. 
 
-• Other Disclosures: Consumer outcome data (complaints and redress information) where relevant to personal lines. 
+Record Keeping & Audit Trails: 
+
+Comprehensive systems must maintain audit trails and records showing how the data was gathered, validated, and aggregated. 
 
 Verified FCA References: 
 
-SUP 16 – Reporting for Insurers: 
+SYSC 3.2 – Systems and Controls: 
 
-– For example, SUP 16.12 provides guidance on the structure and required disclosures within financial reporting returns. 
+– Specifically, sections SYSC 3.2.2 to 3.2.5 explain organizational structure, delegation, and controls (applicable to all insurers), while SYSC 3.2.20 sets out recordkeeping requirements. 
 
-ICOBS 8 – Claims Handling: 
-
-– Sections ICOBS 8.1 and ICOBS 8.2 cover claims handling – these are tailored to nonlife (personal lines) insurers. 
-
-PROD 4 – Product Governance: 
-
-– Especially PROD 4.2.25 and PROD 4.2.27, which offer guidance on pricing, product terms, and information disclosure for noninvestment insurance products. 
-
- Verified FCA Guidance: 
-
-SUP 16 (with, for example, SUP 16.12) for financial returns, and ICOBS 8 and PROD 4 for claims and product-level data. 
+(These apply to all insurers; in personal lines the focus is on nonlife data such as claims and product details.)  
 
   
 
-  
+ 
+
+ 
