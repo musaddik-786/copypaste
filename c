@@ -1,5 +1,3 @@
-Data Required from Personal Lines Insurance Firms to Meet FCA Requirements (core categories) 
-
 Claims Performance and Value Measures 
 
 The FCA mandates detailed reporting on claims handling efficiency and outcomes. Insurers must provide granular data on 
@@ -30,7 +28,7 @@ Profit margins
 
 For add-on products (e.g., home emergency cover), firms must report sales volumes, claims ratios, and customer feedback to prove these products are not sold exploitatively. 
 
- FCA publishes product oversight and governance thematic review for general insurance and pure protection products - HFW 
+FCA publishes product oversight and governance thematic review for general insurance and pure protection products - HFW 
 
  
 
@@ -110,28 +108,4 @@ SYSC 3.2 – Systems and Controls
 
 • This entire section (including SYSC 3.2.2–3.2.5 for organizational and delegation controls) is relevant for demonstrating how your firm maintains data integrity and governance. 
 
-• In particular, SYSC 3.2.20 deals with record-keeping requirements. 
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+• In particular, SYSC 3.2.20 deals with record-keeping requirements
