@@ -1,26 +1,28 @@
-Step 1. Internal Data Collection, Validation, and Control Processes  
+Step 3. Submission of Data via FCA Systems 
 
 What Firms Must Do: 
 
-Data Capture & Aggregation: 
+Submission of Returns: 
 
-Personal lines insurers must ensure that all critical data is captured consistently across areas such as policy administration (premiums, policy counts, distribution channels), claims handling (acceptance/rejection, payouts, complaint details), underwriting, and product information. 
+Personal lines insurers are required to submit their reports electronically via FCA-designated systems: 
 
-Data Validation & Reconciliation: 
+ • RegData: Commonly used for detailed financial and prudential returns.  
 
-Firms must have internal controls and reconciliation processes in place to verify the accuracy and completeness of the data before submission. 
+• BEEDS (Bank of England Electronic Data Submission): Often used for supervisory returns. 
 
-Record Keeping & Audit Trails: 
+Format and Validation: 
 
-Comprehensive systems must maintain audit trails and records showing how the data was gathered, validated, and aggregated. 
+Returns are typically required in machine-readable formats (for some returns, XBRL is used) and must pass automated validation checks. Once submitted, the system provides an acknowledgement. 
 
-Verified FCA References: 
+Verified FCA Guidance: 
 
-SYSC 3.2 – Systems and Controls: 
+The FCA’s online guidance for RegData and BEEDS (found via the FCA website) provides detailed instructions on the technical submission process and deadlines. 
 
-– Specifically, sections SYSC 3.2.2 to 3.2.5 explain organizational structure, delegation, and controls (applicable to all insurers), while SYSC 3.2.20 sets out recordkeeping requirements. 
+Connect: 
 
-(These apply to all insurers; in personal lines the focus is on nonlife data such as claims and product details.)  
+Maintaining upto-date standing data via the Connect system is also part of the overall process. 
+
+Current practice mandates electronic submission via RegData/BEEDS per FCA guidance. The file formats are defined by the technical instructions (often XBRL for certain returns) rather than simply XML or CSV.  
 
   
 
