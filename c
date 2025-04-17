@@ -1,38 +1,19 @@
 Claims
-
 Claims Cycle Time
-
 Definition: Median days from first notification of loss (FNOL) to settlement
-
 FCA Reference: ICOBS 8.1.1 R 
-
-
 Demographic Segmentation
-
 Definition: Breakouts of claims metrics (acceptance rates, payout, cycle time) by age bracket, region, or customer tenure (for firms above reporting thresholds)
-
 FCA Reference: SUP 16.28.4 G 
 
-
-
-
----
-
 Pricing Strategies
-
 Risk‑Based Premium Models
-
 Definition: Weightings for factors (e.g., age, location, claims history) used to set primary policy premiums
-
 FCA Reference: ICOBS 6B.1.4 G 
 
-
 Behavior‑Based Pricing
-
 Definition: Discounts or loadings applied based on customer behavior (e.g., telematics data, claim‑free history)
-
 FCA Reference: PS 21/5 Market Study (Fair value remedies including loyalty‑penalty ban)  
-
 
 Add‑On Product Pricing
 
