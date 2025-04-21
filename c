@@ -1,67 +1,58 @@
-Claims
-Claims Cycle Time
-Definition: Median days from first notification of loss (FNOL) to settlement
-FCA Reference: ICOBS 8.1.1 R 
-Demographic Segmentation
-Definition: Breakouts of claims metrics (acceptance rates, payout, cycle time) by age bracket, region, or customer tenure (for firms above reporting thresholds)
-FCA Reference: SUP 16.28.4 G 
 
-Pricing Strategies
-Risk‑Based Premium Models
-Definition: Weightings for factors (e.g., age, location, claims history) used to set primary policy premiums
-FCA Reference: ICOBS 6B.1.4 G 
+Insurance contact centers today are the frontlines of customer experience — but they face mounting pressure. Agents juggle high call volumes, fragmented systems, and emotionally intense situations. 
 
-Behavior‑Based Pricing
-Definition: Discounts or loadings applied based on customer behavior (e.g., telematics data, claim‑free history)
-FCA Reference: PS 21/5 Market Study (Fair value remedies including loyalty‑penalty ban)  
+Challenges Today: 
+- Fragmented systems 
+- High call volumes 
+- Manual processes 
+- Compliance pressure 
 
-Add‑On Product Pricing
+Renewals are slowed by repetitive manual checks and no real-time decision support. 
 
-Definition: For each add‑on (e.g., legal expenses, home emergency cover):
+Renewals Pain Points: 
+- Manual policy lookups 
+- Time-consuming validations 
 
-Sales volumes
+Policy servicing involves repetitive queries, with agents struggling to find accurate answers quickly. 
 
-Claims ratios
+Policy Servicing Pain Points: 
+- Document delays 
+- Inconsistent responses 
+- Repetitive tasks 
 
-Customer‑feedback scores
+FNOL moments are emotionally intense, and missing even one key detail can delay the entire claim. 
 
+FNOL Pain Points: 
+- Manual data capture 
+- Risk of incomplete intake 
 
-FCA Reference (add‑on definition): SUP 16.28.5 R 
+Imagine a world where Agentic AI seamlessly collaborate with human agents in contact centers — managing millions of interactions, delivering support in multiple languages, and working round-the-clock to ensure every customer receives fast, personalized service. 
 
-FCA Thematic Review: Product oversight and governance findings on add‑ons 
+Introducing Agentic AI 
+Your AI-powered copilot for: 
+- Renewals 
+- Policy Servicing 
+- FNOL 
+- Scalable, Multilingual 
 
+Agentic AI is designed to scale effortlessly, offer 24/7 support, and adapt quickly to new processes. It supports global teams with multilingual capabilities and can be deployed within weeks. 
 
-Competitor Benchmarking Data
+What Makes Agentic AI Different: 
+- Easy to scale 
+- 24/7 availability 
+- Multilingual support 
+- Rapid deployment 
 
-Definition: Comparison of product terms and pricing against market alternatives to demonstrate fair value
+It reduces AHT by automating routine service tasks and improves agent satisfaction by handling backend workflows and surfacing relevant knowledge in real-time. 
 
-FCA Source: PROD thematic review encouraging market comparison under fair‑value rules 
+Productivity Gains: 
+- Lower AHT 
+- Better agent experience 
+- Knowledge delivery in real time 
 
+Using customer data, Agentic AI offers personalized insurance recommendations and policy reminders, enhancing the overall service experience. 
 
-Geographic Rating Differentiation
+Personalized Engagement: 
+- Tailored insurance advice 
+- Customized CX 
 
-Definition: Zone‑based rate adjustments reflecting regional risk variations
-
-FCA Reference: PROD 4.2.15 R 
-
-
-No‑Price‑Walking (ENBP Attestation)
-
-Definition: Verification that renewal quotes for existing customers do not exceed equivalent new business prices for the same channel
-
-FCA Reference: ICOBS 6B.2.39 R 
-
-
-
-
----
-
-Applicability
-
-All of these rules and metrics are found in the Insurance: Conduct of Business sourcebook (ICOBS), Supervisory (SUP) chapter 16, and Product Governance (PROD) sections—each of which applies only to personal (non‑life) insurance contracts such as home and motor.
-
-ICOBS applies to non‑investment insurance contracts (including home and motor) 
-
-SUP 16.28 is titled “Home insurance and motor insurance pricing reporting” and covers only personal lines 
-
-PROD 4 governs the manufacture and fair‑value assessment of non‑investment insurance products 
