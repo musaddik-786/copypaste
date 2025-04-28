@@ -1,20 +1,3 @@
-Sompo Hldgs US Group
-Mercury Casualty Group
-Assurant P&C Group
-Citizens Property Ins Corporation
-Old Republic Ins Group
-AF Group
-Federated Mutual Group
-ICW Group
-CUMIS Ins Society
-Selective Ins Group
-Kemper PC Companies
-QBE Americas Group
-Sentry Ins Group
-AmTrust Group
-Auto Club Group
-COUNTRY Financial PC Group
-Amica Mutual Group
 Shelter Ins Cos
 Acuity, A Mutual Ins Co
 NJM Ins Group
