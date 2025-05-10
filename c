@@ -1,38 +1,25 @@
-# main.py
+Environment updated. Reloading shell...
 
-import os
-import openai
-from db import db_get, db_set
+Welcome back, Alice! What can I do for you today?
 
-# 1. Configure OpenAI
-openai.api_key = os.environ["OPENAI_API_KEY"]
+You: HI Traceback (most recent call last):
 
-def ask_agent(prompt: str) -> str:
-    """Send the user prompt to the LLM and return its reply."""
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": prompt}]
-    )
-    return response.choices[0].message.content.strip()
+File "/home/runner/workspace/main.py", line 42, in <module> main()
 
-def main():
-    # 2. Greet or ask for name
-    name = db_get("user:name")
-    if not name:
-        name = input("👋 Hello! What is your name? ")
-        db_set("user:name", name)
-        print(f"Nice to meet you, {name}! How can I help today?")
-    else:
-        print(f"Welcome back, {name}! What can I do for you today?")
+File "/home/runner/workspace/main.py", line 37, in main reply ask_agent(user_input)
 
-    # 3. Chat loop
-    while True:
-        user_input = input("You: ")
-        if user_input.lower() in ("exit", "quit"):
-            print("Goodbye!")
-            break
-        reply = ask_agent(user_input)
-        print("Agent:", reply)
+File "/home/runner/workspace/main.py", line 13, in ask agent response = openai.ChatCompletion.create(model="gpt-3.5-turbo",
 
-if __name__ == "__main__":
-    main()
+File "/home/runner/workspace/.pythonlibs/lib/python3.11/site-packages/openai/lib/_old_api
+
+py", line 39, in_call raise APIRemovedInV1(symbol=self._symbol)
+
+openai.lib._old_api APIRemovedInV1:
+
+You tried to access openai.ChatCompletion, but this is no longer supported in openai>-1.0.0 see the README at https://github.com/openai/openat-python for the API.
+
+You can run openat migrate to automatically upgrade your codebase to use the 1.0.0 interf ace.
+
+Alternatively, you can pin your installation to the old version, e.g. 'pip install openai 0.28
+
+A detailed migration guide is available here: https://github.com/openai/openai-python/discu
