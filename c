@@ -1,6 +1,13 @@
-“Create a Python module named `db.py` that uses the `replit.db` API. It should define:
+> “In main.py, write Python code that:
 
-- `db_set(key: str, value: str) -> None`: stores the value under the given key.
-- `db_get(key: str) -> str`: retrieves the value for the given key or returns None if not present.
+1. Imports db_set and db_get from db.py.
 
-Include docstrings for each function.”
+
+2. Calls db_set("user:name", "Alice").
+
+
+3. Retrieves the value with db_get("user:name").
+
+
+4. Prints both the action and the retrieved value with descriptive messages.
+  
