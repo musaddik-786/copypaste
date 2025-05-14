@@ -1,37 +1,13 @@
-Please Select
+https://hexaware.udemy.com/course/spring_boot/learn/lecture/46210129#overview
 
-Auto/Cycle
+https://hexaware.udemy.com/course/java-mastery-unleashing-the-power-of-programming/learn/lecture/45821467#overview
 
-Umbrella
+https://hexaware.udemy.com/course/spring-boot-using-intellij-build-a-real-world-project/learn/lecture/43977992#overview
 
-Homeowners, Renters, Condo/Co-op Policy
+https://hexaware.udemy.com/course/spring-hibernate-tutorial/learn/lecture/40104486#reviews
 
-Life Policy
+https://hexaware.udemy.com/course/spring-boot-and-spring-framework-tutorial-for-beginners/learn/lecture/35019918#overview
 
-Boat Policy
+https://hexaware.udemy.com/course/spring-boot-using-intellij-build-a-real-world-project/learn/lecture/43977992#overview
 
-Flood Policy
-
-Mobile Home Policy
-
-Overseas Policy
-
-Commercial Auto/Trucking
-
-Business
-
-Identity Protection
-
-Collector or Classic Car Policy
-
-Pet Policy
-
-Rideshare Policy
-
-Travel Policy
-
-Jewelry Policy
-
-Workers' Compensation
-
-Medical Malpractice
+https://hexaware.udemy.com/course/spring-boot-tutorial-for-beginners/learn/lecture/32831284#overview
