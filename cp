@@ -1,11 +1,3 @@
-With an AI-driven solution designed to automate routine interactions, assist human agents, and provide real-time insights – all while enhancing customer experience and reducing operational costs.  
+This POC demonstrates the capabilities of an Agentic Virtual AI Agent (GenAI) tailored for the insurance industry to handle inbound customer calls specifically related to policy renewals—with and without changes in coverage. The solution leverages conversational AI to deliver 24/7 multilingual support, automates routine renewal workflows, and integrates with backend systems to minimize human intervention.
 
-By combining intelligent automation with human expertise, Agentic AI will enable insurers to handle customer interactions faster, smarter, and more efficiently than ever before. 
-
-Conversational AI-powered Customer Support 
-
-Scalable, 24/7 AI Assistance, Multilingual  
-
-Perform complex operations like Renewal, FNOL etc. efficiency with low/no human support 
-
-Real-Time insights and Personalization 
+Key features include intelligent dialogue management, real-time data retrieval, and personalized customer engagement, enabling operations like First Notice of Loss (FNOL) and coverage updates to be executed efficiently. By combining agentic orchestration with live insights, the AI agent not only reduces operational costs but also enhances service quality and underwriter productivity. This POC validates the feasibility of deploying GenAI to scale customer service operations while preserving human-in-the-loop oversight where needed.
