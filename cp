@@ -1,7 +1,3 @@
-Hi Subham, I have added My understanding 
+I’ve captured my understanding in the Excel sheet. A few columns may need your input for validation.
 
-in the excel, not sure about few columns
-
-
-
-also Description that I added had to be relooked
+Also, the description I’ve added might benefit from a quick review.
