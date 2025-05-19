@@ -1,3 +1,13 @@
+I want a GenAI chatbot running on Replit’s free tier (≤0.5 GB RAM, CPU only) that:
+- Uses llama.cpp to load the file `gpt4all-j-v1.3-groovy-guanaco-3B.ggmlv3.q4_0.bin` from the workspace.
+- Exposes a HTTP endpoint `/chat` on port 3000 that accepts JSON `{ "message": "<user text>" }` and returns `{ "reply": "<model text>" }`.
+- Includes a `.replit` file so the repl auto-starts everything (installs dependencies, builds llama.cpp, and runs the server).
+- Installs only what’s needed (e.g. `build-essential`, `cmake`, `python3`, `flask`, etc.).
+- Keeps the total RAM footprint under 500 MB.
+Please generate all necessary files and directory structure; I don’t want to write any code by hand.
+
+
+
 
 drop database sf;
 create database sf;
