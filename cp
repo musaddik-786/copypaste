@@ -1,3 +1,45 @@
+User Story No	
+ US 1 		"
+Pre-requisites: 
+1.Only process renewals for single policy contracts.
+2.Only process renewals for policies with premiums less than 50,000 USD.
+3.Only process renewals for policies that have previously been renewed twice.
+4.Renew to maintain a gross loss ratio of 80% over past 3 years. "
+
+ US 2	
+User Story Title	
+"As an Agentic AI Assistant I should be notified about the policy that will expire in 3 months 
+so that I can consider it for renewal and create the Draft Renewal Record in the UWB"	"Once notified about the renewal ,
+User Story Description
+1.Agentic AI assistant should have the ability to create Draft Renewal Record in the UWB based on Policy data including compliance with rules such as incrementing the policy period etc. (based on the Policy Administration System), and the updated coverage and wordings for the associated Insurance Product."
+ US 3	
+User Story Title
+"As an Agentic AI Assistant I should be able to share contract renewal details with the Broker so that confirmation can be received from the customer and changes can be made if required for the existing contract during renewal  
+"	"
+User Story Description
+1.Agentic AI Assistant should be able to shares the contract renewal details with the broker
+Customer confirms the details with or without changes to existing renewal contract
+2.Agentic AI Assistant should be able to  monitor the mailbox to receive the confirmation response from the Broker "
+
+US 4
+User Story Title
+"As an Agentic AI Assistant I should be able to share contract renewal details with the Broker so that confirmation can be received from the customer and changes can be made if required for the existing contract during renewal  
+"	
+User Story Description
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 I want a GenAI chatbot running on Replit’s free tier (≤0.5 GB RAM, CPU only) that:
 - Uses llama.cpp to load the file `gpt4all-j-v1.3-groovy-guanaco-3B.ggmlv3.q4_0.bin` from the workspace.
 - Exposes a HTTP endpoint `/chat` on port 3000 that accepts JSON `{ "message": "<user text>" }` and returns `{ "reply": "<model text>" }`.
