@@ -20,3 +20,5 @@ https://youtu.be/cDm5vPXVln8?si=jrz6LSntcdz35i7M
 https://learnwithhasan.com/learn/build-ai-agents/
 
 https://huggingface.co/learn/agents-course/en/communication/live1
+
+https://join.skillshare.com/learn-influencers/?partner=H-EDUCATE&utm_source=youtube&utm_medium=paid-influencer-video&utm_campaign=paid-influencer-video_2024-04-01-heducate&coupon=heducate04241&onboarding_tag=24,6,1816,35,1761&utm_content=techgadgets&redirectTo=
