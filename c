@@ -16,3 +16,5 @@ https://hexaware.udemy.com/course/spring-boot-tutorial-for-beginners/learn/lectu
 
 AI AGENT
 https://youtu.be/cDm5vPXVln8?si=jrz6LSntcdz35i7M  
+
+https://learnwithhasan.com/learn/build-ai-agents/
