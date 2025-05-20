@@ -1,31 +1,12 @@
-User Story No	
- US 1 		"
-Pre-requisites: 
-1.Only process renewals for single policy contracts.
-2.Only process renewals for policies with premiums less than 50,000 USD.
-3.Only process renewals for policies that have previously been renewed twice.
-4.Renew to maintain a gross loss ratio of 80% over past 3 years. "
+The Agentic AI Assistant utilizes the Underwriting Workbench (Renewal Record Data) and Data Solution (e.g., Claims Data) to provide information to the Rating Model for calculating the renewal rate.
 
- US 2	
-User Story Title	
-"As an Agentic AI Assistant I should be notified about the policy that will expire in 3 months 
-so that I can consider it for renewal and create the Draft Renewal Record in the UWB"	"Once notified about the renewal ,
-User Story Description
-1.Agentic AI assistant should have the ability to create Draft Renewal Record in the UWB based on Policy data including compliance with rules such as incrementing the policy period etc. (based on the Policy Administration System), and the updated coverage and wordings for the associated Insurance Product."
- US 3	
-User Story Title
-"As an Agentic AI Assistant I should be able to share contract renewal details with the Broker so that confirmation can be received from the customer and changes can be made if required for the existing contract during renewal  
-"	"
-User Story Description
-1.Agentic AI Assistant should be able to shares the contract renewal details with the broker
-Customer confirms the details with or without changes to existing renewal contract
-2.Agentic AI Assistant should be able to  monitor the mailbox to receive the confirmation response from the Broker "
+The calculated renewal rate is applied to the Renewal Record in the Underwriting Workbench.
 
-US 4
-User Story Title
-"As an Agentic AI Assistant I should be able to share contract renewal details with the Broker so that confirmation can be received from the customer and changes can be made if required for the existing contract during renewal  
-"	
-User Story Description
+A decision is made on whether to proceed with the quote based on the renewal rate, its competitiveness, and whether the forecast performance metric threshold will be maintained.
+
+The Agentic AI Assistant generates a Quote Document using the Renewal Record, including policy coverages, wordings, subjectivities, terms, and conditions.
+
+After a sanity check by the Underwriter, the Agentic AI Assistant sends the Quote Document to Broker DEF via e-mail.
 
 
 
