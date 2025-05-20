@@ -18,3 +18,5 @@ AI AGENT
 https://youtu.be/cDm5vPXVln8?si=jrz6LSntcdz35i7M  
 
 https://learnwithhasan.com/learn/build-ai-agents/
+
+https://huggingface.co/learn/agents-course/en/communication/live1
