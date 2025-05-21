@@ -1,12 +1,79 @@
-The Agentic AI Assistant utilizes the Underwriting Workbench (Renewal Record Data) and Data Solution (e.g., Claims Data) to provide information to the Rating Model for calculating the renewal rate.
+User Story No	User Story Title	User Story	Acceptance Criteria
+ US 1 	Criteria and Rules	Criteria and Rules	"
 
-The calculated renewal rate is applied to the Renewal Record in the Underwriting Workbench.
+Criteria and Rules:
+1.Only process renewals for single policy contracts.
+2.Only process renewals for policies with premiums less than 50,000 USD.
+3.Only process renewals for policies that have previously been renewed twice.
+4.Renew to maintain a gross loss ratio of 80% over past 3 years. "
+ US 2	Agentic AI Assistant cerates Draft Renewal Record 	"As an Agentic AI Assistant, I want to be notified about policies set to expire in 3 months, 
+so that I can consider them for renewal and create the Draft Renewal Record in the UWB."	"1.Agentic AI assistant should receive a policy renewal notification, Once notified about the renewal , the Agentic AI assistant should have the ability to create Draft Renewal Record in the UWB based on Policy data
+2.The creation should comply with the rules such as incrementing the policy period etc. (based on the Policy Administration System), 
+3.The Draft Renewal record should include the updated coverage and wordings for the associated Insurance Product."
+ US 3	Agentic AI Assistant sends contract details 	"As an Agentic AI Assistant I want to share contract renewal details with the Broker 
+so that confirmation can be received from the customer and changes can be made if required for the existing contract during renewal  
+"	"1.Agentic AI Assistant should be able to shares the contract renewal details with the broker
+2.After the Customer confirms the details, with or without changes to the existing renewal contract, the Agentic AI Assistant should have the capability to actively monitor the mailbox to identify the confirmation email received from the Broker, indicating that the Client would like to renew the contract without further coverage changes. The Assistant should then await the renewal quote from the Broker."
+ US 4	Agentic AI Assistant assess the policy and evaluate the key factors 	"As an Agentic AI Assistant I want to assess the policy and evaluate the key factors  
+so that I can recommend whether or not to renew the policy with the adjusted premium rates "	"1. Agentic AI Assistant should have the ability to assess the policy based on below key factors 
+     i).Review policy performance, claims, and loss runs across the renewal chain.
+    ii).To conducts clearance and sanctions checks on UWB, ensuring the client isn’t on any sanctions lists or the policy isn’t renewed under another arrangement.
+   iii).Product Studio: To confirm if ABC Insurance still offers the product or if coverages/wordings have changed.
+   iv).Market, Regulatory, and Compliance Condition Agents: To consider insurance market trends and ensure regulatory compliance.
+    v).Social, Political, and Environmental Factors Agents: To evaluate external influences.
+   vi).ABC Insurance’s Capacity: To assesses internal capacity to underwrite the policy.
 
-A decision is made on whether to proceed with the quote based on the renewal rate, its competitiveness, and whether the forecast performance metric threshold will be maintained.
+2. Agentic AI Assistant should be able to decide based on the above evaluation of factors and only recommend renewing the policy with adjusted premium rates
+If
+  i). Gross Loss Ratio of 72% 
+ ii).No Sanction Inssues
+"
+US 5	Rating Model receives the renewal data for calculating the renewal rate	"As an Agentic AI Assistant I want to send the renewal data feed to the rating model
+So that Renewal rates are calculated and are applied to the renewal record in the UWB"	"1. Agentic AI Assistant  should be able to utilize UWB(Renewal Record Data) and Data Solution (e.g., Claims Data) to provide information to the Rating Model for calculating the renewal rate.
+2. Once the renewal rate is calculated, Agentic AI Assistant should be able to apply the Calculated renewal rate to the Renewal Record in the UWB. 
 
-The Agentic AI Assistant generates a Quote Document using the Renewal Record, including policy coverages, wordings, subjectivities, terms, and conditions.
+"
+ US 6	Agentic AI Assistant Generates the Quote document in UWB and sends it to the Broker	"As an Agentic AI Assistant I want to create the renewal quote document
+so that I can send the renewal quote to the Broker "	"1.The Agentic AI Assistant should be able to make a decision on whether to proceed with the quote based on the renewal rate, its competitiveness, and whether the forecast performance metric threshold will be maintained.
+2.The Agentic AI Assistant I  should have the ability to generate a Quote Document in UWB using the Renewal Record, including policy coverages, wordings, subjectivities, terms, and conditions.
+3.After a sanity check by the Underwriter, the Agentic AI Assistant should be able to send the Quote Document to Broker via e-mail.
 
-After a sanity check by the Underwriter, the Agentic AI Assistant sends the Quote Document to Broker DEF via e-mail.
+
+
+
+
+
+
+"
+ US 7	Agentic AI Assistant monitors the mailbox for confirmation from the Broker and Binds the quote	"As an Agentic AI Assistant I want to monitor mailbox for the Broker's Confirmation on the Renewal Quote
+so that I can proceed with binding the renewal policy details"	"
+1.Agentic AI Assistant should have the ability to monitor the mailbox to check the received confirmation in an email from the Broker DEF stipulation that the Renewal Quote and all updated terms and conditions are acceptable to the Insured.
+2.Agentic AI Assistant should be able to make a Decision on whether to proceed to bind, based on the Broker’s response.
+3.Agentic AI Assistant should be able to proceed with binding the policy details in the UWB."
+ US 8	"Agentic AI Assistant Ensures that the 
+1.Policy renewal is recorded in PAS
+2.Documents are maintained in DMS
+also, monitors the premium payment (PAS)"	"As an Agentic AI Assistant I want to Register the policy renewal in the PAS(Policy Administration System)
+so that the Renewal Policy is recorded in the PAS(Policy Administration System)"	"1.Agentic AI Assistant should be able to ensure that the Renewal Polciy is recorded in the PAS(Policy Administration System).
+2.Agentic AI Assistant should be able to Store and Maintain documentations in DMS(Document Management System) received from Broker DEF.
+3.Agentic AI Assistant should have the ability to monitor the Premium Payment from the Broker or Insured"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
