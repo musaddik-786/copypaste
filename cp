@@ -1,3 +1,87 @@
+.card {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  padding: 16px;
+  flex: 1;            /* allow multiple cards to sit side by side */
+  margin: 8px;
+  min-width: 200px;
+}
+
+.card-title {
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.card-value {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #333;
+}
+
+.card-extra {
+  margin-top: 8px;
+  font-size: 0.8rem;
+  color: #999;
+}
+
+
+
+
+import React from 'react';
+import './Card.css';
+
+export default function Card({ title, value, extra }) {
+  return (
+    <div className="card">
+      <div className="card-title">{title}</div>
+      <div className="card-value">{value}</div>
+      {extra && <div className="card-extra">{extra}</div>}
+    </div>
+  );
+}
+
+// src/App.js
+import React from 'react';
+import Sidebar from './components/Sidebar/Sidebar';
+import Header from './components/Header/Header';
+import Card from './components/Card/Card';
+
+function App() {
+  return (
+    <div style={{ display: 'flex' }}>
+      <Sidebar />
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <Header />
+        <div style={{ display: 'flex', padding: '16px' }}>
+          <Card title="System Load" value="100%" extra={<div style={{ width: '100%', height: '8px', background: '#e0e0e0', borderRadius: '4px' }}>
+            {/* You could replace this with a real progress bar component later */}
+            <div style={{ width: '100%', height: '100%', background: '#3b82f6', borderRadius: '4px' }} />
+          </div>} />
+
+          <Card title="Active Agents" value="8/8" extra="Active" />
+
+          <Card title="Response Time" value="800 ms" extra={<span style={{ fontStyle: 'italic' }}>avg</span>} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default App;
+
+
+
+
+
+
+
+
+
+
+
+
 /* src/components/Header/Header.css */
 .header {
   display: flex;
