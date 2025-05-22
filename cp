@@ -1,3 +1,54 @@
+/* src/components/Header/Header.css */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background-color: white;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.search-input {
+  width: 300px;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+// src/components/Header/Header.jsx
+import React from 'react';
+import './Header.css';
+
+export default function Header() {
+  return (
+    <header className="header">
+      <input
+        type="text"
+        className="search-input"
+        placeholder="Search commands, agents, or logs…"
+      />
+      {/* Later: add icons/buttons here */}
+    </header>
+  );
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /* src/components/Sidebar/Sidebar.css */
 .sidebar {
   width: 240px;
