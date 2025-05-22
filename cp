@@ -1,3 +1,82 @@
+// src/App.js
+import React from 'react';
+import Sidebar from './components/Sidebar/Sidebar';
+import Header from './components/Header/Header';
+import InfoBar from './components/InfoBar/InfoBar';
+import Card from './components/Card/Card';
+
+function App() {
+  return (
+    <div style={{ display: 'flex', height: '100vh' }}>
+      {/* Left sidebar */}
+      <Sidebar />
+
+      {/* Main content area */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#f7f8fa' }}>
+        {/* Top header with search */}
+        <Header />
+
+        {/* Info bar below header */}
+        <InfoBar />
+
+        {/* Dashboard cards row */}
+        <div style={{ display: 'flex', padding: '16px', gap: '16px' }}>
+          {/* System Load card with a simple progress bar */}
+          <Card
+            title="System Load"
+            value="100%"
+            extra={
+              <div style={{
+                width: '100%',
+                height: '8px',
+                background: '#e0e0e0',
+                borderRadius: '4px',
+                overflow: 'hidden'
+              }}>
+                <div style={{
+                  width: '100%',
+                  height: '100%',
+                  background: '#3b82f6',
+                  borderRadius: '4px'
+                }} />
+              </div>
+            }
+          />
+
+          {/* Active Agents card */}
+          <Card
+            title="Active Agents"
+            value="8/8"
+            extra={<span style={{ color: '#10b981', fontWeight: '500' }}>Active</span>}
+          />
+
+          {/* Response Time card */}
+          <Card
+            title="Response Time"
+            value="800 ms"
+            extra={<span style={{ fontStyle: 'italic', color: '#6b7280' }}>avg</span>}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default App;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import React from 'react';
 import './InfoBar.css';
 
