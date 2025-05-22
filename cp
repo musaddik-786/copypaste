@@ -35,7 +35,26 @@ export default function Header() {
 
 
 
+// src/App.js
+import React from 'react';
+import Sidebar from './components/Sidebar/Sidebar';
+import Header from './components/Header/Header';
 
+function App() {
+  return (
+    <div style={{ display: 'flex' }}>
+      <Sidebar />
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <Header />
+        <div style={{ padding: '16px' }}>
+          Hello React!
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default App;
 
 
 
