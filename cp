@@ -1,3 +1,141 @@
+import React from 'react';
+import './TabNav.css';
+
+export default function TabNav({ tabs, activeTab, onChange }) {
+  return (
+    <div className="tab-nav">
+      {tabs.map(tab => (
+        <div
+          key={tab}
+          className={`tab-item ${tab === activeTab ? 'active' : ''}`}
+          onClick={() => onChange(tab)}
+        >
+          {tab}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+
+.tab-nav {
+  display: flex;
+  margin: 0 16px;
+  border-bottom: 1px solid #e0e0e0;
+}
+.tab-item {
+  padding: 8px 16px;
+  cursor: pointer;
+  font-weight: 500;
+  color: #555;
+}
+.tab-item.active {
+  border-bottom: 3px solid #ff8c00;
+  color: #ff8c00;
+}
+.tab-item:not(.active):hover {
+  background: #f0f0f0;
+}
+
+
+import React from 'react';
+import Card from '../Card/Card';
+import './Overview.css'; // optional for section‐specific styles
+
+export default function Overview() {
+  return (
+    <div className="section-content">
+      {/* Example cards for Overview */}
+      <Card
+        title="System Status"
+        value="Operational"
+        extra="v1.0"
+      />
+      <Card
+        title="Last Updated"
+        value="2 minutes ago"
+      />
+      <Card
+        title="Active Sessions"
+        value="12"
+      />
+    </div>
+  );
+}
+
+
+
+// src/App.js
+import React, { useState } from 'react';
+import Sidebar from './components/Sidebar/Sidebar';
+import Header from './components/Header/Header';
+import InfoBar from './components/InfoBar/InfoBar';
+import TabNav from './components/TabNav/TabNav';
+import Overview from './components/sections/Overview';
+// import UseCases from './components/sections/UseCases';
+// import Agents from './components/sections/Agents';
+// import Insights from './components/sections/Insights';
+// import Settings from './components/sections/Settings';
+
+function App() {
+  const tabs = ['Overview', 'Use Cases', 'Agents', 'Insights', 'Settings'];
+  const [activeTab, setActiveTab] = useState(tabs[0]);
+
+  // Choose which section component to render
+  function renderSection() {
+    switch(activeTab) {
+      case 'Overview':    return <Overview />;
+      // case 'Use Cases':   return <UseCases />;
+      // case 'Agents':      return <Agents />;
+      // case 'Insights':    return <Insights />;
+      // case 'Settings':    return <Settings />;
+      default:            return <Overview />;
+    }
+  }
+
+  return (
+    <div style={{ display: 'flex', height: '100vh' }}>
+      <Sidebar />
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#f7f8fa' }}>
+        <Header />
+        <InfoBar />
+
+        {/* Tabs */}
+        <TabNav tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
+
+        {/* Section Content */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
+          {renderSection()}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default App;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // src/App.js
 import React from 'react';
 import Sidebar from './components/Sidebar/Sidebar';
