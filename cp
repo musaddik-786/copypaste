@@ -1,3 +1,63 @@
+/* src/components/Sidebar/Sidebar.css */
+.sidebar {
+  width: 240px;
+  background-color: #1e1f22;
+  color: white;
+  height: 100vh;
+  padding: 16px;
+}
+
+.sidebar h2 {
+  margin-bottom: 24px;
+  font-size: 1.25rem;
+}
+
+.nav-item {
+  padding: 12px 0;
+  cursor: pointer;
+}
+.nav-item:hover {
+  background-color: #292a2e;
+}
+
+
+// src/components/Sidebar/Sidebar.jsx
+import React from 'react';
+import './Sidebar.css';
+
+export default function Sidebar() {
+  return (
+    <aside className="sidebar">
+      <h2>JARVIS®</h2>
+      <nav>
+        <div className="nav-item">Dashboard</div>
+        <div className="nav-item">Use Cases</div>
+        <div className="nav-item">Agents</div>
+        <div className="nav-item">Insights</div>
+        <div className="nav-item">Settings</div>
+      </nav>
+    </aside>
+  );
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 https://jarvis-intelligence-abhiroopb1.replit.app/login
 
 
