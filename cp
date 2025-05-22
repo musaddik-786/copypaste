@@ -1,4 +1,13 @@
+https://jarvis-intelligence-abhiroopb1.replit.app/login
+
+
+
+
+
 Proof-of-concept for an Agentic AI renewal assistant that automates the end-to-end policy renewal workflow: from applying eligibility rules (e.g., single-policy, sub-USD 50 k premium, ≥2 prior renewals, 80 % loss ratio) and notifying upcoming expiries, to drafting renewal records, exchanging quotes with brokers, evaluating risk factors and sanctions, calculating rates via a rating model, binding accepted renewals, and finally registering policies in PAS and archiving documents in DMS—all with real-time insights, human-in-the-loop checks,
+
+
+
 
 
 
