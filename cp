@@ -1,144 +1,157 @@
-import React from 'react';
-import './TabNav.css';
+# Prompt for AI PPT Generator
 
-export default function TabNav({ tabs, activeTab, onChange }) {
-  return (
-    <div className="tab-nav">
-      {tabs.map(tab => (
-        <div
-          key={tab}
-          className={`tab-item ${tab === activeTab ? 'active' : ''}`}
-          onClick={() => onChange(tab)}
-        >
-          {tab}
-        </div>
-      ))}
-    </div>
-  );
-}
+**Presentation Title:**  
+AI-Driven Insurance Renewal Use Case – Commercial & Specialty Lines POC
 
+**Design Guidance:**  
+- **Template:** Clean corporate theme (blue/teal accents)  
+- **Fonts:** Sans-serif (headings 32 pt, body 20 pt)  
+- **Colors:** Primary #005b96 (navy), Accent #0096c7 (teal)  
+- **Icons & SmartArt:**  
+  - Use calendar, database, AI/robot, user-customer icons  
+  - Flowcharts for end-to-end processes  
+  - Highlight “AI Bot” and “Customer” nodes in accent color  
 
-.tab-nav {
-  display: flex;
-  margin: 0 16px;
-  border-bottom: 1px solid #e0e0e0;
-}
-.tab-item {
-  padding: 8px 16px;
-  cursor: pointer;
-  font-weight: 500;
-  color: #555;
-}
-.tab-item.active {
-  border-bottom: 3px solid #ff8c00;
-  color: #ff8c00;
-}
-.tab-item:not(.active):hover {
-  background: #f0f0f0;
-}
+---
 
+## Slide 1: Title & Objective  
+- **Title:** AI-Driven Insurance Renewal Use Case – Commercial & Specialty Lines  
+- **Subtitle:** Proof of Concept – End-to-End Automation  
+- **Footer:** Date: May 24, 2025 | Presenter: [Your Name]  
 
-import React from 'react';
-import Card from '../Card/Card';
-import './Overview.css'; // optional for section‐specific styles
+**Key Bullet:**  
+> Showcase how AI & data-driven rating models automate renewals, with and without coverage changes.
 
-export default function Overview() {
-  return (
-    <div className="section-content">
-      {/* Example cards for Overview */}
-      <Card
-        title="System Status"
-        value="Operational"
-        extra="v1.0"
-      />
-      <Card
-        title="Last Updated"
-        value="2 minutes ago"
-      />
-      <Card
-        title="Active Sessions"
-        value="12"
-      />
-    </div>
-  );
-}
+---
 
+## Slide 2: Agenda  
+1. Objective & Scope  
+2. Data Solution & Rating Model  
+3. Workflow Overview (Customer-Driven)  
+4. Use Case A: Renewal WITHOUT Coverage Change  
+5. Use Case B: Renewal WITH Coverage Change  
+6. Decision Rules & AI Criteria  
+7. Benefits & Next Steps  
 
+---
 
-// src/App.js
-import React, { useState } from 'react';
-import Sidebar from './components/Sidebar/Sidebar';
-import Header from './components/Header/Header';
-import InfoBar from './components/InfoBar/InfoBar';
-import TabNav from './components/TabNav/TabNav';
-import Overview from './components/sections/Overview';
-// import UseCases from './components/sections/UseCases';
-// import Agents from './components/sections/Agents';
-// import Insights from './components/sections/Insights';
-// import Settings from './components/sections/Settings';
+## Slide 3: Objective & Scope  
+- **Objective:** Automate commercial & specialty policy renewals end-to-end, minimizing manual work  
+- **Scope:**  
+  - **Lines:** Property, Casualty, Marine, Cyber, Directors & Officers  
+  - **Scenarios:**  
+    1. Standard renewal (no coverage edits)  
+    2. Renewal with customer-initiated coverage changes  
 
-function App() {
-  const tabs = ['Overview', 'Use Cases', 'Agents', 'Insights', 'Settings'];
-  const [activeTab, setActiveTab] = useState(tabs[0]);
+---
 
-  // Choose which section component to render
-  function renderSection() {
-    switch(activeTab) {
-      case 'Overview':    return <Overview />;
-      // case 'Use Cases':   return <UseCases />;
-      // case 'Agents':      return <Agents />;
-      // case 'Insights':    return <Insights />;
-      // case 'Settings':    return <Settings />;
-      default:            return <Overview />;
-    }
-  }
+## Slide 4: Data Solution & Rating Model  
+**Data Inputs (table or icon list):**  
+- Policy & exposure data (limits, deductibles, schedules)  
+- Business metrics (revenue, payroll, fleet size)  
+- Claims & loss history  
+- External factors (catastrophe models, inflation indices, market rates)  
 
-  return (
-    <div style={{ display: 'flex', height: '100vh' }}>
-      <Sidebar />
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#f7f8fa' }}>
-        <Header />
-        <InfoBar />
+**AI/ML Components (bullet list):**  
+- **Predictive Retention Model:** Forecast renewal likelihood  
+- **Risk Assessment Engine:** Flag anomalies & fraud  
+- **Dynamic Rating Engine:** Real-time premium calculation via API  
+- **NLG Module:** Auto-compose personalised renewal offers  
+- **Chatbot Interface:** Guide customers through options  
 
-        {/* Tabs */}
-        <TabNav tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
+---
 
-        {/* Section Content */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
-          {renderSection()}
-        </div>
-      </div>
-    </div>
-  );
-}
+## Slide 5: Workflow Overview (Customer-Driven Flowchart)  
+*Flowchart with two swimlanes (Customer vs AI System)*  
+1. **Customer**: Renewal reminder arrives → Clicks “Review Policy”  
+2. **AI System**: Extract policy & exposure data  
+3. **AI System**: Run risk & claims analysis  
+4. **Decision Point** (Customer node):  
+   - Choose “Proceed as-is”  
+   - Or “Request Coverage Change”  
+5a. **If as-is**: AI Bot generates renewal quote → Customer reviews & pays → Issue policy  
+5b. **If change**: Chatbot walks customer through options → Underwriter-assist AI reviews → Recalculate premium → Generate revised quote → Customer approves & pays → Issue policy  
+6. **End**
 
-export default App;
+---
 
+## Slide 6: Use Case A – Renewal WITHOUT Coverage Change  
+*Flowchart fragment highlighting “as-is” branch*  
+- **Step 1:** Customer clicks “Renew” in portal  
+- **Step 2:** AI Bot fetches policy data & runs underwriting checks  
+- **Step 3:** Rating engine calculates premium (no changes)  
+- **Step 4:** NLG module emails renewal quote  
+- **Step 5:** Chatbot confirms payment & auto-issue  
 
+---
 
+## Slide 7: Use Case B – Renewal WITH Coverage Change  
+*Flowchart fragment highlighting “change” branch*  
+- **Step 1:** Customer selects “Modify Coverage”  
+- **Step 2:** Chatbot collects change details (limits, endorsements)  
+- **Step 3:** AI-assist underwriter reviews risk adjustments  
+- **Step 4:** Rating engine recalculates new premium  
+- **Step 5:** NLG module sends revised quote & change summary  
+- **Step 6:** Customer approves via chatbot → Pays → Issue updated policy  
 
+---
 
+## Slide 8: Decision Rules & AI-Driven Criteria  
+*SmartArt decision tree*  
+- **Auto-Renew Conditions:** No open claims & ML score ≥ 0.85 → Auto-renew  
+- **Coverage Change Auto-Approve:**  
+  - Limit ↑ ≤ 20% & no major violations → Auto-approve  
+  - Else → Underwriter-assist AI  
+- **Premium Rounding:** Nearest ₹50 via AI rounding module  
 
+---
 
+## Slide 9: Benefits & Next Steps  
+**Benefits:**  
+- Turnaround time ↓ 60% with AI orchestration  
+- Manual errors ↓ 90% via automated checks  
+- Customer engagement ↑ through 24/7 chatbot  
 
+**Next Steps:**  
+1. Integrate AI modules with Policy Admin System  
+2. Pilot on 200 commercial policies  
+3. Monitor KPIs: renewal rate, cycle time, customer satisfaction  
 
+---
 
+## Slide 10: Thank You & Q&A  
+- Contact details & feedback link
 
+---
 
-
-
-
-
-
-
-
-
+**Usage:**  
+Copy-paste the above prompt into your AI PPT generator.  
+It will produce:  
+- Swimlane flowcharts showing customer & AI interactions  
+- Clear “with/without change” branches  
+- Tables and icon lists for data inputs & model components  
+- Consistent corporate styling and SmartArt elements
 
 
 
-// src/App.js
-import React from 'react';
-import Sidebar from './components/Sidebar/Sidebar';
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import Header from './components/Header/Header';
 import InfoBar from './components/InfoBar/InfoBar';
 import Card from './components/Card/Card';
