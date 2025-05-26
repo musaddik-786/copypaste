@@ -18,6 +18,77 @@ Based on the above factors, the risk is deemed acceptable, and the policy is app
 
 
 
+Policyholder: ABC Enterprises
+
+Policy Type: Commercial Property Insurance
+
+Decision: Approved with standard terms
+
+Property Details:
+
+Two-story commercial building (office use) built in 2015
+
+Total insured value (TIV): $5 million
+
+Well-maintained; compliant with local building codes
+
+
+Location Risk:
+
+Situated in a low-risk area
+
+Minimal exposure to natural catastrophes
+
+Not in a flood-prone zone; negligible seismic risk
+
+
+Fire Protection Measures:
+
+Modern sprinkler system, fire alarms, extinguishers
+
+Annual inspections
+
+Nearest fire station within a 5-minute response time
+
+
+Security Measures:
+
+CCTV cameras and access control systems
+
+24/7 security guard presence
+
+
+Claims History:
+
+No claims in the past five years
+
+Indicates proactive risk management
+
+
+Occupancy & Usage:
+
+Leased to reputable tenants with stable financials
+
+No hazardous operations or materials on-site
+
+
+Additional Considerations:
+
+Roof nearing end of expected lifespan; replacement recommended within two years
+
+Insured to upgrade fire suppression in warehouse area
+
+
+Conclusion & Terms:
+
+Overall risk: acceptable
+
+Standard deductible: $10,000
+
+Premium rate: $0.25 per $100 of coverage
+
+Approval justified by low-risk profile and strong risk management practices
+
 
 
 
