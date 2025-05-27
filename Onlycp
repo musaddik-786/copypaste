@@ -1,3 +1,542 @@
+DB CONNECTION 
+
+package util;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+
+
+public class DBConnectionUtil {
+
+    private static final String DB_URL = "jdbc:mysql://localhost:3306/hospital_management_system"; // Replace with your database URL
+    private static final String DB_USER = "root"; // Replace with your database username
+    private static final String DB_PASSWORD = "anamlalkot@123"; // Replace with your database password
+
+    private static Connection connection = null;
+
+    private DBConnectionUtil() {
+        // Private constructor to prevent unnecessary object creation
+    }
+
+    public static Connection getConnection() throws SQLException {
+        if (connection == null || connection.isClosed()) {
+            try {
+                Class.forName("com.mysql.cj.jdbc.Driver");
+                connection = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+            } catch (ClassNotFoundException e) {
+                throw new SQLException("Failed to load JDBC driver: " + e.getMessage());
+            }
+        }
+        return connection;
+    }
+
+    public static void closeConnection() throws SQLException {
+        if (connection != null && !connection.isClosed()) {
+            connection.close();
+            connection = null;
+        }
+    }
+}
+
+
+
+
+main module
+package main;
+
+import dao.HospitalServiceImpl;
+import entity.Appointment;
+import exception.PatientNumberNotFoundException;
+import java.text.SimpleDateFormat;
+import java.util.List;
+import java.util.Scanner;
+import java.util.Date;
+import java.text.ParseException;
+
+public class MainModule {
+
+    private static final HospitalServiceImpl hospitalService = new HospitalServiceImpl();
+    private static final Scanner scanner = new Scanner(System.in);
+
+    public static void main(String[] args) {
+        displayMenu();
+    }
+
+    private static void displayMenu() {
+        boolean exit = false;
+        while (!exit) {
+            System.out.println("\nHospital Management System");
+            System.out.println("1. View Appointment Details");
+            System.out.println("2. View Appointments for Patient");
+            System.out.println("3. View Appointments for Doctor");
+            System.out.println("4. Schedule Appointment");
+            System.out.println("5. Update Appointment");
+            System.out.println("6. Cancel Appointment");
+            System.out.println("7. Exit");
+            System.out.print("Enter your choice: ");
+
+            int choice = scanner.nextInt();
+            scanner.nextLine(); // Consume newline character
+
+            switch (choice) {
+                case 1:
+                    viewAppointmentDetails();
+                    break;
+                case 2:
+                    viewAppointmentsForPatient();
+                    break;
+                case 3:
+                    viewAppointmentsForDoctor();
+                    break;
+                case 4:
+                    scheduleAppointment();
+                    break;
+                case 5:
+                    updateAppointment();
+                    break;
+                case 6:
+                    cancelAppointment();
+                    break;
+                case 7:
+                    exit = true;
+                    break;
+                default:
+                    System.out.println("Invalid choice! Please enter a number between 1 and 7.");
+            }
+        }
+        System.out.println("Thank you for using the Hospital Management System. Goodbye!");
+    }
+
+    private static void viewAppointmentDetails() {
+        System.out.print("Enter Appointment ID: ");
+        int appointmentId = scanner.nextInt();
+        scanner.nextLine(); // Consume newline character
+
+        try {
+            Appointment appointment = hospitalService.getAppointmentById(appointmentId);
+            if (appointment != null) {
+                System.out.println("Appointment Details:");
+                System.out.println(appointment);
+            } else {
+                System.out.println("Appointment not found.");
+            }
+        } catch (PatientNumberNotFoundException e) {
+            System.out.println("Error: " + e.getMessage());
+        }
+    }
+
+    private static void viewAppointmentsForPatient() {
+        System.out.print("Enter Patient ID: ");
+        int patientId = scanner.nextInt();
+        scanner.nextLine(); // Consume newline character
+
+        List<Appointment> appointments = hospitalService.getAppointmentsForPatient(patientId);
+        if (appointments != null && !appointments.isEmpty()) {
+            System.out.println("Appointments for Patient:");
+            for (Appointment appointment : appointments) {
+                System.out.println(appointment);
+            }
+        } else {
+            System.out.println("No appointments found for the patient.");
+        }
+    }
+
+    private static void viewAppointmentsForDoctor() {
+        System.out.print("Enter Doctor ID: ");
+        int doctorId = scanner.nextInt();
+        scanner.nextLine(); // Consume newline character
+
+        List<Appointment> appointments = hospitalService.getAppointmentsForDoctor(doctorId);
+        if (appointments != null && !appointments.isEmpty()) {
+            System.out.println("Appointments for Doctor:");
+            for (Appointment appointment : appointments) {
+                System.out.println(appointment);
+            }
+        } else {
+            System.out.println("No appointments found for the doctor.");
+        }
+    }
+
+    
+    private static void scheduleAppointment() {
+        System.out.println("Schedule Appointment:");
+        
+        // Gather appointment details directly
+        System.out.print("Enter Patient ID: ");
+        int patientId = scanner.nextInt();
+        scanner.nextLine(); // Consume newline character
+        System.out.print("Enter Doctor ID: ");
+        int doctorId = scanner.nextInt();
+        scanner.nextLine(); // Consume newline character
+        System.out.print("Enter Appointment Date (YYYY-MM-DD): ");
+        String appointmentDateStr = scanner.nextLine();
+        System.out.print("Enter Description: ");
+        String description = scanner.nextLine();
+
+        try {
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+            Date appointmentDate = sdf.parse(appointmentDateStr);
+            
+            // Create Appointment object
+            Appointment appointment = new Appointment(patientId, doctorId, appointmentDate, description);
+            
+            // Attempt to schedule the appointment
+            boolean success = hospitalService.scheduleAppointment(appointment);
+            
+            if (success) {
+                System.out.println("Appointment scheduled successfully.");
+            } else {
+                System.out.println("Failed to schedule appointment.");
+            }
+        } catch (ParseException e) {
+            System.out.println("Invalid date format. Please enter date in YYYY-MM-DD format.");
+        }
+    }
+
+
+    private static void updateAppointment() {
+        System.out.print("Enter Appointment ID to update: ");
+        int appointmentId = scanner.nextInt();
+        scanner.nextLine(); // Consume newline character
+        
+        try {
+            // Check if the appointment exists
+            Appointment appointment = hospitalService.getAppointmentById(appointmentId);
+            if (appointment != null) {
+                System.out.println("Update Appointment:");
+                
+                // Gather updated appointment details directly
+                System.out.print("Enter Patient ID: ");
+                int patientId = scanner.nextInt();
+                scanner.nextLine(); // Consume newline character
+                System.out.print("Enter Doctor ID: ");
+                int doctorId = scanner.nextInt();
+                scanner.nextLine(); // Consume newline character
+                System.out.print("Enter Appointment Date (YYYY-MM-DD): ");
+                String appointmentDateStr = scanner.nextLine();
+                System.out.print("Enter Description: ");
+                String description = scanner.nextLine();
+
+                try {
+                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+                    Date appointmentDate = sdf.parse(appointmentDateStr);
+                    
+                    // Create updated Appointment object
+                    Appointment updatedAppointment = new Appointment(appointmentId, patientId, doctorId, appointmentDate, description);
+                    
+                    // Attempt to update the appointment
+                    boolean success = hospitalService.updateAppointment(updatedAppointment);
+                    
+                    if (success) {
+                        System.out.println("Appointment updated successfully.");
+                        return;
+                    }
+                } catch (ParseException e) {
+                    System.out.println("Invalid date format. Please enter date in YYYY-MM-DD format.");
+                }
+                
+                System.out.println("Failed to update appointment.");
+            } else {
+                System.out.println("Appointment not found.");
+            }
+        } catch (PatientNumberNotFoundException e) {
+            System.out.println("Error: " + e.getMessage());
+        }
+    }
+    
+    
+    private static void cancelAppointment() {
+        System.out.print("Enter Appointment ID to cancel: ");
+        int appointmentId = scanner.nextInt();
+        scanner.nextLine(); // Consume newline character
+        boolean success = hospitalService.cancelAppointment(appointmentId);
+        if (success) {
+            System.out.println("Appointment canceled successfully.");
+        } else {
+            System.out.println("Failed to cancel appointment.");
+        }
+    }
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+package dao;
+
+import entity.Appointment;
+import entity.Doctor;
+import entity.Patient;
+import exception.PatientNumberNotFoundException;
+import util.DBConnectionUtil;
+
+import java.sql.Connection;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+
+public class HospitalServiceImpl implements IHospitalService {
+    private Connection connection;
+
+    public HospitalServiceImpl() {
+        try {
+            this.connection = DBConnectionUtil.getConnection();
+        } catch (SQLException e) {
+        	System.err.println("Error: Unable to establish database connection.");
+            e.printStackTrace();
+
+        }
+    }
+
+    @Override
+    public Appointment getAppointmentById(int appointmentId)  throws PatientNumberNotFoundException{
+        Appointment appointment = null;
+        PreparedStatement statement = null;
+        ResultSet resultSet = null;
+
+        try {
+            String query = "SELECT * FROM appointments WHERE appointment_id = ?";
+            statement = connection.prepareStatement(query);
+            statement.setInt(1, appointmentId);
+            resultSet = statement.executeQuery();
+
+            if (resultSet.next()) {
+                appointment = new Appointment();
+                appointment.setAppointmentId(resultSet.getInt("appointment_id"));
+                appointment.setPatientId(resultSet.getInt("patient_id"));
+                appointment.setDoctorId(resultSet.getInt("doctor_id"));
+                appointment.setAppointmentDate(resultSet.getDate("appointment_date"));
+                appointment.setDescription(resultSet.getString("description"));
+            } else {
+                throw new PatientNumberNotFoundException("Patient with appointment ID " + appointmentId + " not found");
+            }
+        } catch (SQLException e) {
+        	 System.err.println("Error: Failed to retrieve appointment details from the database.");
+            e.printStackTrace();
+          
+        } finally {
+            // Close resources
+            try {
+                if (resultSet != null) resultSet.close();
+                if (statement != null) statement.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+
+        return appointment;
+    }
+
+    @Override
+    public List<Appointment> getAppointmentsForPatient(int patientId) {
+        List<Appointment> appointments = new ArrayList<>();
+        PreparedStatement statement = null;
+        ResultSet resultSet = null;
+
+        try {
+            String query = "SELECT * FROM appointments WHERE patient_id = ?";
+            statement = connection.prepareStatement(query);
+            statement.setInt(1, patientId);
+            resultSet = statement.executeQuery();
+
+            while (resultSet.next()) {
+                Appointment appointment = new Appointment();
+                appointment.setAppointmentId(resultSet.getInt("appointment_id"));
+                appointment.setPatientId(resultSet.getInt("patient_id"));
+                appointment.setDoctorId(resultSet.getInt("doctor_id"));
+                appointment.setAppointmentDate(resultSet.getDate("appointment_date"));
+                appointment.setDescription(resultSet.getString("description"));
+                appointments.add(appointment);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            // Handle database error
+        } finally {
+            // Close resources
+            try {
+                if (resultSet != null) resultSet.close();
+                if (statement != null) statement.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+
+        return appointments;
+    }
+
+    @Override
+    public List<Appointment> getAppointmentsForDoctor(int doctorId) {
+        // Similar implementation as getAppointmentsForPatient
+        return null;
+    }
+
+    @Override
+    public boolean scheduleAppointment(Appointment appointment) {
+        PreparedStatement statement = null;
+
+        try {
+            String query = "INSERT INTO appointments (patient_id, doctor_id, appointment_date, description) VALUES (?, ?, ?, ?)";
+            statement = connection.prepareStatement(query);
+            statement.setInt(1, appointment.getPatientId());
+            statement.setInt(2, appointment.getDoctorId());
+            statement.setDate(3, new Date(appointment.getAppointmentDate().getTime()));
+            statement.setString(4, appointment.getDescription());
+
+            int rowsInserted = statement.executeUpdate();
+            return rowsInserted > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            // Handle database error
+            return false;
+        } finally {
+            // Close resources
+            try {
+                if (statement != null) statement.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    @Override
+    public boolean updateAppointment(Appointment appointment) {
+        PreparedStatement statement = null;
+
+        try {
+            String query = "UPDATE appointments SET patient_id = ?, doctor_id = ?, appointment_date = ?, description = ? WHERE appointment_id = ?";
+            statement = connection.prepareStatement(query);
+            statement.setInt(1, appointment.getPatientId());
+            statement.setInt(2, appointment.getDoctorId());
+            statement.setDate(3, new Date(appointment.getAppointmentDate().getTime()));
+            statement.setString(4, appointment.getDescription());
+            statement.setInt(5, appointment.getAppointmentId());
+
+            int rowsUpdated = statement.executeUpdate();
+            return rowsUpdated > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            // Handle database error
+            return false;
+        } finally {
+            // Close resources
+            try {
+                if (statement != null) statement.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    @Override
+    public boolean cancelAppointment(int appointmentId) {
+        PreparedStatement statement = null;
+
+        try {
+            String query = "DELETE FROM appointments WHERE appointment_id = ?";
+            statement = connection.prepareStatement(query);
+            statement.setInt(1, appointmentId);
+
+            int rowsDeleted = statement.executeUpdate();
+            return rowsDeleted > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            // Handle database error
+            return false;
+        } finally {
+            // Close resources
+            try {
+                if (statement != null) statement.close();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+}
+  }
+
+
+
+
+
+package dao;
+
+import entity.Appointment;
+import entity.Doctor;
+import entity.Patient;
+import exception.PatientNumberNotFoundException;
+
+import java.util.List;
+
+public interface IHospitalService {
+    Appointment getAppointmentById(int appointmentId)  throws PatientNumberNotFoundException ;
+    List<Appointment> getAppointmentsForPatient(int patientId);
+    List<Appointment> getAppointmentsForDoctor(int doctorId);
+    boolean scheduleAppointment(Appointment appointment);
+    boolean updateAppointment(Appointment appointment);
+    boolean cancelAppointment(int appointmentId);
+}
+
+
+
+
+entity me jo appointment he usme 
+
+public class Appointment {
+    private int appointmentId;
+    private int patientId;
+    private int doctorId;
+    private Date appointmentDate;
+    private String description;
+
+    public Appointment() {
+    }
+    public Appointment(int patientId, int doctorId, Date appointmentDate, String description)
+    {
+    	  this.patientId = patientId;
+    	  this.doctorId = doctorId;
+    	  this.appointmentDate = appointmentDate;
+          this.description = description;
+    }
+    public Appointment(int appointmentId, int patientId, int doctorId, Date appointmentDate, String description) {
+        this.appointmentId = appointmentId;
+        this.patientId = patientId;
+        this.doctorId = doctorId;
+        this.appointmentDate = appointmentDate;
+        this.description = description;
+    }
+
+aisa kar
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // Project: jdbc-demo // Directory structure: // src/main/java/com/example/ // ├── dao/ // │   ├── EmployeeDAO.java // │   └── EmployeeDAOImpl.java // ├── entity/ // │   └── Employee.java // ├── util/ // │   └── DBUtil.java // └── Main.java
 
 // src/main/java/com/example/entity/Employee.java package com.example.entity;
