@@ -110,6 +110,177 @@ public class HospitalServiceImpl implements IHospitalService {
         return new Appointment(id, pid, did, date, desc);
     }
 }
+$1
+
+---
+
+## Step 6: Create the `DBPropertyUtil` Utility Class
+
+**Location:** `src/main/java/com/yourcompany/hms/util/DBPropertyUtil.java`
+
+```java
+package com.yourcompany.hms.util;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Properties;
+
+public class DBPropertyUtil {
+
+    /**
+     * Reads the given properties file from the classpath and returns the
+     * JDBC connection string built from its values.
+     *
+     * @param propertyFileName the name of the properties file (e.g., "db.properties")
+     * @return the JDBC connection URL
+     * @throws IOException if the file cannot be read
+     */
+    public static String getPropertyString(String propertyFileName) throws IOException {
+        Properties props = new Properties();
+        try (InputStream is = Thread.currentThread()
+                .getContextClassLoader()
+                .getResourceAsStream(propertyFileName)) {
+            if (is == null) {
+                throw new IOException("Property file '" + propertyFileName + "' not found in classpath");
+            }
+            props.load(is);
+        }
+        String host = props.getProperty("db.host");
+        String port = props.getProperty("db.port");
+        String dbName = props.getProperty("db.name");
+        String user = props.getProperty("db.user");
+        String pass = props.getProperty("db.password");
+
+        // Example for PostgreSQL; adjust prefix for other DBs
+        return String.format(
+            "jdbc:postgresql://%s:%s/%s?user=%s&password=%s",
+            host, port, dbName, user, pass
+        );
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+package com.yourcompany.hms.dao;
+
+import com.yourcompany.hms.entity.Appointment;
+import com.yourcompany.hms.exception.PatientNumberNotFoundException;
+import com.yourcompany.hms.util.DBConnUtil;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+
+public class HospitalServiceImpl implements IHospitalService {
+    private final Connection conn;
+
+    public HospitalServiceImpl() throws SQLException {
+        this.conn = DBConnUtil.getConnection();
+    }
+
+    @Override
+    public Appointment getAppointmentById(int appointmentId) throws SQLException {
+        String sql = "SELECT * FROM appointment WHERE appointment_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, appointmentId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return mapResultSetToAppointment(rs);
+                } else {
+                    return null;
+                }
+            }
+        }
+    }
+
+    @Override
+    public List<Appointment> getAppointmentsForPatient(int patientId) throws SQLException, PatientNumberNotFoundException {
+        String sql = "SELECT * FROM appointment WHERE patient_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, patientId);
+            try (ResultSet rs = ps.executeQuery()) {
+                List<Appointment> list = new ArrayList<>();
+                while (rs.next()) {
+                    list.add(mapResultSetToAppointment(rs));
+                }
+                if (list.isEmpty()) {
+                    throw new PatientNumberNotFoundException("No appointments found for patient ID: " + patientId);
+                }
+                return list;
+            }
+        }
+    }
+
+    @Override
+    public List<Appointment> getAppointmentsForDoctor(int doctorId) throws SQLException {
+        String sql = "SELECT * FROM appointment WHERE doctor_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, doctorId);
+            try (ResultSet rs = ps.executeQuery()) {
+                List<Appointment> list = new ArrayList<>();
+                while (rs.next()) {
+                    list.add(mapResultSetToAppointment(rs));
+                }
+                return list;
+            }
+        }
+    }
+
+    @Override
+    public boolean scheduleAppointment(Appointment appointment) throws SQLException {
+        String sql = "INSERT INTO appointment (patient_id, doctor_id, appointment_date, description) VALUES (?, ?, ?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, appointment.getPatientId());
+            ps.setInt(2, appointment.getDoctorId());
+            ps.setDate(3, java.sql.Date.valueOf(appointment.getAppointmentDate()));
+            ps.setString(4, appointment.getDescription());
+            return ps.executeUpdate() == 1;
+        }
+    }
+
+    @Override
+    public boolean updateAppointment(Appointment appointment) throws SQLException {
+        String sql = "UPDATE appointment SET patient_id=?, doctor_id=?, appointment_date=?, description=? WHERE appointment_id=?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, appointment.getPatientId());
+            ps.setInt(2, appointment.getDoctorId());
+            ps.setDate(3, java.sql.Date.valueOf(appointment.getAppointmentDate()));
+            ps.setString(4, appointment.getDescription());
+            ps.setInt(5, appointment.getAppointmentId());
+            return ps.executeUpdate() == 1;
+        }
+    }
+
+    @Override
+    public boolean cancelAppointment(int appointmentId) throws SQLException {
+        String sql = "DELETE FROM appointment WHERE appointment_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, appointmentId);
+            return ps.executeUpdate() == 1;
+        }
+    }
+
+    private Appointment mapResultSetToAppointment(ResultSet rs) throws SQLException {
+        int id = rs.getInt("appointment_id");
+        int pid = rs.getInt("patient_id");
+        int did = rs.getInt("doctor_id");
+        LocalDate date = rs.getDate("appointment_date").toLocalDate();
+        String desc = rs.getString("description");
+        return new Appointment(id, pid, did, date, desc);
+    }
+}
 
 
 
