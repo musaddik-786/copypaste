@@ -1,3 +1,36 @@
+package com.yourcompany.hms.util;
+
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+
+public class DBConnUtil {
+    private static Connection connection;
+
+    /**
+     * Returns a singleton JDBC Connection, creating it if necessary.
+     * Reads connection URL from properties via DBPropertyUtil.
+     *
+     * @return JDBC Connection
+     * @throws SQLException if a database access error occurs
+     * @throws IOException  if properties cannot be read
+     */
+    public static Connection getConnection() throws SQLException, IOException {
+        if (connection == null || connection.isClosed()) {
+            String url = DBPropertyUtil.getPropertyString("db.properties");
+            connection = DriverManager.getConnection(url);
+        }
+        return connection;
+    }
+}
+
+
+
+
+
+
+
 package com.yourcompany.hms.dao;
 
 import com.yourcompany.hms.entity.Appointment;
