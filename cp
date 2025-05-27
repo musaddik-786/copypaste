@@ -159,6 +159,422 @@ public class DBPropertyUtil {
     }
 }
 
+package com.yourcompany.hms.util;
+
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+
+public class DBConnUtil {
+    private static Connection connection;
+
+    /**
+     * Returns a singleton JDBC Connection, creating it if necessary.
+     * Reads connection URL from properties via DBPropertyUtil.
+     *
+     * @return JDBC Connection
+     * @throws SQLException if a database access error occurs
+     * @throws IOException  if properties cannot be read
+     */
+    public static Connection getConnection() throws SQLException, IOException {
+        if (connection == null || connection.isClosed()) {
+            String url = DBPropertyUtil.getPropertyString("db.properties");
+            connection = DriverManager.getConnection(url);
+        }
+        return connection;
+    }
+}
+
+package com.yourcompany.hms.exception;
+
+public class PatientNumberNotFoundException extends Exception {
+    public PatientNumberNotFoundException(String message) {
+        super(message);
+    }
+}
+
+package com.yourcompany.hms.exception;
+
+public class AppointmentNotFoundException extends Exception {
+    public AppointmentNotFoundException(String message) {
+        super(message);
+    }
+}
+
+package com.yourcompany.hms.exception;
+
+public class DoctorNotFoundException extends Exception {
+    public DoctorNotFoundException(String message) {
+        super(message);
+    }
+}
+
+package com.yourcompany.hms.mainmod;
+
+import com.yourcompany.hms.dao.HospitalServiceImpl;
+import com.yourcompany.hms.dao.IHospitalService;
+import com.yourcompany.hms.entity.Appointment;
+import com.yourcompany.hms.exception.PatientNumberNotFoundException;
+
+import java.io.IOException;
+import java.sql.SQLException;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Scanner;
+
+public class MainModule {
+    private static IHospitalService service;
+
+    public static void main(String[] args) {
+        try {
+            service = new HospitalServiceImpl();
+        } catch (SQLException | IOException e) {
+            System.err.println("Failed to initialize service: " + e.getMessage());
+            return;
+        }
+
+        Scanner scanner = new Scanner(System.in);
+        int choice;
+
+        do {
+            System.out.println("
+=== Hospital Management System ===");
+            System.out.println("1. Get Appointment by ID");
+            System.out.println("2. Get Appointments for Patient");
+            System.out.println("3. Get Appointments for Doctor");
+            System.out.println("4. Schedule Appointment");
+            System.out.println("5. Update Appointment");
+            System.out.println("6. Cancel Appointment");
+            System.out.println("7. Exit");
+            System.out.print("Enter choice: ");
+
+            choice = Integer.parseInt(scanner.nextLine());
+
+            switch (choice) {
+                case 1:
+                    getAppointmentById(scanner);
+                    break;
+                case 2:
+                    getAppointmentsForPatient(scanner);
+                    break;
+                case 3:
+                    getAppointmentsForDoctor(scanner);
+                    break;
+                case 4:
+                    scheduleAppointment(scanner);
+                    break;
+                case 5:
+                    updateAppointment(scanner);
+                    break;
+                case 6:
+                    cancelAppointment(scanner);
+                    break;
+                case 7:
+                    System.out.println("Exiting...");
+                    break;
+                default:
+                    System.out.println("Invalid choice. Try again.");
+            }
+        } while (choice != 7);
+
+        scanner.close();
+    }
+
+    private static void getAppointmentById(Scanner scanner) {
+        try {
+            System.out.print("Enter Appointment ID: ");
+            int id = Integer.parseInt(scanner.nextLine());
+            Appointment appt = service.getAppointmentById(id);
+            System.out.println(appt != null ? appt : "No appointment found.");
+        } catch (Exception e) {
+            System.err.println("Error: " + e.getMessage());
+        }
+    }
+
+    private static void getAppointmentsForPatient(Scanner scanner) {
+        try {
+            System.out.print("Enter Patient ID: ");
+            int pid = Integer.parseInt(scanner.nextLine());
+            List<Appointment> list = service.getAppointmentsForPatient(pid);
+            list.forEach(System.out::println);
+        } catch (PatientNumberNotFoundException e) {
+            System.err.println(e.getMessage());
+        } catch (Exception e) {
+            System.err.println("Error: " + e.getMessage());
+        }
+    }
+
+    private static void getAppointmentsForDoctor(Scanner scanner) {
+        try {
+            System.out.print("Enter Doctor ID: ");
+            int did = Integer.parseInt(scanner.nextLine());
+            List<Appointment> list = service.getAppointmentsForDoctor(did);
+            list.forEach(System.out::println);
+        } catch (Exception e) {
+            System.err.println("Error: " + e.getMessage());
+        }
+    }
+
+    private static void scheduleAppointment(Scanner scanner) {
+        try {
+            System.out.print("Patient ID: "); int pid = Integer.parseInt(scanner.nextLine());
+            System.out.print("Doctor ID: "); int did = Integer.parseInt(scanner.nextLine());
+            System.out.print("Date (YYYY-MM-DD): "); LocalDate date = LocalDate.parse(scanner.nextLine());
+            System.out.print("Description: "); String desc = scanner.nextLine();
+            Appointment appt = new Appointment(0, pid, did, date, desc);
+            boolean success = service.scheduleAppointment(appt);
+            System.out.println(success ? "Scheduled successfully." : "Failed to schedule.");
+        } catch (Exception e) {
+            System.err.println("Error: " + e.getMessage());
+        }
+    }
+
+    private static void updateAppointment(Scanner scanner) {
+        try {
+            System.out.print("Appointment ID to update: "); int id = Integer.parseInt(scanner.nextLine());
+            System.out.print("New Patient ID: "); int pid = Integer.parseInt(scanner.nextLine());
+            System.out.print("New Doctor ID: "); int did = Integer.parseInt(scanner.nextLine());
+            System.out.print("New Date (YYYY-MM-DD): "); LocalDate date = LocalDate.parse(scanner.nextLine());
+            System.out.print("New Description: "); String desc = scanner.nextLine();
+            Appointment appt = new Appointment(id, pid, did, date, desc);
+            boolean success = service.updateAppointment(appt);
+            System.out.println(success ? "Updated successfully." : "Failed to update.");
+        } catch (Exception e) {
+            System.err.println("Error: " + e.getMessage());
+        }
+    }
+
+    private static void cancelAppointment(Scanner scanner) {
+        try {
+            System.out.print("Appointment ID to cancel: ");
+            int id = Integer.parseInt(scanner.nextLine());
+            boolean success = service.cancelAppointment(id);
+            System.out.println(success ? "Cancelled successfully." : "Failed to cancel.");
+        } catch (Exception e) {
+            System.err.println("Error: " + e.getMessage());
+        }
+    }
+}
+
+-- 1. Patient table
+CREATE TABLE patient (
+  patient_id     SERIAL PRIMARY KEY,
+  first_name     VARCHAR(50) NOT NULL,
+  last_name      VARCHAR(50) NOT NULL,
+  date_of_birth  DATE NOT NULL,
+  gender         VARCHAR(10),
+  contact_number VARCHAR(20),
+  address        VARCHAR(255)
+);
+
+-- 2. Doctor table
+CREATE TABLE doctor (
+  doctor_id      SERIAL PRIMARY KEY,
+  first_name     VARCHAR(50) NOT NULL,
+  last_name      VARCHAR(50) NOT NULL,
+  specialization VARCHAR(100),
+  contact_number VARCHAR(20)
+);
+
+-- 3. Appointment table
+CREATE TABLE appointment (
+  appointment_id   SERIAL PRIMARY KEY,
+  patient_id       INT NOT NULL
+    REFERENCES patient(patient_id)
+    ON DELETE CASCADE,
+  doctor_id        INT NOT NULL
+    REFERENCES doctor(doctor_id)
+    ON DELETE CASCADE,
+  appointment_date DATE NOT NULL,
+  description      TEXT
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+llllllllllllll
+
+
+
+package com.yourcompany.hms.dao;
+
+import com.yourcompany.hms.entity.Appointment;
+import com.yourcompany.hms.exception.PatientNumberNotFoundException;
+import com.yourcompany.hms.util.DBConnUtil;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+
+public class HospitalServiceImpl implements IHospitalService {
+    private final Connection conn;
+
+    public HospitalServiceImpl() throws SQLException {
+        this.conn = DBConnUtil.getConnection();
+    }
+
+    @Override
+    public Appointment getAppointmentById(int appointmentId) throws SQLException {
+        String sql = "SELECT * FROM appointment WHERE appointment_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, appointmentId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return mapResultSetToAppointment(rs);
+                } else {
+                    return null;
+                }
+            }
+        }
+    }
+
+    @Override
+    public List<Appointment> getAppointmentsForPatient(int patientId) throws SQLException, PatientNumberNotFoundException {
+        String sql = "SELECT * FROM appointment WHERE patient_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, patientId);
+            try (ResultSet rs = ps.executeQuery()) {
+                List<Appointment> list = new ArrayList<>();
+                while (rs.next()) {
+                    list.add(mapResultSetToAppointment(rs));
+                }
+                if (list.isEmpty()) {
+                    throw new PatientNumberNotFoundException("No appointments found for patient ID: " + patientId);
+                }
+                return list;
+            }
+        }
+    }
+
+    @Override
+    public List<Appointment> getAppointmentsForDoctor(int doctorId) throws SQLException {
+        String sql = "SELECT * FROM appointment WHERE doctor_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, doctorId);
+            try (ResultSet rs = ps.executeQuery()) {
+                List<Appointment> list = new ArrayList<>();
+                while (rs.next()) {
+                    list.add(mapResultSetToAppointment(rs));
+                }
+                return list;
+            }
+        }
+    }
+
+    @Override
+    public boolean scheduleAppointment(Appointment appointment) throws SQLException {
+        String sql = "INSERT INTO appointment (patient_id, doctor_id, appointment_date, description) VALUES (?, ?, ?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, appointment.getPatientId());
+            ps.setInt(2, appointment.getDoctorId());
+            ps.setDate(3, java.sql.Date.valueOf(appointment.getAppointmentDate()));
+            ps.setString(4, appointment.getDescription());
+            return ps.executeUpdate() == 1;
+        }
+    }
+
+    @Override
+    public boolean updateAppointment(Appointment appointment) throws SQLException {
+        String sql = "UPDATE appointment SET patient_id=?, doctor_id=?, appointment_date=?, description=? WHERE appointment_id=?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, appointment.getPatientId());
+            ps.setInt(2, appointment.getDoctorId());
+            ps.setDate(3, java.sql.Date.valueOf(appointment.getAppointmentDate()));
+            ps.setString(4, appointment.getDescription());
+            ps.setInt(5, appointment.getAppointmentId());
+            return ps.executeUpdate() == 1;
+        }
+    }
+
+    @Override
+    public boolean cancelAppointment(int appointmentId) throws SQLException {
+        String sql = "DELETE FROM appointment WHERE appointment_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, appointmentId);
+            return ps.executeUpdate() == 1;
+        }
+    }
+
+    private Appointment mapResultSetToAppointment(ResultSet rs) throws SQLException {
+        int id = rs.getInt("appointment_id");
+        int pid = rs.getInt("patient_id");
+        int did = rs.getInt("doctor_id");
+        LocalDate date = rs.getDate("appointment_date").toLocalDate();
+        String desc = rs.getString("description");
+        return new Appointment(id, pid, did, date, desc);
+    }
+}
+$1
+
+---
+
+## Step 6: Create the `DBPropertyUtil` Utility Class
+
+**Location:** `src/main/java/com/yourcompany/hms/util/DBPropertyUtil.java`
+
+```java
+package com.yourcompany.hms.util;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Properties;
+
+public class DBPropertyUtil {
+
+    /**
+     * Reads the given properties file from the classpath and returns the
+     * JDBC connection string built from its values.
+     *
+     * @param propertyFileName the name of the properties file (e.g., "db.properties")
+     * @return the JDBC connection URL
+     * @throws IOException if the file cannot be read
+     */
+    public static String getPropertyString(String propertyFileName) throws IOException {
+        Properties props = new Properties();
+        try (InputStream is = Thread.currentThread()
+                .getContextClassLoader()
+                .getResourceAsStream(propertyFileName)) {
+            if (is == null) {
+                throw new IOException("Property file '" + propertyFileName + "' not found in classpath");
+            }
+            props.load(is);
+        }
+        String host = props.getProperty("db.host");
+        String port = props.getProperty("db.port");
+        String dbName = props.getProperty("db.name");
+        String user = props.getProperty("db.user");
+        String pass = props.getProperty("db.password");
+
+        // Example for PostgreSQL; adjust prefix for other DBs
+        return String.format(
+            "jdbc:postgresql://%s:%s/%s?user=%s&password=%s",
+            host, port, dbName, user, pass
+        );
+    }
+}
+
 
 package com.yourcompany.hms.util;
 
