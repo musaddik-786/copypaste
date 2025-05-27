@@ -1,4 +1,76 @@
-DB CONNECTION 
+[26/05, 6:38 pm] Musaddique: package dao;
+
+import entity.Appointment;
+import entity.Doctor;
+import entity.Patient;
+import exception.PatientNumberNotFoundException;
+
+import java.util.List;
+
+public interface IHospitalService {
+    Appointment getAppointmentById(int appointmentId)  throws PatientNumberNotFoundException ;
+    List<Appointment> getAppointmentsForPatient(int patientId);
+    List<Appointment> getAppointmentsForDoctor(int doctorId);
+    boolean scheduleAppointment(Appointment appointment);
+    boolean updateAppointment(Appointment appointment);
+    boolean cancelAppointment(int appointmentId);
+}
+[26/05, 6:38 pm] Musaddique: ye wala part empty reh gaya Hospital service me 
+
+    @Override
+    public List<Appointment> getAppointmentsForDoctor(int doctorId) {
+        // Similar implementation as getAppointmentsForPatient
+        return null;
+    }
+
+usme se comment hata de shak hoga
+[26/05, 6:38 pm] Musaddique: entity me jo appointment he usme 
+
+public class Appointment {
+    private int appointmentId;
+    private int patientId;
+    private int doctorId;
+    private Date appointmentDate;
+    private String description;
+
+    public Appointment() {
+    }
+    public Appointment(int patientId, int doctorId, Date appointmentDate, String description)
+    {
+    	  this.patientId = patientId;
+    	  this.doctorId = doctorId;
+    	  this.appointmentDate = appointmentDate;
+          this.description = description;
+    }
+    public Appointment(int appointmentId, int patientId, int doctorId, Date appointmentDate, String description) {
+        this.appointmentId = appointmentId;
+        this.patientId = patientId;
+        this.doctorId = doctorId;
+        this.appointmentDate = appointmentDate;
+        this.description = description;
+    }
+
+aisa kar
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+7DB CONNECTION 
 
 package util;
 
