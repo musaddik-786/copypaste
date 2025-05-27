@@ -1,25 +1,23 @@
-package com.yourcompany.hms.dao;
-
-import com.yourcompany.hms.entity.Appointment;
-import com.yourcompany.hms.exception.PatientNumberNotFoundException;
-import com.yourcompany.hms.util.DBConnUtil;
-
-import java.io.IOException;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
 
 public class HospitalServiceImpl implements IHospitalService {
     private final Connection conn;
 
-    // Updated constructor now throws IOException in addition to SQLException
-    public HospitalServiceImpl() throws SQLException, IOException {
-        this.conn = DBConnUtil.getConnection();
+    public HospitalServiceImpl()
+    {
+    try {
+    	conn = DBConnectionUtil.getConnection();
     }
+    catch(SQLException e)
+    {
+    	System.out.println("Failed to Initialize Service"+e.getMessage());
+    }
+    
+    }
+    
+    // Updated constructor now throws IOException in addition to SQLException
+//    public HospitalServiceImpl() throws SQLException, IOException {
+//        this.conn = DBConnectionUtil.getConnection();
+//    }
 
     @Override
     public Appointment getAppointmentById(int appointmentId) throws SQLException {
@@ -117,12 +115,175 @@ public class HospitalServiceImpl implements IHospitalService {
         return new Appointment(id, pid, did, date, desc);
     }
 }
+	
+	public class MainModule {
+	    private static IHospitalService service;
+
+	    public static void main(String[] args) {
+	        try {
+	            service = new HospitalServiceImpl();
+	        } catch (SQLException | IOException e) {
+	            System.err.println("Failed to initialize service: " + e.getMessage());
+	            return;
+	        }
+
+	        Scanner scanner = new Scanner(System.in);
+	        int choice;
+
+	        do {
+	            System.out.println("=== Hospital Management System ===");
+	            System.out.println("1. Get Appointment by ID");
+	            System.out.println("2. Get Appointments for Patient");
+	            System.out.println("3. Get Appointments for Doctor");
+	            System.out.println("4. Schedule Appointment");
+	            System.out.println("5. Update Appointment");
+	            System.out.println("6. Cancel Appointment");
+	            System.out.println("7. Exit");
+	            System.out.print("Enter choice: ");
+
+	            choice = Integer.parseInt(scanner.nextLine());
+
+	            switch (choice) {
+	                case 1:
+	                    getAppointmentById(scanner);
+	                    break;
+	                case 2:
+	                    getAppointmentsForPatient(scanner);
+	                    break;
+	                case 3:
+	                    getAppointmentsForDoctor(scanner);
+	                    break;
+	                case 4:
+	                    scheduleAppointment(scanner);
+	                    break;
+	                case 5:
+	                    updateAppointment(scanner);
+	                    break;
+	                case 6:
+	                    cancelAppointment(scanner);
+	                    break;
+	                case 7:
+	                    System.out.println("Exiting...");
+	                    break;
+	                default:
+	                    System.out.println("Invalid choice. Try again.");
+	            }
+	        } while (choice != 7);
+
+	        scanner.close();
+	    }
+
+	    private static void getAppointmentById(Scanner scanner) {
+	        try {
+	            System.out.print("Enter Appointment ID: ");
+	            int id = Integer.parseInt(scanner.nextLine());
+	            Appointment appt = service.getAppointmentById(id);
+	            System.out.println(appt != null ? appt : "No appointment found.");
+	        } catch (Exception e) {
+	            System.err.println("Error: " + e.getMessage());
+	        }
+	    }
+
+	    private static void getAppointmentsForPatient(Scanner scanner) {
+	        try {
+	            System.out.print("Enter Patient ID: ");
+	            int pid = Integer.parseInt(scanner.nextLine());
+	            List<Appointment> list = service.getAppointmentsForPatient(pid);
+	            list.forEach(System.out::println);
+	        } catch (PatientNumberNotFoundException e) {
+	            System.err.println(e.getMessage());
+	        } catch (Exception e) {
+	            System.err.println("Error: " + e.getMessage());
+	        }
+	    }
+
+	    private static void getAppointmentsForDoctor(Scanner scanner) {
+	        try {
+	            System.out.print("Enter Doctor ID: ");
+	            int did = Integer.parseInt(scanner.nextLine());
+	            List<Appointment> list = service.getAppointmentsForDoctor(did);
+	            list.forEach(System.out::println);
+	        } catch (Exception e) {
+	            System.err.println("Error: " + e.getMessage());
+	        }
+	    }
+
+	    private static void scheduleAppointment(Scanner scanner) {
+	        try {
+	            System.out.print("Patient ID: "); int pid = Integer.parseInt(scanner.nextLine());
+	            System.out.print("Doctor ID: "); int did = Integer.parseInt(scanner.nextLine());
+	            System.out.print("Date (YYYY-MM-DD): "); LocalDate date = LocalDate.parse(scanner.nextLine());
+	            System.out.print("Description: "); String desc = scanner.nextLine();
+	            Appointment appt = new Appointment(0, pid, did, date, desc);
+	            boolean success = service.scheduleAppointment(appt);
+	            System.out.println(success ? "Scheduled successfully." : "Failed to schedule.");
+	        } catch (Exception e) {
+	            System.err.println("Error: " + e.getMessage());
+	        }
+	    }
+
+	    private static void updateAppointment(Scanner scanner) {
+	        try {
+	            System.out.print("Appointment ID to update: "); int id = Integer.parseInt(scanner.nextLine());
+	            System.out.print("New Patient ID: "); int pid = Integer.parseInt(scanner.nextLine());
+	            System.out.print("New Doctor ID: "); int did = Integer.parseInt(scanner.nextLine());
+	            System.out.print("New Date (YYYY-MM-DD): "); LocalDate date = LocalDate.parse(scanner.nextLine());
+	            System.out.print("New Description: "); String desc = scanner.nextLine();
+	            Appointment appt = new Appointment(id, pid, did, date, desc);
+	            boolean success = service.updateAppointment(appt);
+	            System.out.println(success ? "Updated successfully." : "Failed to update.");
+	        } catch (Exception e) {
+	            System.err.println("Error: " + e.getMessage());
+	        }
+	    }
+
+	    private static void cancelAppointment(Scanner scanner) {
+	        try {
+	            System.out.print("Appointment ID to cancel: ");
+	            int id = Integer.parseInt(scanner.nextLine());
+	            boolean success = service.cancelAppointment(id);
+	            System.out.println(success ? "Cancelled successfully." : "Failed to cancel.");
+	        } catch (Exception e) {
+	            System.err.println("Error: " + e.getMessage());
+	        }
+	    }
+	}
+	
 
 
 
 
 
+	public class DBConnectionUtil {
 
+		 private static final String DB_URL = "jdbc:mysql://localhost:3306/hospital_management_system"; // Replace with your database URL
+		    private static final String DB_USER = "root"; // Replace with your database username
+		    private static final String DB_PASSWORD = "anamlalkot"; // Replace with your database password
+
+		    private static Connection connection = null;
+
+		    private DBConnectionUtil() {
+		        // Private constructor to prevent unnecessary object creation
+		    }
+
+		    public static Connection getConnection() throws SQLException {
+		        if (connection == null || connection.isClosed()) {
+		            try {
+		                Class.forName("com.mysql.cj.jdbc.Driver");
+		                connection = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+		            } catch (ClassNotFoundException e) {
+		                throw new SQLException("Failed to load JDBC driver: " + e.getMessage());
+		            }
+		        }
+		        return connection;
+		    }
+
+		    public static void closeConnection() throws SQLException {
+		        if (connection != null && !connection.isClosed()) {
+		            connection.close();
+		            connection = null;
+		        }
+		    }}
 
 
 
