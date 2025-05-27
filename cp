@@ -1,3 +1,179 @@
+Coding Challenge: Hospital Management System 
+
+•	Project submissions should be done through the partcipants’ Github repository and the link should be shared with trainers and Hexavarsity. 
+
+•	Follow object-oriented principles throughout the project. Use classes and objects to model realworld entities, encapsulate data and behavior, and ensure code reusability. 
+
+•	Throw user defined exceptions from corresponding methods and handled. 
+
+•	The following Directory structure is to be followed in the application.  
+
+o	entity 
+
+▪	Create entity classes in this package. All entity class should not have any business logic. o 	dao 
+
+▪	Create Service Provider interface to showcase functionalities. 
+
+▪	Create the implementation class for the above interface with db interaction. o 	exception 
+
+▪	Create user defined exceptions in this package and handle exceptions whenever needed. 
+
+o	util 
+
+▪	Create a DBPropertyUtil class with a static function which takes property file name as parameter and returns connection string. 
+
+▪	Create a DBConnUtil class  which holds static method which takes connection string as parameter file and returns connection object(Use method defined in DBPropertyUtil class to get the connection String). o 	main 
+
+▪	Create a class MainModule and demonstrate the functionalities in a menu driven application. 
+
+ 
+
+Problem Statement: 
+
+ 
+
+ 1Create SQL Schema from the following classes class, use the class attributes for table column names. 
+
+  
+
+1. Create the following model/entity classes within package entity with variables declared private, constructors(default and parametrized,getters,setters and toString()) 
+
+ 
+
+1.	Define  `Patient` class with the following confidential attributes:  
+
+ 
+
+a.	patientId 
+
+b.	firstName 
+
+c.	lastName;  
+
+d.	dateOfBirth 
+
+e.	gender 
+
+f.	contactNumber 
+
+g.	address; 
+
+2.	Define  ‘Doctor` class with the following confidential attributes: 
+
+a.	doctorId 
+
+b.	firstName 
+
+c.	lastName 
+
+d.	specialization 
+
+e.	contactNumber;  
+
+3.	Appointment Class: 
+
+a.	appointmentId 
+
+b.	patientId  
+
+c.	doctorId 
+
+d.	appointmentDate 
+
+e.	description 
+
+ 
+
+2.	Implement the following for all model classes. Write default constructors and overload the constructor with parameters, getters and setters, method to print all the member variables and values.  
+
+ 
+
+3.	Define IHospitalService interface/abstract class with following methods to interact with database  
+
+Keep the interfaces and implementation classes in package dao 
+
+ 
+
+a.	getAppointmentById() 
+
+i.	Parameters: appointmentId 
+
+ii.	ReturnType: Appointment object 
+
+b.	getAppointmentsForPatient() 
+
+i.	Parameters: patientId 
+
+ii.	ReturnType: List of Appointment objects 
+
+ 
+
+c.	getAppointmentsForDoctor() 
+
+i.	Parameters: doctorId 
+
+ii.	ReturnType: List of Appointment objects 
+
+ 
+
+d.	scheduleAppointment() 
+
+i.	Parameters: Appointment Object 
+
+ii.	ReturnType: Boolean 
+
+ 
+
+e.	updateAppointment() 
+
+i.	Parameters: Appointment Object 
+
+ii.	ReturnType: Boolean 
+
+ 
+
+f.	ancelAppointment() 
+
+i.	Parameters: AppointmentId ii. ReturnType: Boolean 
+
+ 
+
+6.	Define HospitalServiceImpl class and implement all  the methods  IHospitalServiceImpl . 
+
+7.	Create a utility class DBConnection  in a package util  with  a static variable connection of Type Connection and a static method getConnection() which returns connection. 
+
+Connection properties supplied in the connection string should be read from a property file. 
+
+Create a utility class PropertyUtil which contains a static method named getPropertyString()  which reads a property fie containing connection details like hostname, dbname, username, password, port number and returns a connection string. 
+
+8.	Create the exceptions in package myexceptions 
+
+ Define the following custom exceptions and throw them in methods whenever needed. Handle all the exceptions in main method, 
+
+1. PatientNumberNotFoundException :throw this exception when user enters an invalid patient number which doesn’t exist in db 
+
+9.	Create class named MainModule with main method in   package mainmod. 
+
+Trigger all the methods in service implementation class. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Policyholder Name: ABC Enterprises
 Policy Type: Commercial Property Insurance
 Decision: Approved with Standard Terms
