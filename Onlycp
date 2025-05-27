@@ -1,0 +1,94 @@
+// Project: jdbc-demo // Directory structure: // src/main/java/com/example/ // ├── dao/ // │   ├── EmployeeDAO.java // │   └── EmployeeDAOImpl.java // ├── entity/ // │   └── Employee.java // ├── util/ // │   └── DBUtil.java // └── Main.java
+
+// src/main/java/com/example/entity/Employee.java package com.example.entity;
+
+public class Employee { private int id; private String name; private double salary;
+
+public Employee() {}
+
+public Employee(int id, String name, double salary) {
+    this.id = id;
+    this.name = name;
+    this.salary = salary;
+}
+
+public int getId() {
+    return id;
+}
+
+public void setId(int id) {
+    this.id = id;
+}
+
+public String getName() {
+    return name;
+}
+
+public void setName(String name) {
+    this.name = name;
+}
+
+public double getSalary() {
+    return salary;
+}
+
+public void setSalary(double salary) {
+    this.salary = salary;
+}
+
+@Override
+public String toString() {
+    return "Employee{id=" + id + ", name='" + name + "', salary=" + salary + '}';
+}
+
+}
+
+// src/main/java/com/example/util/DBUtil.java package com.example.util;
+
+import java.sql.Connection; import java.sql.DriverManager; import java.sql.SQLException;
+
+public class DBUtil { private static final String URL = "jdbc:mysql://localhost:3306/testdb"; private static final String USER = "root"; private static final String PASS = "secret";
+
+static {
+    try {
+        Class.forName("com.mysql.cj.jdbc.Driver");
+    } catch (ClassNotFoundException e) {
+        throw new RuntimeException("MySQL JDBC driver not found", e);
+    }
+}
+
+public static Connection getConnection() throws SQLException {
+    return DriverManager.getConnection(URL, USER, PASS);
+}
+
+}
+
+// src/main/java/com/example/dao/EmployeeDAO.java package com.example.dao;
+
+import com.example.entity.Employee; import java.util.List;
+
+public interface EmployeeDAO { Employee findById(int id); List<Employee> findAll(); int save(Employee employee); boolean update(Employee employee); boolean delete(int id); }
+
+// src/main/java/com/example/dao/EmployeeDAOImpl.java package com.example.dao;
+
+import com.example.entity.Employee; import com.example.util.DBUtil;
+
+import java.sql.*; import java.util.ArrayList; import java.util.List;
+
+public class EmployeeDAOImpl implements EmployeeDAO { @Override public Employee findById(int id) { String sql = "SELECT id, name, salary FROM employees WHERE id = ?"; try (Connection conn = DBUtil.getConnection(); PreparedStatement pstmt = conn.prepareStatement(sql)) { pstmt.setInt(1, id); try (ResultSet rs = pstmt.executeQuery()) { if (rs.next()) { return new Employee( rs.getInt("id"), rs.getString("name"), rs.getDouble("salary") ); } } } catch (SQLException e) { e.printStackTrace(); } return null; }
+
+@Override
+public List<Employee> findAll() {
+    List<Employee> list = new ArrayList<>();
+    String sql = "SELECT id, name, salary FROM employees";
+    try (Connection conn = DBUtil.getConnection();
+         Statement stmt = conn.createStatement();
+         ResultSet rs = stmt.executeQuery(sql)) {
+        while (rs.next()) {
+            list.add(new Employee(
+                rs.getInt("id"),
+                rs.getString("name"),
+                rs.getDouble("salary")
+            ));
+        }
+
