@@ -1,3 +1,156 @@
+package com.yourcompany.hms.dao;
+
+import com.yourcompany.hms.entity.Appointment;
+import com.yourcompany.hms.exception.PatientNumberNotFoundException;
+import com.yourcompany.hms.util.DBConnUtil;
+
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+
+public class HospitalServiceImpl implements IHospitalService {
+    private final Connection conn;
+
+    // Updated constructor now throws IOException in addition to SQLException
+    public HospitalServiceImpl() throws SQLException, IOException {
+        this.conn = DBConnUtil.getConnection();
+    }
+
+    @Override
+    public Appointment getAppointmentById(int appointmentId) throws SQLException {
+        String sql = "SELECT * FROM appointment WHERE appointment_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, appointmentId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return mapResultSetToAppointment(rs);
+                } else {
+                    return null;
+                }
+            }
+        }
+    }
+
+    @Override
+    public List<Appointment> getAppointmentsForPatient(int patientId)
+            throws SQLException, PatientNumberNotFoundException {
+        String sql = "SELECT * FROM appointment WHERE patient_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, patientId);
+            try (ResultSet rs = ps.executeQuery()) {
+                List<Appointment> list = new ArrayList<>();
+                while (rs.next()) {
+                    list.add(mapResultSetToAppointment(rs));
+                }
+                if (list.isEmpty()) {
+                    throw new PatientNumberNotFoundException(
+                        "No appointments found for patient ID: " + patientId
+                    );
+                }
+                return list;
+            }
+        }
+    }
+
+    @Override
+    public List<Appointment> getAppointmentsForDoctor(int doctorId) throws SQLException {
+        String sql = "SELECT * FROM appointment WHERE doctor_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, doctorId);
+            try (ResultSet rs = ps.executeQuery()) {
+                List<Appointment> list = new ArrayList<>();
+                while (rs.next()) {
+                    list.add(mapResultSetToAppointment(rs));
+                }
+                return list;
+            }
+        }
+    }
+
+    @Override
+    public boolean scheduleAppointment(Appointment appointment) throws SQLException {
+        String sql = "INSERT INTO appointment (patient_id, doctor_id, appointment_date, description) "
+                   + "VALUES (?, ?, ?, ?)";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, appointment.getPatientId());
+            ps.setInt(2, appointment.getDoctorId());
+            ps.setDate(3, java.sql.Date.valueOf(appointment.getAppointmentDate()));
+            ps.setString(4, appointment.getDescription());
+            return ps.executeUpdate() == 1;
+        }
+    }
+
+    @Override
+    public boolean updateAppointment(Appointment appointment) throws SQLException {
+        String sql = "UPDATE appointment SET patient_id=?, doctor_id=?, appointment_date=?, "
+                   + "description=? WHERE appointment_id=?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, appointment.getPatientId());
+            ps.setInt(2, appointment.getDoctorId());
+            ps.setDate(3, java.sql.Date.valueOf(appointment.getAppointmentDate()));
+            ps.setString(4, appointment.getDescription());
+            ps.setInt(5, appointment.getAppointmentId());
+            return ps.executeUpdate() == 1;
+        }
+    }
+
+    @Override
+    public boolean cancelAppointment(int appointmentId) throws SQLException {
+        String sql = "DELETE FROM appointment WHERE appointment_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, appointmentId);
+            return ps.executeUpdate() == 1;
+        }
+    }
+
+    private Appointment mapResultSetToAppointment(ResultSet rs) throws SQLException {
+        int id   = rs.getInt("appointment_id");
+        int pid  = rs.getInt("patient_id");
+        int did  = rs.getInt("doctor_id");
+        LocalDate date = rs.getDate("appointment_date").toLocalDate();
+        String desc    = rs.getString("description");
+        return new Appointment(id, pid, did, date, desc);
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+g
+y
+yyygg
+g
+g
+h
+g
+g
+g
+g
+
+
+
+
+
 package dao;
 
 import entity.Appointment;
