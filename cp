@@ -1,3 +1,65 @@
+package com.yourcompany.hms.dao;
+
+import com.yourcompany.hms.entity.Appointment;
+import java.util.List;
+
+public interface IHospitalService {
+
+    /**
+     * Retrieve an appointment by its ID.
+     * @param appointmentId the ID of the appointment to fetch
+     * @return the Appointment object, or null if not found
+     */
+    Appointment getAppointmentById(int appointmentId) throws Exception;
+
+    /**
+     * Retrieve all appointments for a given patient.
+     * @param patientId the patient ID
+     * @return List of Appointment objects
+     */
+    List<Appointment> getAppointmentsForPatient(int patientId) throws Exception;
+
+    /**
+     * Retrieve all appointments for a given doctor.
+     * @param doctorId the doctor ID
+     * @return List of Appointment objects
+     */
+    List<Appointment> getAppointmentsForDoctor(int doctorId) throws Exception;
+
+    /**
+     * Schedule a new appointment.
+     * @param appointment the Appointment object to insert
+     * @return true if successful, false otherwise
+     */
+    boolean scheduleAppointment(Appointment appointment) throws Exception;
+
+    /**
+     * Update an existing appointment.
+     * @param appointment the Appointment object with updated fields
+     * @return true if successful, false otherwise
+     */
+    boolean updateAppointment(Appointment appointment) throws Exception;
+
+    /**
+     * Cancel (delete) an appointment by ID.
+     * @param appointmentId the ID of the appointment to cancel
+     * @return true if successful, false otherwise
+     */
+    boolean cancelAppointment(int appointmentId) throws Exception;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 import java.time.LocalDate;
 
 public class Appointment {
