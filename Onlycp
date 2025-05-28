@@ -1,3 +1,84 @@
+Underwriting Transformation - Solutions
+
+01 Data and Analytics
+
+Incorporating analytics & Reporting tools providing real time information
+
+Incorporate analytics and reporting tools
+Real-time insights into portfolio performance, risk trends, and other key metrics
+For ex: 
+Ops MI : Pipeline management MI such as untouched, WIP, completed, queried 
+Pre-Bind MI: Submission/ Quote ratio, geo wise portfolio view, claims ratio, Quote/bind ratios
+Post Bind: loss control, claims history, legal & compliance report, premium collection & allocation, aged debt,  reports 
+
+
+02 Digital Workbench
+
+Centralized control panel offering one stop shop solution
+
+Centralized control panel, offering a one-stop-shop solution 
+Optimises processes 
+Facilitates efficient workflow, access to online documents and emails.
+Paperless and collaborative features 
+Single pain of glass to improve transparency
+Digitising what is broken and connecting what is working well
+
+
+03 Intelligent Document Processing
+
+Include Unstructured documents in automation Journey
+
+Extracting information from unstructured data sources and documents and convert them in the standardized format to improve yield from automation
+Summaries the chat transcripts, call or from converted structured data extracted from unstructured document
+
+04 Intelligent Automation
+
+Automate which is Repetitive & Rule based
+
+Automate rule-based processes to improve turn around time and accuracy of the output
+Document Generation
+Answering queries 
+
+
+05 Process Re-Engineering
+
+Re-imagine existing Processes
+
+Re-imagine operating model
+Generating Model Processes with less hand off’s and NVA’s
+Decouple activities into admin and decision making; strategic decision making 
+Centre of Excellence : Consolidate processes, LOB’s which are similar together to drive economies of scale
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 public class HospitalServiceImpl implements IHospitalService {
     private final Connection conn;
