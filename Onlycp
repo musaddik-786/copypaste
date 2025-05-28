@@ -1,3 +1,106 @@
+
+
+“Create a responsive web dashboard for managing vehicle damage claims. Do not replicate any existing design, but include all these features in a fresh layout:
+
+1. Global Header
+
+Left: Logo placeholder + page title “Genius CLAIM”
+
+Center: Vehicle summary line: 2016 BMW X3 xDrive28i (make, model, year) with VIN underneath
+
+Right: User avatar icon, notification bell icon
+
+
+2. Sidebar (left) – vertical navigation
+
+Items: Summary, Front Left, Front Right, Rear Left, Rear Right
+
+Highlight the active section (“Front Left”) with a bold accent color
+
+
+3. Main Content Area (two columns)
+
+Column A (damage map)
+
+Large photo placeholder of the vehicle
+
+Overlaid, semi-transparent colored shapes marking damaged zones (use teal for ‘inspect’, amber for ‘review’, gray for ‘ok’)
+
+Label the current view (“Front Left”) at the top of the image
+
+Timestamp or image ID in small text below
+
+
+Column B (parts & actions)
+
+Tabs at top: External Parts | Internal Parts
+
+In each tab, list each part as a collapsible accordion item showing:
+
+1. Part name (e.g. “Front Bumper”)
+
+
+2. Price (e.g. “$1,273.33”)
+
+
+3. Action selector: a dropdown with options “Replace,” “Repair,” or “None”
+
+
+4. Review checkbox or toggle
+
+
+
+At the bottom of the list, show totals: “Repair Cost: $6,395.06” and “ACV: $17,525”
+
+
+
+4. Status indicators (top-right of main area)
+
+Two circular icon badges with micro-text below:
+
+Damage severity (use an icon + “Moderate”)
+
+AI confidence (use a checkmark + “92%”)
+
+
+
+5. Styling & tone
+
+Clean, minimalist, plenty of white space
+
+Accent colors: teal (#1FAAAA), amber (#F0A500), slate gray (#6B7280)
+
+Rounded corners on cards, subtle drop-shadows
+
+Sans-serif font (e.g. Inter or Roboto)
+
+
+6. Responsive behavior
+
+Collapse the sidebar into a top hamburger menu on narrow viewports
+
+Parts accordions stretch full-width on mobile
+
+
+“Use this spec to generate a new web page design—same functionality, different structure and styling.”
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Challenges of Insurance Contact Center
 
 01 Surges of Claims enquiry calls during high demand periods like CAT events
