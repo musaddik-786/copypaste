@@ -1,3 +1,322 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig {
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+            .csrf().disable()  // disable CSRF protection
+            .authorizeHttpRequests(authorize -> authorize
+                .anyRequest().permitAll()  // allow all requests without authentication
+            );
+        return http.build();
+    }
+}
+
+
+@RestController
+@RequestMapping("/api/books")
+@Validated
+@CrossOrigin(origins = "http://localhost:3000")
+public class BookController {
+	  @Autowired
+	    private BookService bookService;
+	  
+	  @GetMapping
+	    public List<Bookdto> getAllBooks() {
+	        return bookService.getAllBooks();
+	    }
+	  
+	  @GetMapping("/{name}")
+	    public ResponseEntity<Bookdto> getBookByIsbn(@PathVariable String isbn) {
+	        try {
+	            Bookdto bookDTO = bookService.getbybookname(isbn);
+	            return ResponseEntity.ok(bookDTO);
+	        } catch (ResourceNotFoundException ex) {
+	            return ResponseEntity.notFound().build();
+	        }
+	    }
+
+}
+
+
+public class Userdto {
+	private String username;
+    private String password;
+	public String getUsername() {
+		return username;
+	}
+	public void setUsername(String username) {
+		this.username = username;
+	}
+	public String getPassword() {
+		return password;
+	}
+	public void setPassword(String password) {
+		this.password = password;
+	}
+	public Userdto(String username, String password) {
+		super();
+		this.username = username;
+		this.password = password;
+	}
+    
+	
+}
+
+
+public class Bookdto {
+	 @NotBlank(message = "Title is mandatory")
+	private String Name;
+	 @NotBlank(message = "Title is mandatory")
+	 @NotNull(message = "Publication Year is mandatory")
+	 @Positive(message = "Publication Year must be positive")
+	private int PublicationYear;
+	 @NotBlank(message = "Title is mandatory")
+	private String Authorname;
+	 @NotBlank(message = "Title is mandatory")
+	private String Description;
+	public String getName() {
+		return Name;
+	}
+	public void setName(String name) {
+		Name = name;
+	}
+	public int getPublicationYear() {
+		return PublicationYear;
+	}
+	public void setPublicationYear(int publicationYear) {
+		PublicationYear = publicationYear;
+	}
+	public String getAuthorname() {
+		return Authorname;
+	}
+	public void setAuthorname(String authorname) {
+		Authorname = authorname;
+	}
+	public String getDescription() {
+		return Description;
+	}
+	public void setDescription(String description) {
+		Description = description;
+	}
+	
+	
+	public Bookdto(String name, int publicationYear, String authorname, String description) {
+		this.Name = name;
+		this.PublicationYear = publicationYear;
+		this.Authorname = authorname;
+		this.Description = description;
+	}
+	
+	
+
+	
+}
+
+
+
+@Entity
+public class User {
+
+@Id
+@GeneratedValue(strategy = GenerationType.IDENTITY)
+int id;
+String username;
+String Password;
+public int getId() {
+	return id;
+}
+public void setId(int id) {
+	this.id = id;
+}
+public String getUsername() {
+	return username;
+}
+public void setUsername(String username) {
+	this.username = username;
+}
+public String getPassword() {
+	return Password;
+}
+public void setPassword(String password) {
+	Password = password;
+}
+public User(int id, String username, String password) {
+	super();
+	this.id = id;
+	this.username = username;
+	Password = password;
+}
+}
+
+
+@Entity
+public class Book {
+
+@Id
+@GeneratedValue(strategy = GenerationType.IDENTITY)
+private int id;
+private String name;
+private int PublicationYear;
+private String Authorname;
+private String Description;
+
+
+public int getId() {
+	return id;
+}
+public void setId(int id) {
+	this.id = id;
+}
+public String getName() {
+	return name;
+}
+public void setName(String name) {
+	this.name = name;
+}
+public int getPublicationYear() {
+	return PublicationYear;
+}
+public void setPublicationYear(int publicationYear) {
+	PublicationYear = publicationYear;
+}
+public String getAuthorname() {
+	return Authorname;
+}
+public void setAuthorname(String authorname) {
+	Authorname = authorname;
+}
+public String getDescription() {
+	return Description;
+}
+public void setDescription(String description) {
+	Description = description;
+}
+
+//Default constructor is required by JPA
+public Book() {}
+
+
+public Book(int id, String name, int publicationYear, String authorname, String description) {
+	super();
+	this.id = id;
+	this.name = name;
+	PublicationYear = publicationYear;
+	Authorname = authorname;
+	Description = description;
+}
+
+
+
+}
+
+
+public class ResourceNotFoundException extends RuntimeException {
+
+    public ResourceNotFoundException(String resource) {
+        super("Resource not found: " + resource);
+    }
+}
+
+
+
+public interface BookRepository extends JpaRepository<Book, Integer>  {
+	 Optional<Book> findByname(String name);
+}
+
+
+
+
+public interface BookService {
+	 List<Bookdto> getAllBooks();
+Bookdto getbybookname(String name);
+}
+
+
+
+@Service
+public class BookServiceImpl implements BookService {
+		@Autowired
+		private BookRepository Bookrepos;
+	
+		 @Override
+		    public Bookdto getbybookname(String name) {
+		        Book book = Bookrepos.findByname(name)
+		                .orElseThrow(() -> new ResourceNotFoundException("Book not found"));
+		        return new Bookdto(book.getName(), book.getPublicationYear(), book.getAuthorname(), book.getDescription());
+		    }
+		 
+		 @Override
+		    public List<Bookdto> getAllBooks() {
+		        List<Book> books = Bookrepos.findAll();
+		        return books.stream().map(book -> new Bookdto(
+		        		book.getName(), book.getPublicationYear(), book.getAuthorname(), book.getDescription())
+		        ).collect(Collectors.toList());
+		    }
+	}
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Challenges of FNOL (First Notice of Loss) Process
 01 Lengthy and Complex Claim Initiation
 
