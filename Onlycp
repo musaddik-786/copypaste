@@ -1,3 +1,163 @@
+Below is a set of smartly distilled categories for all your pre-FNOL questions—each category represents a logical group of fields that can be auto-prefilled either from your policy/claim database or via your image-detection pipeline.
+
+
+---
+
+1. Policyholder & Contact Information
+
+(prefill from system)
+
+Contact Information (name, phone, email)
+
+Address of policy holder
+
+Ownership flag (Is it their own house?)
+
+Agreement with policyholder / Confirm review
+
+
+
+---
+
+2. Property & Asset Baseline
+
+(prefill from system)
+
+Building specs (roof type, plinth material, age on roof)
+
+Existing condition reports (last 5-year report)
+
+“Do you have the building or urgent need to stop water ingress?”
+
+
+
+---
+
+3. Historical & Maintenance Data
+
+(prefill from system)
+
+Past craftsmen visits / reports
+
+Received offers or invoices from craftsmen
+
+Has the damage already been repaired?
+
+Choose Tryg Bygning vs. own craftsman vs. DIY
+
+
+
+---
+
+4. Damage Detection & Classification
+
+(image-detection)
+
+What has been damaged? (roof, window, fence, greenhouse…)
+
+What type of damage? (shattered, leak, missing shingles…)
+
+Is the glass mounted? / What happened to the glass?
+
+Is it only the roof damaged due to storm?
+
+
+
+---
+
+5. Damage Location & Extent
+
+(image-detection + metadata)
+
+Where did the damage happen? (room, exterior wall, pipe, gutter…)
+
+How many m² of roof/wall/fence are affected?
+
+Where does the water come in? (point of ingress)
+
+Which parts of the building are damaged? (doors, windows…)
+
+
+
+---
+
+6. Cause & Mitigation Status
+
+(prefill + manual flag)
+
+How did the damage occur? (storm, vandalism, sanitation event)
+
+Is it a continuous jet from a pipe or just dripping?
+
+What have you done to limit further damage?
+
+“If there is missing prefill data, correct it here”
+
+
+
+---
+
+7. Responsibility & Third-Party Info
+
+(prefill from system)
+
+Is there a responsible counterpart?
+
+Who is the responsible counterpart?
+
+Where did the burglary/theft happen?
+
+Stolen items, vandalism, theft classifications
+
+
+
+---
+
+8. Cost Estimates & Documentation
+
+(prefill + flag for manual entry)
+
+Have you an invoice? → Enter price incl. VAT
+
+Estimated material costs & expected working hours
+
+Attach documentation (photos, receipts, police report…)
+
+
+
+---
+
+How to Use These Categories in Your Deck
+
+1. Slide per Category: Show which fields auto-populate and highlight what still needs manual input.
+
+
+2. Color-code by Source: e.g. blue = database, red = image-CV, gray = manual at FNOL.
+
+
+3. Call-outs: Annotate one or two example questions under each category to make it concrete.
+
+
+
+This structure not only groups 60+ questions into 8 cohesive buckets, but also clearly maps each bucket to your data-source (DB vs. CV) so your audience instantly sees where the automation value lies.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Contact Information
 If there is missing any data, you can correct them here 
 Address of policy holder
