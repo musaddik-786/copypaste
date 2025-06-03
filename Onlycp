@@ -1,3 +1,24 @@
+Metric	Snowflake	Microsoft Fabric	Notes
+Architecture	Cloud-agnostic, separated storage and compute layers	Unified platform with OneLake, Azure-centric	Fabric best for Microsoft ecosystem
+Performance & Scalability	Virtually limitless compute scaling with virtual warehouses	Fast in Microsoft environments; may require tuning for complex loads	Depends on workload complexity
+Data Integration & Ingestion	Snowpipe, streaming, 3rd-party ETL tools (Fivetran, Matillion)	Native data pipelines, Azure Data Factory integration	Fabric better for Azure-centric pipelines
+Analytics & Reporting	BI via 3rd-party tools; notebooks; no native AI/ML	Built-in Power BI, AI/ML tools like Copilot, SynapseML	Fabric excels in integrated reporting and AI
+Pricing	Pay-as-you-go; separate compute and storage billing	Capacity-based unified pricing	Depends on workload predictability
+Security & Compliance	Strong security, virtual private instances, SOC 2, HIPAA, GDPR compliant	Strong security, Microsoft security integration, sensitivity labels	Both platforms highly secure
+Data Sharing & Collaboration	Advanced live sharing, data marketplace	Azure Data Share required for external sharing	Snowflake leads in seamless data sharing
+Administration & Maintenance	Fully managed SaaS, automatic upgrades, near-zero admin	Fully managed SaaS, integrated with Microsoft ecosystem	Both low admin overhead
+AI/ML Support	Integration with external ML tools (Jupyter, Databricks)	Native AI/ML tools like Copilot and SynapseML	Fabric has built-in AI advantage
+Ecosystem & Tooling	Broad multi-cloud ecosystem, supports many 3rd-party tools	Unified Microsoft ecosystem with Azure Synapse, Power BI, Data Factory	Choose based on existing infrastructure
+
+
+
+
+
+
+
+
+
+
 Criteria	Nolej	Microsoft Fabric
 Data Integration	Focus on educational content ingestion	Robust data pipelines and ingestion
 Reporting & Analytics	Content-based interactive learning	Enterprise-grade BI with Power BI
