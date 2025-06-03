@@ -1,3 +1,26 @@
+Criteria	Nolej	Microsoft Fabric
+Data Integration	Focus on educational content ingestion	Robust data pipelines and ingestion
+Reporting & Analytics	Content-based interactive learning	Enterprise-grade BI with Power BI
+Ease of Use	No-code content creation	SaaS with familiar Microsoft UI
+AI & Automation	AI for learning content	AI Copilot and Azure AI Foundry
+Security & Compliance	Content security focus	Enterprise security and compliance
+Scalability	Not designed for large-scale analytics	Scalable for enterprise data workloads
+Integration with Tools	Integrates with Moodle	Integrates with Microsoft 365 and Azure
+Cost	Not specified	SaaS pricing, usage-based
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Below is a set of smartly distilled categories for all your pre-FNOL questions—each category represents a logical group of fields that can be auto-prefilled either from your policy/claim database or via your image-detection pipeline.
 
 
