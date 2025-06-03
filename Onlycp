@@ -1,3 +1,71 @@
+Criteria	Fabric
+Data Storage	" Unified OneLake Architecture  
+Microsoft Fabric centralizes data in **OneLake**, a logical data lake that uses Delta Lake format and supports multi-cloud data virtualization via shortcuts. OneLake eliminates data duplication by connecting directly to sources like Amazon S3 and Azure Data Lake Storage Gen2, allowing data to remain in its original location while being virtually accessible[3]. This architecture is tightly integrated with Microsoft’s ecosystem (e.g., Power BI, Azure Synapse) and simplifies data management through domains and workspaces[3].  
+"
+Data Integration	"Native Pipelines and Shortcuts  
+Fabric provides 150+ connectors and **shortcuts** to virtualize data from external sources (e.g., Databricks, Amazon S3) without duplication[3]. Dataflows and Azure Data Factory handle ETL, while Jupyter notebooks allow custom Python/R transformations[6].  "
+	Provides OneLake (a single logical data lake) on ADLS Gen2 that stores any file type. Built-in Data Factory in Fabric has hundreds of connectors (Azure, AWS, on-prem systems, SaaS), plus no-code Dataflows and copy jobs. Fabric natively handles structured tables (in Data Warehouse or lakehouses), semi-structured (JSON/CSV), and unstructured files (images, PDFs, etc.) in OneLake, all accessible to SQL, Spark, and BI tools.
+Reporting & Analytics	"Native Power BI and AI Tools  
+Fabric natively integrates Power BI, enabling direct querying of OneLake data. Built-in AI tools like **Copilot** automate insights generation, while SynapseML supports predictive analytics[3][6].  "
+Ease of Use	Provides a unified portal (Fabric Studio) with point-and-click experiences. Users get Power BI-style workspaces plus Data Factory pipelines and Spark notebooks all in one place. No-code dataflows and the Data Wrangler in notebooks simplify ingestion and cleansing. Since it builds on Azure Synapse and Power BI UX, many users find it intuitive if already in the Microsoft ecosystem. Fabric also exposes REST APIs for automation and supports Git integration for version control. Its large scope (multiple engines and tools) means there is more to learn, but the integrated design (e.g. lakehouses reading directly into pandas via Spark) accelerates development.
+AI & Automatio AI	Offers a Data Science workspace with Spark notebooks, low-code ML pipelines, and Azure AI. Users can call Azure Cognitive Services or OpenAI via SynapseML in Fabric. Fabric provides built-in MLflow support for tracking experiments, along with SparkML, Scikit-learn, PyTorch support for training. Its Copilot and data agents help non-experts generate queries and reports with LLM assistance.
+Security & Compliance	Azure Active Directory integration, sensitivity labels, and compliance with Microsoft’s global standards[3][6].  
+	Fabric is a SaaS on Azure; every operation is logged and can be audited. Fabric uses Azure AD (Entra) identity, network controls (Private Link), and auto-encryption at rest. It offers built-in lineage, DLP, and integrates with Microsoft Purview for data cataloging. Compliance certifications align with Azure’s portfolio (e.g. ISO, SOC, HIPAA, GDPR, CCPA, etc.) by leveraging the Microsoft Service Trust Portal.
+Scalability	"Integrated Analytics Performance  
+Fabric’s performance benefits from shorter data pipelines due to OneLake’s unified storage. However, complex transformations may require tuning, especially when integrating non-Microsoft data sources[3][6]. The platform’s Synapse engine optimizes query execution for Power BI reports, but scalability is inherently tied to Azure’s infrastructure[3].  "
+	The lake-centric warehouse uses a distributed engine and supports automatic workload management (no knobs to tune). It also separates storage/compute: you choose a capacity (e.g. F16, F64 CU) and can instantly scale within that capacity. Fabric specifically touts “autonomous workload management” and “near-instantaneous” scaling to meet demands. In practice, Fabric’s performance excels in Azure-centric scenarios (OneLake locality) and is bolstered by global Azure nodes.
+Integration with Tools	Offered only on Azure (as a Microsoft SaaS). Deeply integrated with Azure tools (Power BI, Synapse, Purview, Azure ML). Works with Azure storage/services (OneLake, Cosmos DB, Azure SQL) and Microsoft 365 ecosystems (SharePoint, Teams, etc.).
+Cost	Capacity-based billing (e.g., $/hour per Fabric unit) with unified costs for storage and compute[3].  
+	Fixed-capacity billing – purchase F/P-capacity SKUs and required user licenses. This is similar to Power BI Premium/PBI Embedded pricing. You pay a predictable monthly cost per capacity unit. (Trial capacities and discounts may apply.) Fabric’s model can be more economical for constant usage but may have underutilized fixed costs.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Snowflake vs Microsoft Fabric: Detailed Data Platform Comparison
 
 Data Ingestion Flexibility: Both Snowflake and Microsoft Fabric support diverse data types and connectors. Snowflake natively ingests structured and semi-/unstructured data (JSON, Avro, images, etc.) via stages and pipelines. Its Snowpipe service continuously loads files from cloud storage as soon as they arrive, supporting all data types (including semi-structured formats). Snowflake also provides connectors to many sources (databases, SaaS apps, streams, etc.), automatically refreshing data for both initial loads and incremental updates. Fabric similarly offers a rich ingestion framework: Data Factory in Fabric provides many built-in connectors (to SaaS, databases, files, streaming, on-prem, cloud sources). Fabric’s OneLake storage is built on ADLS Gen2 and “can support any type of file, structured or unstructured,” with all tabular data stored in Delta (Parquet) format. In practice, Fabric users can upload CSV, Parquet, JSON, images, PDF, etc., into OneLake and process them via Fabric’s Lakehouse, pipelines or Spark notebooks. In summary, Snowflake excels at high-throughput loading from cloud storage and many connectors, while Fabric provides unified lake storage and a GUI-based pipeline ecosystem. Both handle batch and streaming data (Snowflake via Snowpipe and cloud events; Fabric via event streams, Event Grid, etc.) and support extensive formats and sources.
