@@ -1,24 +1,4 @@
-Streamlining Loan Processing with AML Compliance
-Automated loan processing by integrating AML checks to flag suspicious activities, validate customer profiles, and ensure regulatory compliance, enabling faster approvals while mitigating financial risks.
-
-Claim Validation and Recommendations in Reinsurance
-Streamlined reinsurance claim processing by validating multiple documents, cross-checking policy terms, and leveraging AI to recommend claim approval or rejection with clear, data-driven rationale, ensuring accuracy and efficiency.
-
-Empowering Reinsurance decision-making
-Enabled agents to validate treaty terms, analyze claims coverage, assess cumulative risk exposure, and cross-reference geolocation data to identify high-risk clauses for effective disaster risk management.
-
-
-Enhancing Case Management with summarization and sentiment analysis
-Automated case summarization and sentiment analysis for agents' queues, updating sentiment insights in contact records to guide next-best actions and improve customer engagement strategies.
-
-
-Empowering Banking agents with intelligent assistance
-Equipped banking agents with real-time insights & automated tools to validate customer documents, verify addresses, & assess credit scores, enabling faster decision-making and superior customer service.
-
-
-Follow-Ups for Loan Repayment Consultations
-Enabled automated scheduling of recurring follow-up consultations for loan repayment discussions by aligning banking advisor availability with customer preferences, ensuring timely support and seamless loan management.
-
+=24*E18*F18*G18*SUMPRODUCT(VLOOKUP(C4:C8,Config!B1:K6,10,FALSE),VLOOKUP(D4:D8,Config!G1:P9,10,FALSE),E4:E8)
 
 
 
