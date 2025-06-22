@@ -1,9 +1,132 @@
-=24*E18*F18*G18*SUMPRODUCT(VLOOKUP(C4:C8,Config!B1:K6,10,FALSE),VLOOKUP(D4:D8,Config!G1:P9,10,FALSE),E4:E8)
+I am creating a button for south India and North india to filter the places according to the names of place but my code is not accurate it seemsimport React from 'react'
+import '../../src/Component/Card.css'
+import '../Component/Tours'
+const Card = ({place,location,price,id,RemoveTour}) => {
+
+  return (
+      <>
+    <div className='card'>
+      <div className='Place'>{place}</div>
+      <div className='Location'>{location}</div>
+      <div className='Price'>{price}</div>
+      <button onClick={()=>RemoveTour(id)}>Not Interested</button>
+    </div>
+    </>
+  )
+}
+
+export default Card
+const Data=[
+    {
+      id:'1',  
+      place:'South India',
+      location:'Hyderabad',
+      price:'20000'
+    },
+    {
+        id:'2',
+      place:'North India',
+      location:'Pune',
+      price:'30000'
+    },
+    {
+        id:'3',
+      place:'North India',
+      location:'Mumbai',
+      price:'40000'
+    }
+      ]
+
+     export default Data;import React from 'react'
+import Card from '../Component/Card'
+
+const Tours = (props) => {
+
+function removehandler(id)
+{
+    console.log(id);
+props.RemoveTours(id);
+}
 
 
+  return (
+    <div>
+        {
+            props.tourss.map((tour) => {
+            return <Card {...tour} key={tour.id} RemoveTour={removehandler}/>
+            })
+        }
 
+        {
 
+props.filtertourss.map((tour) => {
+  return 
+{/* <Card {...tour} key={tour.id}/> */}
+  
+})
+        }
+      
+    </div>
+  )
+}
 
+export default Tours
+import logo from './logo.svg';
+import './App.css';
+import Tours from '../src/Component/Tours'
+import { useState } from 'react';
+import data from '../src/Component/data'
+
+function App() {
+  
+ const [tours,settours]=useState(data);
+ const [filtertours,setfiltertours]=useState(data);
+
+ function RemoveTour(id)
+ {
+   const remainingtour = tours.filter(tour=>tour.id!==id);
+   settours(remainingtour)
+ } 
+
+if(tours.length===0)
+{
+  return(
+    <>
+    <div>
+      No Tours Left
+    </div>
+   <button onClick={()=> settours(data)}>Refresh</button>
+    </>
+    )
+}
+
+function Southonly()
+{
+const remainingplaces= filtertours.filter(tour=>tour.place!=='North India');
+setfiltertours(remainingplaces)
+}
+
+function Northonly()
+{
+const remainingplacess= filtertours.filter(tour=>tour.place!=='South India');
+setfiltertours(remainingplacess);
+}
+
+  return (
+    <>
+    <div>
+      <div>
+        <button onClick={Southonly}>South India</button>
+        <button onClick={Northonly}>North India</button>
+      </div>
+    <Tours tourss={tours} RemoveTours={RemoveTour}/>
+    <Tours toursss={filtertours}/>
+    </div>
+    </>
+    );
+}
+
+export default App;
 
 
 
