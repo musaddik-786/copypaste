@@ -1,21 +1,103 @@
 I am creating a button for south India and North india to filter the places according to the names of place but my code is not accurate it seemsimport React from 'react'
-import '../../src/Component/Card.css'
-import '../Component/Tours'
-const Card = ({place,location,price,id,RemoveTour}) => {
+import logo from './logo.svg';
+import './App.css';
+import Tours from '../src/Component/Tours'
+import { useState } from 'react';
+import data from '../src/Component/data'
+
+function App() {
+  
+ const [tours,settours]=useState(data);
+ const [filtertours,setfiltertours]=useState([]);
+
+ function RemoveTour(id)
+ {
+   const remainingtour = tours.filter(tour=>tour.id!==id);
+   settours(remainingtour)
+
+   setfiltertours(filtertours.filter(tour => tour.id !== id))
+ } 
+
+function Southonly()
+{
+const south= data.filter(tour=>tour.place==='South India');
+setfiltertours(south)
+}
+
+function Northonly()
+{
+const north= data.filter(tour=>tour.place!=='North India');
+setfiltertours(north);
+}
+
+
+function refresh()
+{
+  settours(data)
+  setfiltertours([])
+}
+
+
+if(tours.length===0)
+{
+  return(
+    <>
+    <div>
+      No Tours Left
+    </div>
+   <button onClick={refresh}>Refresh</button>
+    </>
+    )
+}
 
   return (
-      <>
-    <div className='card'>
-      <div className='Place'>{place}</div>
-      <div className='Location'>{location}</div>
-      <div className='Price'>{price}</div>
-      <button onClick={()=>RemoveTour(id)}>Not Interested</button>
+    <>
+    <div>
+      <div>
+        <button onClick={Southonly}>South India</button>
+        <button onClick={Northonly}>North India</button>
+      </div>
+    <Tours tourss={tours} RemoveTours={RemoveTour} toursss={filtertours}/>
+
     </div>
     </>
+    );
+}
+
+export default App;
+import React from 'react'
+import Card from '../Component/Card'
+
+const Tours = (props) => {
+
+function removehandler(id)
+{
+    console.log(id);
+props.RemoveTours(id);
+}
+
+const datatoShow = props.filtertourss.length > 0 ? props.filtertourss : props.tourss
+
+
+  return (
+    <div>
+        {
+            // props.tourss.map((tour) => {
+            // return <Card {...tour} key={tour.id} RemoveTour={removehandler}/>
+            // })
+            datatoShow.map((tour)=> {
+              return(
+                <Card {...tour} key={tour.id}
+                RemoveTour={removehandler}/>
+              )
+            })
+        }
+      
+    </div>
   )
 }
 
-export default Card
+export default Tours
 const Data=[
     {
       id:'1',  
@@ -38,99 +120,23 @@ const Data=[
       ]
 
      export default Data;import React from 'react'
-import Card from '../Component/Card'
-
-const Tours = (props) => {
-
-function removehandler(id)
-{
-    console.log(id);
-props.RemoveTours(id);
-}
-
+import '../../src/Component/Card.css'
+import '../Component/Tours'
+const Card = ({place,location,price,id,RemoveTour}) => {
 
   return (
-    <div>
-        {
-            props.tourss.map((tour) => {
-            return <Card {...tour} key={tour.id} RemoveTour={removehandler}/>
-            })
-        }
-
-        {
-
-props.filtertourss.map((tour) => {
-  return 
-{/* <Card {...tour} key={tour.id}/> */}
-  
-})
-        }
-      
+      <>
+    <div className='card'>
+      <div className='Place'>{place}</div>
+      <div className='Location'>{location}</div>
+      <div className='Price'>{price}</div>
+      <button onClick={()=>RemoveTour(id)}>Not Interested</button>
     </div>
+    </>
   )
 }
 
-export default Tours
-import logo from './logo.svg';
-import './App.css';
-import Tours from '../src/Component/Tours'
-import { useState } from 'react';
-import data from '../src/Component/data'
-
-function App() {
-  
- const [tours,settours]=useState(data);
- const [filtertours,setfiltertours]=useState(data);
-
- function RemoveTour(id)
- {
-   const remainingtour = tours.filter(tour=>tour.id!==id);
-   settours(remainingtour)
- } 
-
-if(tours.length===0)
-{
-  return(
-    <>
-    <div>
-      No Tours Left
-    </div>
-   <button onClick={()=> settours(data)}>Refresh</button>
-    </>
-    )
-}
-
-function Southonly()
-{
-const remainingplaces= filtertours.filter(tour=>tour.place!=='North India');
-setfiltertours(remainingplaces)
-}
-
-function Northonly()
-{
-const remainingplacess= filtertours.filter(tour=>tour.place!=='South India');
-setfiltertours(remainingplacess);
-}
-
-  return (
-    <>
-    <div>
-      <div>
-        <button onClick={Southonly}>South India</button>
-        <button onClick={Northonly}>North India</button>
-      </div>
-    <Tours tourss={tours} RemoveTours={RemoveTour}/>
-    <Tours toursss={filtertours}/>
-    </div>
-    </>
-    );
-}
-
-export default App;
-
-
-
-
+export default Card
 
 
 
