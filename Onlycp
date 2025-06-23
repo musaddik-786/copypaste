@@ -139,7 +139,21 @@ const Card = ({place,location,price,id,RemoveTour}) => {
 export default Card
 
 
-
+Uncaught runtime errors:
+×
+ERROR
+Cannot read properties of undefined (reading 'length')
+TypeError: Cannot read properties of undefined (reading 'length')
+    at Tours (http://localhost:3000/static/js/bundle.js:22385:41)
+    at react-stack-bottom-frame (http://localhost:3000/static/js/bundle.js:15912:18)
+    at renderWithHooks (http://localhost:3000/static/js/bundle.js:6122:20)
+    at updateFunctionComponent (http://localhost:3000/static/js/bundle.js:7815:17)
+    at beginWork (http://localhost:3000/static/js/bundle.js:8401:16)
+    at runWithFiberInDEV (http://localhost:3000/static/js/bundle.js:3893:68)
+    at performUnitOfWork (http://localhost:3000/static/js/bundle.js:10474:93)
+    at workLoopSync (http://localhost:3000/static/js/bundle.js:10367:38)
+    at renderRootSync (http://localhost:3000/static/js/bundle.js:10351:7)
+    at performWorkOnRoot (http://localhost:3000/static/js/bundle.js:10115:42)
 
 
 
