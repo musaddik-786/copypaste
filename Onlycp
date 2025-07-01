@@ -1,3 +1,83 @@
+Meet Jarvis Jen AI—a revolutionary super AI consultant designed specifically for the insurance industry. Jarvis acts as an umbrella AI platform, seamlessly managing all existing and future AI systems while enhancing business and IT human roles across operations and transformation."
+
+[Scene Transition: James, an Underwriter, interacting with Jarvis]
+(7 seconds)
+"Today, James, an Insurance Underwriter, is leveraging Jarvis to simplify his workflow. Jarvis is here to assist James in every step of his decision-making process, ensuring efficiency and precision."
+
+Interaction Modes
+(25 seconds total: 6 seconds each)
+"James can choose how to interact with Jarvis based on his preference:
+
+Chat Mode for quick and intuitive text-based communication.
+Voice Mode for hands-free and seamless interaction.
+Email Mode for detailed correspondence and updates.
+API Mode to integrate Jarvis with other systems effortlessly."
+Autonomous Workflow Engine
+(12 seconds)
+"James begins his day by checking the Autonomous Workflow Engine, which provides real-time system updates. The dashboard displays:
+
+System Status: Online
+System Performance: 100%
+Active Processes: 33 out of 33
+Response Time: 800ms
+Jarvis ensures everything is running smoothly before James starts his tasks."
+Role-Specific Workspace Activation
+(25 seconds)
+"Before diving into his work, James reviews the Jarvis System Status:
+
+META BRAIN Core: Active
+Agent Network: Operational
+Voice Authentication: Ready
+Using Voice Authentication, James accesses his role-specific workspace. As an Underwriter, James selects the Assistant Underwriter Workspace under the Commercial Property Division. Other workspaces, like Claims Adjuster or Customer Service, are currently offline, ensuring focus on his specific role."
+
+Insurance Underwriter Agent
+(12 seconds)
+"In his workspace, James uses Jarvis’s AI-powered tools for risk assessment and policy underwriting. Jarvis provides insights into:
+
+Assessment
+Cases
+Risk Factors
+Today, James decides to proceed with Assessment, diving into detailed views of ongoing cases."
+
+Assessment Section
+(15 seconds)
+"Here’s what James sees in the Assessment Section:
+
+TechStart Solutions LLC: Professional Liability | Technology Services | $2,000,000 | Risk: 68%
+TechSolutions LLC: Cyber Liability | Technology | $2,000,000 | Risk: 68%
+Coastal Hotels Group: Commercial Property | Hospitality | $12,000,000 | Risk: 84%
+MedServe Providers: Professional Liability | Healthcare | $3,500,000 | Risk: Pending
+James selects Coastal Hotels Group, flagged with a high risk of 84%, to begin his assessment."
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 I am creating a button for south India and North india to filter the places according to the names of place but my code is not accurate it seemsimport React from 'react'
 import logo from './logo.svg';
 import './App.css';
