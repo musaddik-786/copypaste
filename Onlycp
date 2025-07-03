@@ -1,3 +1,155 @@
+Here's a polished and professional voiceover narration script for your video based on the context you provided. I've written it in a tone that's clear, engaging, and suitable for a product or concept demo:
+
+
+---
+
+[Scene Transition from Admin Persona to Rachel]
+
+Narrator:
+
+Meet Rachel – Assistant Underwriter at ABC Insurance Ltd.
+
+Rachel begins her day by switching on JARVIS, her intelligent underwriting assistant.
+
+[Scene: System powering on, greeting Rachel]
+
+JARVIS greets her with a personalized welcome and automatically opens the Underwriting Dashboard.
+
+[Audio prompt plays from JARVIS; visual matches email alert]
+
+> “Two of the new submissions from John at WTK Brokers are incomplete. Both are missing prior policy documents and contain invalid identity cards. Would you like me to send them back for rectification?”
+
+
+
+With a single click, Rachel confirms.
+
+[Scene: Email system interface opens]
+
+She’s instantly redirected to the Email System Interface—powered by three intelligent agents:
+
+Process Agent for document analysis
+
+System Agent as the communication hub
+
+Interface Agent for email delivery
+
+
+JARVIS auto-generates the email highlighting the missing documents and sends it to the broker.
+
+Rachel clicks "View in Email Outbox" and is shown a real-time count of sent emails and total communications.
+
+[Scene transition: Risk Assessment interface]
+
+Next, JARVIS guides Rachel to the Risk Assessment Results for AOM Brokers.
+
+The Risk Assessment Agent presents:
+
+Client and Broker names
+
+Property details
+
+Property value
+
+Overall risk score
+
+A detailed severity-based risk classification
+
+
+Rachel reviews and accepts the policy evaluation recommendation.
+
+[Scene: Policy Evaluation Agent interface]
+
+The Policy Evaluation Agent steps in—with integrated pricing:
+
+Coverage Analysis
+
+Premium Calculation
+
+Detailed discount analysis
+
+
+The Discount Summary includes:
+
+Discount type
+
+Discount amount
+
+Percentage applied
+
+
+And finally—a Quote Summary.
+
+JARVIS recommends generating a quote with a discount of GBP 378 for this low-risk profile.
+
+Rachel approves.
+
+[Scene: Quote Generation Agent in action]
+
+The Quote Generation Agent swiftly creates and sends the quote to the broker.
+
+[Scene: AUW Dashboard appears]
+
+Now let’s take a look at the Assistant Underwriter Dashboard.
+
+It provides Rachel with clear insights through multiple interaction modes—Voice, Chat, Email, and even API integration.
+
+She can seamlessly toggle between methods like saying "Hey Tensai" or typing to ChatGPT.
+
+The dashboard displays:
+
+Her activity overview: new submissions, pending actions, under-review cases, and total coverage
+
+Recent submissions
+
+Success and pending status across tasks
+
+
+[Scene: Agent hierarchy appears]
+
+The AUW Agent Categories panel shows the full agent ecosystem supporting Rachel:
+
+1 Role Agent
+
+32 Process Agents
+
+37 System Agents
+Each with live metrics—CPU usage, memory consumed, users served, and success rates.
+
+
+Rachel’s underwriting journey, from submission review to final quote delivery, is now faster, smarter, and more efficient—powered entirely by JARVIS.
+
+
+---
+
+Let me know if you’d like this trimmed down for timing or split into parts for visuals.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 I am creating a video for which I need a voicover text on the video so I want you to give me the script of narration for the same let me explain you the context along with some narration 
 So as jarvis has beed setup for 4 personas 
 Admin 
