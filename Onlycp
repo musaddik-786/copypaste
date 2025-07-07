@@ -1,3 +1,283 @@
+Perfect — thanks for sharing your preference. Based on that polished and engaging tone you liked, here’s the complete voiceover script for your Fleet Manager video, keeping the structure, clarity, and rhythm consistent with your example. This version follows your narration word for word, only improved for flow and grammar — no additions, and AI is only included where you explicitly mentioned it.
+
+
+---
+
+[Scene: Login → Home Page]
+
+Narrator:
+
+Meet our Fleet Manager, logging in to the platform and landing on the Home Page, where he’s welcomed.
+
+Here, he gets an overview of tasks tailored to his role.
+
+As a Fleet Manager, he can see the tasks to focus on today, and can also create a new task by entering the task name, process name, and more.
+
+Just below, he sees critical operational information, including:
+
+System Messages
+
+Top Client and Carrier Details
+
+Fleet, Policy, Claim, and Financial Overview
+
+And a list of recent activities
+
+
+
+---
+
+[Scene: Client Details Page]
+
+He navigates to Client Details, where he can manage all client records.
+
+He adds a new client by entering the necessary details, and then views the client profile, including:
+
+Total Fleets
+
+Active Fleets
+
+Associated Fleets
+
+
+If needed, he can also remove the client.
+
+
+---
+
+[Scene: Carrier Management Page]
+
+Next, under Carrier Management, he reviews all carrier profiles and details.
+
+He adds a new carrier by filling in the required fields, then views the carrier dashboard, which shows:
+
+Total Products
+
+Active Products
+
+Associated Products
+
+
+Carriers can be edited or removed as required.
+
+
+---
+
+[Scene: Product Management Page]
+
+In Product Management, he can view, add, edit, or remove products.
+
+When adding a product, he:
+
+Selects the Carrier Name
+
+Defines the product with Business and Technical Covers
+
+Adds multiple covers as needed
+
+Links it to business segments such as Fleets, Vehicle Types, Regions, and Frame Contract Types
+
+
+He can also view detailed product data and the associated technical covers.
+
+When editing, he can update product details and add or remove technical covers.
+
+
+---
+
+[Scene: Fleet Management Page]
+
+Now, onto Fleet Management.
+
+He can view all fleets or create a new one by:
+
+Entering the Fleet Name
+
+Selecting the Client
+
+Choosing the Fleet Type and adding a Description
+
+Importing Vehicles and Drivers
+
+Adding Technical Coverages
+
+
+While adding coverages, he enters:
+
+Name
+
+Limit of Indemnity
+
+Excess or Deductible
+
+Rating Logic
+
+Carrier Responsibility
+
+
+Multiple coverages can be added at once.
+After setup, he can view, manage, or remove any fleet.
+
+
+---
+
+[Scene: Manage Fleet Page]
+
+He proceeds to manage a fleet—adding or removing:
+
+Vehicles
+
+Drivers
+
+Technical Coverages
+
+
+
+---
+
+[Scene: Search for “Uber East Coast Fleet 2” → View Fleet]
+
+He searches for "Uber" and clicks the View Fleet icon for Uber East Coast Fleet 2.
+
+This reveals:
+
+Fleet Overview
+
+Technical Covers
+
+Fleet Vehicles and Drivers
+
+
+
+---
+
+[Scene: Carrier Recommendation Page]
+
+Next, he clicks on Carrier Recommendation.
+
+An AI-driven model recommends the best carrier match based on the client’s fleet profile.
+
+He can add the corresponding Frame Contract from here, or navigate to the Frame Contract Management screen.
+
+
+---
+
+[Scene: Creating Frame Contract]
+
+While creating a frame contract, he selects:
+
+Client Name: Uber Technologies
+
+Carrier Name: AXA XL
+
+Contract Type: Standard
+
+AON Personnel
+
+
+He also defines the financial terms, including the commission rate and other relevant details.
+
+
+---
+
+[Scene: Matching Products & Fleets Tab]
+
+Using AI logic, the system fetches products that match the client, carrier, and contract details.
+
+He selects AXA Standard EU Medium Fleet, and the associated technical covers appear.
+
+He can add or remove technical covers as needed.
+
+Matching fleets also appear, and he selects one or more.
+
+He completes the process by clicking Create Frame Contract.
+
+The contract can be viewed, edited, or removed anytime.
+
+
+---
+
+[Scene: Vehicle Management Page]
+
+He heads to Vehicle Management, sets the status as Active, and adds a vehicle by selecting the fleet and entering the details.
+
+He can also import vehicles using Excel files in any format.
+An AI-driven model reads the file, shows a preview, and uploads the vehicles.
+
+Single or bulk deletion is also supported.
+
+
+---
+
+[Scene: Driver Management Page]
+
+Now in Driver Management, he selects Active status and adds a new driver to the selected fleet.
+
+He can import drivers using Excel as well.
+The AI model supports any format and offers a preview before uploading.
+
+He can also delete individual drivers or remove them in bulk.
+
+
+---
+
+[Scene: Reporting Dashboard]
+
+Finally, he visits the Reporting Dashboard.
+
+Here, he accesses key reports, including:
+
+Profitability
+
+Coverage Distribution
+
+Premium Performance
+
+
+He also explores AI-powered analytics, which provide:
+
+Profitability Forecasts
+
+Renewal Likelihood
+
+Risk Indicators, such as:
+
+Expansion into high-risk zones and related exposure
+
+Financial impact due to increased weather-related claims
+
+Probability of policy cancellation due to competitor offerings
+
+
+
+
+---
+
+Narrator (Closing):
+
+From client management to contract creation and advanced reporting, the Fleet Manager now operates with precision, insight, and speed—powered by a platform built for smarter decisions.
+
+
+---
+
+Let me know if you want a version with voiceover timing cues, subtitles, or tailored for animation pacing.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Thank you for clarifying. You want the narration written from a third-person perspective, referring to the Fleet Manager as "he", not as "the user." Also, you want it to follow your narration exactly, only improving the English, sentence structure, and flow, without adding or removing any information.
 
 Below is your corrected and polished voiceover script with Fleet Manager as "he", using your narration exactly as reference:
