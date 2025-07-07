@@ -1,3 +1,159 @@
+Thank you for clarifying. You want the narration written from a third-person perspective, referring to the Fleet Manager as "he", not as "the user." Also, you want it to follow your narration exactly, only improving the English, sentence structure, and flow, without adding or removing any information.
+
+Below is your corrected and polished voiceover script with Fleet Manager as "he", using your narration exactly as reference:
+
+
+---
+
+Narration Script – Fleet Manager
+
+The Fleet Manager logs in and enters the Home Page, where he is greeted.
+He gets an overview of tasks based on his role. Since he is a Fleet Manager, it shows the tasks he needs to focus on today. He can also create a task by entering the task name, process name, and more.
+
+Below, he sees information related to System Messages, Top Client and Carrier details, Fleet, Policy, Claim, and Financial Overview.
+He can also view all the recent activities.
+
+He goes to the Client Details page, where he can manage client information.
+He sees all the clients and their details.
+He proceeds to add a client by entering the required client details.
+Then he views the client’s details, where he can see the Total Fleets, Active Fleets, and Associated Fleets.
+If required, he can also remove the client.
+
+He then proceeds with Carrier Management under Carrier Details, where he can manage carrier information.
+He sees all the carriers and their details.
+He adds a carrier by entering the necessary information.
+He then views the carrier details, where he can see the Total Products, Active Products, and Associated Product Details.
+If required, he can also remove the carrier.
+
+Similarly, under Product Management, he can view all the products and can add, remove, or edit a product if required.
+He clicks on Add Product, where he selects the Carrier Name and defines the product with Business and Technical Covers.
+He can add more than one cover and then links it to Business Segments by selecting Fleet, Vehicle Types, Regions, and Frame Contract Types.
+
+He views the list of products to see all product-related details and associated technical covers.
+He clicks on Edit Product, where he can update product-related details, and add or remove technical covers if required.
+
+Now, he begins with Fleet, where he can view all the fleets or start creating one by clicking Create Fleet.
+He enters the Fleet Name, selects the Client, chooses the Fleet Type, and provides a Description.
+After this, he imports vehicles and drivers, and also adds the corresponding Technical Coverages.
+
+He proceeds with Adding Coverages, where he enters:
+
+Name
+
+Limit of Indemnity
+
+Excess/Deductible Amount
+
+Rating Logic
+
+Carrier Responsibility
+
+
+He can add multiple coverages, and then clicks on Finish.
+
+Now, he can perform multiple actions like viewing, managing, or removing the fleet.
+
+He proceeds with Managing the Fleet, where he adds vehicles and drivers, and removes them if required.
+He can also add or remove the coverages if needed.
+
+He then searches for Uber, and clicks on the View Fleet icon for Uber East Coast Fleet 2 to view the fleet details, which include:
+
+Fleet Overview
+
+Technical Covers
+
+Fleet Vehicles and Drivers
+
+
+He now clicks on Carrier Recommendation, where an AI-driven model predicts and recommends the best Carrier Match as per the client’s fleet requirements.
+He can now add the corresponding Frame Contract from here or from the Frame Contract Management screen.
+
+He proceeds to create a Frame Contract, where he selects:
+
+Client Name: Uber Technologies
+
+Carrier Name: AXA XL
+
+Contract Type: Standard
+
+
+Along with other basic details, including the AON Personnel associated with the contract.
+He fills in the Financial Terms like commission rate and other necessary details.
+
+He now heads to the Matching Products & Fleets tab, where the AI-driven logic pulls the products matching the client and carrier names and other criteria.
+
+He selects the product AXA Standard EU Medium Fleet, and the corresponding Technical Coverages appear.
+He can add a new technical cover or delete one if required.
+Matching Fleets also appear.
+He selects one or more matching fleets and completes contract creation by clicking Create Frame Contract.
+
+He can view all the Frame Contract details, and also edit or remove them if required.
+
+Now, he proceeds with Vehicle Management, where he selects the status as Active and clicks on Add Vehicle.
+He selects the Fleet and enters the remaining vehicle details.
+
+He can also Import Vehicles by uploading an Excel file in any format.
+An AI-driven model accepts the file in any format and shows an Import Preview—he can then accept and upload the vehicles.
+
+He also has the option to delete one vehicle or bulk-delete multiple vehicles.
+
+Now, he proceeds with Driver Management.
+He selects the status as Active, and proceeds to Add a Driver by selecting the fleet he wants to assign them to.
+
+He can also Import Drivers, where the AI-driven model accepts files in any format and shows an Import Preview.
+Similarly, he can delete one or bulk-delete drivers if required.
+
+He now goes to the Reporting Dashboard, as he wants to view details related to:
+
+Profitability
+
+Coverage Distribution
+
+Premium Performance Reports
+
+
+He also views AI Analytics that provide analytical insights like:
+
+Profitability Forecast
+
+Renewal Likelihood
+
+AI-Detected Risk Indicators such as:
+
+Whether the client is expanding in high-risk zones and the potential exposure and probability
+
+Financial impact and probability due to increased weather-related claims
+
+Potential policy cancellation rate due to new competitor offerings
+
+
+
+
+---
+
+Let me know if you'd like this with voiceover timing markers, divided per slide or screen, or converted into a short version for teaser-style videos.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Fleet Manager logs in and enters the home page where user gets greeted
 He can have an overview of tasks based on the user role so for now user is a Fleet manager it gives an overview of tasks that he need to focus on today and also create the task by entering task name, process name and more.
 Below he will be seeing the information related to System Messages, Top Client and Carrier details & Fleet, Policy, Claim and Financial Overview, and user can also have a look at all the recent activities
