@@ -1,3 +1,160 @@
+Narration -1
+Meet our Fleet Manager, logging in to the platform and landing on the Home Page, where he’s greeted. 
+and gets an overview of tasks based on his role. Since he is a Fleet Manager, it shows the tasks he needs to focus on today. He can also create a task by entering the task name, process name, and more.
+
+Below, he sees information related to System Messages, Top Client and Carrier details, Fleet, Policy, Claim, and Financial Overview.
+He can also view all the recent activities.
+
+He goes to the Client Details page, where he can manage client information.
+He sees all the clients and their details.
+He proceeds to add a client by entering the required client details.
+Then he views the client’s details, where he can see the Total Associated Fleets, which are Active and its details.
+If required, he can also remove the client.
+
+He then proceeds with Carrier Management under Carrier Details, where he can manage carrier information.
+He sees all the carriers and their details.
+And proceeds to add a carrier by entering the necessary information.
+He then views the carrier details, where Total Associated Products, which are Active Products, and  its details can be viewed.
+If required, he can also remove the carrier.
+
+Similarly, under Product Management, he can view all the products and can add, remove, or edit a product if required.
+He clicks on Add Product, where he selects the Carrier Name and defines the product with Business and Technical Covers.
+He can add more than one cover and then links it to Business Segments by selecting Fleet, Vehicle Types, Regions, and Frame Contract Types.
+
+He views the list of products to see all product-related details and associated technical covers.
+He clicks on Edit Product, where he can update product-related details, and add or remove technical covers if required.
+
+Now, he begins with Fleet, where he can view all the fleets or start creating one by clicking Create Fleet.
+He enters the Fleet Name, selects the Client, chooses the Fleet Type, and provides a Description.
+After this, he can import vehicles and drivers, and also adds the corresponding Technical Coverages.
+
+He proceeds with Adding Coverages, where he enters:
+
+Name
+
+Limit of Indemnity
+
+Excess/Deductible Amount
+
+Rating Logic
+
+Carrier Responsibility
+
+
+He can add multiple coverages, and then clicks on Finish.
+
+Now, he can perform multiple actions like viewing, managing, or removing the fleet.
+
+He proceeds with Managing the Fleet, where he adds vehicles and drivers, and removes them if required.
+And also can add or remove the coverages if needed.
+
+He then searches for Uber, and clicks on the View Fleet icon for Uber East Coast Fleet 2 to view the fleet details, which include:
+
+Fleet Overview
+
+Technical Covers
+
+Fleet Vehicles and Drivers
+
+
+He now clicks on Carrier Recommendation, where an AI-driven model predicts and recommends the best Carrier Match as per the client’s fleet requirements.
+He can now add the corresponding Frame Contract from here or from the Frame Contract Management screen.
+
+He proceeds to create a Frame Contract, where he selects:
+
+Client Name: Uber Technologies
+
+Carrier Name: AXA XL
+
+Contract Type: Standard
+
+
+Along with other basic details, including the AON Personnel associated with the contract.
+He fills in the Financial Terms like commission rate and other necessary details.
+
+And, now heads to the Matching Products & Fleets tab, where the AI-driven logic pulls the products matching the client and carrier names and other criteria.
+
+He selects the product AXA Standard EU Medium Fleet, and the corresponding Technical Coverages appear.
+He can add a new technical cover or delete one if required.
+Matching Fleets also appear.
+He selects one or more matching fleets and completes contract creation by clicking Create Frame Contract.
+
+He can view all the Frame Contract details, and also edit or remove them if required.
+
+Now, proceeds with Vehicle Management, where he selects the status as Active and clicks on Add Vehicle.
+selects the Fleet and enters the remaining vehicle details.
+
+He can also Import multiple Vehicles using an AI-Driven Model which accepts the file in any format and shows an Import Preview—he can then accept and upload the vehicles.
+
+He also has the option to delete one vehicle or bulk-delete multiple vehicles.
+
+Now, he proceeds with Driver Management.
+He selects the status as Active, and proceeds to Add a Driver by selecting the fleet he wants to assign them to.
+
+He can also Import multiple Drivers, where the AI-driven model accepts files in any format and shows an Import Preview.
+Similarly, he can delete one or bulk-delete drivers if required.
+
+He now goes to the Reporting Dashboard, as he wants to view details related to:
+
+Profitability
+
+Coverage Distribution
+
+Premium Performance Reports
+
+
+He also views AI Analytics that provide analytical insights like:
+
+Profitability Forecast
+
+Renewal Likelihood
+
+AI-Detected Risk Indicators such as:
+
+Whether the client is expanding in high-risk zones and the potential exposure and probability
+
+Financial impact and probability due to increased weather-related claims
+
+Potential policy cancellation rate due to new competitor offerings
+From client management to contract creation and advanced reporting, the Fleet Manager now operates with precision, insight, and speed—powered by a platform built for smarter decisions
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Perfect — thanks for sharing your preference. Based on that polished and engaging tone you liked, here’s the complete voiceover script for your Fleet Manager video, keeping the structure, clarity, and rhythm consistent with your example. This version follows your narration word for word, only improved for flow and grammar — no additions, and AI is only included where you explicitly mentioned it.
 
 
