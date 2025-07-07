@@ -1,3 +1,88 @@
+Fleet Manager logs in and enters the home page where user gets greeted
+He can have an overview of tasks based on the user role so for now user is a Fleet manager it gives an overview of tasks that he need to focus on today and also create the task by entering task name, process name and more.
+Below he will be seeing the information related to System Messages, Top Client and Carrier details & Fleet, Policy, Claim and Financial Overview, and user can also have a look at all the recent activities
+User goes to Client details page where user can manage the Client information, he sees all the Clients and there details 
+He proceeds with adding a client by adding client details 
+Then he views the details of client where he can see total fleets and Active fleets along with Associated Fleets and if require user can also remove the Client 
+Now he proceeds with Carrier management under Carrier details
+where user can manage the Carrier information, he sees all the Carriers and there details 
+He proceeds with adding a carrier by adding carrier details 
+Then he views the details of carriers where he can see total Products and Active Products along with Associated Products details and if require user can also remove the carrier 
+And Similarly for Product management User View all the products, can add, remove, edit the product if required
+now user clicks on add Product where he selects carrier name and Define product with Business & Technical Cover
+can add more than one cover, now he links to business segments by selecting fleet, Vehicle Types, Regions and Frame Contract Types
+user views the products to view all the product related details and associated technical covers
+user clicks on edit product where he can update Product related details and add Technical Cover and remove the same if required
+
+Now User begins with Fleet where he can view all the fleets and can start creating by clicking on Create Fleet where he can enter name and select client, fleet type, with description and after which he can import vehicles, Drivers,
+ also add Corresponding technical Coverages
+He proceeds with adding Coverages- Upside down
+And Enters 
+Name, Limit of Indemnity, Excess/Deductible Amount, Rating Logic and Carrier Responsibility and can multiple coverages clicks on finish 
+Now user can perform multiple actions like view, manage and remove the fleet
+User proceeds with managing the fleet where he adds vehicles and drivers and can remove them if required also user can add or remove the coverages if he wants to 
+Now he proceeds with searching Uber, and clicks on View fleet icon for Uber East Coast Fleet 2 to view the fleet details which consists of an Overview, Technical covers and Fleet Vehicles and Drivers.
+Now User clicks on Carrier recommendation where 
+And AI driven model will predict and will recommend the best Carrier Match as per the Client’s Fleet requirements and user now can add corresponding Frame Contract from here or from the Frame Contract Management screen user proceeds with the screen
+He proceeds with creating a frame contract where he selects Client Name as Uber Technologies, Carrier name as AXA XL and Contract type as Standard along with other basic details, including AON Personnel, who are associated with the contract
+Financial Terms like commission rate and other details
+Now user heads to Matching Products & Fleets tab where AI Driven logic will pull the Products matching with the Client & Carrier Name and other details
+User now selects the Product AXA Standard EU Medium Fleet and 
+corresponding Technical coverages appear.
+User can add new Technical cover and also delete one if required
+Matching Fleets also appeared
+User can select one or more Matching Fleets and complete Contract creation by clicking on Create Frame Contract 
+user views all the Frame contract details,  can edit and Remove the Frame contract details if require
+User now Proceeds with Vehicle Management
+Where he selects status as Active and proceeds to Add a vehicle User clicks on adds vehicle, selects the Fleet and enters the remaining details
+User can Import Vehicles by uploading an Excel file of any format as an AI-driven model, it  accepts the file in any format and show Import Preview – User can accept and upload those vehicles.
+User have option to delete one vehicle or bulk-delete vehicles 
+Now User proceeds with Driver Management , he selects status as Active and
+Proceeds with Adding a driver, selects a Fleet that he wants to consider
+User can also import Driver in which there is an AI driven model that accepts file in any format and show Import Preview
+Similarly user can delete one or bulk drivers If required
+User now goes to Reporting Dashboard as he wants to have an view of details of Profitability, Coverage Distribution, Premium Performance Reports
+Also AI Analytics that provides an analytical view of Profitability Forecast,
+Renewal likelihood,
+AI Detected Risk indicators like
+Whether Client is doing expansion in high-risk zone and what is potential exposure & what is the probability
+Due to increase in Weather related claims how is the financial impact & what is the probability
+What might be the Potential policy cancellation rate due to new competitor’s offerings
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Your script is very clear in structure and conveys the flow well. I've polished the English for grammar, flow, and clarity, while keeping the original intent and structure intact. Here's the refined version:
 
 
