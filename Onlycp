@@ -1,3 +1,83 @@
+Hello Langchain
+Traceback (most recent call last):
+  File "C:\Users\2000137378\Desktop\ice_breaker\icebreaker.py", line 24, in <module>
+    res = chain.invoke(input={"information": information})
+                                             ^^^^^^^^^^^
+NameError: name 'information' is not defined
+
+
+from dotenv import load_dotenv
+from langchain_core.prompts import PromptTemplate
+from langchain_openai import ChatOpenAI
+
+import os
+if __name__ == "__main__":
+    # load_dotenv()
+    print("Hello Langchain")
+    # print(os.environ['COOL_API_KEY'])
+    summary_template="""
+    given the information {information} about a person from I want you to create 
+    1.a short summary
+    2.two interesting facts about them
+    """
+    summary_prompt_template = PromptTemplate(input_variable=["information"], template=summary_template)
+    llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo")
+
+
+    # Define the input information
+    # information = "John Doe is a software engineer with a passion for artificial intelligence and open-source contributions."
+
+    chain = summary_prompt_template | llm
+
+    res = chain.invoke(input={"information": information})
+
+    print(res)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Parexel International LLC
 RAF
 RSi
