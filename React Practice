@@ -1,3 +1,203 @@
+import React, { useState } from 'react';
+
+const Search = (props) => {
+  const [newtitle, setTitle] = useState('');
+  const [newId, setId] = useState('');
+
+  function titlechangehandler(event) {
+    setTitle(event.target.value);
+    console.log(event.target.value);
+  }
+
+  function Idchangehandler(event) {
+    setId(event.target.value);
+    console.log(event.target.value);
+  }
+
+  function submithandler(event) {
+    event.preventDefault();
+    const productdata = {
+      id: newId,
+      title: newtitle
+    };
+    // ▶ Send data up to App.js
+    props.onSaveProduct(productdata);
+    setTitle('');
+    setId('');
+  }
+
+  return (
+    <form onSubmit={submithandler}>
+      <input
+        type="text"
+        placeholder="ID"
+        value={newId}
+        onChange={Idchangehandler}
+      />
+      <input
+        type="text"
+        placeholder="Title"
+        value={newtitle}
+        onChange={titlechangehandler}
+      />
+      <button type="submit">Addnew</button>
+    </form>
+  );
+};
+
+export default Search;
+import React, { useState } from 'react';
+import logo from './logo.svg';
+import './App.css';
+import Item from "../src/Components/Items/Item";
+import Homepage from './Components/Homepage/Homepage';
+import Search from './Components/Search/Search';
+import NewProduct from './Components/NewProduct';
+
+function App() {
+  const [response, setResponse] = useState([
+    { id: 'p1', title: 'Nirma' },
+    { id: 'p2', title: 'Surfexcel' },
+    { id: 'p3', title: 'Mysoap' },
+  ]);
+
+  function printProductData(data) {
+    console.log("i am inside APP.js");
+    console.log(data);
+    setResponse(prev => [data, ...prev]);
+  }
+
+  return (
+    <>
+      <div>
+        {response.map((item) => (
+          <Homepage key={item.id} Id={item.id} Title={item.title} />
+        ))}
+
+        <Item />
+
+        <NewProduct pranay={printProductData} />
+      </div>
+    </>
+  );
+}
+
+export default App;
+import React, { useState } from 'react';
+import Item from "../Items/Item";
+
+const Homepage = (props) => {
+  const [Title, setTitle] = useState(props.Title);
+  const [Id, setId] = useState(props.Id);
+
+  const printname = props.item1;
+
+  function clickhandler() {
+    console.log("button Clicked");
+    setTitle("NewTitle");
+  }
+
+  return (
+    <>
+      <div>
+        <p>
+          {printname}
+          {Id}
+          {Title}
+        </p>
+        {props.children}
+        <button onClick={clickhandler}>Add</button>
+      </div>
+    </>
+  );
+};
+
+export default Homepage;
+import React, { useState } from 'react';
+import Homepage from '../Homepage/Homepage';
+
+const Search = (props) => {
+  const [newtitle, setTitle] = useState('');
+  const [newId, setId] = useState('');
+
+  function titlechangehandler(event) {
+    setTitle(event.target.value);
+    console.log(event.target.value);
+  }
+
+  function Idchangehandler(event) {
+    setId(event.target.value);
+    console.log(event.target.value);
+  }
+
+  function submithandler(event) {
+    event.preventDefault();
+
+    const productdata = {
+      title: newtitle,
+      id: newId
+    };
+
+    props.onSaveProduct(productdata);
+    setTitle('');
+    setId('');
+  }
+
+  return (
+    <form onSubmit={submithandler}>
+      <div>
+        <input type='text' value={newtitle} onChange={titlechangehandler}></input>
+      </div>
+      <div>
+        <input type="text" value={newId} onChange={Idchangehandler}></input>
+      </div>
+      <div>
+        <button type='submit'>Addnew</button>
+      </div>
+    </form>
+  );
+};
+
+export default Search;
+import Search from './Search/Search';
+
+function NewProduct(props) {
+  function saveProduct(product) {
+    console.log("i am inside new product");
+    console.log(product);
+
+    // calling parent function
+    props.pranay(product);
+  }
+
+  return (
+    <div className='new-product'>
+      <Search onSaveProduct={saveProduct} />
+    </div>
+  );
+}
+
+export default NewProduct
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+...........,....
+
+
+
+
+
 import React from 'react'
 
 const Addbutton = () => {
