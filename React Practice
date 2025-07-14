@@ -1,1 +1,213 @@
+import React from 'react'
 
+const Addbutton = () => {
+    function clickhandler()
+{
+console.log("button Clicked")
+setTitle("NewTitle");
+// myTitle = "NewTitle";
+}
+  return (
+    <div>
+      <button onClick={clickhandler}>Add</button>
+    </div>
+  )
+}
+
+export default Addbutton
+
+import React, { useState } from 'react'
+import Item from "../Items/Item"
+
+const Homepage = (props) => {
+const [Title, setTitle]= useState(props.Title)
+const [Id, setId]= useState(props.Id)
+
+// const [NewTitle, setnewTitle]= useState(props.newtitle)
+// const [NewId, setnewId]= useState(props.newId)
+
+
+// const myId=props.h1;
+const printname = props.item1;
+
+
+function clickhandler()
+{
+console.log("button Clicked")
+setTitle("NewTitle");
+// myTitle = "NewTitle";
+}
+
+
+  return (
+      <>
+    <div>
+     <p>
+     {printname}
+     {Id}
+     {/* {NewId} */}
+     {Title}
+     {/* {NewTitle} */}
+     </p>
+     {props.children} 
+     {/* so that Hi gets visible */}
+     
+     <button onClick={clickhandler}>Add</button>
+     
+   </div>
+        </>
+  )
+}
+
+export default Homepage
+import React from 'react'
+import App from '../../App';
+import Homepage from '../Homepage/Homepage';
+
+const Item = () => {
+    const MyItem = "Musaddique";
+  return (
+    <div>
+        <Homepage item1={MyItem}/>
+    </div>
+  )
+}
+
+export default Item;
+import React, { useState } from 'react'
+import Homepage from '../Homepage/Homepage';
+
+const Search = (props) => {
+
+    const [newtitle,setTitle]=useState('')
+    const [newId,setId]=useState('')
+
+function titlechangehandler(event)
+{
+setTitle(event.target.value);
+console.log(event.target.value);
+}
+
+function Idchangehandler(event)
+{
+setId(event.target.value);
+console.log(event.target.value);
+}
+
+function submithandler(event)
+{
+    event.preventDefault();
+
+    const productdata = {
+    title:newtitle,
+    id:newId
+    };
+
+    props.onSaveProduct(productdata);
+    setTitle('');
+    setId('');
+    // console.log(productdata);
+}
+
+
+
+  return (
+      <form onSubmit={submithandler}>
+    <div>
+       <input type='text' value={newtitle} onChange={titlechangehandler}></input>
+       
+    </div>
+      <div>
+        <input type="text" value={newId} onChange={Idchangehandler}></input>  
+      </div>
+
+      <div>
+
+      <button type='submit'>Addnew</button>
+      </div>
+
+    </form>
+
+  )
+}
+
+export default Search
+// import './NewProduct.css'
+// import ProductForm from './ProductForm';
+import Search from './Search/Search';
+
+function NewProduct(props) {
+
+    function saveProduct(product) {
+        console.log("i am inside new product");
+        console.log(product)
+
+        //calling parent function
+        props.pranay(product);
+    }
+
+    return (<div className='new-product'>
+        <Search onSaveProduct = {saveProduct}/>
+    </div>)
+}
+
+export default NewProduct;
+import logo from './logo.svg';
+import './App.css';
+import Item from "../src/Components/Items/Item"
+import Homepage from './Components/Homepage/Homepage';
+import Search from './Components/Search/Search';
+import NewProduct from './Components/NewProduct';
+
+function App() {
+  const response = [
+  {
+    id:'p1',
+    title: 'Nirma',
+    // name:'myname',
+  },
+  {
+    id:'p2',
+    title: 'Surfexcel',
+  },
+  {
+    id:'p3',
+    title:'Mysoap',
+  },
+  ]
+  
+
+  function printProductData(data) {
+    console.log("i am inside APP.js")
+    console.log(data)
+  }
+  
+  return (
+   <>
+   <div>
+  {/* <Search/> */}
+
+   <Homepage 
+   Id={response[0].id}
+   Title={response[0].title}
+   />
+      <Homepage 
+   Id={response[1].id}
+   Title={response[1].title}
+   />
+      <Homepage 
+   Id={response[2].id}
+   Title={response[2].title}
+   />
+  
+    {/* Hi ie inside our component ham content dal skte hai props.children use karna padega ie agar ye pura return ke start me koi aur component hota(Card) aur us component ke andar ye upar wala pura code hota to ye upar wala pura code nhi dikhta, to use dikhane ke liye ham Card ke andar jake props.children karte tab upar wala pura code dikhta */}
+  
+   <Item/>
+
+   <NewProduct pranay = {printProductData} />
+   </div>
+   </>
+  );
+}
+
+export default App;
