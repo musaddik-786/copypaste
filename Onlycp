@@ -1,3 +1,75 @@
+I forgot to mention that AgentCodetemplate that is given to us for reference
+# Proper explanation at the top in comments about the defination of agent(What's the purpose of the agent, Why it is required, how it will help etc.)
+ so that any one whether they are from tech background or not are able to easily understand the purpose 
+
+
+#Proper import statements must be there 
+import os 
+import *****************************
+import *****************************
+import *****************************
+import *****************************
+
+
+
+#Proper defination of the function must be there alongwith function call handling and no indentation error must be there 
+
+#For Example 
+
+def chunk_and_embed(file_path):
+ ##################
+
+ *********** Code Strcuture ***********************
+
+
+####################
+
+
+# Proper .env file required credentials must be called whichever are required in each and every agent file 
+
+# For Example 
+
+    embeddings = AzureOpenAIEmbeddings(
+        azure_deployment=os.getenv("AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME"),
+        openai_api_key=os.getenv("AZURE_OPENAI_API_KEY"),
+        openai_api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
+        azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT")
+    )
+
+also there is requirements.txt file
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 This is my forlder structure
 Mainnew Folder
 under 
