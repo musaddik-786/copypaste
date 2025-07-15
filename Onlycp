@@ -1,3 +1,72 @@
+This is my forlder structure
+Mainnew Folder
+under 
+Mainnew Folder there is main.py
+under 
+Mainnew Folder there is Agents Folder
+ under Agents Folder there is  System agents
+  under System agents folder there is it data_extraction agent
+under Agent Folder there will be metabrain.py from which the agent will get activated or initaited
+
+under Mainnew Folder there is Logs folder, utils folder, venv folder
+under Logs Folder there is main.py
+under utils folder there is main.py
+under venv there is venv.txs
+
+
+
+Data Extraction Agent	As a commercial property underwriter, I want the Data Extraction Agent to automatically extract structured data from unstructured submission documents (e.g., PDFs, Excel sheets, broker emails), so that I can avoid manual data entry and make faster, more accurate underwriting decisions.	
+1.Optical Character Recognition (OCR) with layout-aware models. 
+2.Natural language field detection using pre-trained LLMs. 
+3.Table extraction for schedule of locations and risk items.
+4.Entity extraction for:Property name, Address (with separate fields for city, ZIP, state), Contact information
+5.Extraction confidence scoring with visual preview (for QA).
+6.Bulk document processing and pagination handling."	
+
+Input Format
+The Data Extraction Agent receives input through document ingestion pipeline. The types of input it receives are typically unstructured documents, which are part of the insurance submission package.	
+Output Data format
+The Data Extraction Agent outputs structured data in JSON (extracted_data.json) and CSV (location_schedule.csv). It includes key fields like insured name, property address, occupancy, construction type, sum insured, year built, and loss history, along with confidence scores and flags for missing data. This output is passed to the Enrichment Agent or underwriting systems for further processing.	
+
+Acceptance Criteria
+1.Supports ingestion of formats: PDF, DOCX, XLSX, Email (EML/MSG).
+2.Automatically extracts key fields such as:Insured name, address, property details, Sum insured, construction type, occupancy, Loss history, policy period, deductibles 
+Normalizes field names to underwriting schema. 
+Flags missing or ambiguous fields with validation tags. 
+Provides confidence score for each extracted field. 
+Passes structured output in JSON/CSV to the Enrichment Agent."
+
+
+I want you to create the data extraction agent I have provided you the folderstructure and also the userstories in detail below implement and give me the code
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Hello Langchain
 Traceback (most recent call last):
   File "C:\Users\2000137378\Desktop\ice_breaker\icebreaker.py", line 24, in <module>
