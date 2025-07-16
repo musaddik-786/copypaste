@@ -1,3 +1,190 @@
+1. Input (Form Data Ingestion)
+
+Ingest structured data from the Data Extraction Agent (location, occupancy, construction, etc.).
+
+Add: Schema validation to ensure incoming fields conform to expected types/formats.
+
+Add: Duplicate detection (e.g. duplicate submission IDs) to avoid re-processing the same record.
+
+
+
+2. Missing-Field Detector
+
+Identify any empty or invalid fields that must be enriched or flagged.
+
+
+
+3. Address Standardization & Geocoding
+
+Normalize address fields (USPS standardization or local equivalent).
+
+Geocode to lat/long.
+
+Log the geocoding provider and confidence score.
+
+
+
+4. External API Calls (in parallel or orchestrated sequence)
+
+FEMA flood zones (flood hazard).
+
+RMS/CoreLogic CAT zones (catastrophe zones like hurricane, earthquake).
+
+ISO Fire Protection Class (and distance-to-hydrant/station).
+
+Historical claims (internal warehouse).
+
+Weather or climate risk signals (optional if you want near-real-time environmental data).
+
+Sanctions screening (if relevant to underwriting).
+
+Crime index or local risk indicators.
+
+
+> Tip: Orchestrate these calls to respect rate limits; cache frequent lookups (e.g. same lat/long).
+
+
+
+
+5. Estimated Rebuilding Cost (RCV) Calculation
+
+Feed property inputs (year built, square footage, construction type) into your RCV model.
+
+Record model version and input parameters in the audit log.
+
+
+
+6. LLM-Based Context Completion
+
+For any remaining gaps (e.g. ambiguous occupancy types), use a small, fine-tuned LLM prompt to infer or standardize values.
+
+Add: A human-in-the-loop “confidence review” for low-confidence LLM outputs.
+
+
+
+7. Risk Signal Flagging
+
+Evaluate enriched data against rule sets (e.g. “Tier 1 hurricane zone,” “historical claim > 3 in last 5 years,” “fire class > 8”).
+
+Append risk flags (boolean or categorical) with rule IDs and descriptions.
+
+
+
+8. Merge Enriched Data into Master Record
+
+Combine original + enriched fields.
+
+Normalize field names and units (e.g. metres vs feet, USD vs local currency).
+
+
+
+9. Audit Logging & Source Tracking
+
+For every enriched field, capture:
+
+Data source (API name/version, date).
+
+Provider response metadata (confidence score, timestamp).
+
+
+Persist a “field‐source map” that will appear in both your JSON and CSV outputs.
+
+
+
+10. Quality Assurance & Alerts
+
+Compute a “completeness score” or “data quality score” per record.
+
+Trigger alerts or human QC steps if score falls below a threshold.
+
+
+
+11. Output to Risk Scoring Agent
+
+Write out the enriched record in both:
+
+enriched_data.json (full detail + audit metadata)
+
+property_risk_enrichment.csv (flattened view with key fields and flags)
+
+
+
+
+12. Monitoring & Retry Logic
+
+Implement retry/back-off for transient API failures.
+
+Collect metrics (success/failure rates, latency) for your enrichment pipelines.
+
+
+
+
+
+---
+
+Visualized Flow
+
+flowchart LR
+  A[Input: Structured Submission] --> B[Schema & Duplicate Validation]
+  B --> C[Missing-Field Detector]
+  C --> D[Address Standardization & Geocoding]
+  D --> E{External APIs}
+  subgraph APIs
+    E1[FEMA Flood Zone]
+    E2[CAT Zone (RMS/CoreLogic)]
+    E3[ISO Fire Class]
+    E4[Historical Claims]
+    E5[Crime Index]
+    E6[Weather/Climate Data]
+    E7[Sanctions Screening]
+  end
+  D --> APIs
+  APIs --> F[RCV Model]
+  F --> G[LLM Context Completion]
+  G --> H[Risk Signal Flagging]
+  H --> I[Merge & Normalize Master Record]
+  I --> J[Audit Logging & Source Tracking]
+  J --> K[QA / Data Quality Score]
+  K --> L[Output JSON & CSV]
+  L --> M[Risk Scoring Agent]
+  J --> N[Monitoring & Retry Logic]
+
+This expanded flow ensures you cover:
+
+Data validation up front
+
+Address standardization before external calls
+
+Sequenced enrichment with caching and rate-limit handling
+
+RCV computation explicitly
+
+LLM augmentation for tricky edge cases
+
+Risk flags generation
+
+Full audit trail for compliance
+
+Quality scoring for operational robustness
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Enrichment Agent	As a commercial property underwriter, I want the Enrichment Agent to enhance extracted submission data with external property, hazard, and historical claim data, so that I can make more informed and comprehensive underwriting assessments.	"1.Address standardization and geocoding (lat/long).
 2.API integrations: FEMA flood zones, RMS or CoreLogic CAT zones, ISO Fire Protection Class, Historical claim data warehouse
 3.Estimated Rebuilding Cost (RCV) model based on property inputs.
