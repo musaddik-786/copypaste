@@ -1,3 +1,75 @@
+Role Agent
+Risk Scoring Agent	
+
+Decription
+Risk Scoring Agent to generate a risk score for each property submission using structured attributes and underwriting logic, so that  can validate the risk tier and approve/reject coverage accordingly.	
+
+
+
+Detailed User Story/Functions
+"1.Hazard zoning overlays (FEMA flood, earthquake fault lines)
+2.Construction & occupancy classification automation
+3.Fire suppression systems audit (e.g., auto-detect presence of sprinklers)
+4.Prior loss indicator with source references
+5.Historical risk benchmark comparison (vs. similar past submissions)"	
+
+Input (Form Data Ingestion)
+Pulls structured data (e.g., geolocation, occupancy, construction type, fire protection).	
+
+
+Output Data format
+"1.Risk Score (0–100)
+2.Risk Category (Low, Medium, High)
+3.Risk Factors Summary (why this score was assigned)
+4.Notifies underwriter when data is missing or assumptions are applied."	
+
+
+Acceptance criteria
+"Uses scoring logic tailored to commercial properties:
+1.CAT exposure (e.g., flood, earthquake zones)
+2.Property usage (warehouse, retail mall, industrial plant)
+3.Construction type (fire resistive, non-combustible)
+4.Public protection class (distance to fire hydrants/stations)"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 1. Input (Form Data Ingestion)
 
 Ingest structured data from the Data Extraction Agent (location, occupancy, construction, etc.).
