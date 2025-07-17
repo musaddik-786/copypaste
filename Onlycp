@@ -350,11 +350,26 @@ Quality scoring for operational robustness
 
 
 
-Enrichment Agent	As a commercial property underwriter, I want the Enrichment Agent to enhance extracted submission data with external property, hazard, and historical claim data, so that I can make more informed and comprehensive underwriting assessments.	"1.Address standardization and geocoding (lat/long).
+Enrichment Agent	
+Description 
+As a commercial property underwriter, I want the Enrichment Agent to enhance extracted submission data with external property, hazard, and historical claim data, so that I can make more informed and comprehensive underwriting assessments.	
+
+Detailed User Story 
+"1.Address standardization and geocoding (lat/long).
 2.API integrations: FEMA flood zones, RMS or CoreLogic CAT zones, ISO Fire Protection Class, Historical claim data warehouse
 3.Estimated Rebuilding Cost (RCV) model based on property inputs.
 4.Property metadata enrichment (roof type, year built, square footage).
-5.Risk signal flags (e.g., “Located in Tier 1 hurricane zone”)."	The Enrichment Agent receives input as structured data output from the Data Extraction Agent. This structured data typically represents clean, machine-readable values about the insured property and risk locations, which are ready for enrichment through external or internal data sources.	The Enrichment Agent outputs data in JSON (enriched_data.json) and CSV (property_risk_enrichment.csv) formats. It includes enriched fields like latitude/longitude, flood and earthquake zones, fire protection class, RCV estimate, crime index, and risk signals. Each value is linked to its data source. This structured output is used by the Risk Scoring Agent or underwriting tools for decision-making.	"1.Accepts structured data (location, occupancy, construction, etc.) from the Data Extraction Agent.
+5.Risk signal flags (e.g., “Located in Tier 1 hurricane zone”)."	
+
+Input Data format 
+The Enrichment Agent receives input as structured data output from the Data Extraction Agent. This structured data typically represents clean, machine-readable values about the insured property and risk locations, which are ready for enrichment through external or internal data sources.
+
+output Data format 
+The Enrichment Agent outputs data in JSON (enriched_data.json) and CSV (property_risk_enrichment.csv) formats. It includes enriched fields like latitude/longitude, flood and earthquake zones, fire protection class, RCV estimate, crime index, and risk signals. Each value is linked to its data source. This structured output is used by the Risk Scoring Agent or underwriting tools for decision-making.	
+
+
+Acceptance Criteria 
+"1.Accepts structured data (location, occupancy, construction, etc.) from the Data Extraction Agent.
 2.Enriches data with: Geo-coding and mapping to hazard zones (flood, earthquake, crime), Fire protection info (e.g., distance to hydrant/fire station), Prior claim history from internal systems, Property valuation and rebuild cost estimators
 3.Appends enrichment data to submission record. 
 4.Logs all enrichment sources used per field for auditability."
