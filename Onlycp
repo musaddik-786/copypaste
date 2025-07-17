@@ -1,3 +1,39 @@
+flowchart LR
+  A[Input from Enrichment Agent] --> B[Schema Validation]
+  B --> C[Missing-Data & Assumption Detector]
+  C --> D[Hazard Overlay Rules]
+  D --> E[Construction & Occupancy Classification]
+  E --> F[Fire Protection Assessment]
+  F --> G[Prior-Loss & Benchmark Comparison]
+  G --> H{LLM Judgement?}
+  H -->|If needed| I[LLM-Based Judgment]
+  H -->|Else| J[Skip LLM]
+  I --> K[Score Aggregation & Normalization]
+  J --> K
+  K --> L[Risk Category Assignment]
+  L --> M[Generate Risk Factors Summary]
+  M --> N[Audit Logging]
+  N --> O[Notifications & Alerts]
+  O --> P[Output to Rating Agent]
+  N --> Q[Monitoring & Retries]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Role Agent
 Risk Scoring Agent	
 
