@@ -1,3 +1,60 @@
+
+
+Role agent 
+
+Data Extraction Agent	
+
+Description
+As a commercial property underwriter, I want the Data Extraction Agent to automatically extract structured data from unstructured submission documents (e.g., PDFs, Excel sheets, broker emails), so that I can avoid manual data entry and make faster, more accurate underwriting decisions.	
+
+Detailed User story 
+"1.Optical Character Recognition (OCR) with layout-aware models. 
+2.Natural language field detection using pre-trained LLMs. 
+3.Table extraction for schedule of locations and risk items.
+4.Entity extraction for:Property name, Address (with separate fields for city, ZIP, state), Contact information
+5.Extraction confidence scoring with visual preview (for QA).
+6.Bulk document processing and pagination handling."	
+
+Input data format
+The Data Extraction Agent receives input through document ingestion pipeline. The types of input it receives are typically unstructured documents, which are part of the insurance submission package.	
+
+Output data format
+The Data Extraction Agent outputs structured data in JSON (extracted_data.json) and CSV (location_schedule.csv). It includes key fields like insured name, property address, occupancy, construction type, sum insured, year built, and loss history, along with confidence scores and flags for missing data. This output is passed to the Enrichment Agent or underwriting systems for further processing.	
+
+Acceptance criteria
+"1.Supports ingestion of formats: PDF, DOCX, XLSX, Email (EML/MSG).
+2.Automatically extracts key fields such as:Insured name, address, property details, Sum insured, construction type, occupancy, Loss history, policy period, deductibles 
+Normalizes field names to underwriting schema. 
+Flags missing or ambiguous fields with validation tags. 
+Provides confidence score for each extracted field. 
+Passes structured output in JSON/CSV to the Enrichment Agent."
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 flowchart LR
   A[Input from Enrichment Agent] --> B[Schema Validation]
   B --> C[Missing-Data & Assumption Detector]
