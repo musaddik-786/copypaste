@@ -1,3 +1,47 @@
+Rating Agent	
+
+Description
+Rating Agent to auto-calculate base premium using approved rate tables, modifiers, and CAT surcharges, so that  can verify rate accuracy and apply discretionary judgment when needed	
+
+Detailed User Story
+1.Transparent rate breakdown with editable fields for discretionary override
+2.Toggleable add-ons (e.g., terrorism, business interruption) to re-rate
+3.Side-by-side view of manual vs. system-calculated rate                                                            
+4. Scenario testing (e.g., different deductibles or building improvements)"	
+
+Input Data Format
+1.Risk score from Risk Agent
+2.Property class, limits, deductibles"	
+
+Output Data Format
+"1.Base premium, surcharges, discounts
+2.Final premium per location and total policy
+3.Highlighted driver factors (e.g., why CAT loading applied)"	
+
+Acceptance Criteria
+"1.ISO rating tables (e.g., for frame vs. masonry buildings)
+2.Loadings (e.g., for CAT exposure, crime risk, prior loss)
+3.Discounts (e.g., sprinkler systems, alarm monitoring)"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 Role agent 
