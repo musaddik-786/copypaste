@@ -1,3 +1,545 @@
+I have been told to create an AI agent for Risk Scoring Agent and the thing is they want the projsect similar to the once that they have shared with me I am sharing that project with you below along with the User Stories , So this is the User Story As a
+
+Risk manager, underwriter, or claims adjuster,
+
+I want
+an intelligent Risk Scoring Agent that can assess input data and generate a risk score based on predefined risk models and criteria,
+
+So that
+I can make informed decisions about underwriting, claims approval, or policy adjustments with a clear understanding of the associated risks.
+
+Acceptance Criteria
+Input Data:
+The agent should accept structured data (e.g., JSON, CSV, or API input) containing customer details, policy information, and other relevant risk factors, provided by upstream agents or systems.
+
+Risk Assessment Models:
+The agent should calculate a risk score using predefined risk models, algorithms, or machine learning models tailored to the specific use case (e.g., underwriting, claims, fraud detection).
+
+Customizable Criteria:
+The agent should allow customization of risk criteria and scoring thresholds to align with business policies and regulatory requirements.
+
+Risk Categorization:
+The agent should categorize the calculated risk score into predefined levels (e.g., low, medium, high) for easy interpretation.
+
+Explainability:
+The agent should provide a detailed explanation of the factors contributing to the risk score, enabling transparency and justifiability of the assessment.
+
+Multi-Product Support:
+The agent should support risk scoring for various insurance products, such as health, auto, property, and life insurance.
+
+Output Format:
+The agent should generate the risk score and associated details in a structured format (e.g., JSON, CSV) and a user-friendly report (e.g., PDF or web interface).
+
+AND This is the project similar to this I have been told to create the project  I have a project of AI Agent I am unable to understand a sigle thing as I am new to Python and this is my first project also that i havent created this is the folder structure Omnicore is the main folder of the project under it there are many folders 1.agent_hub, under it there are files(1.__pycache__ 2.__init.py__ 3.action_chat_agent.py  3.) 2.data, under it there are folders(1.config 2.log 3.prompt)  3.proj_scripts, under it there are files(1.__pychache__ 2.__init.py__ 3.agent_core.py 4.chat_agent_manage.py 5.prerequisites.py)  4.routers, under it there are files(1.__pychache__ 2.__init__.py 3.chat_agent.py)  5.toolbox, under it there are files(1.__pychache__ 2.__init__.py 3.methods.py) 6. This is a file in Omnicore.env, main.py, startup.sh,local_setup.sh, requirements.txt dont reply anything just go through the folder strucutre and reply with a yes once you have gone through it and then i will provide you the code corresponding to each files I have mentioned  3.action_chat_agent.py under agent_hub folder import os
+from proj_scripts import agent_core
+import random
+from tinydb import TinyDB, Query
+import json
+from debug2 import debug2 as dbg
+from dotenv import load_dotenv
+import os
+from toolbox import methods
+
+load_dotenv()
+
+class general_chat_agent:
+    def __init__(self, execution_id, target_string, agent_name, dbg_fl_nm='log'):
+        self.execution_id = execution_id
+        self.target_string = target_string
+        self.dbg_fl_nm = dbg_fl_nm
+        self.script_name = os.path.basename(__file__)
+        self.seed = random.randint(10000, 99999)
+
+        self.prompt_file = os.environ.get('PROMPT_FILE')
+        if not self.prompt_file:
+            raise ValueError("PROMPT_FILE environment variable is not set")
+
+        self.db = TinyDB(f'./data/prompt/{self.prompt_file}')
+        self.data = Query()
+
+        prompt = self.db.search(
+            (self.data.agent_name == agent_name) &
+            (self.data.function_name == 'agent_general_chat') &
+            (self.data.purpose == 'test') &
+            (self.data.type_name == "system")
+        )
+
+        if prompt and isinstance(prompt, list) and len(prompt) > 0:
+            encrypted_prompt = prompt[0]['prompt']
+            self.system = methods.decrypt_input(encrypted_prompt.encode('utf-16'))
+        else:
+            raise ValueError(f"Prompt not found or invalid for agent: {agent_name}")
+
+    def agent(self, filtered_df, biz_context):
+        question = f"""
+            You are a helpful AI assistant. A user has asked the following question:
+
+            "{self.target_string}"
+
+            Please provide a clear, concise, and informative response.
+            """
+        response = agent_core.LLM_cot_agent(
+            self.execution_id,
+            self.system,
+            question,
+            self.seed,
+            temparature=0.0,
+            top_p=0.7,
+            dbg_fl_nm=self.dbg_fl_nm
+        )
+
+        dbg.dprint2(self.script_name, self.execution_id, "query-response", response, self.dbg_fl_nm)
+        return response
+3.agent_core.py under proj_scripts folder from langchain_openai import AzureChatOpenAI
+from langchain_core.prompts.chat import ChatPromptTemplate
+import os
+from debug2 import debug2 as dbg
+from toolbox import methods
+import traceback
+
+
+script_name = os.path.basename(__file__)
+sc = methods.get_vault_secret_object()
+
+
+def LLM_cot_agent(execution_id,system,question,seed,temparature=0.00,top_p=0.1,dbg_fl_nm='log'):
+    try:
+        response = {}
+        if seed == 0:
+            model = AzureChatOpenAI(
+                # openai_api_version=os.environ["AZURE_OPENAI_API_VERSION"],
+                # azure_deployment=os.environ["AZURE_OPENAI_CHAT_DEPLOYMENT_NAME"],
+                azure_endpoint = sc.get_secret("AZURE-OPENAI-ENDPOINT").value,
+                openai_api_version=sc.get_secret("AZURE-OPENAI-API-VERSION").value,
+                azure_deployment=sc.get_secret("AZURE-OPENAI-CHAT-DEPLOYMENT-NAME").value,
+                api_key = sc.get_secret("AZURE-OPENAI-API-KEY").value,
+                temperature=temparature,
+                top_p= top_p,
+                verbose = True,
+            )   
+        else:
+            model = AzureChatOpenAI(
+                # openai_api_version=os.environ["AZURE_OPENAI_API_VERSION"],
+                # azure_deployment=os.environ["AZURE_OPENAI_CHAT_DEPLOYMENT_NAME"],
+                azure_endpoint = sc.get_secret("AZURE-OPENAI-ENDPOINT").value,
+                openai_api_version=sc.get_secret("AZURE-OPENAI-API-VERSION").value,
+                azure_deployment=sc.get_secret("AZURE-OPENAI-CHAT-DEPLOYMENT-NAME").value,
+                api_key = sc.get_secret("AZURE-OPENAI-API-KEY").value,
+                temperature=temparature,
+                seed=seed,
+                top_p= top_p,
+                verbose = True,
+            )
+
+
+        chat_template = ChatPromptTemplate.from_messages(
+            [
+                ("system", "{system}"),
+                ("human", "{question}"),
+            ]
+        )
+        messages = chat_template.format_messages(
+            system=system,
+            question = question
+        )
+        ai_message = model.invoke(messages,)
+        # response['content']= ai_message.content
+        response['completion_tokens'] = ai_message.response_metadata['token_usage']['completion_tokens']
+        response['prompt_tokens'] = ai_message.response_metadata['token_usage']['prompt_tokens']
+        response['total_tokens'] = ai_message.response_metadata['token_usage']['total_tokens']
+        # print(ai_message)
+        dbg.dprint2(script_name,execution_id,"LLM-response",response,dbg_fl_nm)
+        return ai_message.content
+    
+    except Exception as e:
+       
+        tb_str = traceback.format_exc()
+        dbg.dprint2(script_name, execution_id, "Exception in LLM_cot_agent", str(tb_str), dbg_fl_nm)
+        # Return a user-friendly error message for API consuming this function
+        return "Sorry, the AI assistant is currently unavailable. Please try again later."
+4.chat_agent_manage.py file under proj_scripts folder import os
+from langchain_openai import AzureOpenAIEmbeddings
+from toolbox import methods
+from dotenv import load_dotenv
+import json
+from proj_scripts import prerequisites
+from debug2 import debug2 as dbg
+import traceback
+from agent_hub import action_chat_agent
+from datetime import datetime, timedelta
+
+# Cache format: {session_id: {"agent": agent_instance, "last_used": datetime}}
+agent_cache = {}
+
+# Expiry duration (e.g., 10 minutes)
+SESSION_EXPIRY_MINUTES = 10
+
+load_dotenv('.env')
+sc = methods.get_vault_secret_object()
+
+class agent_hanlder:
+    def __init__(self, execution_id, dbg_fl_nm='log'):
+        self.script_name = os.path.basename(__file__)
+        self.execution_id = execution_id
+        self.dbg_fl_nm = dbg_fl_nm
+
+        self.embeddings = AzureOpenAIEmbeddings(
+            azure_endpoint=sc.get_secret("AZURE-OPENAI-ENDPOINT").value,
+            api_key=sc.get_secret("AZURE-OPENAI-API-KEY").value,
+            azure_deployment=sc.get_secret("AZURE-OPENAI-EMBEDDING-DEPLOYMENT-NAME").value,
+            openai_api_version=sc.get_secret("AZURE-OPENAI-API-VERSION").value,
+        )
+
+    def get_chat_response(self, query):
+        try:
+            now = datetime.now()
+
+            # Check if agent exists and is still valid
+            cached = agent_cache.get(self.execution_id)
+            if cached:
+                last_used = cached["last_used"]
+
+                # If the cached agent was used recently (within expiry window), reuse it
+                if now - last_used < timedelta(minutes=SESSION_EXPIRY_MINUTES):
+                    agent = cached["agent"]
+                    agent_cache[self.execution_id]["last_used"] = now  # Update usage timestamp
+                else:
+                    # If the agent is expired (inactive for too long), remove and reinitialize
+                    del agent_cache[self.execution_id]
+                    agent = self._initialize_agent(query)
+            else:
+                 # If no agent exists for this session, initialize a new one
+                agent = self._initialize_agent(query)
+
+            response = agent.agent(filtered_df=None, biz_context=None)
+            return response
+
+        except Exception as e:
+            tb_str = traceback.format_exc()
+            dbg.dprint2(self.script_name, self.execution_id, "Exception in get_chat_response", str(tb_str), self.dbg_fl_nm)
+            return "Sorry, something went wrong while generating the response."
+
+
+    # Initializes a new chat agent for the current session.
+    # Downloads required prompt files, creates the agent instance,
+    # and stores it in the session cache with a timestamp for reuse.
+    def _initialize_agent(self, query):
+        prerequisites.chat_prerequisite_manager(self.execution_id, self.dbg_fl_nm)
+        agent = action_chat_agent.general_chat_agent(
+            self.execution_id,
+            query,
+            agent_name='general_chat_agent',
+            dbg_fl_nm=self.dbg_fl_nm
+        )
+        agent_cache[self.execution_id] = {
+            "agent": agent,
+            "last_used": datetime.now()
+        }
+        return agent
+
+
+    
+    # def get_chat_response(self, query):
+    #     try:
+    #         prerequisites.chat_prerequisite_manager(self.execution_id, self.dbg_fl_nm)
+
+    #         agent = action_chat_agent.general_chat_agent(self.execution_id, query, agent_name='general_chat_agent', dbg_fl_nm=self.dbg_fl_nm)
+    #         response = agent.agent(filtered_df=None, biz_context=None)
+    #         return response
+
+    #     except Exception as e:
+    #         tb_str = traceback.format_exc()
+    #         dbg.dprint2(self.script_name, self.execution_id, "Exception in get_chat_response", str(tb_str), self.dbg_fl_nm)
+    #         return "Sorry, something went wrong while generating the response."
+5.prerequisites.py file under proj_scripts folder import os
+from azure.storage.blob import BlobServiceClient
+import os
+from debug2 import debug2 as dbg
+from toolbox import methods
+import yaml
+from io import BytesIO
+import traceback
+
+script_name = os.path.basename(__file__)
+sc = methods.get_vault_secret_object()
+
+
+def download_file(execution_id,local_file_name,local_path,blob_name,container_name,dbg_fl_nm='log',read_yaml=False):
+    
+    try:
+        connect_str = sc.get_secret('AZURE-STORAGE-CONNECTION-STRING').value
+
+        # Create the BlobServiceClient object
+        blob_service_client = BlobServiceClient.from_connection_string(connect_str)
+        
+        # Create a blob client using the local file name as the name for the blob
+        blob_client = blob_service_client.get_blob_client(container=container_name,blob=blob_name)
+
+        if read_yaml:
+            # Read YAML file directly into memory
+            yaml_stream = blob_client.download_blob().readall()
+            yaml_data = yaml.safe_load(BytesIO(yaml_stream))
+            return yaml_data
+        else:
+            # print(blob_name)
+            local_file_path = os.path.join(local_path, local_file_name)
+            with open(file=local_file_path, mode="wb") as download_file:
+                download_stream =blob_client.download_blob()
+                download_file.write(download_stream.readall())
+            dbg.dprint2(script_name,execution_id,"status",f"completed - {local_file_name}.",dbg_fl_nm)
+        
+        return
+    
+    except Exception as e:
+        tb_str = traceback.format_exc()
+        dbg.dprint2(script_name, execution_id, f"Error downloading blob: {str(tb_str)}", dbg_fl_nm)
+        return None
+
+
+
+def download_blob(io_point,conn_str,blob_name,container_name,yaml_config_path,read_yaml=False):
+    """Downloads the blobs/files from the Source point location."""
+
+    if io_point == "Azure":
+        # Create the BlobServiceClient object
+        blob_service_client = BlobServiceClient.from_connection_string(conn_str)
+
+        # Create a blob client using the local file name as the name for the blob
+        blob_client = blob_service_client.get_blob_client(container=container_name,blob=blob_name)
+
+        if read_yaml:
+            # Download YAML file into config path
+            yaml_stream = blob_client.download_blob().readall()
+            with open(file=f"{yaml_config_path}{blob_name}", mode="wb") as yamlfile:
+                yamlfile.write(yaml_stream)
+            return
+        else:
+            pass
+    
+    elif io_point == "AWS":
+        pass
+
+
+def chat_prerequisite_manager(execution_id, dbg_fl_nm='log'):
+    try:
+        # prompt_file = get_config_value('PROMPT_FILE')
+        # prompt_container = get_config_value('PROMPT_FILE_CONTAINER')
+
+        prompt_file = os.getenv("PROMPT_FILE")
+        prompt_container = os.getenv("PROMPT_FILE_CONTAINER")
+
+        download_file(execution_id, prompt_file, './data/prompt', prompt_file, prompt_container,dbg_fl_nm)
+        dbg.dprint2(script_name,execution_id,"status","completed ",dbg_fl_nm)
+
+        return "completed"
+    except Exception as e:
+            tb_str = traceback.format_exc()
+            dbg.dprint2(script_name, execution_id, f"Error in chat_prerequisite_manager", str(tb_str), "log")
+            return None
+
+3.chat_agents.py file under routers folder from fastapi import APIRouter
+from pydantic import BaseModel
+from debug2 import debug2 as dbg
+import os
+import traceback
+from datetime import datetime
+from proj_scripts import chat_agent_manager
+
+
+
+class Item(BaseModel):
+    Query: str   
+
+router = APIRouter()
+
+@router.post("/cli_chat")
+async def cli_chat(p_body: Item):
+    script_name = os.path.basename(__file__)
+    execution_id = datetime.now().strftime('%Y%m%d%H%M%S')
+    dbg_fl_nm = './data/log/general_chat_agent-log'
+
+    try:
+        dbg.dprint2(script_name, execution_id, "CLI Chat agent initialized", {"query": p_body.Query}, dbg_fl_nm)
+
+        agent = chat_agent_manager.agent_hanlder(execution_id, dbg_fl_nm)
+        response = agent.get_chat_response(p_body.Query)
+
+        dbg.dprint2(script_name, execution_id, "CLI chat completed", response, dbg_fl_nm)
+        return {"response": response}
+
+    except Exception as e:
+        tb_str = traceback.format_exc()
+        dbg.dprint2(script_name, execution_id, "CLI chat exception", str(tb_str), dbg_fl_nm)
+        return {"message": "CLI chat failed. Please check the logs."}
+
+3.methods.py file under toolbox folder  from azure.identity import DefaultAzureCredential
+from azure.keyvault.secrets import SecretClient
+import os
+from dotenv import load_dotenv
+import hashlib
+import sqlite3
+import traceback
+from debug2 import debug2 as dbg
+from datetime import datetime
+from cryptography.fernet import Fernet
+import yaml
+
+load_dotenv()
+script_name = os.path.basename(__file__)
+execution_id = datetime.now().strftime('%Y%m%d%H%M%S')
+
+def get_vault_secret_object():
+    """Connects to the Azure Key Vault.
+    
+    Returns:
+        SecretClient (object): object of the secret client connection.
+    """
+    try:
+        creds = DefaultAzureCredential()
+        secret_client = SecretClient(vault_url=os.environ.get("VAULT_URL"), credential=creds)
+
+        return secret_client
+    except Exception as e:
+        tb_str = traceback.format_exc()
+        dbg.dprint2(script_name,execution_id, f"Error connecting to Azure Key Vault: {str(tb_str)}", "log")
+        return None
+
+def get_crypto_object():
+    sc = get_vault_secret_object()
+    key = sc.get_secret('ENCRYPTION-KEY').value
+    return Fernet(key)
+
+def encrypt_input(message:str)->str:
+    fernet = get_crypto_object()
+    encMessage = fernet.encrypt(message.encode())
+    return encMessage
+
+def decrypt_input(message:str)->str:
+    fernet = get_crypto_object()
+    decMessage = fernet.decrypt(message).decode()
+    return decMessage
+
+def load_config_yaml(yaml_path):
+    with open(yaml_path, "r") as f:
+        return yaml.safe_load(f)
+
+
+def apply_env_variables(config):
+    env_config = config.get("env", {})
+    for key, value in env_config.items():
+        os.environ[key] = str(value) .env file under Omnicore folder VAULT_URL="https://amaze-omnicore-key-vault.vault.azure.net/"
+data_setup.sh folder under Omnicore folder mkdir /app/data/config
+mkdir /app/data/prompt
+mkdir /app/data/log
+local_setup.sh file under Omnicore folder mkdir ./data
+mkdir ./data/config
+mkdir ./data/prompt
+mkdir ./data/log
+mkdir ./proj_scripts
+mkdir ./routers
+mkdir ./toolbox
+mkdir ./agent_hub
+touch main.py
+touch Dockerfile
+touch requirements.txt
+touch .env
+touch ./toolbox/__init__.py
+touch ./routers/__init__.py
+touch ./agent_hub/__init__.py
+touch ./proj_scripts/__init__.py
+touch ./.gitignore
+main.py file under Omnicore folder from dotenv import load_dotenv
+from fastapi import FastAPI
+import uvicorn
+from routers import chat_agent
+from fastapi.middleware.cors import CORSMiddleware
+from proj_scripts import prerequisites
+from toolbox import methods
+
+# load_dotenv('.env')
+
+sc = methods.get_vault_secret_object()
+# Load the .yaml config file & initialize the environment variables.
+conn_str = sc.get_secret('AZURE-STORAGE-CONNECTION-STRING').value
+config_cntr = sc.get_secret('AZURE-CONFIG-CONTAINER-NAME').value
+yaml_file_name = "general_chat_agent_config.yaml"
+yaml_config_path = sc.get_secret("CONFIG-FILE-PATH").value
+# yaml_config_path = "./data/config/"
+prerequisites.download_blob("Azure", conn_str, yaml_file_name, config_cntr, yaml_config_path, read_yaml=True)
+config = methods.load_config_yaml(yaml_path=f"{yaml_config_path}{yaml_file_name}")
+methods.apply_env_variables(config)
+
+
+
+app = FastAPI(
+    title="OmniCore_General_Chat_Agent",
+    description="GenAI agent hub platform.",
+    version="0.1.0",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(chat_agent.router)
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8111)
+requirements.txt file under Omnicore folder fastapi
+uvicorn
+python-dotenv
+requests
+azure-identity
+azure-keyvault-secrets
+azure-storage-blob
+cryptography
+langchain
+langchain-openai
+tinydb
+debug2 startup.sh file under Omnicore folder #! /bin/bash
+sh data_setup.sh
+python main.py
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 I have a project of AI Agent I am unable to understand a sigle thing as I am new to Python and this is my first project also that i havent created this is the folder structure Omnicore is the main folder of the project under it there are many folders 1.agent_hub, under it there are files(1.__pycache__ 2.__init.py__ 3.action_chat_agent.py  3.) 2.data, under it there are folders(1.config 2.log 3.prompt)  3.proj_scripts, under it there are files(1.__pychache__ 2.__init.py__ 3.agent_core.py 4.chat_agent_manage.py 5.prerequisites.py)  4.routers, under it there are files(1.__pychache__ 2.__init__.py 3.chat_agent.py)  5.toolbox, under it there are files(1.__pychache__ 2.__init__.py 3.methods.py) 6. This is a file in Omnicore.env, main.py, startup.sh,local_setup.sh, requirements.txt dont reply anything just go through the folder strucutre and reply with a yes once you have gone through it and then i will provide you the code corresponding to each files I have mentioned  
 
 
