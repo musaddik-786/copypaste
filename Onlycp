@@ -1,5 +1,6 @@
- I have a project of AI Agent I am unable to understand a sigle thing as I am new to Python and this is my first project also that i havent created this is the folder structure 
-Omnicore is the main folder of the project under it
+ I have a project which has 2 parts one is Omnicore and other one is Omni pipeline both are interconnected that is the only thing i know
+of AI Agent I am unable to understand a sigle thing as I am new to Python and this is my first project also that i havent created this is the folder structure 
+for Omnicore below is the main folder of the project under it
 there are many folders 
 1.agent_hub, under it there are files(1.__pycache__ 2.__init.py__ 3.action_chat_agent.py) 
 2.data, under it there are folders(1. app_db, 2.converted, 3.extract, 4.feature, 5.log, 5.prompt,6.upload, 7.vec_db)  
@@ -880,6 +881,1017 @@ class chat_agent:
             dbg.dprint2(self.script_name, self.execution_id, "Exception in agent method", str(tb_str), self.dbg_fl_nm)
             return "Sorry, there was an error processing your request. Please try again later."
 
+
+For Omni pipeline below is the folder structure and code correspoding to the files
+1.data, under it there are folders(1. app_db, 2.converted,3.log, 4.upload, 5.vec_db)  
+2.proj_scripts, 
+under it there are files(1.__pychache__ 2.__init.py__ 3.agent_core.py 4.Controller.py 5.insert2vdb.py 6.markdownconverter.py 7.phoenix_analysis.py 8.prerequisites.py)  
+3.routers, under it there are files(1.__pychache__ 2.__init__.py 3.add2kb.py)  
+4.toolbox, under it there are files(1.__pychache__ 2.__init__.py 3.methods.py) 
+5.Caddyfile which is the main folder ie Omnipipeline
+This is a file in Omnipipeline,.env, main.py, startup.sh,local_setup.sh, requirements.txt dont reply anything just go through 
+the folder strucutre and reply with a yes once you have gone through it and then i will provide you the code corresponding to 
+each files I have mentioned  
+
+here is the code
+agent_core.py(under proj_scripts folder)
+from langchain_openai import AzureChatOpenAI
+from proj_scripts.phoenix_analysis import phoenix_tracing_decorator
+import os
+from debug2 import debug2 as dbg
+from toolbox import methods
+import warnings
+warnings.filterwarnings("ignore", category=RuntimeWarning)
+
+script_name = os.path.basename(__file__)
+
+
+@phoenix_tracing_decorator(phoenix_endpoint=os.environ.get('PHOENIX_SERVER_ENDPOINT'))
+def LLM_cot_agent(image,seed,temparature=0.00,top_p=0.1):
+    sc = methods.get_vault_secret_object()
+    response = {}
+    if seed == 0:
+        model = AzureChatOpenAI(
+            openai_api_key=sc.get_secret("AZURE-OPENAI-API-KEY").value, 
+            azure_endpoint=sc.get_secret("AZURE-OPENAI-ENDPOINT").value, 
+            openai_api_version=sc.get_secret("AZURE-OPENAI-API-VERSION").value,
+            azure_deployment=sc.get_secret("AZURE-OPENAI-CHAT-DEPLOYMENT-NAME").value,
+            temperature=temparature,
+            top_p= top_p,
+        )   
+    else:
+        model = AzureChatOpenAI(
+            openai_api_key=sc.get_secret("AZURE-OPENAI-API-KEY").value, 
+            azure_endpoint=sc.get_secret("AZURE-OPENAI-ENDPOINT").value, 
+            openai_api_version=sc.get_secret("AZURE-OPENAI-API-VERSION").value,
+            azure_deployment=sc.get_secret("AZURE-OPENAI-CHAT-DEPLOYMENT-NAME").value,
+            temperature=temparature,
+            seed=seed,
+            top_p= top_p,
+        )
+
+    messages=[
+        {"role": "system", "content": "You are a helpful assistant that responds in Markdown."},
+        {"role": "user", "content": [
+            {"type": "text", 
+                "text": "Understand the context of the image, Describe them as an alternative text. If the image is of flow diagrams or a"
+                "flow charts, only then explain its context in detail and also explain the relation between each entities shown in the image."
+                "If the flow diagrams or charts or tables are very complex, then also try to understand and give a refined explation of its context as briefly as possible."
+                "Don't miss anything, because every information is crucial."},
+            {"type": "image_url", "image_url": {
+                "url": f"data:image/png;base64,{image}"}
+            }
+        ]}
+    ]
+    ai_message = model.invoke(messages,)
+    
+    response['completion_tokens'] = ai_message.response_metadata['token_usage']['completion_tokens']
+    response['prompt_tokens'] = ai_message.response_metadata['token_usage']['prompt_tokens']
+    response['total_tokens'] = ai_message.response_metadata['token_usage']['total_tokens']
+
+    return ai_message
+
+
+controller.py (under proj_scripts folder)
+from toolbox import methods
+from proj_scripts import markdownconverter, insert2vdb, prerequisites
+import multiprocessing
+import os, json, sys
+from datetime import datetime
+import shutil
+from debug2 import debug2 as dbg
+from pathlib import Path
+import warnings
+import requests
+warnings.filterwarnings("ignore", category=RuntimeWarning)
+
+script_name = os.path.basename(__file__)
+
+
+
+class controller:
+    def __init__(self,execution_id, session_id, store_point,integration_point, dbg_fl_nm='log'):
+        self.execution_id = execution_id
+        self.store_point = store_point
+        self.session_id = session_id
+        self.upload_path = os.environ.get("UPLOAD_BASE_PATH")
+        # self.upload_path = '../mounted_data/upload'
+        self.source_name = integration_point
+        self.target_string = os.environ.get("CONVERTED_BASE_PATH")
+        # self.target_string = '../mounted_data/feature'
+        self.dbg_fl_nm = dbg_fl_nm
+
+    def process_documents(self,agent_name:str, user_id:str, filenames:list, biz_name='DEFAULT'):
+
+        #dowanload files uploaded in adls for consumable data to local
+        dwn_url = os.environ.get("FILE_DOWNLOAD_URL")
+        download_payload = {
+            "AgentName": agent_name,
+            "UserId": user_id,
+            "FileNames": filenames,
+            "FileType": "file",
+            "InputPoint": self.store_point,
+            "IsConversion": False,
+            "IsKb": {"flag": True, "integration_point": self.source_name},
+            "Flag": "download",
+            "Source": ""
+            
+        }
+        download_response = requests.get(url=dwn_url, json=download_payload)
+        d_result = json.loads(download_response.text)
+        print(d_result)
+
+        if "error" in d_result:
+            raise Exception(f"Download failed: {d_result['error']}")
+        elif "message" in d_result and "filepaths" not in d_result:
+            raise Exception(f"Unexpected response: {d_result['message']}")
+
+        # ls_file_path = methods.get_file_path(self.upload_path, self.target_string)
+        ls_file_path = d_result['filepaths']
+        
+        for file_path in ls_file_path:
+            # Extract the file name from the path
+            fl = file_path.split('/')[-1]
+
+            print(f"Processing for the file path -----------> {file_path}")
+
+            start_time = datetime.now()
+            print(f"Time started for {fl} at: {start_time}")
+
+            # ********************************************
+            # Insert to table file hash user
+            # ********************************************
+            doc_id = str(methods.insert2hash(file_path, fl, 'in-progress', user_id, biz_name, self.session_id,agent_name))
+            dbg.dprint2(script_name,self.execution_id, "insert 2 file tracker", {'file':fl, 'doc_id':doc_id}, self.dbg_fl_nm)
+
+            if isinstance(doc_id, str) and doc_id == "File already exits":
+                print(f"{doc_id} : {fl}")
+                continue
+
+            if not any(extension in fl for extension in ['.png','.jpeg','.jpg','.bmp','.tiff']):
+                # for non-txt files & non-image files.
+                if '.txt' not in fl and '.md' not in fl:
+                    # ********************************************
+                    # Split the files
+                    # ********************************************
+                    split_path = os.path.join(self.upload_path,'split', doc_id)
+                    Path(split_path).mkdir(parents=True, exist_ok=True)
+                    methods.split_documents(file_path, split_path, doc_id, fl)
+                    dbg.dprint2(script_name,self.execution_id, "splitting the file", {'file':fl, 'doc_id':doc_id}, self.dbg_fl_nm)
+
+                    # ********************************************
+                    # Convert the pages/paragraphs to markdown
+                    # ********************************************
+                    split_fl =  os.listdir(split_path)
+                    input_files = [os.path.join(split_path, fn) for fn in split_fl]
+                    o = markdownconverter.document_converter(self.target_string,agent_name, user_id, doc_id, self.dbg_fl_nm)
+                    with multiprocessing.Pool(processes=10) as pool:
+                        results = pool.map(o.analyze_documents_output_in_markdown, input_files)
+                    dbg.dprint2(script_name,self.execution_id, "conversion of file completed", {'file':fl, 'doc_id':doc_id}, self.dbg_fl_nm)
+
+                else:
+                    # Handle .TXT files & .MD files separately - copy them to the converted folder with splitting & converting into markdown files
+                    # ******************************************************************
+                    converted_folder = os.path.join(self.target_string,agent_name,user_id , doc_id)
+                    Path(converted_folder).mkdir(parents=True, exist_ok=True)
+                    shutil.copy(file_path, os.path.join(converted_folder, doc_id+'_'+fl))
+                    dbg.dprint2(script_name, self.execution_id, "TXT file directly copied to converted folder", {'file': fl, 'doc_id': doc_id}, self.dbg_fl_nm)
+
+            else:
+                # ********************************************
+                # Convert the images to markdown
+                # ********************************************
+                # image_file_path = os.path.join(file_path, fl)
+                o_image = markdownconverter.document_converter(self.target_string,agent_name,user_id, doc_id, self.dbg_fl_nm)
+                o_image.analyze_documents_output_in_markdown(file_path)
+
+                dbg.dprint2(script_name,self.execution_id, "conversion of image completed", {'file':fl, 'doc_id':doc_id}, self.dbg_fl_nm)
+
+            # ********************************************
+            # Insert files to vector database
+            # ********************************************
+            o=insert2vdb.insert2vdb(agent_name,user_id, biz_name, self.dbg_fl_nm)
+            o.ins_vdb(doc_id)
+            dbg.dprint2(script_name,self.execution_id, "vectorization completed", {'file':fl, 'doc_id':doc_id}, self.dbg_fl_nm)
+
+            # update status
+            methods.update2hash(doc_id, 'completed',self.execution_id)
+            dbg.dprint2(script_name,self.execution_id, "Hash table updated", {'file':fl, 'doc_id':doc_id}, self.dbg_fl_nm)
+            end_time = datetime.now()
+            print(f"Time took for {fl} to complete: {end_time}")
+
+            # if os.path.exists('../mounted_data/upload/split'):
+            #     shutil.rmtree('../mounted_data/upload/split/')
+            # else:
+            #     pass
+            if os.path.exists('./data/upload/split'):
+                shutil.rmtree('./data/upload/split/')
+            else:
+                pass
+        
+
+        return "completed"
+    
+
+
+if __name__ == '__main__':
+    from dotenv import load_dotenv
+    load_dotenv()
+    execution_id = 'xyz'
+    target_string = 'test01'
+    dbg_fl_nm = './data/log/p2m-log'
+    biz_name = 'DEFAULT'
+    user_id = 1
+    o = controller(execution_id, target_string,dbg_fl_nm)
+    o.process_pdf(user_id,biz_name)
+    
+
+
+insert2vdb.py (under proj_scripts folder)
+import chromadb
+from toolbox import methods
+import os
+import multiprocessing
+from langchain_openai import AzureOpenAIEmbeddings
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from proj_scripts import prerequisites
+
+script_name = os.path.basename(__file__)
+sc = methods.get_vault_secret_object()
+
+
+def get_vector(page_content):
+    embeddings = AzureOpenAIEmbeddings(
+        azure_endpoint=sc.get_secret("AZURE-OPENAI-ENDPOINT").value,
+        api_key=sc.get_secret("AZURE-OPENAI-API-KEY").value,
+        azure_deployment=sc.get_secret("AZURE-OPENAI-EMBEDDING-DEPLOYMENT-NAME").value,
+        openai_api_version=sc.get_secret("AZURE-OPENAI-API-VERSION").value,
+        )
+    vector = embeddings.embed_query(page_content)
+    return vector
+
+
+class insert2vdb:
+    def __init__(self, agent_name, user_id, biz_name, dbg_fl_nm='log'):
+        self.dbg_fl_nm = dbg_fl_nm
+        self.source_name = agent_name
+        self.embeddings_list=[]
+        self.user_id = user_id
+
+        # DB initialization
+        vdb_path = os.environ.get("VDB_PATH")
+        # vdb_path = '../mounted_data/vec_db'
+        vdb_dist_algo = os.environ.get("VDB_DIST_ALGO")
+        client = chromadb.PersistentClient(path=vdb_path,settings=chromadb.Settings(anonymized_telemetry=False))
+        self.collection = client.get_or_create_collection(name =biz_name ,metadata={"hnsw:space":vdb_dist_algo })
+
+        # Chunking of documents
+        chunk_size = int(os.environ.get('CHUNK_SIZE'))
+        chunk_overlap = int(os.environ.get('CHUNK_OVERLAP'))
+        chunk_size =chunk_size
+        chunk_overlap=chunk_overlap
+        self.text_splitter =  RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+
+    def create_chunk(self,page_content):
+        docs = self.text_splitter.create_documents([page_content])
+        return docs
+
+    def ins_vdb(self, doc_id):
+        # VDB insert
+        base_path = os.environ.get("CONVERTED_BASE_PATH")
+        # base_path = '../mounted_data/feature'
+        doc_folder = os.path.join(base_path, self.source_name, self.user_id, doc_id )
+        fl_lst = os.listdir(doc_folder)
+
+        embeddings_list = []
+        documents_list = []
+        ids_list = []
+        metadatas_list= []
+
+        for index,i in enumerate(fl_lst):
+            with open(os.path.join(doc_folder,i), 'r') as f:
+                page_content = f.read()
+                docs = self.create_chunk(page_content)
+                # documents_list.extend(docs)
+                for idx, doc in enumerate(docs):
+                    documents_list.append(dict(doc)['page_content'])
+                    chunk_id= f"{doc_id}-{i}-{str(idx).rjust(5,'0')}"
+                    metadatas_list.append({"tag":"chunk"})
+                    ids_list.append(chunk_id)
+
+        # with multiprocessing.Pool(processes=4) as pool:
+        #     embeddings_list = pool.map(get_vector, documents_list)
+        
+        def chunk_list(lst, size):
+            return [lst[i:i + size] for i in range(0, len(lst), size)]
+        
+        doc_chunks = chunk_list(documents_list, 1000)
+        id_chunks = chunk_list(ids_list, 1000)
+        metadata_chunks = chunk_list(metadatas_list, 1000)
+
+        for docs_sublist, ids_sublist, metadata_sublist in zip(doc_chunks, id_chunks, metadata_chunks):
+            with multiprocessing.Pool(processes=6) as pool:
+                embeddings_list = pool.map(get_vector, docs_sublist)
+
+        if len(ids_list) != 0:
+            self.collection.add( embeddings=embeddings_list,
+                            documents=docs_sublist,
+                            ids=ids_sublist,
+                            metadatas=metadata_sublist
+                            )
+
+
+if __name__ == '__main__':
+    from dotenv import load_dotenv
+    from datetime import datetime
+
+    load_dotenv('.env')
+    dbg_fl_nm = "./data/log/p2m-log"
+    execution_id = 'xyz'
+    target_string = 'test01'
+    
+    file_name = 'Allianz Quote 2023.pdf'
+    print(datetime.now())
+    o=insert2vdb(execution_id,target_string,dbg_fl_nm)
+    o.ins_vdb(file_name)
+    print(datetime.now())
+
+markdownconverter.py(under proj_scripts folder)
+import os
+import base64
+from pathlib import Path
+from toolbox import methods
+from proj_scripts import prerequisites
+from proj_scripts import agent_core
+from proj_scripts.phoenix_analysis import phoenix_evaluation
+from phoenix.evals import OpenAIModel
+import random
+import time
+import warnings
+warnings.filterwarnings("ignore", category=RuntimeWarning)
+
+script_name = os.path.basename(__file__)
+sc = methods.get_vault_secret_object()
+
+eval_model = OpenAIModel(
+    model=sc.get_secret("AZURE-OPENAI-CHAT-DEPLOYMENT-NAME").value,
+    api_key=sc.get_secret("AZURE-OPENAI-API-KEY").value,
+    api_version=sc.get_secret("AZURE-OPENAI-API-VERSION").value,
+    azure_endpoint=sc.get_secret("AZURE-OPENAI-ENDPOINT").value,
+    azure_deployment=sc.get_secret("AZURE-OPENAI-CHAT-DEPLOYMENT-NAME").value
+)
+
+
+class document_converter:
+    def __init__(self, target_string,agent_name,user_id, fl_hash, dbg_fl_nm='log'):
+        self.agent_name = agent_name
+        self.user_id = user_id
+        self.target_path = target_string
+        self.dbg_fl_nm = dbg_fl_nm
+        self.file_name_hash = fl_hash
+        self.seed = random.randint(10000,99999)
+
+    def analyze_documents_output_in_markdown(self,input_file):
+        from azure.core.credentials import AzureKeyCredential
+        from azure.ai.documentintelligence import DocumentIntelligenceClient
+        from azure.ai.documentintelligence.models import AnalyzeDocumentRequest, DocumentContentFormat, AnalyzeResult
+
+        endpoint = sc.get_secret("DOCUMENTINTELLIGENCE-ENDPOINT")
+        key = sc.get_secret("DOCUMENTINTELLIGENCE-API-KEY")
+        
+
+        f_path = Path(os.path.join(self.target_path, self.agent_name, self.user_id, self.file_name_hash))
+        f_path.mkdir(parents=True, exist_ok=True)
+
+        document_intelligence_client = DocumentIntelligenceClient(endpoint=endpoint.value, credential=AzureKeyCredential(key.value))
+        
+        try:
+            # *********************************************************************************************************
+            # Process non-TXT files (pdf, docx & images) using Azure Document Intelligence & pptx files using LLM model
+            # *********************************************************************************************************
+            if 'slide' not in input_file:
+                with open(input_file, "rb") as f:
+                    b_doc = base64.b64encode(f.read())
+                    base_64 = b_doc.decode("ascii")
+
+                poller = document_intelligence_client.begin_analyze_document(
+                    "prebuilt-layout",
+                    AnalyzeDocumentRequest(bytes_source=base_64),
+                    output_content_format=DocumentContentFormat.MARKDOWN,
+                )
+                result: AnalyzeResult = poller.result()
+
+                if any(extension in input_file for extension in ['.png','.jpeg','.jpg','.bmp','.tiff']):
+                    file = open(f"{f_path}/{self.file_name_hash}_{input_file.split('/')[-1]}.md", 'w', encoding="utf-8")
+                else:
+                    file = open(f"{f_path}/{input_file.split('/')[-1]}.md", 'w', encoding="utf-8")
+
+                file.write(result.content)
+                file.close()
+                return
+            
+            else:
+                with open(input_file, "rb") as pdf_image_file:
+                    base64_image = base64.b64encode(pdf_image_file.read()).decode("utf-8")
+
+                ai_message = agent_core.LLM_cot_agent(image=base64_image, seed=self.seed)
+                with open(f"{f_path}/{input_file.split('/')[-1]}.md", 'w', encoding="utf-8") as pptx_file:
+                    pptx_file.write(ai_message.content)
+                    pptx_file.close()
+                
+                eval_results_dict = phoenix_evaluation(
+                    markdown=ai_message.content,
+                    request_id=f"{input_file.split('/')[-1]}.md",
+                    evals=["qa", "hallucination"],
+                    eval_judge_model=eval_model
+                )
+                # small sleep to flush out any last logs
+                time.sleep(1)
+
+                return {
+                    "request_id": f"{input_file.split('/')[-1]}.md",
+                    "evaluation": eval_results_dict
+                }
+        
+        except Exception as e:
+            return f"Error processing {input_file}: {e}"
+
+
+if __name__ == "__main__":
+    from dotenv import load_dotenv
+    load_dotenv()
+
+    dbg_fl_nm = "./data/log/p2m-log"
+    execution_id = 'xyz'
+    target_string = 'test01'
+    file_path = "./data/upload/test01/split" 
+    file_name = "page_1.pdf"
+    file_name_hash ='aspodiaspofi'
+
+    input_file  = os.path.join(file_path,file_name)
+    o = document_converter(target_string)
+    o.analyze_documents_output_in_markdown(execution_id,input_file,file_name_hash, dbg_fl_nm)
+
+
+phoenix_analysis.py (under proj_scripts folder)
+from functools import wraps
+from openinference.instrumentation.langchain import LangChainInstrumentor
+# from opentelemetry import trace
+# from opentelemetry.sdk.trace import TracerProvider
+# from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+# from opentelemetry.sdk.trace.export import SimpleSpanProcessor, BatchSpanProcessor
+import threading
+import uuid, json, requests
+import phoenix as px
+from phoenix.evals import QAEvaluator, HallucinationEvaluator, run_evals
+from phoenix.otel import register
+import pandas as pd
+
+# --- Thread-safe & singleton Pattern to Prevent double Instrumentation ---
+_phoenix_tracing_setup_done = False
+_phoenix_lock = threading.Lock()
+
+
+def phoenix_tracing_decorator(phoenix_endpoint):
+    """
+    Decorator to enable Phoenix + OpenTelemetry tracing for any LLM chain workflow.
+    Ensures singleton setup for the entire process.
+    """
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            global _phoenix_tracing_setup_done
+            with _phoenix_lock:
+                if not _phoenix_tracing_setup_done:
+                    tracer_provider = register(
+                        endpoint=phoenix_endpoint,
+                        project_name="default",
+                        batch=True,
+                        set_global_tracer_provider=False,
+                        auto_instrument=True
+                    )
+                    _phoenix_tracing_setup_done = True
+                    LangChainInstrumentor().instrument(tracer_provider=tracer_provider)
+
+            return func(*args, **kwargs)
+        return wrapper
+    return decorator
+
+
+def phoenix_evaluation(markdown, request_id, evals: list, eval_judge_model=None):
+    """
+    Function to run Phoenix evaluations after each LLM call.
+    Args:
+        markdown: Markdown output.
+        request_id: Unique identifier for comparing.
+        evals: List of eval types to run.
+        eval_judge_model: Model name (instance of OpenAIModel).
+    """
+    if isinstance(markdown, list):
+        markdown = "\n".join(str(x) for x in markdown)
+
+    prompt_text = (
+        "Understand the context of the image, Describe them as an alternative text. If the image is of flow diagrams or "
+        "flow charts, only then explain its context in detail and also explain the relation between each entities shown in the image. "
+        "If the flow diagrams or charts or tables are very complex, then also try to understand and give a refined explation of its context as briefly as possible. "
+        "Don't miss anything, because every information is crucial."
+    )
+
+    # prepare example for Phoenix evaluation
+    examples = pd.DataFrame([{
+        "input": prompt_text,
+        "output": str(markdown),
+        "reference": str(markdown),
+        "context": "Image Analysis task",
+        "request_id": request_id
+    }])
+    
+    if eval_judge_model is None:
+        raise ValueError("You must provide an Evaluation model(OpenAIModel) to the decorator !")
+    
+    evaluators = []
+    if "qa" in evals:
+        evaluators.append(QAEvaluator(model=eval_judge_model))
+    if "hallucination" in evals:
+        evaluators.append(HallucinationEvaluator(model=eval_judge_model))
+
+    eval_results = run_evals(
+        dataframe=examples,
+        evaluators=evaluators,
+        provide_explanation=True
+    )
+
+    eval_results_dict = {}
+    for evaluator, df in zip(evaluators, eval_results):
+        key = evaluator.__class__.__name__.replace("Evaluator", "").lower()
+        eval_results_dict[key] = df.to_dict(orient="records")
+
+    return eval_results_dict
+
+
+def post_phoenix_evaluation(
+        phoenix_host,
+        record_id,
+        eval_type,
+        label,
+        score,
+        comment=None,
+        extra_payload=None,
+):
+    url = f"{phoenix_host}/v1/evaluations"
+    payload = {
+        "record_id": record_id,
+        "name": eval_type,
+        "label": label,
+        "score": score,
+        "explanation": comment or "",
+    }
+
+    if extra_payload:
+        payload.update(extra_payload)
+
+    resp = requests.post(url, json=payload)
+    resp.raise_for_status()
+    return resp.json()
+
+
+prerequisites.py(under proj_scripts folder)
+import os
+from azure.storage.blob import BlobServiceClient
+import re
+import urllib.parse
+import shutil
+import os
+from debug2 import debug2 as dbg
+from toolbox import methods
+import yaml
+from io import BytesIO
+
+script_name = os.path.basename(__file__)
+sc = methods.get_vault_secret_object()
+
+
+def copy_file(source_path, destination_path):
+    shutil.copy2(source_path, destination_path)
+    print(f"File copied successfully from {source_path} to {destination_path}")
+
+
+def getURL_blob(execution_id,container_name,dbg_fl_nm):
+    connect_str = sc.get_secret('AZURE-STORAGE-CONNECTION-STRING').value
+
+    try:
+        # Create the BlobServiceClient object
+        blob_service_client = BlobServiceClient.from_connection_string(connect_str)
+        # Get the container client
+        container_client = blob_service_client.get_container_client(container_name)
+
+    except Exception as e:
+        print(f"Failed to establish ADLS connection : {e}")
+
+    try:
+        # List all blobs in the container
+        blob_list = container_client.list_blobs()
+        url_list = []
+        # Print the URL for each blob
+        for blob in blob_list:
+            blob_client = container_client.get_blob_client(blob.name)
+            blob_url = blob_client.url
+            target = re.sub('[^A-Za-z0-9]+', '', blob_client.url.split('/')[-1])
+            doc_det =  dict(blob_url=blob_url, target=target)
+            url_list.append(doc_det)
+        dbg.dprint2(script_name,execution_id,"status","completed.",dbg_fl_nm)
+        return url_list
+    
+    except Exception as e:
+        print(f"Error occured to get the blob URL : {e}")
+
+
+def filter_blob_urls(blob_list, execution_id, dbg_fl_nm='log'):
+    filtered_list = []
+    for item in blob_list:
+        if execution_id in item['blob_url']:
+            filtered_list.append(item)
+    dbg.dprint2(script_name,execution_id,"status","completed",dbg_fl_nm)
+    return filtered_list
+
+
+def extract_and_decode_filename(blob_url,execution_id,dbg_fl_nm='log'):
+    try:
+        # Parse the URL
+        parsed_url = urllib.parse.urlparse(blob_url)
+
+        # Extract the path
+        path = parsed_url.path
+
+        start_idx = path.find(execution_id+'/')    # locate blob folder
+        start_idx += len(execution_id+'/')     # Move index past blob folder
+        end_idx = path.rfind("/")
+        blob_path = path[start_idx:end_idx]
+
+        # Extract the last part of the path (the filename)
+        filename_with_encoding = path.split('/')[-1]
+
+        # Decode the filename to handle URL-encoded characters (e.g., %20 for spaces)
+        decoded_filename = urllib.parse.unquote(filename_with_encoding)
+        decoded_filepath = urllib.parse.unquote(blob_path)
+        dbg.dprint2(script_name,execution_id,"status","completed.",dbg_fl_nm)
+        return decoded_filename, decoded_filepath
+    
+    except (ValueError, IndexError) as e:
+        print(f"Error processing URL: {blob_url} - {e}")
+        return None
+
+
+def download_blob(io_point,conn_str,blob_name,container_name,yaml_config_path,read_yaml=False):
+    """Downloads the blobs/files from the Source point location."""
+
+    if io_point == "Azure":
+        # Create the BlobServiceClient object
+        blob_service_client = BlobServiceClient.from_connection_string(conn_str)
+
+        # Create a blob client using the local file name as the name for the blob
+        blob_client = blob_service_client.get_blob_client(container=container_name,blob=blob_name)
+
+        if read_yaml:
+            # Download YAML file into config path
+            yaml_stream = blob_client.download_blob().readall()
+            with open(file=f"{yaml_config_path}{blob_name}", mode="wb") as yamlfile:
+                yamlfile.write(yaml_stream)
+            return
+        else:
+            pass
+    
+    elif io_point == "AWS":
+        pass
+
+# def get_config_value(key):
+#     """Get configuration details from a .yaml file stored in ADLS"""
+    
+#     container_name = os.environ.get('AZURE_CONFIG_STORAGE_CONTAINER_NAME') 
+#     yaml_file_name = "KB_Pipeline_config.yaml"
+#     yaml_data = download_blob(execution_id=None, local_file_name=None, local_path=None,
+#                               blob_name=yaml_file_name, container_name=container_name,
+#                               dbg_fl_nm=None, read_yaml=True)
+
+#     return yaml_data.get(key, None) if yaml_data else None
+
+
+# def add_to_KB(target_string, source_names, dbg_fl_nm='log'):
+#     container_name = get_config_value("AZURE_UPLOAD_STORAGE_CONTAINER_NAME")
+#     blob_list = getURL_blob(target_string,container_name,dbg_fl_nm)
+#     local_base_path = get_config_value("LOCAL_GET_FILE_PATH")
+
+#     local_base_path = os.path.join(local_base_path,target_string)
+#     filtered_blob_list = filter_blob_urls(blob_list,target_string,dbg_fl_nm)
+#     blob_detail_list = []
+#     try:
+#         for blob_detail in filtered_blob_list:
+#             blob_url =blob_detail['blob_url']
+#             blob_detail['filename'], blob_detail['path'] = extract_and_decode_filename(blob_url,target_string,dbg_fl_nm)
+#             for source_name in source_names:
+#                 if source_name in blob_detail['path']:
+#                     blob_detail_list.append(blob_detail)
+#                 else:
+#                     pass
+
+#         for get_file in blob_detail_list:
+#             if get_file['path'] == '':
+#                 blob_name = target_string+get_file['path']+'/'+get_file['filename']
+#                 local_path = local_base_path+get_file['path']+'/'
+#             else:
+#                 blob_name = target_string+'/'+get_file['path']+'/'+get_file['filename']
+#                 local_path = local_base_path+'/'+get_file['path']+'/'
+
+#             os.makedirs(local_path, exist_ok=True)
+#             download_blob(target_string, get_file['filename'], local_path, blob_name, container_name, dbg_fl_nm)
+
+#         dbg.dprint2(script_name,target_string,"status","completed ",dbg_fl_nm)
+#         return "Completed"
+    
+#     except Exception as e:
+#         print(f"Error in file download : {e}")
+
+    
+
+if __name__=="__main__":
+    from dotenv import load_dotenv
+    load_dotenv('.env')
+    dbg_fl_nm = './data/log/p2m-log'
+    response = add_to_KB('axv','test24032025',dbg_fl_nm)
+    print(response)
+
+
+
+
+add2kb.py under routers folder
+from fastapi import  APIRouter
+from pydantic import BaseModel
+from debug2 import debug2 as dbg
+import os
+import traceback 
+from proj_scripts import controller
+from datetime import datetime
+
+class Item(BaseModel):
+    """
+    Represents an item with a name, description, price, and tax.
+    """
+    UserId: str
+    Filenames: list
+    BizName: str
+    SessionId: str
+    AgentName : str
+    StorePoint : str
+    IntegrationPoint: str
+
+
+router = APIRouter()
+
+@router.post("/add_2_KB")
+async def root(p_body:Item):
+    script_name = os.path.basename(__file__)
+    execution_id = datetime.now().strftime('%Y%m%d%H%M%S')
+    dbg_fl_nm = f"{os.environ.get('LOG_FILE_PATH')}add_2_KB-log"
+    # dbg_fl_nm = f"../mounted_data/log/add_2_KB-log"
+
+    try:
+        o = controller.controller(execution_id, p_body.SessionId, p_body.StorePoint,p_body.IntegrationPoint,dbg_fl_nm)
+        msg = o.process_documents(p_body.AgentName,p_body.UserId, p_body.Filenames,p_body.BizName)
+
+    except Exception as e:
+        tb_str = traceback.format_exc()
+        dbg.dprint2(script_name, execution_id, "exception",str(tb_str),dbg_fl_nm)
+        return "The process is not completed successfully. Please check the log."
+    return {"message": msg}
+
+methods.py (under toolbox folder)
+from azure.identity import DefaultAzureCredential
+from azure.keyvault.secrets import SecretClient
+import os, re
+from dotenv import load_dotenv
+import hashlib
+import sqlite3
+from azure.storage.blob import BlobServiceClient
+import yaml
+
+
+load_dotenv()
+db_path = os.environ.get('FILETRACKER_DB_PATH')
+# db_path = '../mounted_data/app_db/filetracker.db'
+
+
+def get_row_cnt(tb_nm):
+    with sqlite3.connect(f"{db_path}") as conn:
+        cursor = conn.execute(f"SELECT count(*) from {tb_nm}")
+        cnt = cursor.fetchone()[0]
+    return cnt
+
+
+def split_documents(input_path, output_path, doc_id, filename):
+    """Splits documents file into individual files based on pages or paragraphs or slides.
+
+    Args:
+        input_path (str): Path to the input file.
+        output_path (str): Path to the directory where individual split files will be saved.
+        doc_id (str): Unique identifier (e.g. from file tracker) to use in naming.
+    """
+    try:
+        if '.pdf' in filename:
+            from PyPDF2 import PdfReader, PdfWriter
+            with open(input_path, 'rb') as pdf_file:
+                pdf_reader = PdfReader(pdf_file)
+                for page_num in range(len(pdf_reader.pages)):
+                    pdf_writer = PdfWriter()
+                    pdf_writer.add_page(pdf_reader.pages[page_num])
+                    output_filename = f"{output_path}/{doc_id}_{page_num + 1}.pdf"
+
+                    with open(output_filename, 'wb') as output_pdf:
+                        pdf_writer.write(output_pdf)
+
+        elif '.docx' in filename:
+            from docx import Document
+            document = Document(input_path)
+            chunk_index = 1
+            chunk = []
+            for para in document.paragraphs:
+                text = para.text.strip()
+                if text:
+                    chunk.append(text)
+                # You can adjust the number 5 to suit the average length of your DOCX pages.
+                if len(chunk) == 5:
+                    output_filename = f"{output_path}/{doc_id}_paragraph_{chunk_index}.docx"
+                    from docx import Document as NewDocument
+                    new_doc = NewDocument()
+                    for line in chunk:
+                        new_doc.add_paragraph(line)
+                    new_doc.save(output_filename)
+                    chunk_index += 1
+                    chunk = []
+            # Save any remaining paragraphs.
+            if chunk:
+                output_filename = f"{output_path}/{doc_id}_paragraph_{chunk_index}.docx"
+                from docx import Document as NewDocument
+                new_doc = NewDocument()
+                for line in chunk:
+                    new_doc.add_paragraph(line)
+                new_doc.save(output_filename)
+
+        elif '.pptx' in filename:
+            import subprocess
+            import shutil
+            from pdf2image import convert_from_bytes
+            import multiprocessing
+
+            # Ensure LibreOffice is installed
+            if subprocess.run(["which", "soffice"], capture_output=True).returncode != 0:
+                raise RuntimeError("LibreOffice is not installed! Install it using 'sudo apt install libreoffice'")
+            else:
+                print("<< Using 'LibreOffice' to convert PPTX into PDF >>")
+
+            tmp_pptx_to_pdf_path = f"{output_path}/tmp_pdf"
+            subprocess.run(
+                ["soffice", "--headless", "--convert-to", "pdf", input_path, "--outdir", tmp_pptx_to_pdf_path],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            print("PPTX converted to PDF !!")
+
+            pdf_name = filename.replace(".pptx", ".pdf")
+            verify_pdf(pdf_path=os.path.join(tmp_pptx_to_pdf_path, pdf_name))
+
+            with open(os.path.join(tmp_pptx_to_pdf_path, pdf_name), 'rb') as f:
+                pdf_bytes = f.read()
+            images = convert_from_bytes(pdf_bytes, dpi=os.environ.get('DPI_VALUE'))
+            # Prepare arguments for multiprocessing
+            tasks = [(img, f"{output_path}/{doc_id}_slide_{page_number + 1}.png") for page_number, img in enumerate(images)]
+            # Use multiprocessing to save PNGs
+            with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
+                pool.map(save_image, tasks)
+
+            print(f"Conversion complete from PDF to PNG! PNG files saved")
+                  
+            if os.path.exists(tmp_pptx_to_pdf_path):
+                shutil.rmtree(tmp_pptx_to_pdf_path)
+
+    except FileNotFoundError:
+        print(f"Error: Input file not found: {input_path}")
+    except subprocess.CalledProcessError as e:
+        print(f"Error in converting PPTX to PDF: {e.stderr}")
+    except Exception as e:
+        print(f"An error occurred in splitting the file {filename}: {e}")
+
+
+def verify_pdf(pdf_path):
+    """Checks if a PDF is valid before processing."""
+    try:
+        from PyPDF2 import PdfReader
+        reader = PdfReader(pdf_path)
+        if reader.pages:
+            print(f"PDF '{pdf_path.split('/')[-1]}' is valid with {len(reader.pages)} pages.")
+        else:
+            print(f"PDF '{pdf_path.split('/')[-1]}' has no readable pages.")
+    except Exception as e:
+        print(f"Invalid PDF: {e}")
+
+
+def save_image(args):
+    """Helper function to save PNG images in parallel using multiprocessing."""
+    img, output_filename = args
+    img.save(output_filename, "PNG")
+
+
+
+def hash_file(filepath, algorithm='sha256', buffer_size=65536):
+    try:
+        hasher = hashlib.new(algorithm)
+    except ValueError:
+        raise ValueError(f"Invalid hashing algorithm: {algorithm}")
+
+    try:
+        with open(filepath, 'rb') as file:
+            while chunk := file.read(buffer_size):
+                hasher.update(chunk)
+    except FileNotFoundError:
+         raise FileNotFoundError(f"File not found: {filepath}")
+    
+    return hasher.hexdigest()
+
+
+def insert2hash(file_path, file_name, status, userid, biz_name, session_id,agent_name):
+    """Inserts hash details of files into the hash table, in sqlite3 database."""
+    tb_nm = 'FILE_HASH_USER'
+    fn_hash = str(hash(file_name))
+    fl_hash = hash_file(f"{file_path}")
+    rec_no = get_row_cnt(tb_nm) +1
+    
+    try:
+        with sqlite3.connect(f"{db_path}") as conn:
+            cursor = conn.cursor()
+            cursor.execute(f"""
+                SELECT COUNT(*) FROM {tb_nm} 
+                WHERE FILE_NAME = ? AND FILE_HASH = ? AND USERID = ?;
+            """, (file_name, fl_hash, userid))
+            count = cursor.fetchone()[0]
+        
+        if count > 0:
+            print(f"File hash already exists for the user {userid}. Skipping insert.")
+            return "File already exits"
+        else:
+            conn.execute(f"""INSERT INTO FILE_HASH_USER (ID, FILE_NAME, FILE_NAME_HASH, FILE_HASH, BIZ_NAME, STATUS, USERID, SESSIONID, APP_NAME) \
+                        VALUES (?,?,?,?,?,?,?,?,?)""",
+                        (rec_no,file_name,fn_hash,fl_hash,biz_name,status,userid,session_id,agent_name))
+            conn.commit()
+            conn.close()
+            return rec_no
+    except Exception as e:
+        return f"Failed to insert into Hash table : {e}"
+
+
+def update2hash(doc_id,status,execution_id):
+    """Updates the Hash table with the status & processing times of each file."""
+    with sqlite3.connect(f"{db_path}") as conn:
+        conn.execute(f"""UPDATE FILE_HASH_USER 
+            SET STATUS = ?, EXECUTION_ID = ?, END_DATE = CURRENT_TIMESTAMP 
+            WHERE ID = ?
+        """, (status,execution_id,doc_id))
+        conn.commit()
+    return
+
+
+def get_vault_secret_object():
+    """Connects to the Azure Key Vault.
+    
+    Returns:
+        SecretClient (object): object of the secret client connection.
+    """
+    creds = DefaultAzureCredential()
+    vault_url = os.environ.get("VAULT_URL")
+    # vault_url = "https://amaze-omnicore-key-vault.vault.azure.net/"
+    secret_client = SecretClient(vault_url=vault_url, credential=creds)
+
+    return secret_client
+
+
+def extract_number(request_id):
+    match = re.search(r'slide_(\d+)', request_id)
+    return int(match.group(1)) if match else 0
+
+def load_config_yaml(yaml_path):
+    with open(yaml_path, "r") as f:
+        return yaml.safe_load(f)
+
+
+def apply_env_variables(config):
+    env_config = config.get("env", {})
+    for key, value in env_config.items():
+        os.environ[key] = str(value)
+
+
+Caddyfile under main folder
+kbpipeline.ukwest.azurecontainer.io {
+    reverse_proxy localhost:8005
+}
 
 
 
