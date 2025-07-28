@@ -1,36 +1,16 @@
-I have been told to create an AI agent for Risk Scoring Agent and the thing is they want the projsect similar to the once that they have shared with me I am sharing that project with you below along with the User Stories , So this is the User Story As a
+ I have a project of AI Agent I am unable to understand a sigle thing as I am new to Python and this is my first project also that i havent created this is the folder structure 
+Omnicore is the main folder of the project under it
+there are many folders 
+1.agent_hub, under it there are files(1.__pycache__ 2.__init.py__ 3.action_chat_agent.py) 
+2.data, under it there are folders(1. app_db, 2.converted, 3.extract, 4.feature, 5.log, 5.prompt,6.upload, 7.vec_db)  
+3.proj_scripts, 
+under it there are files(1.__pychache__ 2.__init.py__ 3.agent_core.py 4.chat_agent_manage.py 5.prerequisites.py)  
+4.routers, under it there are files(1.__pychache__ 2.__init__.py 3.chat_agent.py, 4.get_chat_history.py, 5.upload_files.py)  
+5.toolbox, under it there are files(1.__pychache__ 2.__init__.py 3.methods.py) 
+6. This is a file in Omnicore.env, main.py, startup.sh,local_setup.sh, requirements.txt dont reply anything just go through 
+the folder strucutre and reply with a yes once you have gone through it and then i will provide you the code corresponding to 
+each files I have mentioned  3.action_chat_agent.py under agent_hub folder import os
 
-Risk manager, underwriter, or claims adjuster,
-
-I want
-an intelligent Risk Scoring Agent that can assess input data and generate a risk score based on predefined risk models and criteria,
-
-So that
-I can make informed decisions about underwriting, claims approval, or policy adjustments with a clear understanding of the associated risks.
-
-Acceptance Criteria
-Input Data:
-The agent should accept structured data (e.g., JSON, CSV, or API input) containing customer details, policy information, and other relevant risk factors, provided by upstream agents or systems.
-
-Risk Assessment Models:
-The agent should calculate a risk score using predefined risk models, algorithms, or machine learning models tailored to the specific use case (e.g., underwriting, claims, fraud detection).
-
-Customizable Criteria:
-The agent should allow customization of risk criteria and scoring thresholds to align with business policies and regulatory requirements.
-
-Risk Categorization:
-The agent should categorize the calculated risk score into predefined levels (e.g., low, medium, high) for easy interpretation.
-
-Explainability:
-The agent should provide a detailed explanation of the factors contributing to the risk score, enabling transparency and justifiability of the assessment.
-
-Multi-Product Support:
-The agent should support risk scoring for various insurance products, such as health, auto, property, and life insurance.
-
-Output Format:
-The agent should generate the risk score and associated details in a structured format (e.g., JSON, CSV) and a user-friendly report (e.g., PDF or web interface).
-
-AND This is the project similar to this I have been told to create the project  I have a project of AI Agent I am unable to understand a sigle thing as I am new to Python and this is my first project also that i havent created this is the folder structure Omnicore is the main folder of the project under it there are many folders 1.agent_hub, under it there are files(1.__pycache__ 2.__init.py__ 3.action_chat_agent.py  3.) 2.data, under it there are folders(1.config 2.log 3.prompt)  3.proj_scripts, under it there are files(1.__pychache__ 2.__init.py__ 3.agent_core.py 4.chat_agent_manage.py 5.prerequisites.py)  4.routers, under it there are files(1.__pychache__ 2.__init__.py 3.chat_agent.py)  5.toolbox, under it there are files(1.__pychache__ 2.__init__.py 3.methods.py) 6. This is a file in Omnicore.env, main.py, startup.sh,local_setup.sh, requirements.txt dont reply anything just go through the folder strucutre and reply with a yes once you have gone through it and then i will provide you the code corresponding to each files I have mentioned  3.action_chat_agent.py under agent_hub folder import os
 from proj_scripts import agent_core
 import random
 from tinydb import TinyDB, Query
