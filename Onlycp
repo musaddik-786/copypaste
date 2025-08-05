@@ -1,4 +1,113 @@
- I have a project which has 2 parts one is Omnicore and other one is Omni pipeline both are interconnected that is the only thing i know
+
+
+A).	Incurred loss
+a.	Preventable and predictable losses
+i.	Accidental
+1.	Direct loss
+2.	Indirect/consequential loss
+ii.	Human
+1.	Theft/Vandalism
+2.	Fraud
+iii.	Technical
+1.	Breakdown/equipment failure
+2.	Cyber attacks
+b.	Unpredictable losses
+i.	NATCAT
+ii.	Global economics
+
+
+B).	Reinsurance loss recoverable
+a.	Data
+i.	Incomplete/inconsistent data
+1.	Fragmented systems
+2.	Bordereaux reconciliation
+ii.	Treaty complexity
+1.	Multi-layered structures
+2.	Layer wise retention, deductibles and recovery amounts
+3.	Aggregate limits across layers
+b.	Coverage disputes
+i.	Event attribution and aggregation
+1.	Mapping losses to treaty/coverage/limits
+2.	Modeling for aggregating losses across policies and time periods
+ii.	Contracts/clause summarization
+iii.	Legal interpretations across jurisdictions
+c.	Regulatory compliance
+i.	Reporting requirements across jurisdictions
+ii.	Settlement currencies
+
+
+C).	Reinsurance commission recoverable
+a.	Complex sliding scale commission
+i.	Fluctuation of portfolio loss ratio
+ii.	Commission calculation across layers 
+1.	earned premium calculation 
+2.	incurred loss calculation 
+b.	Adjustments 
+i.	Interim and final adjustments
+ii.	retroactive recalculations
+c.	Data segmentation
+i.	Layer specific data on premium, claims and expenses
+d.	Layer interaction and overlaps
+i.	Loss spill over across layers
+ii.	Different sliding scales across layers
+
+
+D)	Loss adjustments
+a.	ALAE
+i.	Legal fees
+ii.	Expert services
+iii.	Investigation
+iv.	Settlement negotiation
+v.	Reinsurance recoveries
+1.	Covered
+2.	Exclusions
+3.	Caps
+b.	ULAE
+i.	Claims staff salaries
+ii.	IT systems
+iii.	Other overheads
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+I have a project which has 2 parts one is Omnicore and other one is Omni pipeline both are interconnected that is the only thing i know
 of AI Agent I am unable to understand a sigle thing as I am new to Python and this is my first project also that i havent created this is the folder structure 
 for Omnicore below is the main folder of the project under it
 there are many folders 
