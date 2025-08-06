@@ -1,3 +1,1015 @@
+so why dont you create exact similar to what i have shared for AI chat agent named Omnicore same ways to do things for example databases etc everything should be similar just refer the User Stories for AI Quote generation agent for logic apart from that i want similar structure similar manner of code of what we have for AI chat agent named Omnicore I have created an AI chat agent named Omnicore, now i have been told to similarly create Quote generation agent we can use mock data for quote generation agent I will share you that, also user stories for quote generation agent along with the code of that Omnicore AI chat agent (so that you can refer what i am expecting from you the folder structure and the entire code flow )below are the user stories  As a
+
+Sales representative or insurance advisor,
+
+I want
+an intelligent Quote Generation Agent that takes pre-extracted and pre-calculated quote data as input and generates a professional, customer-friendly quote document,
+
+So that
+I can quickly deliver accurate and well-formatted quotes to customers without manually preparing or formatting them.
+
+Acceptance Criteria
+Input Data:
+The agent should accept structured data (e.g., JSON, CSV, or API input) containing pre-extracted customer details, policy requirements, and pre-calculated quote values provided by other agents.
+
+Document Generation:
+The agent should generate a professional, customer-friendly quote document based on the provided data.
+
+Customizable Templates:
+The agent should support customizable templates for different products (e.g., health insurance, auto insurance, property insurance) to ensure the quotes align with the company’s branding and product-specific requirements.
+
+Multi-Product Support:
+The agent should handle quotes for various insurance products, such as health, auto, property, and life insurance, and format them appropriately.
+
+Output Format:
+The agent should generate quotes in multiple formats, such as PDF, email, or web interface, depending on the user’s preference.
+
+
+     below is the sample mock data which we can use Claimant Name: John Doe
+Address: 123 Elm Street, Springfield, IL
+Contact: john.doe@example.com, (555) 123-4567
+
+Claim Number: CLAIM67890
+Policy Number: POL12345
+Date of Claim: 2023-06-15
+Amount Claimed: $10,000
+Claim Status: Approved
+Reason for Claim: Fire damage to property
+
+Incident Date: 2023-06-10
+Incident Description: A fire broke out in the kitchen, causing significant damage to the property.
+Incident Location: 123 Elm Street, Springfield, IL
+   below is the code form Omnicore AI chat agent, so what i am expexting from you is refer the project of omnicore ai chat agent and create my quote generation agent by fulfilling all the user stories  main folder of the project under it
+there are many folders 
+1.agent_hub, under it there are files(1.__pycache__ 2.__init.py__ 3.action_chat_agent.py) 
+2.data, under it there are folders(1. app_db, 2.converted, 3.extract, 4.feature, 5.log, 5.prompt,6.upload, 7.vec_db)  
+3.proj_scripts, 
+under it there are files(1.__pychache__ 2.__init.py__ 3.agent_core.py 4.chat_agent_manage.py 5.prerequisites.py)  
+4.routers, under it there are files(1.__pychache__ 2.__init__.py 3.chat_agent.py, 4.get_chat_history.py, 5.upload_files.py)  
+5.toolbox, under it there are files(1.__pychache__ 2.__init__.py 3.methods.py) 
+6. This is a file in Omnicore.env, main.py, startup.sh,local_setup.sh, requirements.txt dont reply anything just go through 
+the folder strucutre and reply with a yes once you have gone through it and then i will provide you the code corresponding to 
+each files I have mentioned  3.action_chat_agent.py under agent_hub folder import os
+main.py
+from dotenv import load_dotenv
+from fastapi import FastAPI,Query
+import uvicorn
+from routers import upload_files,get_chat_history,chat_agent
+import sqlite3
+from fastapi.middleware.cors import CORSMiddleware
+from toolbox import methods
+from proj_scripts import prerequisites
+import os
+
+
+
+sc = methods.get_vault_secret_object()
+# Load the .yaml config file & initialize the environment variables.
+conn_str = sc.get_secret('AZURE-STORAGE-CONNECTION-STRING').value
+config_cntr = sc.get_secret('AZURE-CONFIG-CONTAINER-NAME').value
+
+# chatagent_yaml_file_name = sc.get_secret('CHAT-AGENT-YAML-FILENAME')
+chatagent_yaml_file_name = "chat_agent_config.yaml"
+chatagent_yaml_file_path = sc.get_secret('CONFIG-FILE-PATH').value
+# chatagent_yaml_file_path = "../mounted_data/config/"
+
+prerequisites.download_blob("Azure", conn_str, chatagent_yaml_file_name, config_cntr, chatagent_yaml_file_path, read_yaml=True)
+config = methods.load_config_yaml(yaml_path=f"{chatagent_yaml_file_path}{chatagent_yaml_file_name}")
+methods.apply_env_variables(config)
+
+app_db = os.environ.get('FILETRACKER_DB_PATH')
+# app_db = '../mounted_data/app_db/filetracker.db'
+db_path = os.environ.get("CHAT_HISTORY_DB_PATH")
+# db_path = '../mounted_data/app_db/chat_history.db'
+
+app_name = os.environ.get("APP_NAME")
+
+DEFAULT_USER_ID = os.environ.get("DEFAULT_USER","DEFAULT") 
+DEFAULT_SESSION_ID = os.environ.get("DEFAULT_SESSION","DEFAULTSESSION1")
+
+app = FastAPI(
+    title="OmniCore",
+    description="GenAI agent hub platform.",
+    version="0.1.0",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+app.include_router(chat_agent.router)
+app.include_router(upload_files.router)
+app.include_router(get_chat_history.router)
+
+
+# """Create the chat history table if it doesn't exist."""
+# try:
+#     with sqlite3.connect(db_path) as conn:
+#         sql_text = '''
+#         CREATE TABLE IF NOT EXISTS chat_history (
+#             ID INTEGER PRIMARY KEY AUTOINCREMENT,
+#             SESSIONID TEXT NOT NULL,
+#             USERID TEXT NOT NULL,
+#             QUERY TEXT NOT NULL,
+#             RESPONSE TEXT NOT NULL,
+#             TIMESTAMP DATETIME DEFAULT CURRENT_TIMESTAMP
+#         );
+#         '''
+#         conn.execute(sql_text)
+#     print("Chat history table created successfully.")
+# except Exception as e:
+#     print(f"Error occurred while creating chat history table: {e}")
+
+
+
+@app.get("/")
+async def root(user_id: str = Query(...),session_id: str = Query(...)):
+    
+    fl_lst=[]
+    with sqlite3.connect(app_db) as conn:
+        query = """SELECT ID, FILE_NAME, DATE(END_DATE) from FILE_HASH_USER WHERE ((USERID = ? AND SESSIONID = ?) OR (USERID = ? AND SESSIONID = ?)) AND status = 'completed' AND APP_NAME = ?"""
+        cursor = conn.execute(query,(DEFAULT_USER_ID,DEFAULT_SESSION_ID,user_id,session_id,app_name))
+        for row in cursor:
+            fl_lst.append({"ID":row[0],"file_name": row[1], "end_date": row[2]})
+    print(fl_lst)
+    return [{"files": fl_lst}]
+
+
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8009)
+
+
+requirements.txt
+python-dotenv
+fastapi[standard]
+langchain
+langchain-openai
+langchain-community
+tinydb
+debug2
+azure-ai-documentintelligence
+azure-identity
+azure-storage-blob
+azure-keyvault-secrets
+chromadb==1.0.8
+cryptography
+pyyaml
+
+methods.py(under toolbox folder)
+from azure.identity import DefaultAzureCredential
+from azure.keyvault.secrets import SecretClient
+import os
+from dotenv import load_dotenv
+import hashlib
+import sqlite3
+import traceback
+from debug2 import debug2 as dbg
+from datetime import datetime
+from cryptography.fernet import Fernet
+import yaml
+
+load_dotenv()
+script_name = os.path.basename(__file__)
+execution_id = datetime.now().strftime('%Y%m%d%H%M%S')
+filetracker_db_path = os.environ.get("FILETRACKER_DB_PATH")
+# filetracker_db_path = '../mounted_data/app_db/filetracker.db'
+
+def get_vault_secret_object():
+    """Connects to the Azure Key Vault.
+    
+    Returns:
+        SecretClient (object): object of the secret client connection.
+    """
+    try:
+        creds = DefaultAzureCredential()
+        vault_url = os.environ.get("VAULT_URL")
+        # vault_url = "https://amaze-omnicore-key-vault.vault.azure.net/"
+        secret_client = SecretClient(vault_url=vault_url, credential=creds)
+
+        return secret_client
+    except Exception as e:
+        tb_str = traceback.format_exc()
+        dbg.dprint2(script_name,execution_id, f"Error connecting to Azure Key Vault: {str(tb_str)}", "log")
+        return None
+
+def get_file_list(user_id,session_id,dbg_fl_nm='log'):
+    try:
+        DEFAULT_USER_ID = "DEFAULT" 
+        DEFAULT_SESSION_ID = "DEFAULTSESSION1"
+        query = """
+            SELECT FILE_NAME FROM FILE_HASH_USER
+            WHERE ((USERID = ? AND SESSIONID = ?) OR (USERID = ? AND SESSIONID = ?))
+            AND status = 'completed'
+            """
+        with sqlite3.connect(filetracker_db_path) as conn:
+            cursor = conn.execute(query, (DEFAULT_USER_ID,DEFAULT_SESSION_ID,user_id,session_id))
+            files = [row[0] for row in cursor.fetchall()]
+        
+        dbg.dprint2(script_name, execution_id, "File list retrieved", {'user_id': user_id, 'session_id': session_id}, dbg_fl_nm)
+
+        return files
+    
+    except Exception as e:
+        tb_str = traceback.format_exc()
+        dbg.dprint2(script_name, execution_id, f"Error retrieving file list: {str(tb_str)}", dbg_fl_nm)
+        return []
+    
+def get_doc_id(file_lst,dbg_fl_nm='log'):
+
+    try:
+    
+        # file_list = ['Test Quote 1.pdf','BBW Quote_Swiss Re.pdf']
+        temp = tuple(file_lst)
+
+        if len(temp) == 1:
+            result_string = f"'{str(temp[0])}'"
+        else:
+            result_string = str(temp)[1:-1]
+
+
+        q = f"SELECT id from FILE_HASH_USER where file_name in ({result_string})"
+
+        with sqlite3.connect(filetracker_db_path) as conn:
+            cursor = conn.execute(q)   
+        doc_ids = [x[0] for x in cursor.fetchall()]
+        dbg.dprint2(script_name, execution_id, "Document IDs retrieved", {'doc_id_list':doc_ids}, dbg_fl_nm)
+        return doc_ids 
+    
+    except Exception as e:
+        tb_str = traceback.format_exc()
+        dbg.dprint2(script_name, execution_id, f"Error retrieving document IDs: {str(tb_str)}", dbg_fl_nm)
+        return []
+
+def filter_doc_id(chunks_response, doc_id_lst,dbg_fl_nm='log'):
+    try:
+        sel_idx=[]
+
+        ids = chunks_response['ids'][0]
+        docs = chunks_response['documents'][0]
+        distances = chunks_response['distances'][0]
+
+        for i,x in enumerate(ids):
+            if int(x.split('-')[0]) in doc_id_lst:
+                sel_idx.append(i)
+
+        selected_docs = [docs[i] for i in sel_idx]
+        selected_ids = [ids[i] for i in sel_idx]
+        selected_distances = [distances[i] for i in sel_idx]
+
+        ld = []
+        for i in selected_ids:
+            x=i.split('-')[0]
+            q = f"SELECT file_name from FILE_HASH_USER where id in ({x})"
+
+            with sqlite3.connect(filetracker_db_path) as conn:
+                cursor = conn.execute(q)
+                ld.append(cursor.fetchall()[0][0])
+        
+        context =[]
+        for i,doc in enumerate(selected_docs):
+            context.append({"document name":ld[i],"chunk":doc,"distance":selected_distances[i]})
+
+        return context
+    
+    except Exception as e:
+        tb_str = traceback.format_exc()
+        dbg.dprint2(script_name, execution_id, f"Error filtering document IDs: {str(tb_str)}", dbg_fl_nm)
+        return []
+
+
+def get_crypto_object():
+    sc = get_vault_secret_object()
+    key = sc.get_secret('ENCRYPTION-KEY').value
+    return Fernet(key)
+
+def encrypt_input(message:str)->str:
+    fernet = get_crypto_object()
+    encMessage = fernet.encrypt(message.encode())
+    return encMessage
+
+def decrypt_input(message:str)->str:
+    fernet = get_crypto_object()
+    decMessage = fernet.decrypt(message).decode()
+    return decMessage
+
+def load_config_yaml(yaml_path):
+    with open(yaml_path, "r") as f:
+        return yaml.safe_load(f)
+
+
+def apply_env_variables(config):
+    env_config = config.get("env", {})
+    for key, value in env_config.items():
+        os.environ[key] = str(value)
+
+
+upload_files.py(under routers folder)
+from fastapi import  APIRouter
+from pydantic import BaseModel
+from debug2 import debug2 as dbg
+import os
+import traceback 
+from datetime import datetime
+import requests
+import json
+
+class Item(BaseModel):
+    """
+    Represents an item with a name, description, price, and tax.
+    """
+    BlobFolder: str
+    UserId: str
+    BizName: str = 'DEFAULT'
+    SessionId: str
+
+router = APIRouter()
+
+@router.post("/upload_files")
+async def root(p_body:Item):
+    url = 'http://localhost:8066/add_2_KB'
+    payload = {"BlobFolder":p_body.BlobFolder, "UserId":p_body.UserId, "BizName":p_body.BizName,"SessionId":p_body.SessionId}
+    response = requests.post(url = url,json=payload)
+
+    return response.json()
+
+get_chat_history.py(under routers folder)
+from fastapi import APIRouter
+from pydantic import BaseModel
+from datetime import datetime
+from proj_scripts import chat_history_manager
+import debug2 as dbg
+import os
+
+class Item(BaseModel):
+    sessionId: str
+    userId: str
+    Query: str = None  
+    # response: str = None  
+
+router = APIRouter()
+
+@router.post("/get_first_chat_history")
+async def get_first_chat_history(p_body: Item):
+    """Retrieve the first chat history entry or a welcome message."""
+    execution_id = datetime.now().strftime('%Y%m%d%H%M%S')
+    script_name = os.path.basename(__file__)
+    dbg_fl_nm = f"{os.environ.get('LOG_FILE_PATH')}chat_agent-log"
+    # dbg_fl_nm = '../mounted_data/log/chat_agent-log'
+
+    try:
+        handler = chat_history_manager.chat_handler(execution_id, p_body.sessionId,dbg_fl_nm=dbg_fl_nm)
+        history_status,history = handler.get_chat_history(p_body.sessionId, p_body.userId)
+        
+        if not history_status:
+            return {"message": "Hello, I am OmniCore, your chat agent for the day. How do you want to start today?"}
+        
+        # Return the first entry if it exists
+        first_entry = history[0]
+
+        dbg.dprint2(script_name, execution_id, "First chat history entry retrieved", {'session_id': p_body.sessionId, 'user_id': p_body.userId}, dbg_fl_nm)
+
+        return {
+            "Id": first_entry['ID'],
+            "session_id": first_entry['SESSIONID'],  
+            "user_id": first_entry['USERID'],      
+            "query": first_entry['QUERY'],        
+            "response": first_entry['RESPONSE'],
+            "date": first_entry['TIMESTAMP']     
+        }
+         
+    except Exception as e:
+        return {"message": f"Failed to retrieve chat history: {str(e)}"}
+    
+
+@router.post("/get_full_chat_history")
+async def get_full_chat_history(p_body: Item):
+    """Retrieve the entire chat history for a given user and session."""
+    execution_id = datetime.now().strftime('%Y%m%d%H%M%S')
+    script_name = os.path.basename(__file__)
+    dbg_fl_nm = f"{os.environ.get('LOG_FILE_PATH')}chat_agent-log"
+    # dbg_fl_nm = '../mounted_data/log/chat_agent-log'
+
+    try:
+        handler = chat_history_manager.chat_handler(execution_id, p_body.sessionId, dbg_fl_nm=dbg_fl_nm)
+        history_status,history = handler.get_chat_history(p_body.sessionId, p_body.userId)
+        
+        if not history_status:
+            return {f"message: No chat history found for this session:{p_body.sessionId}"}
+        
+        # Format the full history for response
+        full_history = [
+            {   "Id": entry['ID'],
+                "user_id": entry['USERID'],
+                "session_id": entry['SESSIONID'],
+                "query": entry['QUERY'],
+                "response": entry['RESPONSE'],
+                "date": entry['TIMESTAMP'] 
+            }
+            for entry in history
+        ]
+
+        dbg.dprint2(script_name, execution_id, "Full chat history retrieved", {'session_id': p_body.sessionId, 'user_id': p_body.userId}, dbg_fl_nm)
+        return {"chat_history": full_history}
+    except Exception as e:
+        return {"message": f"Failed to retrieve chat history: {str(e)}"}
+
+
+
+
+chat_agent.py(under routers folder)
+from fastapi import APIRouter
+from pydantic import BaseModel
+from debug2 import debug2 as dbg
+import os
+import traceback
+from datetime import datetime
+from proj_scripts import prerequisites,chat_agent_manager
+from agent_hub import action_chat_agent
+
+
+
+class Item(BaseModel):
+    BizName: str
+    Query: str   
+    userId: str
+    sessionId:str
+    AgentName : str
+    StorePoint: str
+
+router = APIRouter()
+
+@router.post("/get_chat_response")
+async def get_chat_response(p_body: Item):
+    script_name = os.path.basename(__file__)
+    execution_id = datetime.now().strftime('%Y%m%d%H%M%S')
+    print(execution_id)
+    dbg_fl_nm = f"{os.environ.get('LOG_FILE_PATH')}chat_agent-log"
+    # dbg_fl_nm = '../mounted_data/log/chat_agent-log'
+    # agent_name = 'chat_agent'
+
+    try:
+        # Initialize the vector database retriever
+        dbg.dprint2(script_name, execution_id, "Chat agent initialized", {'user_id': p_body.userId, 'session_id': p_body.sessionId}, dbg_fl_nm)
+
+        o = chat_agent_manager.agent_hanlder(execution_id, p_body.userId,p_body.sessionId, p_body.BizName, dbg_fl_nm)
+        response_chunks = o.get_chat_response(p_body.Query)
+
+        if not response_chunks:
+            dbg.dprint2(script_name, execution_id, "No response chunks found", dbg_fl_nm)
+            # return {"message": "No relevant information found for your query."}
+
+        prerequisites.chat_prerequisite_manager(execution_id,p_body.StorePoint, dbg_fl_nm)       
+        o_chat = action_chat_agent.chat_agent(execution_id, p_body.sessionId,"Query", p_body.AgentName, dbg_fl_nm)
+        # Get the response from the chat agent
+        response = o_chat.agent(p_body.Query, response_chunks, p_body.sessionId, p_body.userId)
+        dbg.dprint2(script_name, execution_id, "completed", response, dbg_fl_nm)
+        
+        return {"response":response}
+
+
+    except Exception as e:
+        tb_str = traceback.format_exc()
+        dbg.dprint2(script_name, execution_id, "exception", str(tb_str), dbg_fl_nm)
+        return {"message": "The process is not completed successfully. Please check the log."}
+
+
+
+prerequisits.py(under proj_scripts folder)
+import os
+from azure.storage.blob import BlobServiceClient
+import os
+from debug2 import debug2 as dbg
+from toolbox import methods
+import yaml
+from io import BytesIO
+import traceback
+import requests
+import json
+
+script_name = os.path.basename(__file__)
+sc = methods.get_vault_secret_object()
+
+
+def download_blob(io_point,conn_str,blob_name,container_name,yaml_config_path,read_yaml=False):
+    
+    if io_point == "Azure":
+        # Create the BlobServiceClient object
+        blob_service_client = BlobServiceClient.from_connection_string(conn_str)
+
+        # Create a blob client using the local file name as the name for the blob
+        blob_client = blob_service_client.get_blob_client(container=container_name,blob=blob_name)
+
+        if read_yaml:
+            # Download YAML file into config path
+            yaml_stream = blob_client.download_blob().readall()
+            with open(file=f"{yaml_config_path}{blob_name}", mode="wb") as yamlfile:
+                yamlfile.write(yaml_stream)
+            return
+        else:
+            pass
+    
+    elif io_point == "AWS":
+        pass
+
+    
+def chat_prerequisite_manager(execution_id,store_point, dbg_fl_nm='log'):
+    try:
+        dwn_url = os.environ.get("FILE_DOWNLOAD_URL")
+        prompt_payload = {
+            "AgentName": "",
+            "UserId": "",
+            "FileNames": [],
+            "FileType": "prompt",
+            "InputPoint": store_point,
+            "IsConversion": False,
+            "IsKb": {"flag": False, "integration_point": ""},
+            "Flag": "download",
+            "Source": ""
+        }
+        prompt_response = requests.get(url=dwn_url, json=prompt_payload)
+        p_result = json.loads(prompt_response.text)
+        print(p_result)
+
+        return "completed"
+    except Exception as e:
+            tb_str = traceback.format_exc()
+            dbg.dprint2(script_name, execution_id, f"Error in chat_prerequisite_manager", str(tb_str), "log")
+            return None
+
+
+
+if __name__ == "__main__":
+    from dotenv import load_dotenv
+    load_dotenv('.env')
+    execution_id = '2023-10-30-13-44-35'
+    chat_prerequisite_manager(execution_id)
+
+
+
+chat_history_manager.py(under proj_scripts folder)
+import sqlite3
+import os
+from debug2 import debug2 as dbg
+import traceback
+
+class chat_handler:
+    def __init__(self, execution_id, session_id, target_string='Query', dbg_fl_nm='log'):
+        self.dbg_fl_nm = dbg_fl_nm
+        self.execution_id = execution_id
+        self.session_id = session_id
+        self.target_string = target_string
+        self.db_path = os.environ.get('CHAT_HISTORY_DB_PATH')
+        # self.db_path = '../mounted_data/app_db/chat_history.db'
+        self.script_name = os.path.basename(__file__)
+    
+
+    def get_chat_history(self, session_id, user_id):
+        """Retrieve chat history from SQLite."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute('''
+                SELECT * FROM chat_history
+                WHERE SESSIONID = ? AND USERID = ?
+                ORDER BY ID ASC
+                ''', (session_id, user_id))
+                rows = cursor.fetchall()
+
+                if not rows:
+                    message = f"No chat history found for session/user {session_id} and {user_id}"
+                    dbg.dprint2(self.script_name, self.execution_id, message, self.dbg_fl_nm)
+                    return (False, message)  
+                
+                column_names = [description[0] for description in cursor.description]
+
+                # Convert rows to a list of dictionaries
+                chat_history = [dict(zip(column_names, row)) for row in rows]
+                # print("***************chat_history***********",chat_history)
+                
+                return (True, chat_history)
+            
+        except Exception as e:
+            tb_str = traceback.format_exc()
+            dbg.dprint2(self.script_name, self.execution_id, f"Error occurred while retrieving chat history", str(tb_str), self.dbg_fl_nm)
+            return []
+
+
+    def save_chat_history(self,session_id, user_id, query, response):
+
+            try:
+                with sqlite3.connect(self.db_path) as conn:
+                    # Insert new chat entry
+                    cursor = conn.execute('''
+                    INSERT INTO chat_history (SESSIONID, USERID, QUERY, RESPONSE)
+                    VALUES (?, ?, ?, ?)
+                    ''', (session_id, user_id, query, response))
+                    conn.commit()
+                    dbg.dprint2(self.script_name, self.execution_id, "Chat history saved", {'session_id': session_id, 'user_id': user_id}, self.dbg_fl_nm)
+            except Exception as e:
+                tb_str = traceback.format_exc()
+                dbg.dprint2(self.script_name,self.execution_id, f"Error saving chat history to SQLite: {str(tb_str)}", self.dbg_fl_nm)
+
+
+chat_agent_manager.py(under proj_scripts folder)
+import chromadb
+import os
+from langchain_openai import AzureOpenAIEmbeddings
+from toolbox import methods
+from dotenv import load_dotenv
+import json
+from proj_scripts import prerequisites
+from debug2 import debug2 as dbg
+import traceback
+
+
+sc = methods.get_vault_secret_object()
+
+
+class agent_hanlder:
+    def __init__(self,execution_id,user_id,session_id, biz_name, dbg_fl_nm='log'):
+        self.script_name = os.path.basename(__file__)
+        self.dbg_fl_nm = dbg_fl_nm
+        self.execution_id = execution_id
+        self.user_id = user_id
+        self.session_id = session_id
+
+
+        self.embeddings = AzureOpenAIEmbeddings(
+            azure_endpoint=sc.get_secret("AZURE-OPENAI-ENDPOINT").value,
+            api_key=sc.get_secret("AZURE-OPENAI-API-KEY").value,
+            azure_deployment=sc.get_secret("AZURE-OPENAI-EMBEDDING-DEPLOYMENT-NAME").value,
+            openai_api_version=sc.get_secret("AZURE-OPENAI-API-VERSION").value,
+            )
+        try:
+            # DB initialization
+            vdb_path = os.environ.get("VDB_PATH")
+            print(f"VDB_PATH: {vdb_path}")
+            vdb_dist_algo = os.environ.get("VDB_DIST_ALGO")
+            # vdb_path = '../mounted_data/vec_db'
+            self.client = chromadb.PersistentClient(path=vdb_path)
+            self.collection = self.client.get_or_create_collection(name =biz_name ,metadata={"hnsw:space":vdb_dist_algo })
+            
+            dbg.dprint2(self.script_name, self.execution_id, f"initializing ChromaDB for {biz_name},{vdb_path}", self.dbg_fl_nm)
+
+        except Exception as e:
+            tb_str = traceback.format_exc()
+            dbg.dprint2(self.script_name, self.execution_id, f"Error initializing ChromaDB: {str(tb_str)}", self.dbg_fl_nm)
+
+
+        collection_data = self.collection.get()
+        self.max_chunk = len(collection_data.get('ids', []))
+        dbg.dprint2(self.script_name, execution_id, f"Total chunks in collection: {self.max_chunk}", self.dbg_fl_nm)
+
+        self.threshold = float(os.environ.get("CHUNK_THRESHOLD"))
+
+    
+    def get_chat_response(self, query):
+        
+        file_list = methods.get_file_list(self.user_id,self.session_id,self.dbg_fl_nm)
+        dbg.dprint2(self.script_name, self.execution_id, "File list retrieved",f"File list: {file_list}", self.dbg_fl_nm)
+
+        if not file_list:
+            dbg.dprint2(self.script_name, self.execution_id, "No files found for : ",f"user_id : {self.user_id}", self.dbg_fl_nm)
+            return []
+        
+        doc_ids = methods.get_doc_id(file_list,self.dbg_fl_nm)
+
+        if not doc_ids:
+            dbg.dprint2(self.script_name, self.execution_id, "No document IDs found for:", f"user_id:{self.user_id} session_id: {self.session_id}" , self.dbg_fl_nm)
+            return {}
+
+        query_vector = self.embeddings.embed_query(query)
+        chunk = self.collection.query(
+            query_embeddings=query_vector,
+            n_results=self.max_chunk
+            )
+
+        dbg.dprint2(self.script_name, self.execution_id, f"Number of chunks received: {len(chunk.get('ids', [[]])[0])} for sessionId {self.session_id}", "", self.dbg_fl_nm)
+
+        filtered_chunks = methods.filter_doc_id(chunk, doc_ids,self.dbg_fl_nm)
+
+        if not filtered_chunks:
+            dbg.dprint2(self.script_name, self.execution_id, "No filtered chunks found", f"user_id: {self.user_id} and {self.session_id}", self.dbg_fl_nm)
+            return []
+
+        #fetch distance list from the chunk result
+        dist_list = [dist['distance'] for dist in filtered_chunks]
+
+        #recalculate distance from first element (n-1)
+        first_element = dist_list[0]
+        recalculated_dist = [x - first_element for x in dist_list]
+
+        for dist, recalc in zip(filtered_chunks, recalculated_dist):
+            dist['recalculated_dist'] = recalc
+        
+        # outputfile = './data/upload/output.json'
+        # with open(outputfile,'w') as file:
+        #     json.dump(filtered_chunks,file,indent=2)
+        
+  
+        context = [
+                chunk for chunk in filtered_chunks
+                if chunk['recalculated_dist'] <= self.threshold
+            ]
+
+
+        # relevant_chunk_file = './data/upload/output_relevant.json'
+        # with open(relevant_chunk_file,'w') as file:
+        #     json.dump(context,file,indent=2)
+        
+        return context
+
+
+if __name__ == '__main__':
+
+    dbg_fl_nm = "./data/log/p2m-log"
+    execution_id = 'xyz'
+    target_string = 'test01'
+    biz_name = 'test'
+
+    o = agent_hanlder(execution_id, biz_name, dbg_fl_nm)
+    query = 'Who is the Chief Advisor ?'
+    
+    print(o.get_chat_response(query)['ids'])
+
+
+
+
+agent_core.py (under proj_scripts folder)
+from langchain_openai import AzureChatOpenAI
+from langchain_core.prompts.chat import ChatPromptTemplate
+import os
+from debug2 import debug2 as dbg
+from toolbox import methods
+import traceback
+
+
+script_name = os.path.basename(__file__)
+sc = methods.get_vault_secret_object()
+
+
+def LLM_cot_agent(execution_id,system,question,seed,temparature=0.00,top_p=0.1,dbg_fl_nm='log'):
+    try:
+        response = {}
+        if seed == 0:
+            model = AzureChatOpenAI(
+                # openai_api_version=os.environ["AZURE_OPENAI_API_VERSION"],
+                # azure_deployment=os.environ["AZURE_OPENAI_CHAT_DEPLOYMENT_NAME"],
+                azure_endpoint = sc.get_secret("AZURE-OPENAI-ENDPOINT").value,
+                openai_api_version=sc.get_secret("AZURE-OPENAI-API-VERSION").value,
+                azure_deployment=sc.get_secret("AZURE-OPENAI-CHAT-DEPLOYMENT-NAME").value,
+                api_key = sc.get_secret("AZURE-OPENAI-API-KEY").value,
+                temperature=temparature,
+                top_p= top_p,
+                verbose = True,
+            )   
+        else:
+            model = AzureChatOpenAI(
+                # openai_api_version=os.environ["AZURE_OPENAI_API_VERSION"],
+                # azure_deployment=os.environ["AZURE_OPENAI_CHAT_DEPLOYMENT_NAME"],
+                azure_endpoint = sc.get_secret("AZURE-OPENAI-ENDPOINT").value,
+                openai_api_version=sc.get_secret("AZURE-OPENAI-API-VERSION").value,
+                azure_deployment=sc.get_secret("AZURE-OPENAI-CHAT-DEPLOYMENT-NAME").value,
+                api_key = sc.get_secret("AZURE-OPENAI-API-KEY").value,
+                temperature=temparature,
+                seed=seed,
+                top_p= top_p,
+                verbose = True,
+            )
+
+
+        chat_template = ChatPromptTemplate.from_messages(
+            [
+                ("system", "{system}"),
+                ("human", "{question}"),
+            ]
+        )
+        messages = chat_template.format_messages(
+            system=system,
+            question = question
+        )
+        ai_message = model.invoke(messages,)
+        # response['content']= ai_message.content
+        response['completion_tokens'] = ai_message.response_metadata['token_usage']['completion_tokens']
+        response['prompt_tokens'] = ai_message.response_metadata['token_usage']['prompt_tokens']
+        response['total_tokens'] = ai_message.response_metadata['token_usage']['total_tokens']
+        print(ai_message)
+        dbg.dprint2(script_name,execution_id,"LLM-response",response,dbg_fl_nm)
+        return ai_message.content
+    
+    except Exception as e:
+       
+        tb_str = traceback.format_exc()
+        dbg.dprint2(script_name, execution_id, "Exception in LLM_cot_agent", str(tb_str), dbg_fl_nm)
+        # Return a user-friendly error message for API consuming this function
+        return "Sorry, the AI assistant is currently unavailable. Please try again later."
+    
+if __name__ == "__main__":
+    from dotenv import load_dotenv
+    load_dotenv('.env')
+    system = "You are an AI assistant."
+    question = "how to make estimation of a data warehouse build in Azure?"
+    temparature = 0.00
+    response= LLM_cot_agent(1,system,question,0,temparature)
+    print(response)
+
+
+
+
+action_chat_agent.py (under agenthub folder)
+import os
+import random
+from proj_scripts import chat_history_manager, agent_core,prerequisites
+import datetime
+from toolbox import methods
+from tinydb import TinyDB, Query
+from debug2 import debug2 as dbg
+import traceback
+
+class chat_agent:
+    def __init__(self, execution_id, session_id, target_string, agent_name, dbg_fl_nm='log'):
+        self.dbg_fl_nm = dbg_fl_nm
+        self.prompt_file = os.environ.get('PROMPT_FILE')
+        self.prompt_file_path = os.environ.get('PROMPT_FILE_PATH')
+        # self.prompt_file_path = '../mounted_data/prompt/'
+        self.execution_id = execution_id
+        self.target_string = target_string
+        self.session_id = session_id
+        self.script_name = os.path.basename(__file__)
+        self.seed = random.randint(10000, 99999)
+
+        # Use chat_handler for chat history management
+        self.history_handler = chat_history_manager.chat_handler(self.execution_id, self.session_id, dbg_fl_nm=self.dbg_fl_nm)
+        self.history_limit = int(os.environ.get('CHAT_HISTORY_LIMIT'))
+        
+        prompt_path = f'{self.prompt_file_path}{self.prompt_file}'
+       
+        if not os.path.exists(prompt_path):
+            raise FileNotFoundError(f"Prompt file '{self.prompt_file}' not found in ./data/prompt/")
+        self.db = TinyDB(prompt_path)
+        self.data = Query()
+
+        prompt = self.db.search((self.data.agent_name == 'chat_agent') &
+                                (self.data.function_name == 'chat_agent') &
+                                (self.data.purpose == 'chat') &
+                                (self.data.type_name == "system"))
+        
+        # self.system = prompt[0]['prompt'] if prompt else ""
+        if prompt and isinstance(prompt, list) and len(prompt) > 0:
+            self.system = methods.decrypt_input(prompt[0]['prompt'].encode('utf-16'))
+            # print("###########self.system############",self.system)
+        else:
+            raise ValueError(f"Error: 'prompt' is empty or improperly structured:{prompt}, {agent_name}")
+        return    
+    
+       
+        
+
+    def agent(self, query, chunks, session_id, user_id):
+        try:
+            chat_history_status,chat_history = self.history_handler.get_chat_history(session_id, user_id)
+       
+            dbg.dprint2(self.script_name, self.execution_id, "Chat history retrieved", {'session_id': session_id, 'user_id': user_id}, self.dbg_fl_nm)
+
+            if chat_history_status:
+                effective_limit = min(len(chat_history), self.history_limit)
+                
+                formatted_history = "\n".join(
+                    [f"Timestamp: {entry['TIMESTAMP']}\n:User {entry['QUERY']}\nAI: {entry['RESPONSE']}" for entry in chat_history[- effective_limit:]]
+                )
+                print("#############formatted_history##########",formatted_history)
+                question_with_history = f"""
+                    ### Chat History:
+                    {formatted_history}
+
+                    ### User Query:
+                    {query}
+
+                    ### Context Chunks:
+                    {chunks}
+                     """
+                print("@@@@@@@@@@@If block question_with_history@@@@@@@@@@@@",question_with_history)
+            else:
+                question_with_history = f"""
+                ### User Query:
+                {query}
+
+                ### Context Chunks:
+                {chunks}
+                """
+                # print("@@@@@@@@else block question_with_history@@@@@@@@@@@",question_with_history)
+            temperature = 0.0
+            top_p = 0.7
+            llm_response = agent_core.LLM_cot_agent(
+                self.execution_id, self.system, question_with_history,
+                self.seed, temperature, top_p, self.dbg_fl_nm
+            )
+
+            # Save chat history 
+            self.history_handler.save_chat_history(session_id,user_id,query,llm_response)
+            print("$$$$$$$$$$$$$$$$$llm_response$$$$$$$$$$$$$$$$",llm_response)
+            return llm_response
+        
+        except Exception as e:
+            tb_str = traceback.format_exc()
+            dbg.dprint2(self.script_name, self.execution_id, "Exception in agent method", str(tb_str), self.dbg_fl_nm)
+            return "Sorry, there was an error processing your request. Please try again later."
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 I have created an AI chat agent named Omnicore, now i have been told to similarly create Quote generation agent we can use mock data for quote generation agent I will share you that, also user stories for quote generation agent along with the code of that Omnicore AI chat agent (so that you can refer what i am expecting from you the folder structure and the entire code flow )below are the user stories  As a
 
 Sales representative or insurance advisor,
