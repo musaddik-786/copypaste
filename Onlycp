@@ -1,3 +1,56 @@
+
+
+Great but are you able to align it to this architecture or is it getting aligned somehow
+I am not forcing you to Align it completely to the architecture what I mean is don't change the logic until it is required as per the user stories of ai Quote generation agent
+
+Below is the architecture
+
+Let me share you the basic architecture see if you can connect it to the code
+Before proceeding let me know if you have any questions or any doubts let me know ....
+
+Block- Integration points
+SharePoint
+Confluence
+File Upload
+
+These 3 go to Injestion layer (Azure Blob Storage) than this goes to Staging Layer (Local Folder path)
+This goes to
+Hashing Layer (Document hashing) this goes to
+Processing Layer (Content splitting) this goes to
+Conversion layer which includes
+a) Azure Doc Intelligence (this receives Image files from Document Hashing)
+b) LLM Engine receives Markdown files (presentation files pptx)
+
+And from these 2 which are in Conversion Layer this goes to
+Database layer ( this layer Text files from Document hashing (hashing layer))
+a) Chunking
+b) Embedding
+c) Add metadata to Embedding
+d) Vector db
+
+Now this will
+Update Hash Table Completed
+
+Now Vectorised data goes to
+Chat agent (Vector Db is the input to the Agent)
+
+Then queries goes to response in chunks using LLM
+(Chat history stored History DB)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Here’s how the QuoteGenAgent scaffold slots into your end-to-end architecture—mirroring exactly what OmniCore does, just swapping in quote-specific logic:
 
 1. Block: Integration Points ⇒ Ingestion Layer
