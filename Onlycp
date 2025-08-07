@@ -1,3 +1,413 @@
+I hope you have covered the entire flow for the 5 questions I asked
+Also I am seeing you missed giving mock example
+
+Again give me complete response
+
+QuoteGenAgent/
+├── .env
+├── requirements.txt
+├── startup.sh
+├── local_setup.sh
+├── main.py
+├── QuoteGenAgent.env
+├── agent_hub/
+│   ├── init.py
+│   └── action_quote_agent.py
+├── data/
+│   ├── app_db/
+│   │   └── filetracker.db
+│   ├── converted/
+│   ├── extract/
+│   ├── feature/
+│   ├── log/
+│   ├── prompt/
+│   ├── upload/
+│   └── vec_db/
+├── proj_scripts/
+│   ├── init.py
+│   ├── agent_core.py
+│   ├── quote_agent_manager.py
+│   └── prerequisites.py
+├── routers/
+│   ├── init.py
+│   ├── generate_quote.py
+│   ├── download_quote.py
+│   └── list_quotes.py
+├── toolbox/
+│   ├── init.py
+│   └── methods.py
+└── templates/
+├── base.html
+└── quote.html
+
+
+---
+
+.env (reuse Omnicore secrets):
+
+VAULT_URL=<your-key-vault-url>
+AZURE-STORAGE-CONNECTION-STRING=<conn_str>
+AZURE-CONFIG-CONTAINER-NAME=<config_cntr>
+CHAT-AGENT-YAML-FILENAME=quote_agent_config.yaml
+CONFIG-FILE-PATH=../mounted_data/config/
+FILETRACKER_DB_PATH=../mounted_data/app_db/filetracker.db
+CHAT_HISTORY_DB_PATH=../mounted_data/app_db/chat_history.db
+APP_NAME=QuoteGenAgent
+DEFAULT_USER=DEFAULT
+DEFAULT_SESSION=DEFAULTSESSION1
+LOG_FILE_PATH=../mounted_data/log/
+
+requirements.txt
+
+python-dotenv
+fastapi[standard]
+jinja2
+uvicorn
+tinydb
+debug2
+azure-identity
+azure-keyvault-secrets
+azure-storage-blob
+pyyaml
+cryptography
+openai
+
+startup.sh
+
+#!/usr/bin/env bash
+source .env
+uvicorn main:app --host 0.0.0.0 --port 8010
+
+local_setup.sh
+
+#!/usr/bin/env bash
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+
+---
+
+main.py
+
+import os
+from dotenv import load_dotenv
+from fastapi import FastAPI, Query
+import uvicorn
+from routers import generate_quote, download_quote, list_quotes
+from fastapi.middleware.cors import CORSMiddleware
+from toolbox.methods import get_vault_secret_object, load_config_yaml, apply_env_variables
+from proj_scripts.prerequisites import download_blob
+
+Load and apply config
+
+load_dotenv()
+sc = get_vault_secret_object()
+conn_str = sc.get_secret('AZURE-STORAGE-CONNECTION-STRING').value
+config_cntr = sc.get_secret('AZURE-CONFIG-CONTAINER-NAME').value
+yaml_name = sc.get_secret('CHAT-AGENT-YAML-FILENAME').value
+yaml_path = sc.get_secret('CONFIG-FILE-PATH').value
+
+download and load
+
+pr = download_blob('Azure', conn_str, yaml_name, config_cntr, yaml_path, read_yaml=True)
+config = load_config_yaml(f"{yaml_path}{yaml_name}")
+apply_env_variables(config)
+
+app = FastAPI(
+title="QuoteGenAgent",
+description="GenAI Quote Generation Service",
+version="0.1.0"
+)
+app.add_middleware(
+CORSMiddleware,
+allow_origins=[""], allow_methods=[""], allow_headers=["*"],
+)
+
+app.include_router(generate_quote.router)
+app.include_router(download_quote.router)
+app.include_router(list_quotes.router)
+
+@app.get("/")
+async def root(user_id: str = Query(...), session_id: str = Query(...)):
+
+mimic file listing
+
+from toolbox.methods import get_file_list
+files = get_file_list(user_id, session_id)
+return {"files": files}
+
+if name == "main":
+uvicorn.run(app, host="0.0.0.0", port=8010)
+
+
+---
+
+agent_hub/action_quote_agent.py
+
+import os
+from jinja2 import Environment, FileSystemLoader
+from azure.storage.blob import BlobServiceClient
+from toolbox.methods import get_vault_secret_object
+from datetime import datetime
+import pdfkit
+
+class QuoteAgent:
+def init(self):
+
+template setup
+
+tmpl_path = os.environ.get('QUOTE_TEMPLATE_PATH', 'templates/')
+self.env = Environment(loader=FileSystemLoader(tmpl_path))
+
+blob
+
+conn_str = os.environ.get('AZURE-STORAGE-CONNECTION-STRING')
+self.blob_client = BlobServiceClient.from_connection_string(conn_str)
+self.container = os.environ.get('OUTPUT_CONTAINER', 'quotes')
+
+def generate(self, data: dict) -> str:
+template = self.env.get_template(f"quote.html")
+html = template.render(data)
+# convert to PDF
+output_name = f"quote_{data['ClaimNumber']}_{int(datetime.utcnow().timestamp())}.pdf"
+pdf_path = f"/tmp/{output_name}"
+pdfkit.from_string(html, pdf_path)
+# upload to blob
+blob = self.blob_client.get_blob_client(self.container, output_name)
+with open(pdf_path, 'rb') as f:
+blob.upload_blob(f, overwrite=True)
+return output_name
+
+singleton
+
+quote_agent = QuoteAgent()
+
+
+---
+
+proj_scripts/agent_core.py
+
+(Placeholder if shared logic needed)
+
+proj_scripts/quote_agent_manager.py
+
+from agent_hub.action_quote_agent import quote_agent
+
+class QuoteManager:
+def init(self):
+self.agent = quote_agent
+
+def create_quote(self, payload: dict) -> str:
+# validate payload here if needed
+return self.agent.generate(payload)
+
+singleton
+
+manager = QuoteManager()
+
+proj_scripts/prerequisites.py
+
+import os
+from azure.storage.blob import BlobServiceClient
+from toolbox.methods import get_vault_secret_object
+
+identical to Omnicore
+
+def download_blob(io_point, conn_str, blob_name, container_name, yaml_config_path, read_yaml=False):
+if io_point == "Azure":
+from azure.storage.blob import BlobServiceClient
+blob_service_client = BlobServiceClient.from_connection_string(conn_str)
+blob_client = blob_service_client.get_blob_client(container=container_name, blob=blob_name)
+if read_yaml:
+content = blob_client.download_blob().readall()
+with open(f"{yaml_config_path}{blob_name}", 'wb') as f:
+f.write(content)
+return
+
+extend for AWS if needed
+
+stub chat_prerequisite_manager as in Omnicore
+
+
+---
+
+routers/generate_quote.py
+
+from fastapi import APIRouter
+from pydantic import BaseModel
+from proj_scripts.quote_agent_manager import manager
+
+class QuoteRequest(BaseModel):
+ClaimantName: str
+Address: str
+ContactEmail: str
+ContactPhone: str
+ClaimNumber: str
+PolicyNumber: str
+DateOfClaim: str
+AmountClaimed: str
+ClaimStatus: str
+ReasonForClaim: str
+IncidentDate: str
+IncidentDescription: str
+IncidentLocation: str
+
+router = APIRouter(prefix="/generate_quote", tags=["Quote"])
+
+@router.post("/")
+async def generate_quote(request: QuoteRequest):
+payload = request.dict()
+file_name = manager.create_quote(payload)
+return {"quote_file": file_name}
+
+routers/download_quote.py
+
+from fastapi import APIRouter, Response
+from azure.storage.blob import BlobServiceClient
+import os
+
+router = APIRouter(prefix="/download_quote", tags=["Quote"])
+
+@router.get("/{file_name}")
+async def download_quote(file_name: str):
+conn_str = os.environ.get('AZURE-STORAGE-CONNECTION-STRING')
+container = os.environ.get('OUTPUT_CONTAINER', 'quotes')
+client = BlobServiceClient.from_connection_string(conn_str)
+blob = client.get_blob_client(container, file_name)
+stream = blob.download_blob().readall()
+return Response(content=stream, media_type="application/pdf")
+
+routers/list_quotes.py
+
+from fastapi import APIRouter
+from toolbox.methods import get_file_list
+
+router = APIRouter(prefix="/list_quotes", tags=["Quote"])
+
+@router.get("/")
+async def list_quotes(user_id: str, session_id: str):
+files = get_file_list(user_id, session_id)
+return {"quotes": files}
+
+
+---
+
+toolbox/methods.py
+
+from azure.identity import DefaultAzureCredential
+from azure.keyvault.secrets import SecretClient
+import os
+from dotenv import load_dotenv
+from debug2 import debug2 as dbg
+import sqlite3
+import traceback
+from datetime import datetime
+import yaml
+
+load_dotenv()
+filetracker_db = os.environ.get('FILETRACKER_DB_PATH')
+
+Vault
+
+def get_vault_secret_object():
+try:
+creds = DefaultAzureCredential()
+secret_client = SecretClient(vault_url=os.environ.get('VAULT_URL'), credential=creds)
+return secret_client
+except Exception:
+return None
+
+YAML
+
+def load_config_yaml(yaml_path):
+with open(yaml_path) as f:
+return yaml.safe_load(f)
+
+def apply_env_variables(config):
+for k,v in config.get('env', {}).items():
+os.environ[k] = str(v)
+
+File tracking
+
+def get_file_list(user_id, session_id):
+DEFAULT_USER = os.environ.get('DEFAULT_USER')
+DEFAULT_SESSION = os.environ.get('DEFAULT_SESSION')
+q = """
+SELECT FILE_NAME FROM FILE_HASH_USER
+WHERE ((USERID=? AND SESSIONID=?) OR (USERID=? AND SESSIONID=?))
+AND status='completed' AND APP_NAME=?
+"""
+try:
+with sqlite3.connect(filetracker_db) as conn:
+cursor = conn.execute(q, (DEFAULT_USER, DEFAULT_SESSION, user_id, session_id, os.environ.get('APP_NAME')))
+return [row[0] for row in cursor.fetchall()]
+except Exception:
+return []
+
+
+---
+
+templates/base.html
+
+<!DOCTYPE html>  <html lang="en">    <head>    
+    <meta charset="UTF-8">    
+    <title>{{ title }}</title>    
+    <style>    
+      body { font-family: Arial, sans-serif; margin: 20px; }    
+      h1 { color: #333; }    
+    </style>    
+</head>    
+<body>    
+    {% block content %}{% endblock %}    
+</body>    
+</html>  templates/quote.html  {% extends "base.html" %}
+{% block content %}
+
+<h1>Insurance Claim Quote</h1>    
+<ul>    
+  <li><strong>Claimant:</strong> {{ ClaimantName }}</li>    
+  <li><strong>Policy #:</strong> {{ PolicyNumber }}</li>    
+  <li><strong>Claim #:</strong> {{ ClaimNumber }}</li>    
+  <li><strong>Date of Claim:</strong> {{ DateOfClaim }}</li>    
+  <li><strong>Amount:</strong> {{ AmountClaimed }}</li>    
+  <li><strong>Status:</strong> {{ ClaimStatus }}</li>    
+</ul>    
+<h2>Incident Details</h2>    
+<p>{{ IncidentDescription }} at {{ IncidentLocation }} on {{ IncidentDate }}</p>    
+<h2>Reason</h2>    
+<p>{{ ReasonForClaim }}</p>    
+{% endblock %}  I’ve scaffolded the entire Quote Generation Agent project—mirroring your OmniCore structure—with:  Environment & config: reusing Vault secrets, .env, config download
+
+FastAPI app: main.py and three routers (generate_quote, download_quote, list_quotes)
+
+Agent logic: agent_hub/action_quote_agent.py uses Jinja2-to-PDF and Azure Blob uploads
+
+Manager: proj_scripts/quote_agent_manager.py ties request payloads to the agent
+
+Toolbox: secret management, SQLite file-tracker, YAML loader
+
+Templates: simple Jinja2 base.html and quote.html stubs
+
+Shell scripts: setup & startup, plus requirements.txt
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 so why dont you create exact similar to what i have shared for AI chat agent named Omnicore same ways to do things for example databases etc everything should be similar just refer the User Stories for AI Quote generation agent for logic apart from that i want similar structure similar manner of code of what we have for AI chat agent named Omnicore I have created an AI chat agent named Omnicore, now i have been told to similarly create Quote generation agent we can use mock data for quote generation agent I will share you that, also user stories for quote generation agent along with the code of that Omnicore AI chat agent (so that you can refer what i am expecting from you the folder structure and the entire code flow )below are the user stories  As a
 
 Sales representative or insurance advisor,
