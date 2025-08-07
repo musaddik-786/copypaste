@@ -1,3 +1,117 @@
+Here’s how the QuoteGenAgent scaffold slots into your end-to-end architecture—mirroring exactly what OmniCore does, just swapping in quote-specific logic:
+
+1. Block: Integration Points ⇒ Ingestion Layer
+
+Routers
+
+/upload_files (from OmniCore) becomes your entrypoint for File Upload.
+
+You can add /ingest_sharepoint and /ingest_confluence routers alongside it, each calling the same underlying Azure-Blob “add_2_KB” logic (just stub in your SharePoint/Confluence API calls).
+
+
+Data
+
+All incoming files land in data/upload/ (just like OmniCore’s).
+
+
+
+
+2. Staging Layer (Local Folder)
+
+Our proj_scripts/prerequisites.download_blob writes blobs into data/upload/ (via the same mounted path).
+
+
+
+3. Hashing Layer
+
+In toolbox/methods.py we keep OmniCore’s hashing routines:
+
+Compute hashlib-based fingerprint
+
+Store it in the same FILE_HASH_USER table in app_db/filetracker.db
+
+
+No changes—your QuoteGen simply inherits the exact DB schema and code.
+
+
+
+4. Processing & Conversion Layers
+
+Content Splitting & Chunking
+
+You’d port OmniCore’s LangChain TextSplitter and embedding pipeline into a new proj_scripts/quote_ingest.py (or reuse agent_core.py).
+
+Chunks get written into data/vec_db/ (Chroma/TinyDB) with extra metadata (ClaimNumber, PolicyNumber, etc.).
+
+
+Azure Document Intelligence
+
+In OmniCore this lives in toolbox/methods or a dedicated helper—just copy that over to extract text from images/PDFs before chunking.
+
+
+
+
+5. Database Layer (Vector DB & Text Storage)
+
+We keep using data/vec_db/ for embeddings + metadata.
+
+The FILE_HASH_USER table in app_db gets an extra APP_NAME = 'QuoteGenAgent' flag and your new chunks still call update status = 'completed' when ingestion finishes.
+
+
+
+6. Agent & Chat History
+
+Quote Agent
+
+Your /generate_quote router triggers only after ingestion+vectorization is done—just as OmniCore’s /get_chat_response triggers the chat agent.
+
+Instead of streaming LLM chunks back to the user, you feed the pre-extracted “quote data” JSON into agent_hub/action_quote_agent.py.
+
+
+Chat History DB
+
+Unchanged: app_db/chat_history.db still records each /generate_quote call if you want to track who generated which quote when.
+
+
+
+
+
+— —
+
+Next Steps / Questions?
+
+Do you want me to stub in SharePoint/Confluence endpoints now (with TODOs), or leave ingestion strictly as “upload_files” until those connectors are available?
+
+Shall I create a proj_scripts/quote_ingest.py that wraps LangChain splitting + embedding exactly as in OmniCore?
+
+
+Let me know and I’ll slot in those modules line-for-line.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 I hope you have covered the entire flow for the 5 questions I asked
 Also I am seeing you missed giving mock example
 
