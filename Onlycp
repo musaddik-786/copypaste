@@ -1,3 +1,55 @@
+suddenly i remeber now as you said our request of hi goes to the /get_chat_response endpoint.The query is passed to the get_chat_response function in chat_agent.py.Step 2: Retrieving Files
+The get_chat_response method in chat_agent_manager.py attempts to retrieve a list of files associated with the user and session using:
+
+python
+
+file_list = methods.get_file_list(self.user_id, self.session_id, self.dbg_fl_nm), but here when i see the actual function in methods.py below is the code def get_file_list(user_id,session_id,dbg_fl_nm='log'):
+    try:
+        DEFAULT_USER_ID = "DEFAULT" 
+        DEFAULT_SESSION_ID = "DEFAULTSESSION1"
+        query = """
+            SELECT FILE_NAME FROM FILE_HASH_USER
+            WHERE ((USERID = ? AND SESSIONID = ?) OR (USERID = ? AND SESSIONID = ?))
+            AND status = 'completed'
+            """
+        with sqlite3.connect(filetracker_db_path) as conn:
+            cursor = conn.execute(query, (DEFAULT_USER_ID,DEFAULT_SESSION_ID,user_id,session_id))
+            files = [row[0] for row in cursor.fetchall()]
+        
+        dbg.dprint2(script_name, execution_id, "File list retrieved", {'user_id': user_id, 'session_id': session_id}, dbg_fl_nm)
+
+        return files
+    
+    except Exception as e:
+        tb_str = traceback.format_exc()
+        dbg.dprint2(script_name, execution_id, f"Error retrieving file list: {str(tb_str)}", dbg_fl_nm)
+        return [], so till now we know why are we using vector db , it is basically to vectorize our qquery and search a similar kind of vector of chunks for example these are the chunks Document Vectors:
+Doc 1: [0.1, 0.2, 0.3, 0.4, 0.5] (for "The Eiffel Tower is in Paris, France.")
+Doc 2: [0.2, 0.3, 0.4, 0.5, 0.6] (for "The capital of France is Paris.")
+Doc 3: [0.7, 0.8, 0.9, 1.0, 1.1] (for "Berlin is the capital of Germany.") whiich matched to our vector query but at the beginiing stage we would not have any vector document files it will be empty that logic s in get_file_list , but what ia am getting confused about it in get_file_list there is somenthing written like hash and sqlite now what is this doing in our code what is its significance I want explanation of its reasonnbeing presnet in out code , I have already shared the complete code of all the files earlier see if you can anser my this current doubtand yes you can use mock data for example
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 Let me share you the basic architecture see if you can connect it to the code
 Before proceeding let me know if you have any questions or any doubts let me know ....
