@@ -1,3 +1,53 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 suddenly i remeber now as you said our request of hi goes to the /get_chat_response endpoint.The query is passed to the get_chat_response function in chat_agent.py.Step 2: Retrieving Files
 The get_chat_response method in chat_agent_manager.py attempts to retrieve a list of files associated with the user and session using:
 
@@ -172,25 +222,6 @@ app.add_middleware(
 app.include_router(chat_agent.router)
 app.include_router(upload_files.router)
 app.include_router(get_chat_history.router)
-
-
-# """Create the chat history table if it doesn't exist."""
-# try:
-#     with sqlite3.connect(db_path) as conn:
-#         sql_text = '''
-#         CREATE TABLE IF NOT EXISTS chat_history (
-#             ID INTEGER PRIMARY KEY AUTOINCREMENT,
-#             SESSIONID TEXT NOT NULL,
-#             USERID TEXT NOT NULL,
-#             QUERY TEXT NOT NULL,
-#             RESPONSE TEXT NOT NULL,
-#             TIMESTAMP DATETIME DEFAULT CURRENT_TIMESTAMP
-#         );
-#         '''
-#         conn.execute(sql_text)
-#     print("Chat history table created successfully.")
-# except Exception as e:
-#     print(f"Error occurred while creating chat history table: {e}")
 
 
 
