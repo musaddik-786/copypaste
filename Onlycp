@@ -1,3 +1,361 @@
+Project: Orchestration Agent (Python)
+
+Files included below are separated by file headers. Place them in the same project folder.
+
+Folder structure example:
+
+orchestration_agent_project/
+
+├─ orchestration_agent.py
+
+├─ requirements.txt
+
+├─ README.md
+
+└─ agents/
+
+├─ init.py
+
+├─ data_extraction_agent.py
+
+├─ eligibility_agent.py
+
+└─ risk_assessment_agent.py
+
+
+
+-------------------------
+
+File: README.md
+
+-------------------------
+
+Orchestration Agent (lightweight example)
+
+----------------------------------------
+
+What this project does
+
+- Runs a simple orchestration loop that asks an LLM which agent should run next.
+
+- Three dummy agents (data extraction, eligibility, risk assessment) write JSON files
+
+into the data/ directory when executed.
+
+- The orchestration agent gives the LLM the current state (which files exist)
+
+and descriptions of available agents. The LLM returns a JSON deciding
+
+which agent to call next. The local orchestration enforces the business rules
+
+(DataExtraction -> Eligibility -> RiskAssessment).
+
+
+
+How to run
+
+1. Create a python virtualenv and install requirements:
+
+python -m venv venv
+
+source venv/bin/activate   # on Windows: venv\Scripts\activate
+
+pip install -r requirements.txt
+
+
+
+2. Export your OpenAI key:
+
+export OPENAI_API_KEY="sk-..."   # on Windows use set
+
+
+
+3. Run the orchestration:
+
+python orchestration_agent.py --data-dir ./data --model gpt-4o
+
+
+
+Notes
+
+- The orchestration enforces that Eligibility only runs after DataExtraction JSON exists,
+
+and RiskAssessment only runs when Eligibility JSON has eligible=true. The LLM is asked
+
+to choose the next agent dynamically; the local code validates that choice and will
+
+correct it if the model suggests an invalid step.
+
+
+
+-------------------------
+
+File: requirements.txt
+
+-------------------------
+
+openai>=0.27.0 python-dotenv
+
+-------------------------
+
+File: agents/init.py
+
+-------------------------
+
+(empty) - package marker
+
+-------------------------
+
+File: agents/data_extraction_agent.py
+
+-------------------------
+
+import json import os from datetime import datetime
+
+def run(data_dir: str) -> str: """Simulate a Data Extraction Agent: write data/data_extraction.json
+
+Returns the path of the created file.
+"""
+os.makedirs(data_dir, exist_ok=True)
+payload = {
+    "status": "completed",
+    "agent": "DataExtractionAgent",
+    "timestamp": datetime.utcnow().isoformat() + "Z",
+    "extracted_data": {
+        "customer_name": "Ali Khan",
+        "policy_number": "POL-000123",
+        "claim_id": "CLM-98765",
+        "sample_fields": {
+            "amount_claimed": 12345.67,
+            "incident_date": "2025-07-01"
+        }
+    }
+}
+path = os.path.join(data_dir, "data_extraction.json")
+with open(path, "w", encoding="utf-8") as f:
+    json.dump(payload, f, indent=2)
+return path
+
+-------------------------
+
+File: agents/eligibility_agent.py
+
+-------------------------
+
+import json import os from datetime import datetime
+
+def run(data_dir: str, force_eligible: bool = True) -> str: """Simulate Eligibility Check Agent: read data_extraction.json and write eligibility.json.
+
+Args:
+  data_dir: folder where JSON files live
+  force_eligible: if True, always write eligible=true (for the mock behaviour)
+
+Returns the path of the created eligibility file.
+"""
+ex_path = os.path.join(data_dir, "data_extraction.json")
+if not os.path.exists(ex_path):
+    raise FileNotFoundError("Data extraction file not found: cannot run eligibility")
+
+# read some fields (mock)
+with open(ex_path, "r", encoding="utf-8") as f:
+    extracted = json.load(f)
+
+# Mock decision
+eligible = True if force_eligible else False
+
+payload = {
+    "agent": "EligibilityCheckAgent",
+    "timestamp": datetime.utcnow().isoformat() + "Z",
+    "eligible": eligible,
+    "reason": "Mock: eligibility decided by test harness"
+}
+
+path = os.path.join(data_dir, "eligibility.json")
+with open(path, "w", encoding="utf-8") as f:
+    json.dump(payload, f, indent=2)
+return path
+
+-------------------------
+
+File: agents/risk_assessment_agent.py
+
+-------------------------
+
+import json import os from datetime import datetime
+
+def run(data_dir: str) -> str: """Simulate Risk Assessment Agent: read eligibility.json, write risk_scores.json (mock).""" el_path = os.path.join(data_dir, "eligibility.json") if not os.path.exists(el_path): raise FileNotFoundError("Eligibility file not found: cannot run risk assessment")
+
+with open(el_path, "r", encoding="utf-8") as f:
+    elig = json.load(f)
+
+if not elig.get("eligible", False):
+    raise ValueError("Applicant not eligible - risk assessment aborted (mock)")
+
+payload = {
+    "agent": "RiskAssessmentAgent",
+    "timestamp": datetime.utcnow().isoformat() + "Z",
+    "risk_scores": {
+        "overall_score": 0.23,
+        "fraud_score": 0.05,
+        "operational_risk": 0.15,
+        "notes": "Mock scores for demo"
+    }
+}
+
+path = os.path.join(data_dir, "risk_scores.json")
+with open(path, "w", encoding="utf-8") as f:
+    json.dump(payload, f, indent=2)
+return path
+
+-------------------------
+
+File: orchestration_agent.py
+
+-------------------------
+
+""" Orchestration Agent (single-file runner)
+
+Uses OpenAI LLM to request the next agent decision
+
+Validates that decision and runs the appropriate local dummy agent """ import argparse import json import os import sys import time from typing import Dict
+
+
+try: import openai except Exception as e: print("Missing dependency 'openai'. Install with: pip install openai python-dotenv") raise
+
+from agents import data_extraction_agent, eligibility_agent, risk_assessment_agent
+
+ALLOWED_AGENTS = [ "DataExtractionAgent", "EligibilityCheckAgent", "RiskAssessmentAgent", "NONE" ]
+
+PROMPT_TEMPLATE = ( "You are an orchestration-decider. \n" "Available agents (do NOT create new ones):\n" "1) DataExtractionAgent - Generates data_extraction.json with 'status: completed' and extracted data.\n" "2) EligibilityCheckAgent - Reads data_extraction.json and writes eligibility.json with boolean 'eligible'.\n" "3) RiskAssessmentAgent - Reads eligibility.json and writes risk_scores.json with risk metrics.\n\n" "Input: A JSON object named 'state' describing which files exist in the data folder.\n" "Task: Choose which agent should run next based ONLY on the 'state' and agent descriptions.\n" "Rules:\n" " - Respond with a single valid JSON object and nothing else.\n" " - Schema: {"next_agent": <string, one of DataExtractionAgent, EligibilityCheckAgent, RiskAssessmentAgent, NONE>, "reason": <short string>}\n" " - Choose NONE if there is no agent that should run next (all done, or cannot proceed).\n" )
+
+def ask_llm_for_next_agent(state: Dict, model: str = "gpt-4o") -> Dict: """Call the LLM and request a JSON response specifying the next agent.
+
+The orchestration code will still validate the choice.
+"""
+system_msg = {
+    "role": "system",
+    "content": PROMPT_TEMPLATE
+}
+user_msg = {
+    "role": "user",
+    "content": json.dumps({"state": state}, indent=2)
+}
+
+# Use ChatCompletion API
+resp = openai.ChatCompletion.create(
+    model=model,
+    messages=[system_msg, user_msg],
+    temperature=0.0,
+    max_tokens=300
+)
+
+text = resp["choices"][0]["message"]["content"].strip()
+# try to extract JSON from the model output
+try:
+    # If the model returned some stray text, find the first { ... }
+    start = text.find("{")
+    end = text.rfind("}")
+    json_text = text[start:end+1] if (start != -1 and end != -1) else text
+    parsed = json.loads(json_text)
+except Exception as e:
+    raise RuntimeError(f"LLM did not return valid JSON. raw output:\n{text}")
+
+return parsed
+
+def validate_and_select(parsed: Dict, state: Dict) -> str: """Validate LLM suggestion against local rules. Return agent to run.
+
+Local rules (enforced regardless of LLM):
+  - If no data_extraction.json, only DataExtractionAgent may run.
+  - If data_extraction.json exists but no eligibility.json, only EligibilityCheckAgent may run.
+  - If eligibility.json exists and eligible==true, run RiskAssessmentAgent.
+  - Otherwise NONE.
+"""
+# local state checks
+has_ex = os.path.exists(os.path.join(state["data_dir"], "data_extraction.json"))
+has_el = os.path.exists(os.path.join(state["data_dir"], "eligibility.json"))
+has_rs = os.path.exists(os.path.join(state["data_dir"], "risk_scores.json"))
+
+# Preferred agent from LLM
+pref = parsed.get("next_agent") if isinstance(parsed, dict) else None
+if pref not in ALLOWED_AGENTS:
+    pref = None
+
+# enforce rules
+if not has_ex:
+    # only data extraction allowed
+    return "DataExtractionAgent"
+if has_ex and not has_el:
+    return "EligibilityCheckAgent"
+if has_el:
+    # read eligibility
+    try:
+        with open(os.path.join(state["data_dir"], "eligibility.json"), "r", encoding="utf-8") as f:
+            elig = json.load(f)
+        if elig.get("eligible", False):
+            if not has_rs:
+                return "RiskAssessmentAgent"
+            else:
+                return "NONE"
+        else:
+            return "NONE"
+    except Exception:
+        return "NONE"
+
+return "NONE"
+
+def run_orchestration(data_dir: str, model: str = "gpt-4o"): state = {"data_dir": data_dir} os.makedirs(data_dir, exist_ok=True)
+
+print("Starting orchestration loop. Data folder:", data_dir)
+
+while True:
+    # build a minimal state for the LLM: list files in data dir
+    files = os.listdir(data_dir) if os.path.exists(data_dir) else []
+    llm_state = {
+        "files": files
+    }
+
+    try:
+        parsed = ask_llm_for_next_agent(llm_state, model=model)
+    except Exception as e:
+        print("LLM call failed:", str(e))
+        print("Falling back to local-rule decision")
+        parsed = {"next_agent": "NONE", "reason": "llm-failed"}
+
+    chosen = validate_and_select(parsed, state)
+    print(f"LLM suggested: {parsed.get('next_agent')} | chosen after validation: {chosen}")
+
+    if chosen == "DataExtractionAgent":
+        path = data_extraction_agent.run(data_dir)
+        print("Data extraction created:", path)
+        time.sleep(0.3)
+        continue
+    elif chosen == "EligibilityCheckAgent":
+        path = eligibility_agent.run(data_dir)
+        print("Eligibility output:", path)
+        time.sleep(0.3)
+        continue
+    elif chosen == "RiskAssessmentAgent":
+        path = risk_assessment_agent.run(data_dir)
+        print("Risk assessment created:", path)
+        time.sleep(0.3)
+        continue
+    elif chosen == "NONE":
+        print("No further actions. Orchestration finished or waiting for external input.")
+        break
+    else:
+        print("Unknown chosen action, aborting")
+        break
+
+if name == 'main': parser = argparse.ArgumentParser(description='Run orchestration agent (demo)') parser.add_argument('--data-dir', type=str, default='./data', help='Folder to read/write JSON files') parser.add_argument('--model', type=str, default='gpt-4o', help='LLM model to call') args = parser.parse_args()
+
+# OpenAI key is read from environment by openai library
+if not os.environ.get('OPENAI_API_KEY'):
+    print("Warning: OPENAI_API_KEY not set. The code will fail at the first LLM call.")
+
+run_orchestration(args.data_dir, model=args.model)
+
+End of project files
+
 
 
 
