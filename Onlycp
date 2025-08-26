@@ -1,3 +1,269 @@
+# python
+#!/usr/bin/env python3
+"""
+Orchestration Agent (Azure/OpenAI-compatible)
+
+This script chooses which sub-agent should run next, based on the presence
+of JSON artefacts in a data folder.  It supports both Azure OpenAI and the
+public OpenAI platform and will transparently pick the right client by
+inspecting environment variables.
+
+Required environment variables for Azure mode
+  AZURE_OPENAI_API_KEY
+  AZURE_OPENAI_ENDPOINT               e.g. https://your-resource.openai.azure.com/
+  AZURE_OPENAI_API_VERSION            e.g. 2024-12-01-preview
+  AZURE_OPENAI_CHAT_DEPLOYMENT        e.g. gpt-4  (deployment name, not model id)
+
+For OpenAI-platform mode you only need
+  OPENAI_API_KEY
+"""
+import argparse
+import json
+import os
+import time
+from typing import Dict
+
+from dotenv import load_dotenv
+load_dotenv()                                                # load .env if present
+
+# OpenAI SDK
+from openai import OpenAI, AzureOpenAI                       # noqa: E402
+
+# local “agents”
+from agents import data_extraction_agent, eligibility_agent, risk_assessment_agent
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+#  Helper: build the correct client (Azure or OpenAI)
+# ──────────────────────────────────────────────────────────────────────────────
+def create_client_from_env() -> OpenAI:
+    """Return an OpenAI client that’s pre-configured for Azure if the
+    AZURE_OPENAI_* variables are set; otherwise return a default client that
+    talks to api.openai.com.
+    """
+    azure_key      = os.getenv("AZURE_OPENAI_API_KEY")
+    azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+    azure_version  = os.getenv("AZURE_OPENAI_API_VERSION")
+    deployment     = os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT")
+
+    if azure_key and azure_endpoint and azure_version and deployment:
+        # Preferred: explicit Azure client (SDK ≥ 1.2)
+        client: OpenAI = AzureOpenAI(
+            api_key=azure_key,
+            azure_endpoint=azure_endpoint,
+            api_version=azure_version,
+        )
+        client._is_azure = True                  # flag for later
+        client._azure_deployment = deployment
+        return client
+
+    # ───── Fallback to public OpenAI platform ─────
+    if not os.getenv("OPENAI_API_KEY"):
+        raise RuntimeError(
+            "OPENAI_API_KEY must be set for OpenAI-platform mode "
+            "or provide all AZURE_OPENAI_* variables for Azure mode."
+        )
+
+    client = OpenAI()
+    client._is_azure = False
+    client._azure_deployment = None
+    return client
+
+
+# create the client once, globally
+client = create_client_from_env()
+
+# ──────────────────────────────────────────────────────────────────────────────
+ALLOWED_AGENTS = ["DataExtractionAgent", "EligibilityCheckAgent",
+                  "RiskAssessmentAgent", "NONE"]
+
+PROMPT_TEMPLATE = (
+    "You are an orchestration-decider.\n"
+    "Available agents (do NOT create new ones):\n"
+    "1) DataExtractionAgent – writes data_extraction.json.\n"
+    "2) EligibilityCheckAgent – reads data_extraction.json, writes eligibility.json.\n"
+    "3) RiskAssessmentAgent – reads eligibility.json, writes risk_scores.json.\n\n"
+    "Input: a JSON object called 'state' listing files in the data folder.\n"
+    "Task: choose which agent should run next based ONLY on the state.\n"
+    "Reply with ONE JSON object, schema:\n"
+    '{ "next_agent": "DataExtractionAgent|EligibilityCheckAgent|RiskAssessmentAgent|NONE", '
+    '"reason": "short explanation" }\n'
+)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+def ask_llm_for_next_agent(state: Dict, model: str = "gpt-4o") -> Dict:
+    """Query the LLM and return its JSON choice."""
+    system_msg = {"role": "system", "content": PROMPT_TEMPLATE}
+    user_msg   = {"role": "user",   "content": json.dumps({"state": state}, indent=2)}
+
+    # choose correct model / deployment
+    if getattr(client, "_is_azure", False):
+        model_to_call = client._azure_deployment        # deployment name
+    else:
+        model_to_call = model                           # e.g. "gpt-4o"
+
+    try:
+        resp = client.chat.completions.create(
+            model=model_to_call,
+            messages=[system_msg, user_msg],
+            temperature=0.0,
+            max_tokens=300
+        )
+    except Exception as e:
+        raise RuntimeError(f"LLM call failed: {e}")
+
+    # extract assistant content
+    try:
+        text = resp.choices[0].message.content.strip()
+    except Exception:
+        text = str(resp)
+    # parse first JSON object found
+    try:
+        start, end = text.find("{"), text.rfind("}")
+        parsed = json.loads(text[start:end + 1])
+    except Exception as e:
+        raise RuntimeError(f"LLM did not return valid JSON.\nRaw: {text}\nError: {e}")
+
+    return parsed
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+def validate_and_select(parsed: Dict, state: Dict) -> str:
+    """Safety-check the LLM answer and fall back to deterministic rules."""
+    data_dir = state["data_dir"]
+
+    has_ex = os.path.exists(os.path.join(data_dir, "data_extraction.json"))
+    has_el = os.path.exists(os.path.join(data_dir, "eligibility.json"))
+    has_rs = os.path.exists(os.path.join(data_dir, "risk_scores.json"))
+
+    pref = parsed.get("next_agent") if isinstance(parsed, dict) else None
+    if pref not in ALLOWED_AGENTS:
+        pref = None                                               # invalid
+
+    # deterministic guard-rails
+    if not has_ex:
+        return "DataExtractionAgent"
+    if has_ex and not has_el:
+        return "EligibilityCheckAgent"
+    if has_el and not has_rs:
+        try:
+            with open(os.path.join(data_dir, "eligibility.json"), "r",
+                      encoding="utf-8") as f:
+                elig = json.load(f)
+            if elig.get("eligible", False):
+                return "RiskAssessmentAgent"
+        except Exception:
+            pass
+    return "NONE"
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+def run_orchestration(data_dir: str, model: str = "gpt-4o") -> None:
+    """Main loop."""
+    state = {"data_dir": data_dir}
+    os.makedirs(data_dir, exist_ok=True)
+
+    print("Starting orchestration loop.  Data folder:", data_dir)
+
+    while True:
+        files_now = os.listdir(data_dir)
+        llm_state = {"files": files_now}
+
+        try:
+            parsed = ask_llm_for_next_agent(llm_state, model=model)
+        except Exception as e:
+            print("LLM call failed – falling back to rule-based choice.\n", e)
+            parsed = {"next_agent": "NONE", "reason": "llm-failed"}
+
+        chosen = validate_and_select(parsed, state)
+        print(f"LLM suggested: {parsed.get('next_agent')}  |  chosen: {chosen}")
+
+        if chosen == "DataExtractionAgent":
+            path = data_extraction_agent.run(data_dir)
+            print("Data extraction written to:", path)
+        elif chosen == "EligibilityCheckAgent":
+            path = eligibility_agent.run(data_dir)
+            print("Eligibility written to:", path)
+        elif chosen == "RiskAssessmentAgent":
+            path = risk_assessment_agent.run(data_dir)
+            print("Risk assessment written to:", path)
+        elif chosen == "NONE":
+            print("No further actions.  Orchestration finished.")
+            break
+        else:
+            print("Unknown action, aborting loop.")
+            break
+
+        time.sleep(0.3)          # tiny delay between iterations
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Run orchestration agent (demo)")
+    parser.add_argument("--data-dir", default="./data",
+                        help="Folder used to read/write JSON files")
+    parser.add_argument("--model", default="gpt-4o",
+                        help="Model name for OpenAI-platform mode (ignored for Azure)")
+    args = parser.parse_args()
+
+    if getattr(client, "_is_azure", False):
+        print("Using Azure OpenAI deployment:", client._azure_deployment)
+    else:
+        if not os.getenv("OPENAI_API_KEY"):
+            print("Warning: OPENAI_API_KEY not set – first LLM call will fail.")
+
+    run_orchestration(args.data_dir, model=args.model)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 (venv) PS C:\Users\2000137378\Desktop\orchestration_agent_project> python .\test_azure_openai.py
 endpoint: https://jarvisoai.openai.azure.com/
 api_version: 2024-12-01-preview
