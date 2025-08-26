@@ -1,3 +1,91 @@
+(venv) PS C:\Users\2000137378\Desktop\orchestration_agent_project> python orchestration_agent.py --data-dir ./data --model gpt-4o
+Warning: OPENAI_API_KEY not set. The code will fail at the first LLM call.
+Starting orchestration loop. Data folder: ./data
+LLM call failed:
+
+You tried to access openai.ChatCompletion, but this is no longer supported in openai>=1.0.0 - see the README at https://github.com/openai/openai-python for the API.
+
+You can run `openai migrate` to automatically upgrade your codebase to use the 1.0.0 interface.
+
+Alternatively, you can pin your installation to the old version, e.g. `pip install openai==0.28`
+
+A detailed migration guide is available here: https://github.com/openai/openai-python/discussions/742
+
+LLM suggested: NONE | chosen after validation: DataExtractionAgent
+Data extraction created: ./data\data_extraction.json
+LLM call failed: 
+
+You tried to access openai.ChatCompletion, but this is no longer supported in openai>=1.0.0 - see the README at https://github.com/openai/openai-python for the API.
+
+You can run `openai migrate` to automatically upgrade your codebase to use the 1.0.0 interface.
+
+Alternatively, you can pin your installation to the old version, e.g. `pip install openai==0.28`
+
+A detailed migration guide is available here: https://github.com/openai/openai-python/discussions/742
+
+LLM suggested: NONE | chosen after validation: EligibilityCheckAgent
+Eligibility output: ./data\eligibility.json
+LLM call failed: 
+
+You tried to access openai.ChatCompletion, but this is no longer supported in openai>=1.0.0 - see the README at https://github.com/openai/openai-python for the API.
+
+You can run `openai migrate` to automatically upgrade your codebase to use the 1.0.0 interface.
+
+Alternatively, you can pin your installation to the old version, e.g. `pip install openai==0.28`
+
+A detailed migration guide is available here: https://github.com/openai/openai-python/discussions/742
+
+LLM suggested: NONE | chosen after validation: RiskAssessmentAgent
+Risk assessment created: ./data\risk_scores.json
+LLM call failed: 
+
+You tried to access openai.ChatCompletion, but this is no longer supported in openai>=1.0.0 - see the README at https://github.com/openai/openai-python for the API.
+
+You can run `openai migrate` to automatically upgrade your codebase to use the 1.0.0 interface.
+
+Alternatively, you can pin your installation to the old version, e.g. `pip install openai==0.28`
+
+A detailed migration guide is available here: https://github.com/openai/openai-python/discussions/742
+
+LLM suggested: NONE | chosen after validation: NONE
+No further actions. Orchestration finished or waiting for external input.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Project: Orchestration Agent (Python)
 
 Files included below are separated by file headers. Place them in the same project folder.
