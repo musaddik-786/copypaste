@@ -1,3 +1,55 @@
+ I understood the entire flow now , but i think there is a problem in our code logic until data extraction json file creation the logic looks good so currently this the json file that is generated  after data extraction agent is , {
+  "status": "completed",
+  "agent": "DataExtractionAgent",
+  "timestamp": "2025-08-27T02:11:37.765231Z",
+  "extracted_data": {
+    "customer_name": "Ali Khan",
+    "policy_number": "POL-000123",
+    "claim_id": "CLM-98765",
+    "sample_fields": {
+      "amount_claimed": 12345.67,
+      "incident_date": "2025-07-01"
+    }
+  }
+},and it gets generated after llm gives next agent as Data extraction in the response and it gets validated in validate_and_select function but the next logic looks incorrect where we check the state whther data_extraction_agent.json file is present in data directory or not so this is happening now Input for the Second Iteration:
+state = {"data_dir": "./data", "files": ["data_extraction.json"]} (updated after the first iteration).
+Output:
+parsed = {"next_agent": "EligibilityCheckAgent", "reason": "data_extraction.json exists. Proceeding to check eligibility."}  , instead it should check ,"status": "completed", from the json file of data extraction and only then we should move towards next agent, so what i feel is LLM should know that but it should not be obvious in the prompt that llm has to check the status from data extractino agent json file nor it should be obvious that we have written logic for it , so maybe the prompt should be designed in a good way where llm itself understands what it has to do  , so, I did not wanted hard code logic written for it nor i want to give this clearly in the prompt that llm has to check the "Status" specifically and for specific to data extraction agent.json, instead prompt should be given in sucha away that llm understands that it has to checkk the status field in the data extractionagent json file inorder to proceed , why i am telling to avoid telling the llm directly that it has to check the "Status" specifically  from data extraction agent.json because there is also eligibility aggent which has this json file {
+  "agent": "EligibilityCheckAgent",
+  "timestamp": "2025-08-27T02:11:39.663813Z",
+  "eligible": true,
+  "reason": "Mock: eligibility decided by test harness"
+}, so here there is no status rather here there is "eligible" field and also value is not completed rather it is tue so LLM should know it automatically when it has to proceed 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # python
 #!/usr/bin/env python3
 """
