@@ -1,3 +1,136 @@
+PS C:\Users\2000137378\Desktop\orchestration4.1_agent_project> Get-ChildItem -Path . -Recurse -Filter main.py
+
+
+    Directory: C:\Users\2000137378\Desktop\orchestration4.1_agent_project\agents\Dummy_extraction_agent
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----         8/30/2025  11:27 AM           9929 main.py
+
+
+    Directory:
+    C:\Users\2000137378\Desktop\orchestration4.1_agent_project\agents\Dummy_extraction_agent\venv\Lib\site-packages\dotenv      
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----         8/30/2025  12:35 PM          12467 main.py
+
+
+    Directory: C:\Users\2000137378\Desktop\orchestration4.1_agent_project\agents\Dummy_extraction_agent\venv\Lib\site-packages\ 
+    pip\_internal
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----         8/30/2025  12:34 PM            340 main.py
+
+
+    Directory: C:\Users\2000137378\Desktop\orchestration4.1_agent_project\agents\Dummy_extraction_agent\venv\Lib\site-packages\ 
+    pip\_internal\cli
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----         8/30/2025  12:34 PM           2816 main.py
+
+
+    Directory:
+    C:\Users\2000137378\Desktop\orchestration4.1_agent_project\agents\Dummy_extraction_agent\venv\Lib\site-packages\pydantic    
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----         8/30/2025  12:36 PM          81012 main.py
+
+
+    Directory:
+    C:\Users\2000137378\Desktop\orchestration4.1_agent_project\agents\Dummy_extraction_agent\venv\Lib\site-packages\pydantic\v1 
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----         8/30/2025  12:36 PM          44824 main.py
+
+
+    Directory:
+    C:\Users\2000137378\Desktop\orchestration4.1_agent_project\agents\Dummy_extraction_agent\venv\Lib\site-packages\uvicorn     
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----         8/30/2025  12:36 PM          17231 main.py
+
+
+    Directory: C:\Users\2000137378\Desktop\orchestration4.1_agent_project\venv\Lib\site-packages\dotenv
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----         8/30/2025  12:14 PM          12467 main.py
+
+
+    Directory: C:\Users\2000137378\Desktop\orchestration4.1_agent_project\venv\Lib\site-packages\pip\_internal
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----         8/30/2025  12:13 PM            340 main.py
+
+
+    Directory: C:\Users\2000137378\Desktop\orchestration4.1_agent_project\venv\Lib\site-packages\pip\_internal\cli
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----         8/30/2025  12:13 PM           2816 main.py
+
+
+    Directory: C:\Users\2000137378\Desktop\orchestration4.1_agent_project\venv\Lib\site-packages\pydantic
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----         8/30/2025  12:14 PM          81012 main.py
+
+
+    Directory: C:\Users\2000137378\Desktop\orchestration4.1_agent_project\venv\Lib\site-packages\pydantic\v1
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----         8/30/2025  12:14 PM          44824 main.py
+
+
+PS C:\Users\2000137378\Desktop\orchestration4.1_agent_project>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 (venv) PS C:\Users\2000137378\Desktop\orchestration4.1_agent_project> python orchestration_agent.py
 Using Azure OpenAI deployment: gpt-4
 Starting orchestration loop. Data folder: ./data
