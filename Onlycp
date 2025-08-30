@@ -1,3 +1,357 @@
+now i planning to create a docker image of this and push it into registry and create docker instance of this i hope i am on the right track this is how it is done right?, so below is the code that i have which is in working state and what it does is it extracts data and stores its output in its parent folder(orchestration agent folder),  the catch is I will only have data data extraction agent in the docker instance and not the orchestration agent also orchestration agent is on a virtaul machine and the data extraction docker instance is on the same virtual machine , so will it be able to still store the files in the orchestration agent ?, let me share you the code of data extraction agent ,image_processing.py 
+import requests
+import time
+from typing import List, Dict, Any
+import logging
+import re
+ 
+# Configure logging for better debugging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+ 
+def analyze_document(endpoint: str, api_key: str, image_data: bytes, fields_to_extract: List[str], categories: Dict[str, List[str]], api_version: str = "2023-07-31") -> Dict[str, Any]:
+    """
+    Analyze a document using the Azure Form Recognizer API.
+    """
+    url = f"{endpoint}/formrecognizer/documentModels/prebuilt-document:analyze?api-version={api_version}"
+    headers = {
+        "Content-Type": "application/octet-stream",
+        "Ocp-Apim-Subscription-Key": api_key
+    }
+ 
+    logging.info("Sending request to Form Recognizer API...")
+    response = requests.post(url, headers=headers, data=image_data)
+    if response.status_code != 202:
+        logging.error(f"Form Recognizer error: {response.status_code} {response.text}")
+        raise Exception(f"Form Recognizer error: {response.status_code} {response.text}")
+    operation_location = response.headers.get("Operation-Location")
+    if not operation_location:
+        raise Exception("Operation-Location header missing in the response.")
+    return poll_for_result(operation_location, api_key, fields_to_extract, categories)
+ 
+def poll_for_result(operation_location: str, api_key: str, fields_to_extract: List[str], categories: Dict[str, List[str]]) -> Dict[str, Any]:
+    """
+    Poll the Form Recognizer API until the analysis is complete.
+    """
+    headers = {
+        "Ocp-Apim-Subscription-Key": api_key
+    }
+    logging.info("Polling for analysis result...")
+    while True:
+        response = requests.get(operation_location, headers=headers)
+        result_json = response.json()
+        status = result_json.get("status")
+        if status == "succeeded":
+            logging.info("Analysis succeeded.")
+            analyze_result = result_json.get("analyzeResult")
+            if not analyze_result:
+                raise Exception("Analyze result missing in the response.")
+            return extract_selected_fields(analyze_result, fields_to_extract, categories)
+        elif status == "failed":
+            logging.error("Analysis failed.")
+            raise Exception("Analysis failed.")
+        else:
+            time.sleep(1)
+ 
+def clean_key(key: str) -> str:
+     """Normalize field names by removing line breaks and extra punctuation."""
+     # replace newline with space and collapse whitespace
+     return re.sub(r"\s+", " ", key.replace("\n", " ")).strip()
+ 
+def extract_selected_fields(analyze_result: Dict[str, Any], fields_to_extract: List[str], categories: Dict[str, List[str]]) -> Dict[str, Any]:
+     """
+     Extract fields with values and fields marked as selected.
+     """
+     kv_pairs = analyze_result.get("keyValuePairs", [])
+     checkboxes = analyze_result.get("checkboxes", [])
+ 
+     fields_with_values = {}
+     selected_fields = []
+ 
+     for pair in kv_pairs:
+         key = clean_key(pair.get("key", {}).get("content", ""))
+         value = pair.get("value", {}).get("content", "").strip()
+ 
+         if not key:
+             continue
+ 
+         # Include fields with meaningful values
+         if value and value.lower() != ":unselected:" and value.lower() != ":selected:":
+             fields_with_values[key] = value
+ 
+         # Include fields explicitly marked as selected
+         if value.lower() == ":selected:":
+             selected_fields.append(key)
+ 
+     # Include selected checkboxes
+     for checkbox in checkboxes:
+         label = clean_key(checkbox.get("label", ""))
+         state = checkbox.get("state", "").strip().lower()
+         if label and state == "selected":
+             selected_fields.append(label)
+ 
+     return {
+         "fields_with_values": fields_with_values,
+         "selected_fields": selected_fields
+     }, main.py, from fastapi import FastAPI, UploadFile, File, BackgroundTasks
+from fastapi.responses import FileResponse, JSONResponse
+from dotenv import load_dotenv
+import os
+import pandas as pd
+import tempfile
+import json
+from datetime import datetime
+from image_processor import analyze_document
+import uvicorn
+
+# It will Load environment variables
+load_dotenv()
+ENDPOINT = os.getenv("AZURE_FORMRECOG_ENDPOINT")
+API_KEY = os.getenv("AZURE_FORMRECOG_KEY")  BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Define the path to the Mount_Data folder in the grandparent directory
+MOUNT_DATA_DIR = os.path.join(BASE_DIR, "data")
+os.makedirs(MOUNT_DATA_DIR, exist_ok=True)  # Ensure the Mount_Data directory exists
+
+# Define the path to the Extracted_Data folder inside Mount_Data
+OUTPUT_DIR = os.path.join(MOUNT_DATA_DIR, "Extracted_Data")
+os.makedirs(OUTPUT_DIR, exist_ok=True)  # Ensure the Extracted_Data directory exists
+
+
+
+
+
+app = FastAPI()
+ 
+@app.post("/extract")
+async def extract_fields(image: UploadFile = File(...), excel: UploadFile = File(...), background_tasks: BackgroundTasks = None):
+    try:
+        image_data = await image.read()
+ 
+        # Save and read Excel file
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp_excel:
+            tmp_excel.write(await excel.read())
+            tmp_excel_path = tmp_excel.name
+ 
+        # Read the Excel file dynamically
+        df = pd.read_excel(tmp_excel_path, engine="openpyxl", header=None)
+ 
+        # Basic validation: at least one column
+        if df.empty or df.shape[1] < 1:
+            try:
+                os.remove(tmp_excel_path)
+            except Exception:
+                pass
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Excel file must have at least one column with fields to extract."},
+            )
+ 
+        # Assume all fields belong to a default category
+        fields = df[0].dropna().astype(str).tolist()
+        categories = {"Uncategorized": fields}
+ 
+        # Analyze the document
+        result = analyze_document(
+            ENDPOINT, API_KEY, image_data=image_data, fields_to_extract=fields, categories=categories
+        )
+ 
+        # Build a flat table suitable for Excel
+        rows = []
+        fields_with_values = result.get("fields_with_values", {})
+        selected_fields = set(result.get("selected_fields", []))
+ 
+        for key, val in fields_with_values.items():
+            rows.append({
+                "Field": key,
+                "Value": val,
+                "Selected": key in selected_fields
+            })
+ 
+        for key in selected_fields:
+            if key not in fields_with_values:
+                rows.append({
+                    "Field": key,
+                    "Value": "",
+                    "Selected": True
+                })
+ 
+        df_out = pd.DataFrame(rows, columns=["Field", "Value", "Selected"])
+ 
+        # Here we are writing to a temporary Excel file
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp_out:
+            tmp_out_path = tmp_out.name
+        df_out.to_excel(tmp_out_path, index=False, engine="openpyxl")
+ 
+        # Then Generating  timestamped filenames
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        excel_filename = f"extracted_{timestamp}.xlsx"
+        json_filename = f"extracted_{timestamp}.json"
+ 
+        # Saving the Excel file to output folder
+        excel_path = os.path.join(OUTPUT_DIR, excel_filename)
+        df_out.to_excel(excel_path, index=False, engine="openpyxl")
+ 
+        # Save the JSON file to output folder
+        json_path = os.path.join(OUTPUT_DIR, json_filename)
+        with open(json_path, "w", encoding="utf-8") as json_file:
+            json.dump(rows, json_file, indent=4)
+ 
+        # Saving test.json based on whether data was extracted
+        test_json_path = os.path.join(OUTPUT_DIR, "data_extraction.json")
+        status_payload = {"status": "completed"} if rows else {"status": "not completed"}
+        with open(test_json_path, "w", encoding="utf-8") as test_file:
+            json.dump(status_payload, test_file, indent=4)
+ 
+        # Clean up temp Excel input
+        if background_tasks:
+            background_tasks.add_task(lambda p: os.path.exists(p) and os.remove(p), tmp_out_path)
+            background_tasks.add_task(lambda p: os.path.exists(p) and os.remove(p), tmp_excel_path)
+        else:
+            try:
+                os.remove(tmp_excel_path)
+            except Exception:
+                pass
+ 
+        return JSONResponse(
+            status_code=200,
+            content={
+                "message": "Extraction successful.",
+                "excel_file": excel_path,
+                "json_file": json_path,
+                "status_file": test_json_path
+            }
+        )
+ 
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+# if __name__ == "__main__":
+#     uvicorn.run(app, host="0.0.0.0", port=env.get(Port_Number)
+if __name__ == "__main__":
+    # Read PORT_NUMBER from environment variables
+    port = int(os.getenv("PORT_NUMBER", 8000))  # Default to 8000 if not set
+    uvicorn.run(app, host="0.0.0.0", port=port)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 so i have updated few things here I have removed the data_extraction_agent.py from agents folder which was a dummy agent , as now I have pasted the actualy code of data extraction agent in the agents folder so now agents folder has , Data extraction folder undet this folder there are 2 files , image_processor.py, # python
 import requests
 import time
