@@ -1,3 +1,60 @@
+(venv) PS C:\Users\2000137378\Desktop\orchestration4.1_agent_project> python orchestration_agent.py
+Using Azure OpenAI deployment: gpt-4
+Starting orchestration loop. Data folder: ./data
+ChatCompletion(id='chatcmpl-CABlrPk119TzfUjkCRgIkhSjQU3JY', choices=[Choice(finish_reason='stop', index=0, logprobs=None, message=ChatCompletionMessage(content='{\n  "next_agent": "DataExtractionAgent",\n  "reason": "No data_extraction.json file present, need to extract data first."\n}', refusal=None, role='assistant', annotations=None, audio=None, function_call=None, tool_calls=None), content_filter_results={'hate': {'filtered': False, 'severity': 'safe'}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}})], created=1756544563, model='gpt-4-turbo-2024-04-09', object='chat.completion', service_tier=None, system_fingerprint='fp_5603ee5e2e', usage=CompletionUsage(completion_tokens=31, prompt_tokens=306, total_tokens=337, completion_tokens_details=None, prompt_tokens_details=None), prompt_filter_results=[{'prompt_index': 0, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'jailbreak': {'filtered': False, 'detected': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}])
+LLM suggested: DataExtractionAgent | Reason: No data_extraction.json file present, need to extract data first.
+⚠️ Could not find C:\Users\2000137378\Desktop\orchestration4.1_agent_project\agents\Data_Extraction_Agent\main.py. Please check  path.
+❌ Failed to connect to the Data Extraction Agent: HTTPConnectionPool(host='127.0.0.1', port=8056): Max retries exceeded with url: /docs (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x000002C61E76EAD0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))
+(venv) PS C:\Users\2000137378\Desktop\orchestration4.1_agent_project> 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #!/usr/bin/env python3
 """
 orchestration_agent.py
