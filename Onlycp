@@ -1,3 +1,393 @@
+orchestration4.1_agent_project/
+├── orchestration_agent.py
+├── agents/
+│   ├── Data_Extraction_Agent/
+│   │   ├── main.py
+│   │   ├── image_processing.py
+│   │   ├── requirements.txt
+│   │   └── ...
+│   ├── eligibility_agent.py
+│   ├── risk_assessment_agent.py
+│   └── ...
+├── data/
+│   ├── Extracted_Data/
+│   │   ├── data_extraction.json
+│   │   └── ...
+│   └── ...
+└── ...
+
+
+
+we are giving some time to our data extraction agent so that we can manually upload the pdf and excel file on swagger fast api UI  , now dont change the entire code and logic the code 
+it looks good just lets call the main.py before the line  url = "http://127.0.0.1:8056/docs", ie between ,if chosen == "DataExtractionAgent":
+     (here) 
+            url = "http://127.0.0.1:8056/docs", I think this change itself is the only thing that is required from the below code so that it should directly 
+trigger the main.py file located under the Data_Extraction_Agent folder when the LLM suggests "DataExtractionAgent".,then the fast api swagger server can be activated and then we can go to the fast api server UI and manually upload the pdf and excel file 
+, import requests
+
+import argparse
+import json
+import os
+import time
+from typing import Dict
+
+from dotenv import load_dotenv
+load_dotenv()                                                # load .env if present
+
+# OpenAI SDK
+from openai import OpenAI, AzureOpenAI                       # noqa: E402
+
+# local “agents”
+from agents import data_extraction_agent, eligibility_agent, risk_assessment_agent
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+#  Helper: build the correct client (Azure or OpenAI)
+# ──────────────────────────────────────────────────────────────────────────────
+def create_client_from_env() -> OpenAI:
+    """Return an OpenAI client that’s pre-configured for Azure if the
+    AZURE_OPENAI_* variables are set; otherwise return a default client that
+    talks to api.openai.com.
+    """
+    azure_key      = os.getenv("AZURE_OPENAI_API_KEY")
+    azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+    azure_version  = os.getenv("AZURE_OPENAI_API_VERSION")
+    deployment     = os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT")
+
+    if azure_key and azure_endpoint and azure_version and deployment:
+        # Preferred: explicit Azure client (SDK ≥ 1.2)
+        client: OpenAI = AzureOpenAI(
+            api_key=azure_key,
+            azure_endpoint=azure_endpoint,
+            api_version=azure_version,
+        )
+        client._is_azure = True                  # flag for later
+        client._azure_deployment = deployment
+        return client
+
+    # ───── Fallback to public OpenAI platform ─────
+    if not os.getenv("OPENAI_API_KEY"):
+        raise RuntimeError(
+            "OPENAI_API_KEY must be set for OpenAI-platform mode "
+            "or provide all AZURE_OPENAI_* variables for Azure mode."
+        )
+
+    client = OpenAI()
+    client._is_azure = False
+    client._azure_deployment = None
+    return client
+
+
+# create the client once, globally
+client = create_client_from_env()
+
+# ──────────────────────────────────────────────────────────────────────────────
+ALLOWED_AGENTS = ["RiskAssessmentAgent", "DataExtractionAgent",
+                  "EligibilityCheckAgent", "NONE"]
+
+PROMPT_TEMPLATE = (
+   "You are an orchestration-decider."
+"Available agents (do NOT create new ones):"
+"1) RiskAssessmentAgent – reads eligibility.json, writes risk_scores.json."
+"2) DataExtractionAgent – writes data_extraction.json."
+"3) EligibilityCheckAgent – reads data_extraction.json, writes eligibility.json."
+
+"Explaining you the actual business significance of the Available agents(do NOT create new ones) so that you can decide if the agents operation is incomplete or invalid:"
+"1) RiskAssessmentAgent – calculates Risk Scores based on the Risk."
+"2) DataExtractionAgent – extracts the data"
+"3) EligibilityCheckAgent – checks the Eligibility"
+
+"Input: a JSON object called 'state' listing files in the data folder and their contents."
+"Task: decide which agent should run next, based on the state of the files."
+"Evaluate the outcome of each agent's operation as reflected in the file contents."
+"If an agent's operation is incomplete or invalid, print a reason for why the next agent cannot be activated and stop further processing."
+"If an agent's operation is complete and valid, proceed to the next agent."
+ 
+ "Reply with ONE JSON object, schema:\n"
+    '{ "next_agent": "RiskAssessmentAgent|DataExtractionAgent|EligibilityCheckAgent|NONE", '
+    '"reason": "short explanation" }\n'
+
+)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+def ask_llm_for_next_agent(state: Dict, model: str = "gpt-4o") -> Dict:
+    """Query the LLM and return its JSON choice."""
+    system_msg = {"role": "system", "content": PROMPT_TEMPLATE}
+    user_msg   = {"role": "user",   "content": json.dumps({"state": state}, indent=2)}
+
+    # choose correct model / deployment
+    if getattr(client, "_is_azure", False):
+        model_to_call = client._azure_deployment        # deployment name
+    else:
+        model_to_call = model                           # e.g. "gpt-4o"
+
+    try:
+        resp = client.chat.completions.create(
+            model=model_to_call,
+            messages=[system_msg, user_msg],
+            temperature=0.0,
+            max_tokens=300
+        )
+        print(resp)
+    except Exception as e:
+        raise RuntimeError(f"LLM call failed: {e}")
+
+    # extract assistant content
+    try:
+        text = resp.choices[0].message.content.strip()
+    except Exception:
+        text = str(resp)
+    # parse first JSON object found
+    try:
+        start, end = text.find("{"), text.rfind("}")
+        parsed = json.loads(text[start:end + 1])
+    except Exception as e:
+        raise RuntimeError(f"LLM did not return valid JSON.\nRaw: {text}\nError: {e}")
+
+    return parsed    def run_orchestration(data_dir: str, model: str = "gpt-4") -> None:
+    """Main loop."""
+    state = {"data_dir": data_dir}
+    os.makedirs(data_dir, exist_ok=True)
+
+    # Define the extracted data folder path
+    extracted_data_dir = os.path.join(data_dir, "Extracted_Data")
+    os.makedirs(extracted_data_dir, exist_ok=True)
+
+    print("Starting orchestration loop. Data folder:", data_dir)
+
+    # Track the number of consecutive times the same agent is suggested
+    consecutive_agent_suggestions = 0
+    last_suggested_agent = None
+
+    while True:
+        # Get the current state of files in both data_dir and extracted_data_dir
+        files_now = os.listdir(data_dir)
+        extracted_files_now = os.listdir(extracted_data_dir)
+        llm_state = {"files": files_now, "extracted_files": extracted_files_now}
+
+        # Read the contents of each file in data_dir and add to state
+        for file in files_now:
+            try:
+                with open(os.path.join(data_dir, file), "r", encoding="utf-8") as f:
+                    llm_state[file] = json.load(f)
+            except Exception:
+                llm_state[file] = None  # If file is unreadable, set its content to None
+
+        # Read the contents of each file in extracted_data_dir and add to state
+        for file in extracted_files_now:
+            try:
+                with open(os.path.join(extracted_data_dir, file), "r", encoding="utf-8") as f:
+                    llm_state[file] = json.load(f)
+            except Exception:
+                llm_state[file] = None  # If file is unreadable, set its content to None
+
+        # Ask the LLM for the next agent
+        try:
+            parsed = ask_llm_for_next_agent(llm_state, model=model)
+        except Exception as e:
+            print("LLM call failed – falling back to rule-based choice.", e)
+            parsed = {"next_agent": "NONE", "reason": "llm-failed"}
+
+        chosen = parsed.get("next_agent")
+        reason = parsed.get("reason", "No reason provided.")
+        print(f"LLM suggested: {chosen} | Reason: {reason}")
+
+        # Check for repeated agent suggestions
+        if chosen == last_suggested_agent:
+            consecutive_agent_suggestions += 1
+        else:
+            consecutive_agent_suggestions = 0
+        last_suggested_agent = chosen
+
+        if consecutive_agent_suggestions > 5:
+            print("⚠️ The same agent has been suggested multiple times without progress. Exiting.")
+            break
+
+        if chosen == "DataExtractionAgent":
+            # URL of the FastAPI server's Swagger UI
+            url = "http://127.0.0.1:8056/docs"
+
+            try:
+                # Send a GET request to check if the FastAPI server is running
+                response = requests.get(url)
+                if response.status_code == 200:
+                    print("✅ Data Extraction Agent is running.")
+                    print("You can manually upload files at the Swagger UI:")
+                    print(f"➡️ URL: {url}")
+                    print("Waiting for files to be uploaded and processed...")
+                    time.sleep(20)  # Give time for the user to upload files
+
+                    # Check if data_extraction.json is generated
+                    if "data_extraction.json" in extracted_files_now:
+                        with open(os.path.join(extracted_data_dir, "data_extraction.json"), "r", encoding="utf-8") as f:
+                            data_extraction_content = json.load(f)
+                            if data_extraction_content.get("status") == "completed":
+                                print("✅ Data extraction is complete. Moving to the next step.")
+                            else:
+                                print("⚠️ Data extraction is not yet complete. Waiting...")
+                                time.sleep(2)
+                                continue
+                    else:
+                        print("⚠️ No data_extraction.json file found. Please ensure files are uploaded correctly.")
+                        time.sleep(2)
+                        continue
+                else:
+                    print(f"⚠️ Data Extraction Agent is not accessible. Status Code: {response.status_code}")
+            except requests.exceptions.RequestException as e:
+                print(f"❌ Failed to connect to the Data Extraction Agent: {e}")
+                break  # Exit the loop if the agent cannot be accessed
+
+        elif chosen == "EligibilityCheckAgent":
+            if "data_extraction.json" not in extracted_files_now:
+                print("EligibilityCheckAgent cannot be activated because DataExtractionAgent's operation is incomplete.")
+                break  # Exit the loop if prerequisites are not met
+            path = eligibility_agent.run(extracted_data_dir)
+            print("Eligibility written to:", path)
+
+        elif chosen == "RiskAssessmentAgent":
+            if "eligibility.json" not in extracted_files_now:
+                print("RiskAssessmentAgent cannot be activated because EligibilityCheckAgent's operation is incomplete.")
+                break  # Exit the loop if prerequisites are not met
+            path = risk_assessment_agent.run(extracted_data_dir)
+            print("Risk assessment written to:", path)
+
+        elif chosen == "NONE":
+            print("No further actions. Orchestration finished.")
+            break  # Exit the loop when orchestration is complete
+
+        else:
+            print("Unknown action, aborting loop.")
+            break  # Exit the loop for unknown actions
+
+        time.sleep(0.3)  # Tiny delay between iterations
+
+
+
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Run orchestration agent (demo)")
+    parser.add_argument("--data-dir", default="./data",
+                        help="Folder used to read/write JSON files")
+    parser.add_argument("--model", default="gpt-4o",
+                        help="Model name for OpenAI-platform mode (ignored for Azure)")
+    args = parser.parse_args()
+
+    if getattr(client, "_is_azure", False):
+        print("Using Azure OpenAI deployment:", client._azure_deployment)
+    else:
+        if not os.getenv("OPENAI_API_KEY"):
+            print("Warning: OPENAI_API_KEY not set – first LLM call will fail.")
+
+    run_orchestration(args.data_dir, model=args.model)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 now i planning to create a docker image of this and push it into registry and create docker instance of this i hope i am on the right track this is how it is done right?, so below is the code that i have which is in working state and what it does is it extracts data and stores its output in its parent folder(orchestration agent folder),  the catch is I will only have data data extraction agent in the docker instance and not the orchestration agent also orchestration agent is on a virtaul machine and the data extraction docker instance is on the same virtual machine , so will it be able to still store the files in the orchestration agent ?, let me share you the code of data extraction agent ,image_processing.py 
 import requests
 import time
