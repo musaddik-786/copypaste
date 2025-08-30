@@ -18,11 +18,15 @@ orchestration4.1_agent_project/
 
 
 
-we are giving some time to our data extraction agent so that we can manually upload the pdf and excel file on swagger fast api UI  , now dont change the entire code and logic the code 
+we are giving some time to our data extraction agent so that we can manually upload the pdf and excel file on swagger fast api UI  , 
+now dont change the entire code and logic, the code 
 it looks good just lets call the main.py before the line  url = "http://127.0.0.1:8056/docs", ie between ,if chosen == "DataExtractionAgent":
      (here) 
             url = "http://127.0.0.1:8056/docs", I think this change itself is the only thing that is required from the below code so that it should directly 
-trigger the main.py file located under the Data_Extraction_Agent folder when the LLM suggests "DataExtractionAgent".,then the fast api swagger server can be activated and then we can go to the fast api server UI and manually upload the pdf and excel file 
+trigger the main.py file located under the Data_Extraction_Agent folder when the LLM suggests "DataExtractionAgent".,
+then the fast api swagger server can be activated and then we can go to the fast api server UI and manually upload the pdf and excel file and as we have timpause for 20 seconds below in the code 
+that logic looks perfect so only change the part i have asked above 
+
 , import requests
 
 import argparse
