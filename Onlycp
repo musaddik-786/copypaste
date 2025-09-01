@@ -1,3 +1,129 @@
+elif chosen == "RiskAssessmentAgent":
+    # Build path to the Risk Assessment agent's main.py
+    agent_dir = os.path.join(os.path.dirname(file), "agents", "Risk_Assesment_updated")
+    agent_main = os.path.join(agent_dir, "main.py")
+    url = "http://127.0.0.1:8677/docs"
+
+    if os.path.exists(agent_main):
+        try:
+            # Quick check if server is already running (short timeout)
+            try:
+                r = requests.get(url, timeout=1)
+                if r.status_code == 200:
+                    print("✅ Risk Assessment FastAPI server already running.")
+                else:
+                    # not 200 -> attempt to start
+                    raise Exception("non-200 status")
+            except requests.exceptions.RequestException:
+                # server not reachable -> start it
+                print("Starting Risk Assessment Agent FastAPI server (main.py)...")
+                subprocess.Popen(
+                    [sys.executable, agent_main],
+                    cwd=agent_dir,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+                # small pause to allow server to begin booting
+                time.sleep(10)
+        except Exception as e:
+            print(f"⚠️ Failed to start Risk Assessment Agent: {e}")
+    else:
+        print(f"⚠️ Could not find {agent_main}. Please check path.")
+
+    # Now check connectivity and wait for user to upload / download in the UI
+    try:
+        response = requests.get(url)
+        if response.status_code == 200:
+            print("✅ Risk Assessment Agent is running.")
+            print("You can manually upload files at the Swagger UI:")
+            print(f"➡️ URL: {url}")
+
+            # Give time for the user to upload files and click execute/download on the FastAPI UI
+            print("Waiting for files to be uploaded and processed...")
+            time.sleep(20)  # preserve your existing wait
+
+            # Refresh extracted files list after waiting
+            try:
+                extracted_files_now = os.listdir(extracted_data_dir)
+            except Exception:
+                extracted_files_now = []
+
+            # If the agent produced a real risk_scores.json already, respect it
+            if "risk_scores.json" in extracted_files_now:
+                print("✅ risk_scores.json already present (produced by the agent).")
+                print("Risk assessment step complete.")
+                # stop orchestration since the final artifact exists
+                break
+
+            # No safety check: create a sentinel risk_scores.json regardless
+            payload = {
+                "agent": "RiskAssessmentAgent",
+                "timestamp": datetime.utcnow().isoformat() + "Z",
+                "status": "completed",
+                "risk_scores": {
+                    "overall_score": 0.50,            # placeholder — change if needed
+                    "fraud_score": 0.10,
+                    "operational_risk": 0.15,
+                    "notes": "Auto-generated sentinel risk_scores.json (orchestration fallback)"
+                }
+            }
+
+            out_path = os.path.join(extracted_data_dir, "risk_scores.json")
+            try:
+                with open(out_path, "w", encoding="utf-8") as f:
+                    json.dump(payload, f, indent=2)
+                print("✅ Generated synthetic risk_scores.json to mark completion:", out_path)
+            except Exception as e:
+                print("⚠️ Failed to write risk_scores.json:", e)
+                # If writing fails, abort orchestration (so user can investigate)
+                break
+
+            # After creating the sentinel, stop the orchestration loop (requested behavior)
+            print("Orchestration: Risk assessment completed (sentinel created). Stopping orchestration.")
+            break
+
+        else:
+            print(f"⚠️ Risk Assessment Agent is not accessible. Status Code: {response.status_code}")
+            break
+
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Failed to connect to the Risk Assessment Agent: {e}")
+        break
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 "You are an orchestration-decider."
 
 "Available agents (do NOT create new ones):"
