@@ -1,3 +1,351 @@
+import os
+import glob
+import time
+from io import BytesIO
+from typing import Optional, Dict, Any, List
+import uvicorn
+import pandas as pd
+from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import JSONResponse
+from starlette.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
+
+# Explicitly load .env from project root regardless of CWD
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(os.path.join(BASE_DIR, ".env"))
+
+from modules.utils import get_logger
+logger = get_logger("api")
+
+from modules.data_handler import clean_and_normalize
+from modules.api_integrations import (
+    geocode_address,
+    fetch_usgs_earthquakes,
+    nearest_fire_station_distance_km,
+    fetch_owm_rainfall_proxy,
+)
+from modules.risk_calculator import RiskCalculator
+from modules.genai_handler import explain_risk, recommend_mitigations
+
+app = FastAPI(title="Property Risk Assessment API", version="1.0.0")
+
+# Optional CORS (adjust for production)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
+
+def _ensure_xlsx_filename(filename: str):
+    if not filename or not filename.lower().endswith(".xlsx"):
+        raise HTTPException(status_code=400, detail="Only .xlsx files are supported.")
+
+
+def _sanitize_owm_key(skip_owm: bool) -> str:
+    raw = (os.getenv("OPENWEATHERMAP_API_KEY") or "").strip()
+    if skip_owm:
+        return ""
+    if raw in {"", "YOUR_OWM_KEY", "placeholder", "xxx"}:
+        return ""
+    return raw
+
+
+def _default_cfg(
+    radius_km: Optional[float],
+    days_back: Optional[int],
+    min_magnitude: Optional[float],
+    country_hint: Optional[str],
+) -> Dict[str, Any]:
+    rk = radius_km if radius_km is not None else float(os.getenv("USGS_RADIUS_KM", "300"))
+    db = days_back if days_back is not None else int(os.getenv("USGS_DAYS_BACK", "7"))
+    mm = min_magnitude if min_magnitude is not None else float(os.getenv("USGS_MIN_MAG", "3.0"))
+    ch = (country_hint or os.getenv("COUNTRY_HINT") or "").strip() or None
+    return {
+        "radius_km": rk,
+        "days_back": db,
+        "min_magnitude": mm,
+        "country_hint": ch,
+        "weights": {
+            "flood": 0.25,
+            "earthquake": 0.20,
+            "fire_protection": 0.20,
+            "building_age": 0.15,
+            "crime_index": 0.20,
+        },
+    }
+
+
+def process_row(
+    row: pd.Series,
+    cfg: Dict[str, Any],
+    owm_key: Optional[str],
+    use_geocoding: bool,
+    use_places: bool,
+) -> pd.Series:
+    lat = row.get("Latitude")
+    lon = row.get("Longitude")
+
+    if (pd.isna(lat) or pd.isna(lon)) and use_geocoding:
+        address = str(row.get("Address") or "").strip()
+        postal = str(row.get("Postal Code") or "").strip()
+        if address or postal:
+            glat, glon = geocode_address(
+                address=address,
+                postal_code=postal,
+                country=cfg.get("country_hint"),
+            )
+            if glat is not None and glon is not None:
+                lat, lon = glat, glon
+                row["Latitude"] = lat
+                row["Longitude"] = lon
+
+    floods: List[Dict[str, Any]] = []
+    quakes: List[Dict[str, Any]] = []
+    fire_dist_km: Optional[float] = None
+
+    if lat is not None and lon is not None and not pd.isna(lat) and not pd.isna(lon):
+        if owm_key:
+            floods = fetch_owm_rainfall_proxy(
+                latitude=float(lat),
+                longitude=float(lon),
+                api_key=owm_key,
+                hours=72,
+            )
+        else:
+            logger.debug("OPENWEATHERMAP_API_KEY not set or skipped; skipping forecast proxy")
+
+        quakes = fetch_usgs_earthquakes(
+            latitude=float(lat),
+            longitude=float(lon),
+            radius_km=cfg.get("radius_km", 300.0),
+            days_back=cfg.get("days_back", 7),
+            min_magnitude=cfg.get("min_magnitude", 3.0),
+        )
+
+        if use_places:
+            fire_dist_km = nearest_fire_station_distance_km(float(lat), float(lon))
+    else:
+        logger.debug("Missing coordinates; skipping OWM/USGS/Places for this row")
+
+    risk_calc = RiskCalculator(weights=cfg.get("weights"))
+    risk_score, factor_breakdown = risk_calc.compute(
+        row=row.to_dict(),
+        flood_alerts=floods,
+        earthquakes=quakes,
+        fire_station_distance_km=fire_dist_km,
+    )
+
+    row["FloodAlertsCount"] = len(floods)
+    row["RecentQuakesCount"] = len(quakes)
+    row["MaxQuakeMagnitude"] = max([q.get("magnitude") for q in quakes if q.get("magnitude") is not None], default=None)
+    row["NearestFireStationKm"] = fire_dist_km
+    row["RiskScore"] = round(risk_score, 2)
+
+    try:
+        explanation = explain_risk(
+            row_data=row.to_dict(),
+            hazards={"flood_alerts": floods, "earthquakes": quakes},
+            factor_breakdown=factor_breakdown,
+            final_score=risk_score,
+        )
+    except Exception as exc:
+        logger.warning(f"GenAI explanation failed: {exc}")
+        explanation = "Explanation unavailable."
+
+    try:
+        recommendations = recommend_mitigations(
+            row_data=row.to_dict(),
+            hazards={"flood_alerts": floods, "earthquakes": quakes},
+            factor_breakdown=factor_breakdown,
+            final_score=risk_score,
+        )
+    except Exception as exc:
+        logger.warning(f"GenAI recommendations failed: {exc}")
+        recommendations = "Recommendations unavailable."
+
+    row["RiskExplanation"] = explanation
+    row["RiskRecommendations"] = recommendations
+
+    return row
+
+
+@app.post("/process", summary="Process an .xlsx from ./data and save output to ./output")
+async def process_excel(
+    radius_km: Optional[float] = Query(None, description="USGS search radius in km"),
+    days_back: Optional[int] = Query(None, description="USGS lookback window in days"),
+    min_magnitude: Optional[float] = Query(None, description="Minimum magnitude for earthquakes"),
+    country_hint: Optional[str] = Query(None, description="Country hint for geocoding"),
+    input_filename: Optional[str] = Query(None, description="(Optional) exact filename in ./data to process. If omitted, first .xlsx in ./data will be used."),
+    no_geocode: bool = Query(False, description="Disable geocoding if lat/lon missing"),
+    use_places: bool = Query(False, description="Use Google Places for fire-station proximity"),
+    skip_owm: bool = Query(False, description="Skip OpenWeatherMap rainfall proxy"),
+):
+    try:
+        data_dir = os.path.join(BASE_DIR, "data")
+        output_dir = os.path.join(BASE_DIR, "output")
+        os.makedirs(data_dir, exist_ok=True)
+        os.makedirs(output_dir, exist_ok=True)
+
+        # Determine input file
+        if input_filename:
+            _ensure_xlsx_filename(input_filename)
+            in_path = os.path.join(data_dir, input_filename)
+            if not os.path.isfile(in_path):
+                raise HTTPException(status_code=404, detail=f"Input file not found: {input_filename}")
+        else:
+            # pick first .xlsx in data_dir
+            candidates = sorted(glob.glob(os.path.join(data_dir, "*.xlsx")))
+            if not candidates:
+                raise HTTPException(status_code=404, detail=f"No .xlsx files found in data directory: {data_dir}")
+            in_path = candidates[0]
+            input_filename = os.path.basename(in_path)
+
+        logger.info(f"Reading input file: {in_path}")
+        df = pd.read_excel(in_path)
+        df = clean_and_normalize(df)
+
+        cfg = _default_cfg(radius_km, days_back, min_magnitude, country_hint)
+        owm_key = _sanitize_owm_key(skip_owm)
+
+        rows = []
+        logger.info(f"Processing {len(df)} properties from {input_filename}...")
+        for _, row in df.iterrows():
+            processed = process_row(
+                row=row,
+                cfg=cfg,
+                owm_key=owm_key,
+                use_geocoding=(not no_geocode),
+                use_places=use_places,
+            )
+            rows.append(processed)
+            time.sleep(0.2)  # preserve original pacing
+
+        out_df = pd.DataFrame(rows)
+
+        safe_name = (os.path.splitext(input_filename)[0] or "output") + "_output.xlsx"
+        out_path = os.path.join(output_dir, safe_name)
+
+        # Write directly to disk instead of streaming back
+        with pd.ExcelWriter(out_path, engine="openpyxl") as writer:
+            out_df.to_excel(writer, index=False, sheet_name="Results")
+
+        logger.info(f"Saved processed results to: {out_path}")
+
+        return JSONResponse(
+            status_code=200,
+            content={
+                "success": True,
+                "message": "Processing complete.",
+                "input_file": input_filename,
+                "output_file": safe_name,
+                "output_path": out_path,
+            },
+        )
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("Processing failed")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "message": f"Processing failed: {str(exc)}"},
+        )
+
+
+if __name__ == "__main__":
+    # Read PORT_NUMBER from environment variables
+    port = int(os.getenv("PORT_NUMBER", 8677))
+    uvicorn.run(app, host="0.0.0.0", port=port)
+
+
+Done — I updated your FastAPI main.py so it:
+
+reads the input .xlsx from ./data (project root data folder) instead of requiring manual upload via the FastAPI UI,
+
+automatically picks the first *.xlsx in data if you don't supply an input_filename query param,
+
+writes the processed output .xlsx into ./output (creates the folder if missing),
+
+removes the download/streaming response and file-upload parameter from the endpoint.
+
+
+I put the modified main.py in a code canvas titled Main (you can open it to see the full file).
+
+How to use now:
+
+Put your input Excel file into the data folder (create it if missing).
+
+Run your server as before: python main.py (or uvicorn main:app --host 0.0.0.0 --port 8677).
+
+Call the endpoint (POST) /process (no file body needed). Optional query: ?input_filename=myinput.xlsx to pick a specific file. Example:
+
+POST http://localhost:8677/process — will process first *.xlsx in ./data
+
+POST http://localhost:8677/process?input_filename=policy_list.xlsx&no_geocode=true
+
+
+After success the API returns JSON with output_file and output_path (the processed Excel will be saved to ./output/<inputname>_output.xlsx).
+
+
+If you want I can:
+
+Add logging to show which file gets picked when none is supplied,
+
+Add a GET endpoint to list available data/*.xlsx,
+
+Or change behavior to automatically process on server start (rather than via the POST call).
+
+
+Tell me which (if any) of those you'd like and I'll update it.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 This is the code for the agent , currently the agent is running on fast api and once running this code I have to go to the fast api url and manually upload the excel file after which there is a download button and I am able to download the output excel file, but currently I want you to take the input of the excel from the data folder inside visual studio code base directory also the output should be stored inside output folder which i have created inside my code structure, now you kindly remove the download button code from the fast api server , now i am providing you the code so kindly do the changes as i clearly mentioned above such that the core logic and functionality of the entire code must not be affected, main.py code, import os
 so remember instead of having to go to the fast api UI ie frontend and have to manually upload that this is not what i want, what i want is instead 
 of manully uploading the excel on fast api UI i should fetch the input excel from data folder under which i will have my input excel, also after the main.py code fetches the input , 
