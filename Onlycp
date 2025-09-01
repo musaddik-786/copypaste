@@ -1,3 +1,995 @@
+This is the code for the agent , currently the agent is running on fast api and once running this code I have to go to the fast api url and manually upload the excel file after which there is a download button and I am able to download the output excel file, but currently I want you to take the input of the excel from the data folder inside visual studio code base directory also the output should be stored inside output folder which i have created inside my code structure, now you kindly remove the download button code from the fast api server , now i am providing you the code so kindly do the changes as i clearly mentioned above such that the core logic and functionality of the entire code must not be affected, main.py code, import os
+import time
+from io import BytesIO
+from typing import Optional, Dict, Any, List
+import uvicorn
+import pandas as pd
+from fastapi import FastAPI, UploadFile, File, HTTPException, Query
+from fastapi.responses import StreamingResponse, JSONResponse
+from starlette.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
+
+# Explicitly load .env from project root regardless of CWD
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(os.path.join(BASE_DIR, ".env"))
+
+from modules.utils import get_logger
+logger = get_logger("api")
+
+from modules.data_handler import clean_and_normalize
+from modules.api_integrations import (
+    geocode_address,
+    fetch_usgs_earthquakes,
+    nearest_fire_station_distance_km,
+    fetch_owm_rainfall_proxy,
+)
+from modules.risk_calculator import RiskCalculator
+from modules.genai_handler import explain_risk, recommend_mitigations
+
+app = FastAPI(title="Property Risk Assessment API", version="1.0.0")
+
+# Optional CORS (adjust for production)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
+
+def _ensure_xlsx(file: UploadFile):
+    if not file.filename or not file.filename.lower().endswith(".xlsx"):
+        raise HTTPException(status_code=400, detail="Only .xlsx files are supported.")
+
+
+def _sanitize_owm_key(skip_owm: bool) -> str:
+    raw = (os.getenv("OPENWEATHERMAP_API_KEY") or "").strip()
+    if skip_owm:
+        return ""
+    if raw in {"", "YOUR_OWM_KEY", "placeholder", "xxx"}:
+        return ""
+    return raw
+
+
+def _default_cfg(
+    radius_km: Optional[float],
+    days_back: Optional[int],
+    min_magnitude: Optional[float],
+    country_hint: Optional[str],
+) -> Dict[str, Any]:
+    rk = radius_km if radius_km is not None else float(os.getenv("USGS_RADIUS_KM", "300"))
+    db = days_back if days_back is not None else int(os.getenv("USGS_DAYS_BACK", "7"))
+    mm = min_magnitude if min_magnitude is not None else float(os.getenv("USGS_MIN_MAG", "3.0"))
+    ch = (country_hint or os.getenv("COUNTRY_HINT") or "").strip() or None
+    return {
+        "radius_km": rk,
+        "days_back": db,
+        "min_magnitude": mm,
+        "country_hint": ch,
+        "weights": {
+            "flood": 0.25,
+            "earthquake": 0.20,
+            "fire_protection": 0.20,
+            "building_age": 0.15,
+            "crime_index": 0.20,
+        },
+    }
+
+
+def process_row(
+    row: pd.Series,
+    cfg: Dict[str, Any],
+    owm_key: Optional[str],
+    use_geocoding: bool,
+    use_places: bool,
+) -> pd.Series:
+    lat = row.get("Latitude")
+    lon = row.get("Longitude")
+
+    if (pd.isna(lat) or pd.isna(lon)) and use_geocoding:
+        address = str(row.get("Address") or "").strip()
+        postal = str(row.get("Postal Code") or "").strip()
+        if address or postal:
+            glat, glon = geocode_address(
+                address=address,
+                postal_code=postal,
+                country=cfg.get("country_hint"),
+            )
+            if glat is not None and glon is not None:
+                lat, lon = glat, glon
+                row["Latitude"] = lat
+                row["Longitude"] = lon
+
+    floods: List[Dict[str, Any]] = []
+    quakes: List[Dict[str, Any]] = []
+    fire_dist_km: Optional[float] = None
+
+    if lat is not None and lon is not None and not pd.isna(lat) and not pd.isna(lon):
+        if owm_key:
+            floods = fetch_owm_rainfall_proxy(
+                latitude=float(lat),
+                longitude=float(lon),
+                api_key=owm_key,
+                hours=72,
+            )
+        else:
+            logger.debug("OPENWEATHERMAP_API_KEY not set or skipped; skipping forecast proxy")
+
+        quakes = fetch_usgs_earthquakes(
+            latitude=float(lat),
+            longitude=float(lon),
+            radius_km=cfg.get("radius_km", 300.0),
+            days_back=cfg.get("days_back", 7),
+            min_magnitude=cfg.get("min_magnitude", 3.0),
+        )
+
+        if use_places:
+            fire_dist_km = nearest_fire_station_distance_km(float(lat), float(lon))
+    else:
+        logger.debug("Missing coordinates; skipping OWM/USGS/Places for this row")
+
+    risk_calc = RiskCalculator(weights=cfg.get("weights"))
+    risk_score, factor_breakdown = risk_calc.compute(
+        row=row.to_dict(),
+        flood_alerts=floods,
+        earthquakes=quakes,
+        fire_station_distance_km=fire_dist_km,
+    )
+
+    row["FloodAlertsCount"] = len(floods)
+    row["RecentQuakesCount"] = len(quakes)
+    row["MaxQuakeMagnitude"] = max([q.get("magnitude") for q in quakes if q.get("magnitude") is not None], default=None)
+    row["NearestFireStationKm"] = fire_dist_km
+    row["RiskScore"] = round(risk_score, 2)
+
+    try:
+        explanation = explain_risk(
+            row_data=row.to_dict(),
+            hazards={"flood_alerts": floods, "earthquakes": quakes},
+            factor_breakdown=factor_breakdown,
+            final_score=risk_score,
+        )
+    except Exception as exc:
+        logger.warning(f"GenAI explanation failed: {exc}")
+        explanation = "Explanation unavailable."
+
+    try:
+        recommendations = recommend_mitigations(
+            row_data=row.to_dict(),
+            hazards={"flood_alerts": floods, "earthquakes": quakes},
+            factor_breakdown=factor_breakdown,
+            final_score=risk_score,
+        )
+    except Exception as exc:
+        logger.warning(f"GenAI recommendations failed: {exc}")
+        recommendations = "Recommendations unavailable."
+
+    row["RiskExplanation"] = explanation
+    row["RiskRecommendations"] = recommendations
+
+    return row
+
+
+@app.post("/process", summary="Upload an .xlsx and receive processed .xlsx")
+async def process_excel(
+    file: UploadFile = File(..., description="Excel .xlsx file"),
+    radius_km: Optional[float] = Query(None, description="USGS search radius in km"),
+    days_back: Optional[int] = Query(None, description="USGS lookback window in days"),
+    min_magnitude: Optional[float] = Query(None, description="Minimum magnitude for earthquakes"),
+    country_hint: Optional[str] = Query(None, description="Country hint for geocoding"),
+    no_geocode: bool = Query(False, description="Disable geocoding if lat/lon missing"),
+    use_places: bool = Query(False, description="Use Google Places for fire-station proximity"),
+    skip_owm: bool = Query(False, description="Skip OpenWeatherMap rainfall proxy"),
+):
+    try:
+        _ensure_xlsx(file)
+        raw = await file.read()
+        if not raw:
+            raise HTTPException(status_code=400, detail="Uploaded file is empty.")
+
+        df = pd.read_excel(BytesIO(raw))
+        df = clean_and_normalize(df)
+
+        cfg = _default_cfg(radius_km, days_back, min_magnitude, country_hint)
+        owm_key = _sanitize_owm_key(skip_owm)
+
+        rows = []
+        logger.info(f"Processing {len(df)} properties...")
+        for _, row in df.iterrows():
+            processed = process_row(
+                row=row,
+                cfg=cfg,
+                owm_key=owm_key,
+                use_geocoding=(not no_geocode),
+                use_places=use_places,
+            )
+            rows.append(processed)
+            time.sleep(0.2)  # preserve original pacing
+
+        out_df = pd.DataFrame(rows)
+
+        buf = BytesIO()
+        with pd.ExcelWriter(buf, engine="openpyxl") as writer:
+            out_df.to_excel(writer, index=False, sheet_name="Results")
+        buf.seek(0)
+
+        safe_name = (file.filename.rsplit(".", 1)[0] or "output") + "_output.xlsx"
+        headers = {"Content-Disposition": f'attachment; filename="{safe_name}"'}
+
+        return StreamingResponse(
+            buf,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers=headers,
+        )
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("Processing failed")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "message": f"Processing failed: {str(exc)}"},
+        )
+
+if __name__ == "__main__":
+    # Read PORT_NUMBER from environment variables
+    port = int(os.getenv("PORT_NUMBER", 8677))  # Default to 8000 if not set
+    uvicorn.run(app, host="0.0.0.0", port=port)        
+, below is my module folder under which there are files i will provide them as well below ,  api_integratonis.py, import os
+import time
+from datetime import datetime, timedelta, timezone
+from typing import Optional, List, Dict, Any
+
+import requests
+
+from .utils import get_logger, haversine_km
+
+logger = get_logger("api_integration")
+
+# Sanitize placeholder keys: treat as empty to avoid REQUEST_DENIED spam
+def _sanitize_key(val: Optional[str], placeholders: List[str]) -> str:
+    if not val:
+        return ""
+    v = str(val).strip()
+    if v in placeholders:
+        return ""
+    return v
+
+GOOGLE_MAPS_API_KEY = _sanitize_key(os.getenv("GOOGLE_MAPS_API_KEY"), ["YOUR_GOOGLE_API_KEY", "placeholder", "xxx"])
+FORCE_OSM_GEOCODER = os.getenv("FORCE_OSM_GEOCODER", "").strip().lower() in {"1", "true", "yes"}
+
+
+def geocode_address(address: str, postal_code: Optional[str] = None, country: Optional[str] = None):
+    """
+    Prefer Google Geocoding only if a valid key exists and FORCE_OSM_GEOCODER is not set.
+    Otherwise, fall back to OSM Nominatim. Returns (lat, lon) or (None, None).
+    """
+    q = ", ".join([p for p in [address, postal_code, country] if p])
+
+    # Use Google if key is present and not forcing OSM
+    if GOOGLE_MAPS_API_KEY and not FORCE_OSM_GEOCODER:
+        try:
+            url = "https://maps.googleapis.com/maps/api/geocode/json"
+            params = {"address": q, "key": GOOGLE_MAPS_API_KEY}
+            resp = requests.get(url, params=params, timeout=15)
+            data = resp.json()
+            if data.get("status") == "OK" and data.get("results"):
+                loc = data["results"][0]["geometry"]["location"]
+                return loc["lat"], loc["lng"]
+            else:
+                logger.info(f"Google Geocoding unavailable ({data.get('status')}); falling back to OpenStreetMap.")
+        except Exception as exc:
+            logger.info(f"Google Geocoding error ({exc}); falling back to OpenStreetMap.")
+
+    # Fallback: OSM Nominatim (no key)
+    try:
+        url = "https://nominatim.openstreetmap.org/search"
+        params = {"q": q, "format": "json", "limit": 1}
+        headers = {"User-Agent": "risk-agent/1.0"}
+        time.sleep(1.0)  # be polite to OSM
+        resp = requests.get(url, params=params, headers=headers, timeout=20)
+        arr = resp.json()
+        if isinstance(arr, list) and arr:
+            return float(arr[0]["lat"]), float(arr[0]["lon"])
+        else:
+            logger.info("OSM Nominatim returned no results for query; leaving coordinates empty.")
+    except Exception as exc:
+        logger.warning(f"Nominatim error: {exc}")
+
+    return None, None
+
+
+def fetch_owm_alerts(latitude: float, longitude: float, api_key: str) -> List[Dict[str, Any]]:
+    """
+    OpenWeatherMap One Call 3.0 alerts filtered to flood-related items.
+    Endpoint: https://api.openweathermap.org/data/3.0/onecall
+    """
+    url = "https://api.openweathermap.org/data/3.0/onecall"
+    params = {
+        "lat": latitude,
+        "lon": longitude,
+        "appid": api_key,
+        "exclude": "current,minutely,hourly,daily",
+    }
+    try:
+        resp = requests.get(url, params=params, timeout=20)
+        if resp.status_code == 429:
+            time.sleep(2)
+            resp = requests.get(url, params=params, timeout=20)
+        if resp.status_code != 200:
+            logger.warning(f"OWM error {resp.status_code}: {resp.text[:200]}")
+            return []
+
+        data = resp.json()
+        alerts = []
+        for a in data.get("alerts", []) or []:
+            event = str(a.get("event", "")).lower()
+            desc = str(a.get("description", "")).lower()
+            if "flood" in event or "flood" in desc:
+                alerts.append(a)
+        return alerts
+    except Exception as exc:
+        logger.warning(f"OWM fetch failed: {exc}")
+        return []
+
+
+def fetch_owm_rainfall_proxy(
+    latitude: float,
+    longitude: float,
+    api_key: str,
+    hours: int = 72,
+) -> List[Dict[str, Any]]:
+    """
+    Fallback using OpenWeatherMap 5-day/3-hour Forecast to derive a proxy 'rainfall alert'.
+    Endpoint: https://api.openweathermap.org/data/2.5/forecast
+    Returns a list with 0 or 1 alert-like dicts describing expected heavy precipitation.
+    """
+    url = "https://api.openweathermap.org/data/2.5/forecast"
+    params = {
+        "lat": latitude,
+        "lon": longitude,
+        "appid": api_key,
+        "units": "metric",
+    }
+    try:
+        resp = requests.get(url, params=params, timeout=20)
+        if resp.status_code != 200:
+            logger.warning(f"OWM forecast error {resp.status_code}: {resp.text[:200]}")
+            return []
+        data = resp.json()
+        items = data.get("list", []) or []
+        if not items:
+            return []
+
+        # Limit horizon to requested `hours` (data is in 3-hour steps)
+        steps = max(1, int(hours / 3))
+        items = items[:steps]
+
+        total_mm = 0.0
+        max_3h_intensity = 0.0
+        start_ts = None
+        end_ts = None
+
+        for i, it in enumerate(items):
+            dt = it.get("dt")
+            if i == 0:
+                start_ts = dt
+            end_ts = dt
+
+            rain3h = 0.0
+            snow3h = 0.0
+            try:
+                rain3h = float((it.get("rain") or {}).get("3h") or 0.0)
+            except Exception:
+                pass
+            try:
+                snow3h = float((it.get("snow") or {}).get("3h") or 0.0)
+            except Exception:
+                pass
+
+            total_mm += (rain3h + snow3h)
+            max_3h_intensity = max(max_3h_intensity, rain3h + snow3h)
+
+        # Thresholds (tune as needed)
+        if total_mm >= 50.0 or max_3h_intensity >= 20.0:
+            label = "Heavy Rainfall Warning (proxy)"
+        elif total_mm >= 20.0 or max_3h_intensity >= 10.0:
+            label = "Moderate Rainfall Watch (proxy)"
+        elif total_mm >= 10.0:
+            label = "Light Rainfall Advisory (proxy)"
+        else:
+            return []
+
+        def to_iso(ts):
+            try:
+                return datetime.fromtimestamp(ts, tz=timezone.utc).isoformat()
+            except Exception:
+                return None
+
+        alert = {
+            "event": label,
+            "description": (
+                f"Proxy rainfall accumulation over next {hours}h. "
+                f"Total rain+snow: {total_mm:.1f} mm; max 3h intensity: {max_3h_intensity:.1f} mm. "
+                "This is not an official flood alert but indicates potential flood risk due to heavy precipitation."
+            ),
+            "start": to_iso(start_ts),
+            "end": to_iso(end_ts),
+            "source": "owm_forecast_proxy",
+            "proxy": True,
+            "metrics": {
+                "total_rain_snow_mm": round(total_mm, 1),
+                "max_3h_intensity_mm": round(max_3h_intensity, 1),
+                "hours": hours,
+            },
+        }
+        return [alert]
+    except Exception as exc:
+        logger.warning(f"OWM forecast proxy failed: {exc}")
+        return []
+
+
+def fetch_usgs_earthquakes(
+    latitude: float,
+    longitude: float,
+    radius_km: float = 300.0,
+    days_back: int = 7,
+    min_magnitude: float = 3.0,
+) -> List[Dict[str, Any]]:
+    """
+    USGS Earthquake API
+    Endpoint: https://earthquake.usgs.gov/fdsnws/event/1/query
+    """
+    base = "https://earthquake.usgs.gov/fdsnws/event/1/query"
+    end_dt = datetime.now(timezone.utc)
+    start_dt = end_dt - timedelta(days=days_back)
+    params = {
+        "format": "geojson",
+        "latitude": latitude,
+        "longitude": longitude,
+        "maxradiuskm": radius_km,
+        "starttime": start_dt.strftime("%Y-%m-%dT%H:%M:%S"),
+        "endtime": end_dt.strftime("%Y-%m-%dT%H:%M:%S"),
+        "minmagnitude": min_magnitude,
+        "orderby": "time",
+    }
+    try:
+        resp = requests.get(base, params=params, timeout=25)
+        if resp.status_code != 200:
+            logger.warning(f"USGS error {resp.status_code}: {resp.text[:200]}")
+            return []
+        data = resp.json()
+        out = []
+        for feat in data.get("features", []) or []:
+            props = feat.get("properties", {}) or {}
+            geom = feat.get("geometry", {}) or {}
+            coords = geom.get("coordinates", [None, None, None])
+            out.append(
+                {
+                    "magnitude": props.get("mag"),
+                    "place": props.get("place"),
+                    "time_ms": props.get("time"),
+                    "url": props.get("url"),
+                    "coordinates": {
+                        "longitude": coords[0],
+                        "latitude": coords[1],
+                        "depth_km": coords[2] if len(coords) > 2 else None,
+                    },
+                }
+            )
+        return out
+    except Exception as exc:
+        logger.warning(f"USGS fetch failed: {exc}")
+        return []
+
+
+def nearest_fire_station_distance_km(latitude: float, longitude: float) -> Optional[float]:
+    """
+    Google Places Nearby Search: type=fire_station
+    Endpoint: https://maps.googleapis.com/maps/api/place/nearbysearch/json
+    Returns distance to the nearest fire station in km using haversine from the given point.
+    """
+    if not GOOGLE_MAPS_API_KEY or FORCE_OSM_GEOCODER:
+        return None
+    try:
+        url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
+        params = {
+            "location": f"{latitude},{longitude}",
+            "radius": 5000,
+            "type": "fire_station",
+            "key": GOOGLE_MAPS_API_KEY,
+        }
+        resp = requests.get(url, params=params, timeout=20)
+        data = resp.json()
+        results = data.get("results", [])
+        if not results:
+            return None
+        dists = []
+        for r in results:
+            loc = r.get("geometry", {}).get("location", {})
+            lat2 = loc.get("lat")
+            lon2 = loc.get("lng")
+            if lat2 is not None and lon2 is not None:
+                d = haversine_km(latitude, longitude, lat2, lon2)
+                if d is not None:
+                    dists.append(d)
+        return min(dists) if dists else None
+    except Exception as exc:
+        logger.warning(f"Places API error: {exc}")
+        return None
+,data_handler.py , from typing import Optional
+import pandas as pd
+
+from .utils import get_logger, to_sqm, years_since, safe_float
+
+logger = get_logger("data_handler")
+
+
+def load_excel(path: str) -> pd.DataFrame:
+    try:
+        df = pd.read_excel(path)
+        logger.info(f"Loaded {len(df)} rows from {path}")
+        return df
+    except Exception as exc:
+        logger.error(f"Failed to read Excel: {exc}")
+        raise
+
+
+def clean_and_normalize(df: pd.DataFrame) -> pd.DataFrame:
+    # Ensure expected columns exist
+    for col in ["Address", "Postal Code", "Construction Type", "Year Built", "Roof Type", "Fire Protection"]:
+        if col not in df.columns:
+            df[col] = None
+
+    # Standardize numeric fields
+    if "Year Built" in df.columns:
+        df["Year Built"] = df["Year Built"].apply(lambda x: safe_float(x))
+
+    # Roof Age: prefer explicit; else derive from Year Built
+    if "Roof Age" in df.columns:
+        df["Roof Age"] = df["Roof Age"].apply(lambda x: safe_float(x))
+    else:
+        df["Roof Age"] = None
+
+    df["Roof Age"] = df.apply(
+        lambda r: r["Roof Age"] if r["Roof Age"] is not None else years_since(r["Year Built"]),
+        axis=1,
+    )
+
+    # Area normalization
+    if "Area" not in df.columns:
+        df["Area"] = None
+    if "Area Unit" not in df.columns:
+        df["Area Unit"] = None
+    df["Area_sqm"] = df.apply(lambda r: to_sqm(r["Area"], r["Area Unit"]), axis=1)
+
+    # Coordinates
+    if "Latitude" not in df.columns:
+        df["Latitude"] = None
+    if "Longitude" not in df.columns:
+        df["Longitude"] = None
+
+    # Crime index (0-100 scale assumed if present)
+    if "Crime Index" not in df.columns:
+        df["Crime Index"] = None
+    else:
+        df["Crime Index"] = df["Crime Index"].apply(lambda x: safe_float(x))
+
+    # Fire protection standardization to a set of categories
+    def normalize_fire(val: Optional[str]) -> str:
+        if not val:
+            return "Unknown"
+        s = str(val).strip().lower()
+        if "sprinkler" in s:
+            return "Sprinklers"
+        if "hydrant" in s:
+            return "Hydrants nearby"
+        if "alarm" in s and "sprinkler" not in s:
+            return "Alarms only"
+        if "extinguisher" in s:
+            return "Extinguishers only"
+        if "none" in s or "no" in s:
+            return "None"
+        return val
+
+    df["Fire Protection"] = df["Fire Protection"].apply(normalize_fire)
+
+    return df
+, genai_handler.py, import os
+from typing import Dict, Any
+
+from dotenv import load_dotenv
+from openai import AzureOpenAI
+
+from .utils import get_logger
+
+logger = get_logger("genai")
+
+# Explicitly load .env from project root regardless of CWD
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+load_dotenv(os.path.join(BASE_DIR, ".env"))
+
+# Read env with compatibility fallbacks for older variable names
+AZURE_OPENAI_ENDPOINT = (os.getenv("AZURE_OPENAI_ENDPOINT") or os.getenv("OPENAI_API_BASE", "")).strip()
+AZURE_OPENAI_API_KEY = (os.getenv("AZURE_OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY", "")).strip()
+AZURE_OPENAI_API_VERSION = (os.getenv("AZURE_OPENAI_API_VERSION") or os.getenv("OPENAI_API_VERSION") or "2024-06-01").strip()
+AZURE_OPENAI_DEPLOYMENT = (os.getenv("AZURE_OPENAI_DEPLOYMENT") or os.getenv("OPENAI_DEPLOYMENT_NAME", "")).strip()
+
+missing = []
+if not AZURE_OPENAI_ENDPOINT:
+    missing.append("AZURE_OPENAI_ENDPOINT (or OPENAI_API_BASE)")
+if not AZURE_OPENAI_API_KEY:
+    missing.append("AZURE_OPENAI_API_KEY (or OPENAI_API_KEY)")
+if not AZURE_OPENAI_DEPLOYMENT:
+    missing.append("AZURE_OPENAI_DEPLOYMENT (or OPENAI_DEPLOYMENT_NAME)")
+
+_client = None
+if missing:
+    logger.info(f"Azure OpenAI env missing: {', '.join(missing)}")
+else:
+    try:
+        _client = AzureOpenAI(
+            api_key=AZURE_OPENAI_API_KEY,
+            api_version=AZURE_OPENAI_API_VERSION,
+            azure_endpoint=AZURE_OPENAI_ENDPOINT,
+        )
+        logger.info(f"Azure OpenAI client initialized with deployment '{AZURE_OPENAI_DEPLOYMENT}'")
+    except Exception as exc:
+        logger.warning(f"Failed to init Azure OpenAI client: {exc}")
+        _client = None
+
+
+def _chat(prompt: str) -> str:
+    if not _client:
+        return "GenAI disabled (missing Azure OpenAI configuration)."
+    try:
+        completion = _client.chat.completions.create(
+            model=AZURE_OPENAI_DEPLOYMENT,
+            messages=[
+                {"role": "system", "content": "You are a property risk analyst. Be concise, factual and actionable."},
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.2,
+            max_tokens=550,
+        )
+        return (completion.choices[0].message.content or "").strip()
+    except Exception as exc:
+        logger.warning(f"Azure OpenAI error: {exc}")
+        return "GenAI unavailable due to an LLM error."
+
+
+def explain_risk(row_data: Dict[str, Any], hazards: Dict[str, Any], factor_breakdown: Dict[str, float], final_score: float) -> str:
+    prompt = (
+        "Explain the property risk in plain language using the provided factors.nn"
+        f"Property data: {row_data}nn"
+        f"Hazards: {hazards}nn"
+        f"Factor scores (0-100, higher=worse): {factor_breakdown}n"
+        f"Final risk score (0-100): {round(final_score, 2)}nn"
+        "Focus on the highest contributing factors. If some data is missing, acknowledge that.n"
+        "Avoid speculation, keep it clear for a non-technical audience."
+    )
+    return _chat(prompt)
+
+
+def recommend_mitigations(row_data: Dict[str, Any], hazards: Dict[str, Any], factor_breakdown: Dict[str, float], final_score: float) -> str:
+    prompt = (
+        "Provide prioritized, practical recommendations to reduce property risk given the context.nn"
+        f"Property data: {row_data}nn"
+        f"Hazards: {hazards}nn"
+        f"Factor scores: {factor_breakdown}n"
+        f"Final risk: {round(final_score, 2)}nn"
+        "Return short, actionable suggestions (in sentences or bullets). Prefer low-cost steps first, then longer-term upgrades."
+    )
+    return _chat(prompt)
+,risk_calculator.py, from typing import Dict, Any, List, Optional, Tuple
+
+from .utils import get_logger, years_since
+
+logger = get_logger("risk_calculator")
+
+
+class RiskCalculator:
+    def __init__(self, weights: Optional[Dict[str, float]] = None):
+        # Default weights if none supplied
+        self.weights = weights or {
+            "flood": 0.25,
+            "earthquake": 0.20,
+            "fire_protection": 0.20,
+            "building_age": 0.15,
+            "crime_index": 0.20,
+        }
+
+    def compute(
+        self,
+        row: Dict[str, Any],
+        flood_alerts: List[Dict[str, Any]],
+        earthquakes: List[Dict[str, Any]],
+        fire_station_distance_km: Optional[float] = None,
+    ) -> Tuple[float, Dict[str, float]]:
+        # Factor sub-scores (0-100, higher means riskier)
+        flood_score = self._flood_score(flood_alerts)
+        eq_score = self._earthquake_score(earthquakes)
+        fire_score = self._fire_protection_score(row.get("Fire Protection"), fire_station_distance_km)
+        age_score = self._age_score(row.get("Year Built"), row.get("Roof Age"))
+        crime_score = self._crime_score(row.get("Crime Index"))
+
+        factors = {
+            "flood": flood_score,
+            "earthquake": eq_score,
+            "fire_protection": fire_score,
+            "building_age": age_score,
+            "crime_index": crime_score,
+        }
+
+        # Only include available factors in weighted sum
+        included = {k: v for k, v in factors.items() if v is not None}
+        if not included:
+            return 0.0, {}
+
+        # Normalize weights to included factors
+        weight_subset = {k: self.weights.get(k, 0.0) for k in included}
+        total_w = sum(weight_subset.values())
+        if total_w <= 0:
+            # Fallback to equal weighting
+            n = len(included)
+            final = sum(included.values()) / n
+            return final, included
+
+        normalized_weights = {k: w / total_w for k, w in weight_subset.items()}
+        final = sum(included[k] * normalized_weights[k] for k in included)
+
+        return final, included
+
+    def _flood_score(self, alerts: List[Dict[str, Any]]) -> float:
+        if not alerts:
+            return 0.0
+        # Basic heuristic: presence and severity terms
+        severity_boost = 0
+        for a in alerts:
+            ev = str(a.get("event", "")).lower()
+            desc = str(a.get("description", "")).lower()
+            if any(s in ev or s in desc for s in ["warning", "red", "severe"]):
+                severity_boost += 15
+            if any(s in ev or s in desc for s in ["watch", "orange", "moderate"]):
+                severity_boost += 10
+        base = 60
+        score = min(100.0, base + min(30, len(alerts) * 10) + min(30, severity_boost))
+        return score
+
+    def _earthquake_score(self, quakes: List[Dict[str, Any]]) -> float:
+        if not quakes:
+            return 0.0
+        mags = [q.get("magnitude") for q in quakes if q.get("magnitude") is not None]
+        if not mags:
+            return 0.0
+        max_mag = max(mags)
+        count = len(mags)
+        # Heuristic: magnitude-driven with frequency add-on
+        mag_component = max(0.0, (max_mag - 3.0) * 20.0)  # 3.0 => 0, 8.0 => 100
+        freq_component = min(30.0, count * 2.0)
+        return float(min(100.0, mag_component + freq_component))
+
+    def _fire_protection_score(self, fire_protection: Optional[str], fire_station_distance_km: Optional[float]) -> float:
+        # Higher value => riskier
+        base = 60.0
+        fp = (fire_protection or "Unknown").strip().lower()
+        if fp == "sprinklers":
+            base = 10.0
+        elif fp == "hydrants nearby":
+            base = 30.0
+        elif fp == "alarms only":
+            base = 50.0
+        elif fp == "extinguishers only":
+            base = 60.0
+        elif fp == "none":
+            base = 85.0
+        else:
+            base = 60.0
+
+        if fire_station_distance_km is not None:
+            if fire_station_distance_km <= 2.0:
+                base -= 10.0
+            elif fire_station_distance_km <= 5.0:
+                base -= 5.0
+            elif fire_station_distance_km >= 15.0:
+                base += 5.0
+
+        return float(min(100.0, max(0.0, base)))
+
+    def _age_score(self, year_built: Optional[float], roof_age: Optional[float]) -> Optional[float]:
+        # Building age risk: newer safer
+        age = None
+        if year_built is not None:
+            age = years_since(year_built)
+        if age is None and roof_age is not None:
+            try:
+                age = int(float(roof_age))
+            except Exception:
+                age = None
+        if age is None:
+            return None
+        # Map 0 years => 5 risk, 60+ years => 100 risk (linear)
+        if age <= 5:
+            return 5.0
+        if age >= 60:
+            return 100.0
+        return 5.0 + (age - 5) * (95.0 / 55.0)
+
+    def _crime_score(self, crime_index: Optional[float]) -> Optional[float]:
+        # Assume 0-100 scale if provided
+        if crime_index is None:
+            return None
+        try:
+            v = float(crime_index)
+        except Exception:
+            return None
+        return float(min(100.0, max(0.0, v)))
+, utils.py, import logging
+from math import radians, sin, cos, asin, sqrt
+from datetime import datetime
+
+
+def get_logger(name: str) -> logging.Logger:
+    logger = logging.getLogger(name)
+    if not logger.handlers:
+        handler = logging.StreamHandler()
+        fmt = logging.Formatter("[%(asctime)s] [%(levelname)s] %(name)s: %(message)s")
+        handler.setFormatter(fmt)
+        logger.addHandler(handler)
+        logger.setLevel(logging.INFO)
+    return logger
+
+
+def to_sqm(value, unit: str):
+    try:
+        v = float(value)
+    except Exception:
+        return None
+    if unit is None:
+        return v
+    u = str(unit).strip().lower()
+    if u in {"sqm", "m2", "m^2", "square meter", "square meters"}:
+        return v
+    if u in {"sqft", "ft2", "ft^2", "square foot", "square feet"}:
+        return v * 0.09290304
+    if u in {"acre", "acres"}:
+        return v * 4046.8564224
+    if u in {"hectare", "hectares", "ha"}:
+        return v * 10000.0
+    return v
+
+
+def safe_float(val, default=None):
+    try:
+        return float(val)
+    except Exception:
+        return default
+
+
+def years_since(year):
+    try:
+        y = int(float(year))
+        now = datetime.now().year
+        return max(0, now - y)
+    except Exception:
+        return None
+
+
+def haversine_km(lat1, lon1, lat2, lon2):
+    # Haversine distance between two points on Earth
+    R = 6371.0088
+    try:
+        lat1, lon1, lat2, lon2 = map(float, [lat1, lon1, lat2, lon2])
+    except Exception:
+        return None
+    dlat = radians(lat2 - lat1)
+    dlon = radians(lon2 - lon1)
+    a = sin(dlat / 2) ** 2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon / 2) ** 2
+    c = 2 * asin(sqrt(a))
+    return R * c
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 PS C:\Users\2000137378\Desktop\orchestration4.1_agent_project> Get-ChildItem -Path . -Recurse -Filter main.py
 
 
