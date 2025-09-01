@@ -1,3 +1,73 @@
+LLM suggested: RiskAssessmentAgent | Reason: Eligibility check completed and applicant is eligible for risk assessment.
+✅ Risk Assesment FastAPI server already running.
+✅ Risk Assesment Agent is running.
+You can manually upload files at the Swagger UI:
+➡️ URL: http://127.0.0.1:8677/docs
+Waiting for files to be uploaded and processed...
+ChatCompletion(id='chatcmpl-CB2TbptqnvB2MpiAGgaqjzolGsGvk', choices=[Choice(finish_reason='stop', index=0, logprobs=None, message=ChatCompletionMessage(content='{\n  "next_agent": "RiskAssessmentAgent",\n  "reason": "Eligibility check completed and applicant is eligible."\n}', refusal=None, role='assistant', annotations=None, audio=None, function_call=None, tool_calls=None), content_filter_results={'hate': {'filtered': False, 'severity': 'safe'}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}})], created=1756747163, model='gpt-4-turbo-2024-04-09', object='chat.completion', service_tier=None, system_fingerprint='fp_5603ee5e2e', usage=CompletionUsage(completion_tokens=28, prompt_tokens=2164, total_tokens=2192, completion_tokens_details=None, prompt_tokens_details=None), prompt_filter_results=[{'prompt_index': 0, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'jailbreak': {'filtered': False, 'detected': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}])
+LLM suggested: RiskAssessmentAgent | Reason: Eligibility check completed and applicant is eligible.
+✅ Risk Assesment FastAPI server already running.
+✅ Risk Assesment Agent is running.
+You can manually upload files at the Swagger UI:
+➡️ URL: http://127.0.0.1:8677/docs
+Waiting for files to be uploaded and processed...
+ChatCompletion(id='chatcmpl-CB2Ty3bBi6b1PjXDMsIgFlsz8E1vP', choices=[Choice(finish_reason='stop', index=0, logprobs=None, message=ChatCompletionMessage(content='{\n  "next_agent": "RiskAssessmentAgent",\n  "reason": "Eligibility check completed and applicant is eligible."\n}', refusal=None, role='assistant', annotations=None, audio=None, function_call=None, tool_calls=None), content_filter_results={'hate': {'filtered': False, 'severity': 'safe'}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}})], created=1756747186, model='gpt-4-turbo-2024-04-09', object='chat.completion', service_tier=None, system_fingerprint='fp_5603ee5e2e', usage=CompletionUsage(completion_tokens=28, prompt_tokens=2164, total_tokens=2192, completion_tokens_details=None, prompt_tokens_details=None), prompt_filter_results=[{'prompt_index': 0, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'jailbreak': {'filtered': False, 'detected': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}])
+LLM suggested: RiskAssessmentAgent | Reason: Eligibility check completed and applicant is eligible.
+Starting Risk Assessment Agent FastAPI server (main.py)...
+✅ Risk Assesment Agent is running.
+You can manually upload files at the Swagger UI:
+➡️ URL: http://127.0.0.1:8677/docs
+Waiting for files to be uploaded and processed...
+ChatCompletion(id='chatcmpl-CB2ViRmQwj7gpOasMNxmB5icJjSaL', choices=[Choice(finish_reason='stop', index=0, logprobs=None, message=ChatCompletionMessage(content='{\n  "next_agent": "RiskAssessmentAgent",\n  "reason": "Eligibility check completed and applicant is eligible."\n}', refusal=None, role='assistant', annotations=None, audio=None, function_call=None, tool_calls=None), content_filter_results={'hate': {'filtered': False, 'severity': 'safe'}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}})], created=1756747294, model='gpt-4-turbo-2024-04-09', object='chat.completion', service_tier=None, system_fingerprint='fp_5603ee5e2e', usage=CompletionUsage(completion_tokens=28, prompt_tokens=2164, total_tokens=2192, completion_tokens_details=None, prompt_tokens_details=None), prompt_filter_results=[{'prompt_index': 0, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'jailbreak': {'filtered': False, 'detected': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}])
+LLM suggested: RiskAssessmentAgent | Reason: Eligibility check completed and applicant is eligible.
+⚠️ The same agent has been suggested multiple times without progress. Exiting.
+(venv) PS C:\Users\2000137378\Desktop\orchestration5.1_agent.py> 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 this was my current code where riskassessmentagent.run (ie this line  path = risk_assessment_agent.run(extracted_data_dir)),was running the dummy agent so at that time i did not had the actual agent  below is the current code where the dummy risk_assessment_agent was generating a json file  def run_orchestration(data_dir: str, model: str = "gpt-4") -> None:
     """Main loop."""
     state = {"data_dir": data_dir}
