@@ -1,3 +1,281 @@
+here which is the last api that is running or which is the last process that is happenign i want you to generate a json file after that particular process or after completeion of that particular api that is once we get the response of that particular end api or end process after , i want you to generate a json file , with name risk_scores.json and in it data "status":"true", in the data directory below one , data_dir = os.path.join(BASE_DIR, "..", "data")  # Navigate up one level from Risk_Assesment_agent
+extracted_data_dir = os.path.join(data_dir, "Extracted_Data")  ,,below is the code
+
+import uvicorn
+import os
+import time
+from io import BytesIO
+from typing import Optional, Dict, Any, List
+
+import pandas as pd
+from fastapi import FastAPI, UploadFile, File, HTTPException, Query
+from fastapi.responses import StreamingResponse, JSONResponse
+from starlette.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
+
+# Explicitly load .env from project root regardless of CWD
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(os.path.join(BASE_DIR, ".env"))
+
+from modules.utils import get_logger
+logger = get_logger("api")
+
+from modules.data_handler import clean_and_normalize
+from modules.api_integrations import (
+    geocode_address,
+    fetch_usgs_earthquakes,
+    nearest_fire_station_distance_km,
+    fetch_owm_rainfall_proxy,
+)
+from modules.risk_calculator import RiskCalculator
+from modules.genai_handler import explain_risk, recommend_mitigations
+
+app = FastAPI(title="Property Risk Assessment API", version="1.0.0")
+
+# Optional CORS (adjust for production)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
+
+def _ensure_xlsx(file: UploadFile):
+    if not file.filename or not file.filename.lower().endswith(".xlsx"):
+        raise HTTPException(status_code=400, detail="Only .xlsx files are supported.")
+
+
+def _sanitize_owm_key(skip_owm: bool) -> str:
+    raw = (os.getenv("OPENWEATHERMAP_API_KEY") or "").strip()
+    if skip_owm:
+        return ""
+    if raw in {"", "YOUR_OWM_KEY", "placeholder", "xxx"}:
+        return ""
+    return raw
+
+
+def _default_cfg(
+    radius_km: Optional[float],
+    days_back: Optional[int],
+    min_magnitude: Optional[float],
+    country_hint: Optional[str],
+) -> Dict[str, Any]:
+    rk = radius_km if radius_km is not None else float(os.getenv("USGS_RADIUS_KM", "300"))
+    db = days_back if days_back is not None else int(os.getenv("USGS_DAYS_BACK", "7"))
+    mm = min_magnitude if min_magnitude is not None else float(os.getenv("USGS_MIN_MAG", "3.0"))
+    ch = (country_hint or os.getenv("COUNTRY_HINT") or "").strip() or None
+    return {
+        "radius_km": rk,
+        "days_back": db,
+        "min_magnitude": mm,
+        "country_hint": ch,
+        "weights": {
+            "flood": 0.25,
+            "earthquake": 0.20,
+            "fire_protection": 0.20,
+            "building_age": 0.15,
+            "crime_index": 0.20,
+        },
+    }
+
+
+def process_row(
+    row: pd.Series,
+    cfg: Dict[str, Any],
+    owm_key: Optional[str],
+    use_geocoding: bool,
+    use_places: bool,
+) -> pd.Series:
+    lat = row.get("Latitude")
+    lon = row.get("Longitude")
+
+    if (pd.isna(lat) or pd.isna(lon)) and use_geocoding:
+        address = str(row.get("Address") or "").strip()
+        postal = str(row.get("Postal Code") or "").strip()
+        if address or postal:
+            glat, glon = geocode_address(
+                address=address,
+                postal_code=postal,
+                country=cfg.get("country_hint"),
+            )
+            if glat is not None and glon is not None:
+                lat, lon = glat, glon
+                row["Latitude"] = lat
+                row["Longitude"] = lon
+
+    floods: List[Dict[str, Any]] = []
+    quakes: List[Dict[str, Any]] = []
+    fire_dist_km: Optional[float] = None
+
+    if lat is not None and lon is not None and not pd.isna(lat) and not pd.isna(lon):
+        if owm_key:
+            floods = fetch_owm_rainfall_proxy(
+                latitude=float(lat),
+                longitude=float(lon),
+                api_key=owm_key,
+                hours=72,
+            )
+        else:
+            logger.debug("OPENWEATHERMAP_API_KEY not set or skipped; skipping forecast proxy")
+
+        quakes = fetch_usgs_earthquakes(
+            latitude=float(lat),
+            longitude=float(lon),
+            radius_km=cfg.get("radius_km", 300.0),
+            days_back=cfg.get("days_back", 7),
+            min_magnitude=cfg.get("min_magnitude", 3.0),
+        )
+
+        if use_places:
+            fire_dist_km = nearest_fire_station_distance_km(float(lat), float(lon))
+    else:
+        logger.debug("Missing coordinates; skipping OWM/USGS/Places for this row")
+
+    risk_calc = RiskCalculator(weights=cfg.get("weights"))
+    risk_score, factor_breakdown = risk_calc.compute(
+        row=row.to_dict(),
+        flood_alerts=floods,
+        earthquakes=quakes,
+        fire_station_distance_km=fire_dist_km,
+    )
+
+    row["FloodAlertsCount"] = len(floods)
+    row["RecentQuakesCount"] = len(quakes)
+    row["MaxQuakeMagnitude"] = max([q.get("magnitude") for q in quakes if q.get("magnitude") is not None], default=None)
+    row["NearestFireStationKm"] = fire_dist_km
+    row["RiskScore"] = round(risk_score, 2)
+
+    try:
+        explanation = explain_risk(
+            row_data=row.to_dict(),
+            hazards={"flood_alerts": floods, "earthquakes": quakes},
+            factor_breakdown=factor_breakdown,
+            final_score=risk_score,
+        )
+    except Exception as exc:
+        logger.warning(f"GenAI explanation failed: {exc}")
+        explanation = "Explanation unavailable."
+
+    try:
+        recommendations = recommend_mitigations(
+            row_data=row.to_dict(),
+            hazards={"flood_alerts": floods, "earthquakes": quakes},
+            factor_breakdown=factor_breakdown,
+            final_score=risk_score,
+        )
+    except Exception as exc:
+        logger.warning(f"GenAI recommendations failed: {exc}")
+        recommendations = "Recommendations unavailable."
+
+    row["RiskExplanation"] = explanation
+    row["RiskRecommendations"] = recommendations
+
+    return row
+
+
+@app.post("/process", summary="Upload an .xlsx and receive processed .xlsx")
+async def process_excel(
+    file: UploadFile = File(..., description="Excel .xlsx file"),
+    radius_km: Optional[float] = Query(None, description="USGS search radius in km"),
+    days_back: Optional[int] = Query(None, description="USGS lookback window in days"),
+    min_magnitude: Optional[float] = Query(None, description="Minimum magnitude for earthquakes"),
+    country_hint: Optional[str] = Query(None, description="Country hint for geocoding"),
+    no_geocode: bool = Query(False, description="Disable geocoding if lat/lon missing"),
+    use_places: bool = Query(False, description="Use Google Places for fire-station proximity"),
+    skip_owm: bool = Query(False, description="Skip OpenWeatherMap rainfall proxy"),
+):
+    try:
+        _ensure_xlsx(file)
+        raw = await file.read()
+        if not raw:
+            raise HTTPException(status_code=400, detail="Uploaded file is empty.")
+
+        df = pd.read_excel(BytesIO(raw))
+        df = clean_and_normalize(df)
+
+        cfg = _default_cfg(radius_km, days_back, min_magnitude, country_hint)
+        owm_key = _sanitize_owm_key(skip_owm)
+
+        rows = []
+        logger.info(f"Processing {len(df)} properties...")
+        for _, row in df.iterrows():
+            processed = process_row(
+                row=row,
+                cfg=cfg,
+                owm_key=owm_key,
+                use_geocoding=(not no_geocode),
+                use_places=use_places,
+            )
+            rows.append(processed)
+            time.sleep(0.2)  # preserve original pacing
+
+        out_df = pd.DataFrame(rows)
+
+        buf = BytesIO()
+        with pd.ExcelWriter(buf, engine="openpyxl") as writer:
+            out_df.to_excel(writer, index=False, sheet_name="Results")
+        buf.seek(0)
+
+        safe_name = (file.filename.rsplit(".", 1)[0] or "output") + "_output.xlsx"
+        headers = {"Content-Disposition": f'attachment; filename="{safe_name}"'}
+
+        return StreamingResponse(
+            buf,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers=headers,
+        )
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.exception("Processing failed")
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "message": f"Processing failed: {str(exc)}"},
+        )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 here which is the last api that is running or which is the last process that is happenign i want you to generate a json file after that particular process or after completeion of that particular api that is once we get the response of that particular end api or end process after , 
 import uvicorn
 import os
