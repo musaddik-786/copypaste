@@ -1,4 +1,9 @@
-in orchestration agent the llm was suggesting the Dataextraction agent and there is more logic to it, so earlier DataExtraction agent had fast api UI where we were uploading the excel file manually and the json was getting stored in some data file, but now the DataExtraction agent is taking input directly from the folder unlike uploading earlier and giving output as json and excel in the data folder(or specified directory as mentioned in the code ) below is the code of data extraction agent's main.py,     import uvicorn
+in orchestration agent the llm was suggesting agents, so considering thath it has suggested the Dataextraction agent, 
+so earlier DataExtraction agent had fast api UI where we were uploading the excel file manually and the json was getting
+stored in some data file, but now the DataExtraction agent is taking input directly from the folder unlike uploading earlier
+and giving output as json and excel in the data folder(or specified directory as mentioned in the code ) below is the code of data extraction agent's main.py,     import uvicorn
+
+
 from fastapi import FastAPI, UploadFile, File, BackgroundTasks
 from fastapi.responses import FileResponse, JSONResponse
 from dotenv import load_dotenv
