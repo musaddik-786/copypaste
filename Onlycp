@@ -1,3 +1,84 @@
+if chosen == "DataExtractionAgent":
+            # Build path to the agent's main.py
+            agent_dir = os.path.join(os.path.dirname(__file__), "agents", "Dummy_extraction_agent")
+            agent_main = os.path.join(agent_dir, "main.py")
+            agent_input_dir = os.path.join(agent_dir, "input")
+
+            if os.path.exists(agent_main):
+                # Check if there are files in the input directory to process
+                if os.path.exists(agent_input_dir):
+                    input_files = os.listdir(agent_input_dir)
+                    excel_files = [f for f in input_files if f.endswith('.xlsx')]
+                    doc_files = [f for f in input_files if f.lower().endswith(('.pdf', '.png', '.jpg', '.jpeg'))]
+
+                    if excel_files and doc_files:
+                        print(f"Found {len(excel_files)} Excel files and {len(doc_files)} document files in input folder.")
+                        print("Running Data Extraction Agent directly...")
+                        
+                        try:
+                            # Run the main.py directly and wait for it to complete
+                            result = subprocess.run(
+                                [sys.executable, agent_main],
+                                cwd=agent_dir,
+                                capture_output=True,
+                                text=True,
+                                timeout=120  # 2 minute timeout
+                            )
+                            
+                            if result.returncode == 0:
+                                print("Data extraction completed successfully!")
+                                print("Output:", result.stdout)
+                            else:
+                                print(f"Data extraction failed with return code: {result.returncode}")
+                                print("Error:", result.stderr)
+                                
+                        except subprocess.TimeoutExpired:
+                            print("Data extraction timed out after 2 minutes")
+                        except Exception as e:
+                            print(f"Error running data extraction: {e}")
+
+                        # Check if output was generated
+                        try:
+                            extracted_files_after = os.listdir(extracted_data_dir)
+                            if any('extracted_' in f for f in extracted_files_after):
+                                print("Output files found in extracted data directory!")
+                            else:
+                                print("No output files found in extracted data directory")
+                        except Exception as e:
+                            print(f"Error checking output directory: {e}")
+                            
+                    else:
+                        print("No matching file pairs found in input folder.")
+                        print(f"Input folder: {agent_input_dir}")
+                        print(f"Files found: {input_files}")
+                        print("Please ensure you have matching PDF/image and Excel files in the input folder.")
+                else:
+                    print(f"Input directory does not exist: {agent_input_dir}")
+            else:
+                print(f"Could not find {agent_main}. Please check path.")
+
+            # Refresh extracted files list after processing
+            try:
+                extracted_files_now = os.listdir(extracted_data_dir)
+            except Exception:
+                extracted_files_now = []
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 I replaced you code but still data extraction is not running from orchestration itself
 def run_orchestration(data_dir: str, model: str = "gpt-4") -> None:
     """Main loop."""
