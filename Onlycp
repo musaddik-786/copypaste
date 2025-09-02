@@ -1,9 +1,10 @@
 in orchestration agent the llm was suggesting agents, so considering thath it has suggested the Dataextraction agent, 
 so earlier DataExtraction agent had fast api UI where we were uploading the excel file manually and the json was getting
-stored in some data file, but now the DataExtraction agent is taking input directly from the folder unlike uploading earlier
-and giving output as json and excel in the data folder(or specified directory as mentioned in the code ) below is the code of data extraction agent's main.py,     import uvicorn
+stored in some data file (as mentioned the directory), but now the DataExtraction agent is taking input directly from the folder unlike uploading earlier
+and similar to previous this time also it is giving output as json and excel in the folder mentioned in the code
+(or specified directory as mentioned in the code ) below is the code of data extraction agent's main.py,     
 
-
+import uvicorn
 from fastapi import FastAPI, UploadFile, File, BackgroundTasks
 from fastapi.responses import FileResponse, JSONResponse
 from dotenv import load_dotenv
@@ -254,8 +255,136 @@ if __name__ == "__main__":
     port = int(os.getenv("PORT_NUMBER", 8056))  # Default to 8000 if not set
     uvicorn.run(app, host="0.0.0.0", port=port),,,,,,,              
 
-and this code is of orchestration_agent.py 
-from where the data extraction agent's main.py is should get trigger but it is not getting triggered, def run_orchestration(data_dir: str, model: str = "gpt-4") -> None:
+and below is code is of orchestration_agent.py 
+from where the data extraction agent's main.py is should get trigger but it is not getting triggered currently ,
+
+
+
+import subprocess
+import requests
+import argparse
+import json
+import os
+import time
+from typing import Dict
+import sys
+# import os
+# import time
+# import json
+# import subprocess
+# import requests
+from dotenv import load_dotenv
+load_dotenv()                                               
+
+# OpenAI SDK
+from openai import OpenAI, AzureOpenAI                       
+
+# local “agents”
+from agents import data_extraction_agent, eligibility_agent, risk_assessment_agent
+
+
+def create_client_from_env() -> OpenAI:
+    """Return an OpenAI client that’s pre-configured for Azure if the
+    AZURE_OPENAI_* variables are set; otherwise return a default client that
+    talks to api.openai.com.
+    """
+    azure_key      = os.getenv("AZURE_OPENAI_API_KEY")
+    azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+    azure_version  = os.getenv("AZURE_OPENAI_API_VERSION")
+    deployment     = os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT")
+
+    if azure_key and azure_endpoint and azure_version and deployment:
+       
+        client: OpenAI = AzureOpenAI(
+            api_key=azure_key,
+            azure_endpoint=azure_endpoint,
+            api_version=azure_version,
+        )
+        client._is_azure = True                  
+        client._azure_deployment = deployment
+        return client
+
+
+    if not os.getenv("OPENAI_API_KEY"):
+        raise RuntimeError(
+            "OPENAI_API_KEY must be set for OpenAI-platform mode "
+            "or provide all AZURE_OPENAI_* variables for Azure mode."
+        )
+
+    client = OpenAI()
+    client._is_azure = False
+    client._azure_deployment = None
+    return client
+
+
+# create the client once, globally
+client = create_client_from_env()
+
+# ──────────────────────────────────────────────────────────────────────────────
+ALLOWED_AGENTS = ["RiskAssessmentAgent", "DataExtractionAgent",
+                  "EligibilityCheckAgent", "NONE"]
+
+PROMPT_TEMPLATE = (
+
+"You are an orchestration-decider."
+
+"Available agents (do NOT create new ones):"
+"1) RiskAssessmentAgent – reads eligibility.json, writes risk_scores.json."
+"2) DataExtractionAgent – writes data_extraction.json."
+"3) EligibilityCheckAgent – reads data_extraction.json, writes eligibility.json."
+
+"Your task is to decide which agent should run next, based on the current state of the files and their contents. Evaluate the outcome of each agent's operation as reflected in the file contents and ensure that the operation is valid and complete before proceeding to the next agent."
+
+"Important considerations:"
+"1) Each agent's operation depends on the validity and completeness of the previous agent's output. If an agent's output indicates that further processing is not required or possible, you must stop and not proceed to the next agent."
+"2) If an agent's output is incomplete, invalid, or indicates that further processing should not occur, provide a reason for why the next agent cannot be activated and stop further processing."
+"3) If an agent's output is complete and valid, proceed to the next agent."
+
+"Input: a JSON object called 'state' listing files in the data folder and their contents."
+
+"Reply with ONE JSON object, schema:\n"
+'{ "next_agent": "RiskAssessmentAgent|DataExtractionAgent|EligibilityCheckAgent|NONE", '
+'"reason": "short explanation" }\n'
+
+)
+
+
+def ask_llm_for_next_agent(state: Dict, model: str = "gpt-4o") -> Dict:
+    """Query the LLM and return its JSON choice."""
+    system_msg = {"role": "system", "content": PROMPT_TEMPLATE}
+    user_msg   = {"role": "user",   "content": json.dumps({"state": state}, indent=2)}
+
+    # choose correct model / deployment
+    if getattr(client, "_is_azure", False):
+        model_to_call = client._azure_deployment        
+    else:
+        model_to_call = model                           
+
+    try:
+        resp = client.chat.completions.create(
+            model=model_to_call,
+            messages=[system_msg, user_msg],
+            temperature=0.0,
+            max_tokens=300
+        )
+        print(resp)
+    except Exception as e:
+        raise RuntimeError(f"LLM call failed: {e}")
+
+    try:
+        text = resp.choices[0].message.content.strip()
+    except Exception:
+        text = str(resp)
+
+    try:
+        start, end = text.find("{"), text.rfind("}")
+        parsed = json.loads(text[start:end + 1])
+    except Exception as e:
+        raise RuntimeError(f"LLM did not return valid JSON.\nRaw: {text}\nError: {e}")
+
+    return parsed
+
+def run_orchestration(data_dir: str, model: str = "gpt-4") -> None:
     """Main loop."""
     state = {"data_dir": data_dir}
     os.makedirs(data_dir, exist_ok=True)
