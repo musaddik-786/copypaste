@@ -1,5 +1,5 @@
-When i am running it separately the data extraction agent it works but maybe there is some issue in port due to which our orchestration is not able to run this data extraction agent
-
+When i am running it separately the data extraction agent it works but maybe there is some issue due to which our orchestration is not able to run this data extraction agent
+below is if i run data extraction separetly
 (venv) PS C:\Users\2000137378\Desktop\orchestration8.1_agent_project\agents\Dummy_extraction_agent> python main.py
 C:\Users\2000137378\Desktop\orchestration8.1_agent_project\agents\Dummy_extraction_agent\main.py:538: DeprecationWarning: 
         on_event is deprecated, use lifespan event handlers instead.
@@ -8,7 +8,7 @@ C:\Users\2000137378\Desktop\orchestration8.1_agent_project\agents\Dummy_extracti
         [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
 
   @app.on_event("startup")
-INFO:     Started server process [21436]
+INFO:     Started server process [24336]
 INFO:     Waiting for application startup.
 🚀 FastAPI server starting...
 🔍 Scanning input folder...
@@ -17,54 +17,21 @@ INFO:     Waiting for application startup.
 📁 Matched 1 file pairs
 ⚙️ Processing: acord.pdf + acord.xlsx
 📤 Sending to Document Intelligence API...
-2025-09-02 23:03:56,597 - INFO - Sending request to Form Recognizer API...
-2025-09-02 23:03:58,987 - INFO - Polling for analysis result...
-2025-09-02 23:04:13,400 - INFO - Analysis succeeded.
+2025-09-02 23:10:48,371 - INFO - Sending request to Form Recognizer API...
+2025-09-02 23:10:50,565 - INFO - Polling for analysis result...
+2025-09-02 23:11:03,631 - INFO - Analysis succeeded.
 💾 Saving extracted data...
-✓ Excel saved: extracted_20250902_230413.xlsx
-✓ JSON saved: extracted_20250902_230413.json
+✓ Excel saved: extracted_20250902_231103.xlsx
+✓ JSON saved: extracted_20250902_231103.json
 ✅ Extraction complete. Files saved to output folder.
 INFO:     Application startup complete.
-ERROR:    [Errno 10048] error while attempting to bind on address ('0.0.0.0', 8056): only one usage of each socket address (protocol/network address/port) is normally permitted
+INFO:     Uvicorn running on http://0.0.0.0:8056 (Press CTRL+C to quit)
+INFO:     Shutting down
 INFO:     Waiting for application shutdown.
 INFO:     Application shutdown complete.
+INFO:     Finished server process [24336]
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+but when i am running this through orchestration agent it keeps on repeting,.
 
 
 
