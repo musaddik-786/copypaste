@@ -1,3 +1,594 @@
+in orchestration agent the llm was suggesting the Dataextraction agent and there is more logic to it, so earlier DataExtraction agent had fast api UI where we were uploading the excel file manually and the json was getting stored in some data file, but now the DataExtraction agent is taking input directly from the folder unlike uploading earlier and giving output as json and excel in the data folder(or specified directory as mentioned in the code ) below is the code of data extraction agent's main.py,     import uvicorn
+from fastapi import FastAPI, UploadFile, File, BackgroundTasks
+from fastapi.responses import FileResponse, JSONResponse
+from dotenv import load_dotenv
+import os
+import pandas as pd
+import tempfile
+import json
+from datetime import datetime
+from image_processor import analyze_document
+import asyncio
+ 
+# Load environment variables
+load_dotenv()
+ENDPOINT = os.getenv("AZURE_FORMRECOG_ENDPOINT")
+API_KEY = os.getenv("AZURE_FORMRECOG_KEY")
+ 
+# Ensure output and input directories exist
+MOUNT_DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "data")
+os.makedirs(MOUNT_DATA_DIR, exist_ok=True)  # Ensure the Mount_Data directory exists
+
+# Define the path to the Extracted_Data folder inside Mount_Data
+OUTPUT_DIR = os.path.join(MOUNT_DATA_DIR, "Extracted_Data")
+os.makedirs(OUTPUT_DIR, exist_ok=True)  # Ensure the Extracted_Data directory exists
+
+
+
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# OUTPUT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "output")
+INPUT_DIR = os.path.join(BASE_DIR, "input")
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+os.makedirs(INPUT_DIR, exist_ok=True)
+ 
+app = FastAPI()
+ 
+@app.post("/extract")
+async def extract_fields(image: UploadFile = File(...), excel: UploadFile = File(...), background_tasks: BackgroundTasks = None):
+    try:
+        image_data = await image.read()
+ 
+        # Save and read Excel file
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp_excel:
+            tmp_excel.write(await excel.read())
+            tmp_excel_path = tmp_excel.name
+ 
+        df = pd.read_excel(tmp_excel_path, engine="openpyxl", header=None)
+ 
+        if df.empty or df.shape[1] < 1:
+            try:
+                os.remove(tmp_excel_path)
+            except Exception:
+                pass
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Excel file must have at least one column with fields to extract."},
+            )
+ 
+        fields = df[0].dropna().astype(str).tolist()
+        categories = {"Uncategorized": fields}
+ 
+        result = analyze_document(
+            ENDPOINT, API_KEY, image_data=image_data, fields_to_extract=fields, categories=categories
+        )
+ 
+        rows = []
+        fields_with_values = result.get("fields_with_values", {})
+        selected_fields = set(result.get("selected_fields", []))
+ 
+        for key, val in fields_with_values.items():
+            rows.append({
+                "Field": key,
+                "Value": val,
+                "Selected": key in selected_fields
+            })
+ 
+        for key in selected_fields:
+            if key not in fields_with_values:
+                rows.append({
+                    "Field": key,
+                    "Value": "",
+                    "Selected": True
+                })
+ 
+        df_out = pd.DataFrame(rows, columns=["Field", "Value", "Selected"])
+ 
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp_out:
+            tmp_out_path = tmp_out.name
+        df_out.to_excel(tmp_out_path, index=False, engine="openpyxl")
+ 
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        excel_filename = f"extracted_{timestamp}.xlsx"
+        json_filename = f"extracted_{timestamp}.json"
+ 
+        excel_path = os.path.join(OUTPUT_DIR, excel_filename)
+        df_out.to_excel(excel_path, index=False, engine="openpyxl")
+ 
+        json_path = os.path.join(OUTPUT_DIR, json_filename)
+        with open(json_path, "w", encoding="utf-8") as json_file:
+            json.dump(rows, json_file, indent=4)
+ 
+        test_json_path = os.path.join(OUTPUT_DIR, "data_extraction.json")
+        status_payload = {"status": "completed"} if rows else {"status": "not completed"}
+        with open(test_json_path, "w", encoding="utf-8") as test_file:
+            json.dump(status_payload, test_file, indent=4)
+ 
+        if background_tasks:
+            background_tasks.add_task(lambda p: os.path.exists(p) and os.remove(p), tmp_out_path)
+            background_tasks.add_task(lambda p: os.path.exists(p) and os.remove(p), tmp_excel_path)
+        else:
+            try:
+                os.remove(tmp_excel_path)
+            except Exception:
+                pass
+ 
+        return JSONResponse(
+            status_code=200,
+            content={
+                "message": "Extraction successful.",
+                "excel_file": excel_path,
+                "json_file": json_path,
+                "status_file": test_json_path
+            }
+        )
+ 
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+ 
+# ------------------ Manual Folder Processing Logic ------------------
+ 
+def find_file_pairs(input_dir):
+    print("🔍 Scanning input folder...")
+   
+    # List all files in input directory
+    files = os.listdir(input_dir)
+   
+    # Find excel files
+    excel_files = [f for f in files if f.endswith('.xlsx')]
+    # Find document files
+    doc_files = [f for f in files if f.lower().endswith(('.pdf', '.png', '.jpg', '.jpeg'))]
+   
+    print(f"📄 Found {len(excel_files)} Excel files and {len(doc_files)} document files")
+   
+    pairs = []
+    for excel in excel_files:
+        base_name = os.path.splitext(excel)[0]
+       
+        # Look for matching document files
+        for doc in doc_files:
+            doc_base = os.path.splitext(doc)[0]
+           
+            # Match if document name starts with excel name or vice versa
+            if doc_base.startswith(base_name) or base_name.startswith(doc_base):
+                pairs.append((
+                    os.path.join(input_dir, doc),
+                    os.path.join(input_dir, excel)
+                ))
+                print(f"✓ Matched: {doc} ↔ {excel}")
+                break
+   
+    print(f"📁 Matched {len(pairs)} file pairs")
+    return pairs
+ 
+async def process_input_folder():
+    pairs = find_file_pairs(INPUT_DIR)
+    for image_path, excel_path in pairs:
+        try:
+            print(f"⚙️ Processing: {os.path.basename(image_path)} + {os.path.basename(excel_path)}")
+ 
+            with open(image_path, "rb") as img_file:
+                image_data = img_file.read()
+ 
+            df = pd.read_excel(excel_path, engine="openpyxl", header=None)
+            if df.empty or df.shape[1] < 1:
+                print("⚠️ Skipped: Excel file is empty or invalid.")
+                continue
+ 
+            fields = df[0].dropna().astype(str).tolist()
+            categories = {"Uncategorized": fields}
+ 
+            print("📤 Sending to Document Intelligence API...")
+            result = analyze_document(
+                ENDPOINT, API_KEY, image_data=image_data, fields_to_extract=fields, categories=categories
+            )
+ 
+            rows = []
+            fields_with_values = result.get("fields_with_values", {})
+            selected_fields = set(result.get("selected_fields", []))
+ 
+            for key, val in fields_with_values.items():
+                rows.append({"Field": key, "Value": val, "Selected": key in selected_fields})
+            for key in selected_fields:
+                if key not in fields_with_values:
+                    rows.append({"Field": key, "Value": "", "Selected": True})
+ 
+            # Create the original DataFrame
+            df_out = pd.DataFrame(rows, columns=["Field", "Value", "Selected"])
+           
+            # Create a transposed version for Excel
+            df_excel = pd.DataFrame({
+                'Field': df_out['Field'].values,
+                'Value': df_out['Value'].values,
+                'Selected': df_out['Selected'].values
+            })
+           
+            # Transpose the DataFrame and use the 'Field' column as headers
+            df_excel_transposed = pd.DataFrame([df_excel['Value'].values, df_excel['Selected'].values],
+                                             columns=df_excel['Field'].values)
+ 
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            excel_filename = f"extracted_{timestamp}.xlsx"
+            json_filename = f"extracted_{timestamp}.json"
+ 
+            excel_path = os.path.join(OUTPUT_DIR, excel_filename)
+            json_path = os.path.join(OUTPUT_DIR, json_filename)
+            test_json_path = os.path.join(OUTPUT_DIR, "test.json")
+ 
+            print("💾 Saving extracted data...")
+            # Save Excel file in transposed format
+            df_excel_transposed.to_excel(excel_path, index=False, engine="openpyxl")
+            print(f"✓ Excel saved: {excel_filename}")
+           
+            # Save JSON files (keeping original format)
+            with open(json_path, "w", encoding="utf-8") as json_file:
+                json.dump(rows, json_file, indent=4)
+            print(f"✓ JSON saved: {json_filename}")
+           
+            with open(test_json_path, "w", encoding="utf-8") as test_file:
+                json.dump({"status": "completed" if rows else "not completed"}, test_file, indent=4)
+ 
+            print("✅ Extraction complete. Files saved to output folder.")
+ 
+        except Exception as e:
+            print(f"❌ Error processing {image_path} and {excel_path}: {e}")
+ 
+
+ 
+# @app.on_event("startup")
+# async def startup_event():
+#     print("🚀 FastAPI server starting...")
+#     asyncio.create_task(process_input_folder())
+
+
+
+# if __name__ == "__main__":
+#     uvicorn.run(app, host="0.0.0.0", port=env.get(Port_Number)
+if __name__ == "__main__":
+    # Read PORT_NUMBER from environment variables
+    port = int(os.getenv("PORT_NUMBER", 8056))  # Default to 8000 if not set
+    uvicorn.run(app, host="0.0.0.0", port=port),,,,,,,              
+
+and this code is of orchestration_agent.py 
+from where the data extraction agent's main.py is should get trigger but it is not getting triggered, def run_orchestration(data_dir: str, model: str = "gpt-4") -> None:
+    """Main loop."""
+    state = {"data_dir": data_dir}
+    os.makedirs(data_dir, exist_ok=True)
+
+    # Define the extracted data folder path
+    extracted_data_dir = os.path.join(data_dir, "Extracted_Data")
+    os.makedirs(extracted_data_dir, exist_ok=True)
+
+    print("Starting orchestration loop. Data folder:", data_dir)
+
+    # Track the nnumber of times the SaMe agent is suggested
+    consecutive_agent_suggestions = 0
+    last_suggested_agent = None
+
+    while True:
+        # Get the current state of files in both data_dir and extracted_data_dir
+        try:
+            files_now = os.listdir(data_dir)
+        except Exception:
+            files_now = []
+        try:
+            extracted_files_now = os.listdir(extracted_data_dir)
+        except Exception:
+            extracted_files_now = []
+
+        llm_state = {"files": files_now, "extracted_files": extracted_files_now}
+
+        # Read the contents of each file in data_dir and add to state
+        for file in files_now:
+            full = os.path.join(data_dir, file)
+            try:
+                with open(full, "r", encoding="utf-8") as f:
+                    llm_state[file] = json.load(f)
+            except Exception:
+                llm_state[file] = None  # If file is unreadable, set its content to None
+
+        # Read the contents of each file in extracted_data_dir and add to state
+        for file in extracted_files_now:
+            full = os.path.join(extracted_data_dir, file)
+            try:
+                with open(full, "r", encoding="utf-8") as f:
+                    llm_state[file] = json.load(f)
+            except Exception:
+                llm_state[file] = None  # If file is unreadable, set its content to None
+
+        # Ask the LLM for the next agent
+        try:
+            parsed = ask_llm_for_next_agent(llm_state, model=model)
+        except Exception as e:
+            print("LLM call failed – falling back to rule-based choice.", e)
+            parsed = {"next_agent": "NONE", "reason": "llm-failed"}
+
+        chosen = parsed.get("next_agent")
+        reason = parsed.get("reason", "No reason provided.")
+        print(f"LLM suggested: {chosen} | Reason: {reason}")
+
+        # Check for repeated agent suggestions
+        if chosen == last_suggested_agent:
+            consecutive_agent_suggestions += 1
+        else:
+            consecutive_agent_suggestions = 0
+        last_suggested_agent = chosen
+
+        if consecutive_agent_suggestions > 5:
+            print("The same agent has been suggested multiple times without progress. Exiting.")
+            break
+
+
+
+
+        if chosen == "DataExtractionAgent":
+            # ---- START: attempt to start Data_Extraction_Agent/main.py if server not already up ----
+            # Build path to the agent's main.py based on this file's location
+            agent_dir = os.path.join(os.path.dirname(__file__), "agents", "Dummy_extraction_agent")
+            agent_main = os.path.join(agent_dir, "main.py")
+
+            # URL of the FastAPI server's Swagger UI
+            # NOTE: Ensure your environment sets PORT_NUMBER to the expected port (e.g. 8056)
+            url = "http://127.0.0.1:8056/docs"
+
+            if os.path.exists(agent_main):
+                try:
+                    # quick check if server is already running (short timeout)
+                    try:
+                        r = requests.get(url, timeout=1)
+                        if r.status_code == 200:
+                            print("Data Extraction FastAPI server already running.")
+                        else:
+                            # not 200 -> attempt to start
+                            raise Exception("non-200 status")
+                    except requests.exceptions.RequestException:
+                        # server not reachable -> start it
+                        print("Starting Data Extraction Agent FastAPI server (main.py)...")
+                        # start as separate process; keep cwd in agent folder so imports/relative paths work
+                        subprocess.Popen(
+                            [sys.executable, agent_main],
+                            cwd=agent_dir,
+                            stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL,
+                        )
+                        # small pause to allow server to begin booting
+                        time.sleep(10)
+                except Exception as e:
+                    print(f"Failed to start Data Extraction Agent: {e}")
+            else:
+                print(f"Could not find {agent_main}. Please check path.")
+
+            # ---- END: spawn attempt (if needed). Now proceed with your existing checks ----
+            # try:
+            #     # Send a GET request to check if the FastAPI server is running
+            #     response = requests.get(url)
+            #     if response.status_code == 200:
+            #         print("Data Extraction Agent is running.")
+            #         print("You can manually upload files at the Swagger UI:")
+            #         print(f"URL: {url}")
+            #         print("Waiting for files to be uploaded and processed...")
+            #         time.sleep(20)  # Give time for the user to upload files
+
+                    # Refresh extracted files list after waiting
+            try:
+                extracted_files_now = os.listdir(extracted_data_dir)
+            except Exception:
+                extracted_files_now = []
+
+            # except requests.exceptions.RequestException as e:
+            #     print(f"Failed to connect to the Data Extraction Agent: {e}")
+            #     break  # Exit the loop if the agent cannot be accessed
+
+        elif chosen == "EligibilityCheckAgent":
+            agent_dir = os.path.join(os.path.dirname(__file__), "agents", "eligibility_agent")
+            agent_main = os.path.join(agent_dir, "main.py")
+
+            # URL of the FastAPI server's Swagger UI
+            # NOTE: Ensure your environment sets PORT_NUMBER to the expected port (e.g. 8056)
+            url = "http://127.0.0.1:8023/docs"
+
+            if os.path.exists(agent_main):
+                try:
+                    # quick check if server is already running (short timeout)
+                    try:
+                        r = requests.get(url, timeout=1)
+                        if r.status_code == 200:
+                            print("Eligibility FastAPI server already running.")
+                        else:
+                            # not 200 -> attempt to start
+                            raise Exception("non-200 status")
+                    except requests.exceptions.RequestException:
+                        # server not reachable -> start it
+                        print("Starting Eligibility Agent FastAPI server (main.py)...")
+                        # start as separate process; keep cwd in agent folder so imports/relative paths work
+                        subprocess.Popen(
+                            [sys.executable, agent_main],
+                            cwd=agent_dir,
+                            stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL,
+                        )
+                        # small pause to allow server to begin booting
+                        time.sleep(10)
+                except Exception as e:
+                    print(f"Failed to start Eligibility Agent: {e}")
+            else:
+                print(f"Could not find {agent_main}. Please check path.")
+
+            # ---- END: spawn attempt (if needed). Now proceed with your existing checks ----
+            try:
+                # Send a GET request to check if the FastAPI server is running
+                response = requests.get(url)
+                if response.status_code == 200:
+                    print("Eligibility Agent is running.")
+                    print("You can manually upload files at the Swagger UI:")
+                    print(f"URL: {url}")
+                    print("Waiting for files to be uploaded and processed...")
+                    time.sleep(20)  # Give time for the user to upload files
+
+                    # Refresh extracted files list after waiting
+                    try:
+                        extracted_files_now = os.listdir(extracted_data_dir)
+                    except Exception:
+                        extracted_files_now = []
+
+            except requests.exceptions.RequestException as e:
+                print(f"Failed to connect to the Eligibility: {e}")
+                break  # Exit the loop if the agent cannot be accessed
+
+        elif chosen == "RiskAssessmentAgent":
+
+            # ---- START: attempt to start Data_Extraction_Agent/main.py if server not already up ----
+            # Build path to the agent's main.py based on this file's location
+            agent_dir = os.path.join(os.path.dirname(__file__), "agents", "Risk_Assesment_updated")
+            agent_main = os.path.join(agent_dir, "main.py")
+
+            # URL of the FastAPI server's Swagger UI
+            # NOTE: Ensure your environment sets PORT_NUMBER to the expected port (e.g. 8056)
+            url = "http://127.0.0.1:8677/docs"
+
+            if os.path.exists(agent_main):
+                try:
+                    # quick check if server is already running (short timeout)
+                    try:
+                        r = requests.get(url, timeout=1)
+                        if r.status_code == 200:
+                            print("Risk Assesment FastAPI server already running.")
+                        else:
+                            # not 200 -> attempt to start
+                            raise Exception("non-200 status")
+                    except requests.exceptions.RequestException:
+                        # server not reachable -> start it
+                        print("Starting Risk Assessment Agent FastAPI server (main.py)...")
+                        # start as separate process; keep cwd in agent folder so imports/relative paths work
+                        subprocess.Popen(
+                            [sys.executable, agent_main],
+                            cwd=agent_dir,
+                            stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL,
+                        )
+                        # small pause to allow server to begin booting
+                        time.sleep(10)
+                except Exception as e:
+                    print(f"Failed to start Risk Assesment Agent: {e}")
+            else:
+                print(f"Could not find {agent_main}. Please check path.")
+
+            # ---- END: spawn attempt (if needed). Now proceed with your existing checks ----
+            try:
+                # Send a GET request to check if the FastAPI server is running
+                response = requests.get(url)
+                if response.status_code == 200:
+                    print("Risk Assesment Agent is running.")
+                    print("You can manually upload files at the Swagger UI:")
+                    print(f"URL: {url}")
+                    print("Waiting for files to be uploaded and processed...")
+                    time.sleep(25) 
+                    try:
+                        extracted_files_now = os.listdir(extracted_data_dir)
+                    except Exception:
+                        extracted_files_now = []
+            except requests.exceptions.RequestException as e:
+                print(f"Failed to connect to the Risk Assessment Agent: {e}")
+                break  # Exit the loop if the agent cannot be accessed
+
+        elif chosen == "NONE":
+            print("No further actions. Orchestration finished.")
+            break  # Exit the loop when orchestration is complete
+
+        else:
+            print("Unknown action, aborting loop.")
+            break  # Exit the loop for unknown actions
+
+        time.sleep(0.3)  # Tiny delay between iterations
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 here which is the last api that is running or which is the last process that is happenign i want you to generate a json file after that particular process or after completeion of that particular api that is once we get the response of that particular end api or end process after , i want you to generate a json file , with name risk_scores.json and in it data "status":"true", in the data directory below one , data_dir = os.path.join(BASE_DIR, "..", "data")  # Navigate up one level from Risk_Assesment_agent
 extracted_data_dir = os.path.join(data_dir, "Extracted_Data")  ,,below is the code
 
