@@ -1,3 +1,267 @@
+def run_orchestration(data_dir: str, model: str = "gpt-4") -> None:
+    """Main loop."""
+    state = {"data_dir": data_dir}
+    os.makedirs(data_dir, exist_ok=True)
+
+    # Define the extracted data folder path
+    extracted_data_dir = os.path.join(data_dir, "Extracted_Data")
+    os.makedirs(extracted_data_dir, exist_ok=True)
+
+    print("Starting orchestration loop. Data folder:", data_dir)
+
+    # Track the number of times the same agent is suggested
+    consecutive_agent_suggestions = 0
+    last_suggested_agent = None
+
+    while True:
+        # Get the current state of files in both data_dir and extracted_data_dir
+        try:
+            files_now = os.listdir(data_dir)
+        except Exception:
+            files_now = []
+        try:
+            extracted_files_now = os.listdir(extracted_data_dir)
+        except Exception:
+            extracted_files_now = []
+
+        llm_state = {"files": files_now, "extracted_files": extracted_files_now}
+
+        # Read the contents of each file in data_dir and add to state
+        for file in files_now:
+            full = os.path.join(data_dir, file)
+            try:
+                with open(full, "r", encoding="utf-8") as f:
+                    llm_state[file] = json.load(f)
+            except Exception:
+                llm_state[file] = None  # If file is unreadable, set its content to None
+
+        # Read the contents of each file in extracted_data_dir and add to state
+        for file in extracted_files_now:
+            full = os.path.join(extracted_data_dir, file)
+            try:
+                with open(full, "r", encoding="utf-8") as f:
+                    llm_state[file] = json.load(f)
+            except Exception:
+                llm_state[file] = None  # If file is unreadable, set its content to None
+
+        # Ask the LLM for the next agent
+        try:
+            parsed = ask_llm_for_next_agent(llm_state, model=model)
+        except Exception as e:
+            print("LLM call failed – falling back to rule-based choice.", e)
+            parsed = {"next_agent": "NONE", "reason": "llm-failed"}
+
+        chosen = parsed.get("next_agent")
+        reason = parsed.get("reason", "No reason provided.")
+        print(f"LLM suggested: {chosen} | Reason: {reason}")
+
+        # Check for repeated agent suggestions
+        if chosen == last_suggested_agent:
+            consecutive_agent_suggestions += 1
+        else:
+            consecutive_agent_suggestions = 0
+        last_suggested_agent = chosen
+
+        if consecutive_agent_suggestions > 5:
+            print("The same agent has been suggested multiple times without progress. Exiting.")
+            break
+
+        if chosen == "DataExtractionAgent":
+            # Build path to the agent's main.py
+            agent_dir = os.path.join(os.path.dirname(__file__), "agents", "Dummy_extraction_agent")
+            agent_main = os.path.join(agent_dir, "main.py")
+            agent_input_dir = os.path.join(agent_dir, "input")
+
+            if os.path.exists(agent_main):
+                # Check if there are files in the input directory to process
+                if os.path.exists(agent_input_dir):
+                    input_files = os.listdir(agent_input_dir)
+                    excel_files = [f for f in input_files if f.endswith('.xlsx')]
+                    doc_files = [f for f in input_files if f.lower().endswith(('.pdf', '.png', '.jpg', '.jpeg'))]
+
+                    if excel_files and doc_files:
+                        print(f"Found {len(excel_files)} Excel files and {len(doc_files)} document files in input folder.")
+                        print("Running Data Extraction Agent directly...")
+                        
+                        try:
+                            # Set environment variable to handle Unicode encoding issues
+                            env = os.environ.copy()
+                            env['PYTHONIOENCODING'] = 'utf-8'
+                            
+                            # Run the main.py directly and wait for it to complete
+                            result = subprocess.run(
+                                [sys.executable, agent_main],
+                                cwd=agent_dir,
+                                capture_output=True,
+                                text=True,
+                                timeout=120,  # 2 minute timeout
+                                env=env
+                            )
+                            
+                            if result.returncode == 0:
+                                print("Data extraction completed successfully!")
+                                print("Output:", result.stdout)
+                            else:
+                                print(f"Data extraction failed with return code: {result.returncode}")
+                                print("Error:", result.stderr)
+                                
+                        except subprocess.TimeoutExpired:
+                            print("Data extraction timed out after 2 minutes")
+                        except Exception as e:
+                            print(f"Error running data extraction: {e}")
+
+                        # Check if output was generated
+                        try:
+                            extracted_files_after = os.listdir(extracted_data_dir)
+                            if any('extracted_' in f for f in extracted_files_after):
+                                print("Output files found in extracted data directory!")
+                            else:
+                                print("No output files found in extracted data directory")
+                        except Exception as e:
+                            print(f"Error checking output directory: {e}")
+                            
+                    else:
+                        print("No matching file pairs found in input folder.")
+                        print(f"Input folder: {agent_input_dir}")
+                        print(f"Files found: {input_files}")
+                        print("Please ensure you have matching PDF/image and Excel files in the input folder.")
+                else:
+                    print(f"Input directory does not exist: {agent_input_dir}")
+            else:
+                print(f"Could not find {agent_main}. Please check path.")
+
+            # Refresh extracted files list after processing
+            try:
+                extracted_files_now = os.listdir(extracted_data_dir)
+            except Exception:
+                extracted_files_now = []
+
+        elif chosen == "EligibilityCheckAgent":
+            agent_dir = os.path.join(os.path.dirname(__file__), "agents", "eligibility_agent")
+            agent_main = os.path.join(agent_dir, "main.py")
+
+            # URL of the FastAPI server's Swagger UI
+            # NOTE: Ensure your environment sets PORT_NUMBER to the expected port (e.g. 8023)
+            url = "http://127.0.0.1:8023/docs"
+
+            if os.path.exists(agent_main):
+                try:
+                    # quick check if server is already running (short timeout)
+                    try:
+                        r = requests.get(url, timeout=1)
+                        if r.status_code == 200:
+                            print("Eligibility FastAPI server already running.")
+                        else:
+                            # not 200 -> attempt to start
+                            raise Exception("non-200 status")
+                    except requests.exceptions.RequestException:
+                        # server not reachable -> start it
+                        print("Starting Eligibility Agent FastAPI server (main.py)...")
+                        # start as separate process; keep cwd in agent folder so imports/relative paths work
+                        subprocess.Popen(
+                            [sys.executable, agent_main],
+                            cwd=agent_dir,
+                            stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL,
+                        )
+                        # small pause to allow server to begin booting
+                        time.sleep(10)
+                except Exception as e:
+                    print(f"Failed to start Eligibility Agent: {e}")
+            else:
+                print(f"Could not find {agent_main}. Please check path.")
+
+            # ---- END: spawn attempt (if needed). Now proceed with your existing checks ----
+            try:
+                # Send a GET request to check if the FastAPI server is running
+                response = requests.get(url)
+                if response.status_code == 200:
+                    print("Eligibility Agent is running.")
+                    print("You can manually upload files at the Swagger UI:")
+                    print(f"URL: {url}")
+                    print("Waiting for files to be uploaded and processed...")
+                    time.sleep(20)  # Give time for the user to upload files
+
+                    # Refresh extracted files list after waiting
+                    try:
+                        extracted_files_now = os.listdir(extracted_data_dir)
+                    except Exception:
+                        extracted_files_now = []
+
+            except requests.exceptions.RequestException as e:
+                print(f"Failed to connect to the Eligibility: {e}")
+                break  # Exit the loop if the agent cannot be accessed
+
+        elif chosen == "RiskAssessmentAgent":
+            # ---- START: attempt to start Risk Assessment Agent/main.py if server not already up ----
+            # Build path to the agent's main.py based on this file's location
+            agent_dir = os.path.join(os.path.dirname(__file__), "agents", "Risk_Assesment_updated")
+            agent_main = os.path.join(agent_dir, "main.py")
+
+            # URL of the FastAPI server's Swagger UI
+            # NOTE: Ensure your environment sets PORT_NUMBER to the expected port (e.g. 8677)
+            url = "http://127.0.0.1:8677/docs"
+
+            if os.path.exists(agent_main):
+                try:
+                    # quick check if server is already running (short timeout)
+                    try:
+                        r = requests.get(url, timeout=1)
+                        if r.status_code == 200:
+                            print("Risk Assessment FastAPI server already running.")
+                        else:
+                            # not 200 -> attempt to start
+                            raise Exception("non-200 status")
+                    except requests.exceptions.RequestException:
+                        # server not reachable -> start it
+                        print("Starting Risk Assessment Agent FastAPI server (main.py)...")
+                        # start as separate process; keep cwd in agent folder so imports/relative paths work
+                        subprocess.Popen(
+                            [sys.executable, agent_main],
+                            cwd=agent_dir,
+                            stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL,
+                        )
+                        # small pause to allow server to begin booting
+                        time.sleep(10)
+                except Exception as e:
+                    print(f"Failed to start Risk Assessment Agent: {e}")
+            else:
+                print(f"Could not find {agent_main}. Please check path.")
+
+            # ---- END: spawn attempt (if needed). Now proceed with your existing checks ----
+            try:
+                # Send a GET request to check if the FastAPI server is running
+                response = requests.get(url)
+                if response.status_code == 200:
+                    print("Risk Assessment Agent is running.")
+                    print("You can manually upload files at the Swagger UI:")
+                    print(f"URL: {url}")
+                    print("Waiting for files to be uploaded and processed...")
+                    time.sleep(25) 
+                    try:
+                        extracted_files_now = os.listdir(extracted_data_dir)
+                    except Exception:
+                        extracted_files_now = []
+            except requests.exceptions.RequestException as e:
+                print(f"Failed to connect to the Risk Assessment Agent: {e}")
+                break  # Exit the loop if the agent cannot be accessed
+
+        elif chosen == "NONE":
+            print("No further actions. Orchestration finished.")
+            break  # Exit the loop when orchestration is complete
+
+        else:
+            print("Unknown action, aborting loop.")
+            break  # Exit the loop for unknown actions
+
+        time.sleep(0.3)  # Tiny delay between iterations
+
+
+
+
+
+
 
 (venv) PS C:\Users\2000137378\Desktop\orchestration8.1_agent_project> python orchestration_agent.py
 Using Azure OpenAI deployment: gpt-4
