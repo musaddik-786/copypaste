@@ -1,3 +1,157 @@
+
+(venv) PS C:\Users\2000137378\Desktop\orchestration8.1_agent_project> python orchestration_agent.py
+Using Azure OpenAI deployment: gpt-4
+Starting orchestration loop. Data folder: ./data
+ChatCompletion(id='chatcmpl-CBPqVicESL2zRrzk7QUMesgPzPPAM', choices=[Choice(finish_reason='stop', index=0, logprobs=None, message=ChatCompletionMessage(content='{\n  "next_agent": "DataExtractionAgent",\n  "reason": "No valid data_extraction.json file present, need to run DataExtractionAgent to generate it."\n}', refusal=None, role='assistant', annotations=None, audio=None, function_call=None, tool_calls=None), content_filter_results={'hate': {'filtered': False, 'severity': 'safe'}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}})], created=1756836995, model='gpt-4-turbo-2024-04-09', object='chat.completion', service_tier=None, system_fingerprint='fp_5603ee5e2e', usage=CompletionUsage(completion_tokens=37, prompt_tokens=324, total_tokens=361, completion_tokens_details=None, prompt_tokens_details=None), prompt_filter_results=[{'prompt_index': 0, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'jailbreak': {'filtered': False, 'detected': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}])
+LLM suggested: DataExtractionAgent | Reason: No valid data_extraction.json file present, need to run DataExtractionAgent to generate it.
+Found 1 Excel files and 1 document files in input folder.
+Running Data Extraction Agent directly...
+Data extraction failed with return code: 3
+Error: C:\Users\2000137378\Desktop\orchestration8.1_agent_project\agents\Dummy_extraction_agent\main.py:538: DeprecationWarning:
+        on_event is deprecated, use lifespan event handlers instead.
+
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+
+  @app.on_event("startup")
+INFO:     Started server process [26364]
+INFO:     Waiting for application startup.
+ERROR:    Traceback (most recent call last):
+  File "C:\Users\2000137378\Desktop\orchestration8.1_agent_project\venv\Lib\site-packages\starlette\routing.py", line 694, in lifespan
+    async with self.lifespan_context(app) as maybe_state:
+  File "C:\Users\2000137378\Desktop\orchestration8.1_agent_project\venv\Lib\site-packages\starlette\routing.py", line 571, in __aenter__
+    await self._router.startup()
+  File "C:\Users\2000137378\Desktop\orchestration8.1_agent_project\venv\Lib\site-packages\starlette\routing.py", line 671, in startup
+    await handler()
+  File "C:\Users\2000137378\Desktop\orchestration8.1_agent_project\agents\Dummy_extraction_agent\main.py", line 540, in startup_event
+    print("\U0001f680 FastAPI server starting...")
+  File "C:\Program Files\Python311\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\U0001f680' in position 0: character maps to <undefined>
+
+ERROR:    Application startup failed. Exiting.
+
+No output files found in extracted data directory
+ChatCompletion(id='chatcmpl-CBPqadKgqrcTWInNqTvBobFRYJCqH', choices=[Choice(finish_reason='stop', index=0, logprobs=None, message=ChatCompletionMessage(content='{\n  "next_agent": "DataExtractionAgent",\n  "reason": "No valid data_extraction.json file present, need to run DataExtractionAgent to generate it."\n}', refusal=None, role='assistant', annotations=None, audio=None, function_call=None, tool_calls=None), content_filter_results={'hate': {'filtered': False, 'severity': 'safe'}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}})], created=1756837000, model='gpt-4-turbo-2024-04-09', object='chat.completion', service_tier=None, system_fingerprint='fp_5603ee5e2e', usage=CompletionUsage(completion_tokens=37, prompt_tokens=324, total_tokens=361, completion_tokens_details=None, prompt_tokens_details=None), prompt_filter_results=[{'prompt_index': 0, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'jailbreak': {'filtered': False, 'detected': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}])
+LLM suggested: DataExtractionAgent | Reason: No valid data_extraction.json file present, need to run DataExtractionAgent to generate it.
+Found 1 Excel files and 1 document files in input folder.
+Running Data Extraction Agent directly...
+Data extraction failed with return code: 3
+Error: C:\Users\2000137378\Desktop\orchestration8.1_agent_project\agents\Dummy_extraction_agent\main.py:538: DeprecationWarning:
+        on_event is deprecated, use lifespan event handlers instead.
+
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+
+  @app.on_event("startup")
+INFO:     Started server process [28020]
+INFO:     Waiting for application startup.
+ERROR:    Traceback (most recent call last):
+  File "C:\Users\2000137378\Desktop\orchestration8.1_agent_project\venv\Lib\site-packages\starlette\routing.py", line 694, in lifespan
+    async with self.lifespan_context(app) as maybe_state:
+  File "C:\Users\2000137378\Desktop\orchestration8.1_agent_project\venv\Lib\site-packages\starlette\routing.py", line 571, in __aenter__
+    await self._router.startup()
+  File "C:\Users\2000137378\Desktop\orchestration8.1_agent_project\venv\Lib\site-packages\starlette\routing.py", line 671, in startup
+    await handler()
+  File "C:\Users\2000137378\Desktop\orchestration8.1_agent_project\agents\Dummy_extraction_agent\main.py", line 540, in startup_event
+    print("\U0001f680 FastAPI server starting...")
+  File "C:\Program Files\Python311\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\U0001f680' in position 0: character maps to <undefined>
+
+ERROR:    Application startup failed. Exiting.
+
+No output files found in extracted data directory
+ChatCompletion(id='chatcmpl-CBPqeFR4fiO63G9eDmnU1T02Gi6EH', choices=[Choice(finish_reason='stop', index=0, logprobs=None, message=ChatCompletionMessage(content='{\n  "next_agent": "DataExtractionAgent",\n  "reason": "No valid data_extraction.json file present, need to run DataExtractionAgent to generate it."\n}', refusal=None, role='assistant', annotations=None, audio=None, function_call=None, tool_calls=None), content_filter_results={'hate': {'filtered': False, 'severity': 'safe'}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}})], created=1756837004, model='gpt-4-turbo-2024-04-09', object='chat.completion', service_tier=None, system_fingerprint='fp_5603ee5e2e', usage=CompletionUsage(completion_tokens=37, prompt_tokens=324, total_tokens=361, completion_tokens_details=None, prompt_tokens_details=None), prompt_filter_results=[{'prompt_index': 0, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'jailbreak': {'filtered': False, 'detected': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}])
+LLM suggested: DataExtractionAgent | Reason: No valid data_extraction.json file present, need to run DataExtractionAgent to generate it.
+Found 1 Excel files and 1 document files in input folder.
+Running Data Extraction Agent directly...
+Data extraction failed with return code: 3
+Error: C:\Users\2000137378\Desktop\orchestration8.1_agent_project\agents\Dummy_extraction_agent\main.py:538: DeprecationWarning:
+        on_event is deprecated, use lifespan event handlers instead.
+
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+
+  @app.on_event("startup")
+INFO:     Started server process [2772]
+INFO:     Waiting for application startup.
+ERROR:    Traceback (most recent call last):
+  File "C:\Users\2000137378\Desktop\orchestration8.1_agent_project\venv\Lib\site-packages\starlette\routing.py", line 694, in lifespan
+    async with self.lifespan_context(app) as maybe_state:
+  File "C:\Users\2000137378\Desktop\orchestration8.1_agent_project\venv\Lib\site-packages\starlette\routing.py", line 571, in __aenter__
+    await self._router.startup()
+  File "C:\Users\2000137378\Desktop\orchestration8.1_agent_project\venv\Lib\site-packages\starlette\routing.py", line 671, in startup
+    await handler()
+  File "C:\Users\2000137378\Desktop\orchestration8.1_agent_project\agents\Dummy_extraction_agent\main.py", line 540, in startup_event
+    print("\U0001f680 FastAPI server starting...")
+  File "C:\Program Files\Python311\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\U0001f680' in position 0: character maps to <undefined>
+
+ERROR:    Application startup failed. Exiting.
+
+No output files found in extracted data directory
+ChatCompletion(id='chatcmpl-CBPqjEgeMQpU9fF1VPiGRh7SSVL58', choices=[Choice(finish_reason='stop', index=0, logprobs=None, message=ChatCompletionMessage(content='{\n  "next_agent": "DataExtractionAgent",\n  "reason": "No valid data_extraction.json file present, need to run DataExtractionAgent to generate it."\n}', refusal=None, role='assistant', annotations=None, audio=None, function_call=None, tool_calls=None), content_filter_results={'hate': {'filtered': False, 'severity': 'safe'}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}})], created=1756837009, model='gpt-4-turbo-2024-04-09', object='chat.completion', service_tier=None, system_fingerprint='fp_5603ee5e2e', usage=CompletionUsage(completion_tokens=37, prompt_tokens=324, total_tokens=361, completion_tokens_details=None, prompt_tokens_details=None), prompt_filter_results=[{'prompt_index': 0, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'jailbreak': {'filtered': False, 'detected': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}])
+LLM suggested: DataExtractionAgent | Reason: No valid data_extraction.json file present, need to run DataExtractionAgent to generate it.
+Found 1 Excel files and 1 document files in input folder.
+Running Data Extraction Agent directly...
+Data extraction failed with return code: 3
+Error: C:\Users\2000137378\Desktop\orchestration8.1_agent_project\agents\Dummy_extraction_agent\main.py:538: DeprecationWarning:
+        on_event is deprecated, use lifespan event handlers instead.
+
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+
+  @app.on_event("startup")
+INFO:     Started server process [29768]
+INFO:     Waiting for application startup.
+ERROR:    Traceback (most recent call last):
+  File "C:\Users\2000137378\Desktop\orchestration8.1_agent_project\venv\Lib\site-packages\starlette\routing.py", line 694, in lifespan
+    async with self.lifespan_context(app) as maybe_state:
+  File "C:\Users\2000137378\Desktop\orchestration8.1_agent_project\venv\Lib\site-packages\starlette\routing.py", line 571, in __aenter__
+    await self._router.startup()
+  File "C:\Users\2000137378\Desktop\orchestration8.1_agent_project\venv\Lib\site-packages\starlette\routing.py", line 671, in startup
+    await handler()
+  File "C:\Users\2000137378\Desktop\orchestration8.1_agent_project\agents\Dummy_extraction_agent\main.py", line 540, in startup_event
+    print("\U0001f680 FastAPI server starting...")
+  File "C:\Program Files\Python311\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\U0001f680' in position 0: character maps to <undefined>
+
+ERROR:    Application startup failed. Exiting.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 if chosen == "DataExtractionAgent":
             # Build path to the agent's main.py
             agent_dir = os.path.join(os.path.dirname(__file__), "agents", "Dummy_extraction_agent")
