@@ -281,10 +281,10 @@ async def process_input_folder():
  
 
  
-# @app.on_event("startup")
-# async def startup_event():
-#     print("🚀 FastAPI server starting...")
-#     asyncio.create_task(process_input_folder())
+ @app.on_event("startup")
+ async def startup_event():
+     print("🚀 FastAPI server starting...")
+     asyncio.create_task(process_input_folder())
 
 
 
