@@ -1,3 +1,73 @@
+When i am running it separately the data extraction agent it works but maybe there is some issue in port due to which our orchestration is not able to run this data extraction agent
+
+(venv) PS C:\Users\2000137378\Desktop\orchestration8.1_agent_project\agents\Dummy_extraction_agent> python main.py
+C:\Users\2000137378\Desktop\orchestration8.1_agent_project\agents\Dummy_extraction_agent\main.py:538: DeprecationWarning: 
+        on_event is deprecated, use lifespan event handlers instead.
+
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+
+  @app.on_event("startup")
+INFO:     Started server process [21436]
+INFO:     Waiting for application startup.
+🚀 FastAPI server starting...
+🔍 Scanning input folder...
+📄 Found 1 Excel files and 1 document files
+✓ Matched: acord.pdf ↔ acord.xlsx
+📁 Matched 1 file pairs
+⚙️ Processing: acord.pdf + acord.xlsx
+📤 Sending to Document Intelligence API...
+2025-09-02 23:03:56,597 - INFO - Sending request to Form Recognizer API...
+2025-09-02 23:03:58,987 - INFO - Polling for analysis result...
+2025-09-02 23:04:13,400 - INFO - Analysis succeeded.
+💾 Saving extracted data...
+✓ Excel saved: extracted_20250902_230413.xlsx
+✓ JSON saved: extracted_20250902_230413.json
+✅ Extraction complete. Files saved to output folder.
+INFO:     Application startup complete.
+ERROR:    [Errno 10048] error while attempting to bind on address ('0.0.0.0', 8056): only one usage of each socket address (protocol/network address/port) is normally permitted
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 in orchestration agent the llm was suggesting agents, so considering thath it has suggested the Dataextraction agent, 
 so earlier DataExtraction agent had fast api UI where we were uploading the excel file manually and the json was getting
 stored in some data file (as mentioned the directory), but now the DataExtraction agent is taking input directly from the folder unlike uploading earlier
