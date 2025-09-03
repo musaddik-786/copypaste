@@ -1,3 +1,204 @@
+import os
+import sys
+import json
+import shutil
+import webbrowser
+import argparse
+from dataclasses import dataclass
+from datetime import datetime
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
+
+import pandas as pd
+import uvicorn
+from fastapi import FastAPI
+
+# ------------------------------
+# FastAPI app
+# ------------------------------
+app = FastAPI(title="Eligibility Agent", version="1.0.0")
+
+# ------------------------------
+# Directories
+# ------------------------------
+INPUT_DIR = Path("input")
+OUTPUT_DIR = Path("output")
+RESOURCES_DIR = Path("resources")
+SANCTIONS_FILE = RESOURCES_DIR / "sanctions_list.csv"
+
+# ------------------------------
+# Dataclass for results
+# ------------------------------
+@dataclass
+class EligibilityResult:
+    eligible: bool
+    reasons: List[str]
+    checks: Dict[str, bool]
+    input_file: str
+    evaluated_at: str
+    entities_checked: List[str]
+    sanctions_hits: List[str]
+    rule_evaluations: Dict[str, bool]
+
+# ------------------------------
+# Helpers
+# ------------------------------
+def ensure_directories() -> None:
+    INPUT_DIR.mkdir(parents=True, exist_ok=True)
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    RESOURCES_DIR.mkdir(parents=True, exist_ok=True)
+
+def load_latest_input_excel() -> Path:
+    excel_files = sorted(
+        INPUT_DIR.glob("*.xlsx"),
+        key=lambda p: (p.stat().st_mtime, p.name),
+        reverse=True,
+    )
+    if not excel_files:
+        raise FileNotFoundError(
+            f"No .xlsx files found in {INPUT_DIR.resolve()}.\n"
+            "Place the previous agent's Excel output in the 'input' folder."
+        )
+    return excel_files[0]
+
+def read_input_dataframe(path: Path) -> pd.DataFrame:
+    df = pd.read_excel(path)
+    if df.empty:
+        raise ValueError("Input Excel has no rows")
+    return df
+
+def load_sanctions_list() -> List[str]:
+    if not SANCTIONS_FILE.exists():
+        SANCTIONS_FILE.write_text("entity_name\n", encoding="utf-8")
+    sdf = pd.read_csv(SANCTIONS_FILE)
+    if "entity_name" not in sdf.columns:
+        raise ValueError("Sanctions file must have a column named 'entity_name'")
+    return [str(x).strip().lower() for x in sdf["entity_name"].dropna().unique()]
+
+def perform_sanctions_check(entity_names: List[str], sanctions_list: List[str]) -> Tuple[bool, List[str], List[str]]:
+    reasons, flagged = [], []
+    sanctions_set = set(sanctions_list)
+    for name in entity_names:
+        if name.strip().lower() in sanctions_set:
+            flagged.append(name)
+    is_clean = len(flagged) == 0
+    if not is_clean:
+        reasons.append(f"Entity on sanctions list: {', '.join(flagged)}")
+    else:
+        reasons.append("Passed sanctions check (no matches)")
+    return is_clean, reasons, flagged
+
+def perform_eligibility_rules(df: pd.DataFrame) -> Tuple[bool, List[str], Dict[str, bool]]:
+    reasons, rule_results = [], {}
+    passed = True
+
+    def get_col(candidates: List[str]) -> Optional[str]:
+        lower_cols = {c.lower(): c for c in df.columns}
+        for x in candidates:
+            if x in lower_cols:
+                return lower_cols[x]
+        return None
+
+    # Example rules
+    revenue_col = get_col(["revenue", "annual_revenue", "gross_revenue"])
+    if revenue_col is not None:
+        min_revenue = 50000
+        rule_ok = not (pd.to_numeric(df[revenue_col], errors="coerce") < min_revenue).any()
+        rule_results["min_revenue"] = rule_ok
+        if not rule_ok:
+            passed = False
+            reasons.append(f"Revenue below minimum threshold {min_revenue}")
+
+    if passed:
+        reasons.append("Passed eligibility rules")
+    return passed, reasons, rule_results
+
+def build_result(
+    input_file: Path,
+    sanctions_ok: bool,
+    sanctions_reasons: List[str],
+    rules_ok: bool,
+    rules_reasons: List[str],
+    entities_checked: List[str],
+    sanctions_hits: List[str],
+    rule_evaluations: Dict[str, bool],
+) -> EligibilityResult:
+    eligible = sanctions_ok and rules_ok
+    reasons = sanctions_reasons + rules_reasons
+    return EligibilityResult(
+        eligible=eligible,
+        reasons=reasons,
+        checks={"sanctions_check": sanctions_ok, "eligibility_rules_check": rules_ok},
+        input_file=str(input_file.resolve()),
+        evaluated_at=datetime.utcnow().isoformat() + "Z",
+        entities_checked=entities_checked[:20],
+        sanctions_hits=sanctions_hits,
+        rule_evaluations=rule_evaluations,
+    )
+
+def write_outputs(result: EligibilityResult) -> Tuple[Path, Path]:
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
+    json_path = OUTPUT_DIR / f"eligibility_result_{timestamp}.json"
+    xlsx_path = OUTPUT_DIR / f"eligibility_result_{timestamp}.xlsx"
+
+    with json_path.open("w", encoding="utf-8") as f:
+        json.dump({"eligible": result.eligible}, f, indent=2)
+
+    out_df = pd.DataFrame([{"eligible": result.eligible}])
+    out_df.to_excel(xlsx_path, index=False, sheet_name="eligibility")
+
+    return json_path, xlsx_path
+
+def process_input_file(input_excel: Path) -> Tuple[EligibilityResult, Path, Path]:
+    ensure_directories()
+    df = read_input_dataframe(input_excel)
+    sanctions_list = load_sanctions_list()
+    entity_names = df.iloc[:, 0].dropna().astype(str).tolist()  # simplified extraction
+
+    sanctions_ok, sanctions_reasons, sanctions_hits = perform_sanctions_check(entity_names, sanctions_list)
+    rules_ok, rules_reasons, rule_evals = perform_eligibility_rules(df)
+
+    result = build_result(
+        input_excel, sanctions_ok, sanctions_reasons,
+        rules_ok, rules_reasons, entity_names,
+        sanctions_hits, rule_evals,
+    )
+    json_path, xlsx_path = write_outputs(result)
+    return result, json_path, xlsx_path
+
+# ------------------------------
+# Main entry
+# ------------------------------
+if __name__ == "__main__":
+    try:
+        ensure_directories()
+        input_excel = load_latest_input_excel()
+        _, json_path, xlsx_path = process_input_file(input_excel)
+        print(f"Eligibility check complete → JSON: {json_path}, Excel: {xlsx_path}")
+    except Exception as e:
+        print(f"Eligibility processing failed: {e}")
+
+    # Keep FastAPI server alive
+    uvicorn.run(app, host="0.0.0.0", port=8023)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 I want this in fast api and port no should be 8023
 
 
