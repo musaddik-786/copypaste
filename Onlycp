@@ -1,3 +1,194 @@
+so what i observed in the folder strucutre is the eligibility ran correctly it generated the output in output folder in the first try itsefl, but it kept on generating the out put also below is what i am gettin in terminal 
+ (venv) PS C:\Users\2000137378\Desktop\orchestration8.1_agent_project> python orchestration_agent.py  
+Using Azure OpenAI deployment: gpt-4
+Starting orchestration loop. Data folder: ./data
+ChatCompletion(id='chatcmpl-CBYroM1NAmZbH5Klr0HZwYbCcXsOk', choices=[Choice(finish_reason='stop', index=0, logprobs=None, message=ChatCompletionMessage(content='{\n  "next_agent": "EligibilityCheckAgent",\n  "reason": "Data extraction completed successfully and ready for eligibility check."\n}', refusal=None, role='assistant', annotations=None, audio=None, function_call=None, tool_calls=None), content_filter_results={'hate': {'filtered': False, 'severity': 'safe'}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}})], created=1756871672, model='gpt-4-turbo-2024-04-09', object='chat.completion', service_tier=None, system_fingerprint='fp_5603ee5e2e', usage=CompletionUsage(completion_tokens=29, prompt_tokens=1972, total_tokens=2001, completion_tokens_details=None, prompt_tokens_details=None), prompt_filter_results=[{'prompt_index': 0, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'jailbreak': {'filtered': False, 'detected': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}])
+LLM suggested: EligibilityCheckAgent | Reason: Data extraction completed successfully and ready for eligibility check.
+Launching EligibilityAgent...
+Eligibility check complete → JSON: output\eligibility_result_20250903-035445.json, Excel: output\eligibility_result_20250903-035445.xlsx
+INFO:     Started server process [17068]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8023 (Press CTRL+C to quit)
+INFO:     127.0.0.1:53203 - "GET /docs HTTP/1.1" 200 OK
+EligibilityAgent is up and running
+ChatCompletion(id='chatcmpl-CBYrvPd9N3miNFMXVSByRI4adrLlk', choices=[Choice(finish_reason='stop', index=0, logprobs=None, message=ChatCompletionMessage(content='{\n  "next_agent": "EligibilityCheckAgent",\n  "reason": "Data extraction completed successfully, proceed with eligibility check."\n}', refusal=None, role='assistant', annotations=None, audio=None, function_call=None, tool_calls=None), content_filter_results={'hate': {'filtered': False, 'severity': 'safe'}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}})], created=1756871679, model='gpt-4-turbo-2024-04-09', object='chat.completion', service_tier=None, system_fingerprint='fp_5603ee5e2e', usage=CompletionUsage(completion_tokens=29, prompt_tokens=1972, total_tokens=2001, completion_tokens_details=None, prompt_tokens_details=None), prompt_filter_results=[{'prompt_index': 0, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'jailbreak': {'filtered': False, 'detected': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}])
+LLM suggested: EligibilityCheckAgent | Reason: Data extraction completed successfully, proceed with eligibility check.
+Launching EligibilityAgent...
+INFO:     127.0.0.1:53206 - "GET /docs HTTP/1.1" 200 OK
+EligibilityAgent is up and running
+Eligibility check complete → JSON: output\eligibility_result_20250903-035448.json, Excel: output\eligibility_result_20250903-035448.xlsx
+INFO:     Started server process [18944]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+ERROR:    [Errno 10048] error while attempting to bind on address ('0.0.0.0', 8023): only one usage of each socket address (protocol/network address/port) is normally permitted
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+ChatCompletion(id='chatcmpl-CBYrwUUdDO1h3flX5OQqxMWz5vqS3', choices=[Choice(finish_reason='stop', index=0, logprobs=None, message=ChatCompletionMessage(content='{\n  "next_agent": "EligibilityCheckAgent",\n  "reason": "Data extraction completed successfully and ready for eligibility check."\n}', refusal=None, role='assistant', annotations=None, audio=None, function_call=None, tool_calls=None), content_filter_results={'hate': {'filtered': False, 'severity': 'safe'}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}})], created=1756871680, model='gpt-4-turbo-2024-04-09', object='chat.completion', service_tier=None, system_fingerprint='fp_5603ee5e2e', usage=CompletionUsage(completion_tokens=29, prompt_tokens=1972, total_tokens=2001, completion_tokens_details=None, prompt_tokens_details=None), prompt_filter_results=[{'prompt_index': 0, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'jailbreak': {'filtered': False, 'detected': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}])
+LLM suggested: EligibilityCheckAgent | Reason: Data extraction completed successfully and ready for eligibility check.
+Launching EligibilityAgent...
+INFO:     127.0.0.1:53209 - "GET /docs HTTP/1.1" 200 OK
+EligibilityAgent is up and running
+Eligibility check complete → JSON: output\eligibility_result_20250903-035449.json, Excel: output\eligibility_result_20250903-035449.xlsx
+INFO:     Started server process [11444]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+ERROR:    [Errno 10048] error while attempting to bind on address ('0.0.0.0', 8023): only one usage of each socket address (protocol/network address/port) is normally permitted
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+ChatCompletion(id='chatcmpl-CBYrydPK4Z1bEwIy6rg7ymQFgOvQM', choices=[Choice(finish_reason='stop', index=0, logprobs=None, message=ChatCompletionMessage(content='{\n  "next_agent": "EligibilityCheckAgent",\n  "reason": "Data extraction completed successfully and ready for eligibility check."\n}', refusal=None, role='assistant', annotations=None, audio=None, function_call=None, tool_calls=None), content_filter_results={'hate': {'filtered': False, 'severity': 'safe'}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}})], created=1756871682, model='gpt-4-turbo-2024-04-09', object='chat.completion', service_tier=None, system_fingerprint='fp_5603ee5e2e', usage=CompletionUsage(completion_tokens=29, prompt_tokens=1972, total_tokens=2001, completion_tokens_details=None, prompt_tokens_details=None), prompt_filter_results=[{'prompt_index': 0, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'jailbreak': {'filtered': False, 'detected': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}])
+LLM suggested: EligibilityCheckAgent | Reason: Data extraction completed successfully and ready for eligibility check.
+Launching EligibilityAgent...
+INFO:     127.0.0.1:53212 - "GET /docs HTTP/1.1" 200 OK
+EligibilityAgent is up and running
+Eligibility check complete → JSON: output\eligibility_result_20250903-035451.json, Excel: output\eligibility_result_20250903-035451.xlsx
+INFO:     Started server process [4720]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+ERROR:    [Errno 10048] error while attempting to bind on address ('0.0.0.0', 8023): only one usage of each socket address (protocol/network address/port) is normally permitted
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+ChatCompletion(id='chatcmpl-CBYs0QIqGGM1744f3mHoN5Gd0IV23', choices=[Choice(finish_reason='stop', index=0, logprobs=None, message=ChatCompletionMessage(content='{\n  "next_agent": "EligibilityCheckAgent",\n  "reason": "Data extraction completed successfully, proceed with eligibility check."\n}', refusal=None, role='assistant', annotations=None, audio=None, function_call=None, tool_calls=None), content_filter_results={'hate': {'filtered': False, 'severity': 'safe'}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}})], created=1756871684, model='gpt-4-turbo-2024-04-09', object='chat.completion', service_tier=None, system_fingerprint='fp_5603ee5e2e', usage=CompletionUsage(completion_tokens=29, prompt_tokens=1972, total_tokens=2001, completion_tokens_details=None, prompt_tokens_details=None), prompt_filter_results=[{'prompt_index': 0, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'jailbreak': {'filtered': False, 'detected': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}])
+LLM suggested: EligibilityCheckAgent | Reason: Data extraction completed successfully, proceed with eligibility check.
+Launching EligibilityAgent...
+INFO:     127.0.0.1:53215 - "GET /docs HTTP/1.1" 200 OK
+EligibilityAgent is up and running
+Eligibility check complete → JSON: output\eligibility_result_20250903-035452.json, Excel: output\eligibility_result_20250903-035452.xlsx
+INFO:     Started server process [29492]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+ERROR:    [Errno 10048] error while attempting to bind on address ('0.0.0.0', 8023): only one usage of each socket address (protocol/network address/port) is normally permitted
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+ChatCompletion(id='chatcmpl-CBYs1iw0xPh2ETZViuANKNATFcChm', choices=[Choice(finish_reason='stop', index=0, logprobs=None, message=ChatCompletionMessage(content='{\n  "next_agent": "EligibilityCheckAgent",\n  "reason": "Data extraction completed successfully and ready for eligibility check."\n}', refusal=None, role='assistant', annotations=None, audio=None, function_call=None, tool_calls=None), content_filter_results={'hate': {'filtered': False, 'severity': 'safe'}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}})], created=1756871685, model='gpt-4-turbo-2024-04-09', object='chat.completion', service_tier=None, system_fingerprint='fp_5603ee5e2e', usage=CompletionUsage(completion_tokens=29, prompt_tokens=1972, total_tokens=2001, completion_tokens_details=None, prompt_tokens_details=None), prompt_filter_results=[{'prompt_index': 0, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'jailbreak': {'filtered': False, 'detected': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}])
+LLM suggested: EligibilityCheckAgent | Reason: Data extraction completed successfully and ready for eligibility check.
+Launching EligibilityAgent...
+INFO:     127.0.0.1:53218 - "GET /docs HTTP/1.1" 200 OK
+EligibilityAgent is up and running
+Traceback (most recent call last):
+  File "C:\Users\2000137378\Desktop\orchestration8.1_agent_project\agents\Eligibilty_check_UW\eligibility_agent.py", line 492, in <module>
+    import uvicorn
+  File "C:\Users\2000137378\Desktop\orchestration8.1_agent_project\venv\Lib\site-packages\uvicorn\__init__.py", line 2, in <module>
+    from uvicorn.main import Server, main, run
+  File "C:\Users\2000137378\Desktop\orchestration8.1_agent_project\venv\Lib\site-packages\uvicorn\main.py", line 34, in <module>
+    from uvicorn.supervisors import ChangeReload, Multiprocess
+  File "C:\Users\2000137378\Desktop\orchestration8.1_agent_project\venv\Lib\site-packages\uvicorn\supervisors\__init__.py", line 12, in <module>
+    from uvicorn.supervisors.watchfilesreload import WatchFilesReload as ChangeReload
+  File "C:\Users\2000137378\Desktop\orchestration8.1_agent_project\venv\Lib\site-packages\uvicorn\supervisors\watchfilesreload.py", line 7, in <module>
+    from watchfiles import watch
+  File "C:\Users\2000137378\Desktop\orchestration8.1_agent_project\venv\Lib\site-packages\watchfiles\__init__.py", line 2, in <module>
+    from .main import Change, awatch, watch
+  File "C:\Users\2000137378\Desktop\orchestration8.1_agent_project\venv\Lib\site-packages\watchfiles\main.py", line 9, in <module>
+INFO:     Shutting down
+    import anyio
+  File "C:\Users\2000137378\Desktop\orchestration8.1_agent_project\venv\Lib\site-packages\anyio\__init__.py", line 71, in <module>
+    from ._core._tempfile import NamedTemporaryFile as NamedTemporaryFile
+  File "<frozen importlib._bootstrap>", line 1176, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1138, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 1078, in _find_spec
+  File "<frozen importlib._bootstrap_external>", line 1504, in find_spec
+  File "<frozen importlib._bootstrap_external>", line 1464, in _get_spec
+KeyboardInterrupt
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [17068]
+Traceback (most recent call last):
+  File "C:\Users\2000137378\Desktop\orchestration8.1_agent_project\orchestration_agent.py", line 724, in <module>
+    run_orchestration(args.data_dir, model=args.model)
+  File "C:\Users\2000137378\Desktop\orchestration8.1_agent_project\orchestration_agent.py", line 174, in run_orchestration
+    parsed = ask_llm_for_next_agent(llm_state, model=model)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\2000137378\Desktop\orchestration8.1_agent_project\orchestration_agent.py", line 102, in ask_llm_for_next_agent
+    resp = client.chat.completions.create(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\2000137378\Desktop\orchestration8.1_agent_project\venv\Lib\site-packages\openai\_utils\_utils.py", line 287, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\2000137378\Desktop\orchestration8.1_agent_project\venv\Lib\site-packages\openai\resources\chat\completions\completions.py", line 1147, in create     
+    return self._post(
+           ^^^^^^^^^^^
+  File "C:\Users\2000137378\Desktop\orchestration8.1_agent_project\venv\Lib\site-packages\openai\_base_client.py", line 1259, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\2000137378\Desktop\orchestration8.1_agent_project\venv\Lib\site-packages\openai\_base_client.py", line 982, in request
+    response = self._client.send(
+               ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\2000137378\Desktop\orchestration8.1_agent_project\venv\Lib\site-packages\httpx\_client.py", line 914, in send
+    response = self._send_handling_auth(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\2000137378\Desktop\orchestration8.1_agent_project\venv\Lib\site-packages\httpx\_client.py", line 942, in _send_handling_auth
+    response = self._send_handling_redirects(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\2000137378\Desktop\orchestration8.1_agent_project\venv\Lib\site-packages\httpx\_client.py", line 979, in _send_handling_redirects
+    response = self._send_single_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\2000137378\Desktop\orchestration8.1_agent_project\venv\Lib\site-packages\httpx\_client.py", line 1014, in _send_single_request
+    response = transport.handle_request(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\2000137378\Desktop\orchestration8.1_agent_project\venv\Lib\site-packages\httpx\_transports\default.py", line 250, in handle_request
+    resp = self._pool.handle_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\2000137378\Desktop\orchestration8.1_agent_project\venv\Lib\site-packages\httpcore\_sync\connection_pool.py", line 256, in handle_request
+    raise exc from None
+  File "C:\Users\2000137378\Desktop\orchestration8.1_agent_project\venv\Lib\site-packages\httpcore\_sync\connection_pool.py", line 236, in handle_request
+    response = connection.handle_request(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\2000137378\Desktop\orchestration8.1_agent_project\venv\Lib\site-packages\httpcore\_sync\connection.py", line 103, in handle_request
+    return self._connection.handle_request(request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\2000137378\Desktop\orchestration8.1_agent_project\venv\Lib\site-packages\httpcore\_sync\http11.py", line 136, in handle_request
+    raise exc
+  File "C:\Users\2000137378\Desktop\orchestration8.1_agent_project\venv\Lib\site-packages\httpcore\_sync\http11.py", line 106, in handle_request
+    ) = self._receive_response_headers(**kwargs)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\2000137378\Desktop\orchestration8.1_agent_project\venv\Lib\site-packages\httpcore\_sync\http11.py", line 177, in _receive_response_headers
+    event = self._receive_event(timeout=timeout)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\2000137378\Desktop\orchestration8.1_agent_project\venv\Lib\site-packages\httpcore\_sync\http11.py", line 217, in _receive_event
+    data = self._network_stream.read(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\2000137378\Desktop\orchestration8.1_agent_project\venv\Lib\site-packages\httpcore\_backends\sync.py", line 128, in read
+    return self._sock.recv(max_bytes)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\Python311\Lib\ssl.py", line 1263, in recv
+    return self.read(buflen)
+           ^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\Python311\Lib\ssl.py", line 1136, in read
+    return self._sslobj.read(len)
+           ^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import os
 import sys
 import json
