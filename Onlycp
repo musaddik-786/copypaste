@@ -1,3 +1,49 @@
+if chosen == "DataExtractionAgent":
+    agent_dir = os.path.join(os.path.dirname(__file__), "agents", "Dummy_extraction_agent")
+    agent_main = os.path.join(agent_dir, "main.py")
+    url = "http://127.0.0.1:8056/docs"   # should match PORT_NUMBER in main.py
+
+    if os.path.exists(agent_main):
+        try:
+            # Start the server if not already running
+            print("🚀 Launching DataExtractionAgent...")
+            process = subprocess.Popen([sys.executable, agent_main], cwd=agent_dir)
+
+            # Wait for the FastAPI server to be ready
+            for i in range(20):  # up to ~20 seconds
+                try:
+                    resp = requests.get(url)
+                    if resp.status_code == 200:
+                        print("✅ DataExtractionAgent is up and running")
+                        break
+                except Exception:
+                    pass
+                time.sleep(1)
+            else:
+                print("❌ DataExtractionAgent did not start in time.")
+
+        except Exception as e:
+            print(f"❌ Failed to start DataExtractionAgent: {e}")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 def run_orchestration(data_dir: str, model: str = "gpt-4") -> None:
     """Main loop."""
     state = {"data_dir": data_dir}
