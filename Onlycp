@@ -1,3 +1,488 @@
+I want this in fast api and port no should be 8023
+
+
+import json
+import sys
+import argparse
+import shutil
+import os
+import webbrowser
+from dataclasses import dataclass, asdict
+from datetime import datetime
+from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
+import uvicorn
+import pandas as pd
+
+
+from fastapi import FastAPI
+
+# Define the FastAPI application instance
+app = FastAPI()
+
+
+INPUT_DIR = Path("input")
+
+# MOUNT_DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "data")
+# os.makedirs(MOUNT_DATA_DIR, exist_ok=True)  # Ensure the Mount_Data directory exists
+
+# # Define the path to the Extracted_Data folder inside Mount_Data
+# OUTPUT_DIR = os.path.join(MOUNT_DATA_DIR, "Extracted_Data")
+# os.makedirs(OUTPUT_DIR, exist_ok=True)  # Ensure the Extracted_Data directory exists
+
+
+
+OUTPUT_DIR = Path("output")
+RESOURCES_DIR = Path("resources")
+SANCTIONS_FILE = RESOURCES_DIR / "sanctions_list.csv"
+
+
+@dataclass
+class EligibilityResult:
+    eligible: bool
+    reasons: List[str]
+    checks: Dict[str, bool]
+    input_file: str
+    evaluated_at: str
+    entities_checked: List[str]
+    sanctions_hits: List[str]
+    rule_evaluations: Dict[str, bool]
+
+
+def ensure_directories() -> None:
+    INPUT_DIR.mkdir(parents=True, exist_ok=True)
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    RESOURCES_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def load_latest_input_excel() -> Path:
+    excel_files = sorted(
+        INPUT_DIR.glob("*.xlsx"),
+        key=lambda p: (p.stat().st_mtime, p.name),
+        reverse=True,
+    )
+    if not excel_files:
+        raise FileNotFoundError(
+            f"No .xlsx files found in {INPUT_DIR.resolve()}. "
+            "Place the previous agent's Excel output in the 'input' folder."
+        )
+    return excel_files[0]
+
+
+def read_input_dataframe(path: Path) -> pd.DataFrame:
+    try:
+        df = pd.read_excel(path)
+        if df.empty:
+            raise ValueError("Input Excel has no rows")
+        return df
+    except Exception as exc:
+        raise RuntimeError(f"Failed to read Excel '{path}': {exc}") from exc
+
+
+def load_sanctions_list() -> List[str]:
+    if not SANCTIONS_FILE.exists():
+        # Create a starter sanctions list file with header if missing
+        SANCTIONS_FILE.write_text("entity_name\n", encoding="utf-8")
+    try:
+        sdf = pd.read_csv(SANCTIONS_FILE)
+        if "entity_name" not in sdf.columns:
+            raise ValueError("Sanctions file must have a column named 'entity_name'")
+        return [str(x).strip().lower() for x in sdf["entity_name"].dropna().unique()]
+    except Exception as exc:
+        raise RuntimeError(f"Failed to read sanctions file '{SANCTIONS_FILE}': {exc}") from exc
+
+
+def extract_entity_names(df: pd.DataFrame) -> List[str]:
+    # Column-name-agnostic extraction using value heuristics only.
+    def is_probable_person(name: str) -> bool:
+        s = name.strip()
+        if len(s) < 3 or len(s) > 100:
+            return False
+        if "@" in s or any(ch.isdigit() for ch in s):
+            return False
+        words = [w for w in s.replace(",", " ").split() if w]
+        if len(words) < 2 or len(words) > 6:
+            return False
+        upper_like = sum(1 for w in words if w[:1].isupper() or w.isupper())
+        return upper_like >= max(1, len(words) - 1)
+
+    def is_probable_org(name: str) -> bool:
+        s = name.strip()
+        if len(s) < 3 or len(s) > 120:
+            return False
+        if "@" in s:
+            return False
+        org_tokens = {"inc", "ltd", "llc", "plc", "corp", "corporation", "company", "limited", "bank", "group", "insurance", "ins."}
+        tokens = {t.strip(".,").lower() for t in s.split()}
+        return any(t in tokens for t in org_tokens)
+
+    # Prefer values in the second column if there are exactly two columns (Field/Value style)
+    candidate_values: List[str] = []
+    try:
+        if df.shape[1] == 2:
+            value_series = df.iloc[:, 1]
+            candidate_values = value_series.dropna().astype(str).tolist()
+        else:
+            # Flatten all values from the dataframe
+            candidate_values = pd.Series(df.values.ravel()).dropna().astype(str).tolist()
+    except Exception:
+        # As a last resort, try the first row dict
+        try:
+            return [str(df.iloc[0].to_dict())]
+        except Exception:
+            return []
+
+    # Score candidates: person names first, then organizations
+    people = []
+    orgs = []
+    for v in candidate_values:
+        vs = v.strip()
+        if not vs:
+            continue
+        if is_probable_person(vs):
+            people.append(vs)
+        elif is_probable_org(vs):
+            orgs.append(vs)
+
+    # Deduplicate preserving order
+    def dedupe_keep_order(items: List[str]) -> List[str]:
+        seen = set()
+        out: List[str] = []
+        for it in items:
+            key = it.lower()
+            if key not in seen:
+                seen.add(key)
+                out.append(it)
+        return out
+
+    ordered = dedupe_keep_order(people) + dedupe_keep_order(orgs)
+    if ordered:
+        return ordered[:10]
+
+    # Fallback: first row serialization
+    try:
+        return [str(df.iloc[0].to_dict())]
+    except Exception:
+        return []
+
+
+def perform_sanctions_check(entity_names: List[str], sanctions_list: List[str]) -> Tuple[bool, List[str], List[str]]:
+    reasons: List[str] = []
+    sanctions_set = set(sanctions_list)
+    flagged = []
+    for name in entity_names:
+        if not name:
+            continue
+        if name.strip().lower() in sanctions_set:
+            flagged.append(name)
+    is_clean = len(flagged) == 0
+    if not is_clean:
+        reasons.append(f"Entity on sanctions list: {', '.join(flagged)}")
+    else:
+        reasons.append("Passed sanctions check (no matches)")
+    return is_clean, reasons, flagged
+
+
+def perform_eligibility_rules(df: pd.DataFrame) -> Tuple[bool, List[str], Dict[str, bool]]:
+    reasons: List[str] = []
+    passed = True
+    rule_results: Dict[str, bool] = {}
+
+    def get_col(ci: List[str]) -> Optional[str]:
+        lower_cols = {c.lower(): c for c in df.columns}
+        for x in ci:
+            if x in lower_cols:
+                return lower_cols[x]
+        return None
+
+    # Example rules (only applied if the columns exist)
+    revenue_col = get_col(["revenue", "annual_revenue", "gross_revenue"])
+    if revenue_col is not None:
+        try:
+            min_revenue = 50000
+            rule_ok = not (pd.to_numeric(df[revenue_col], errors="coerce") < min_revenue).any()
+            rule_results["min_revenue"] = bool(rule_ok)
+            if not rule_ok:
+                passed = False
+                reasons.append(f"Revenue below minimum threshold {min_revenue}")
+        except Exception:
+            rule_results["min_revenue"] = True
+
+    losses_col = get_col(["losses", "claims_last_3y", "num_losses"])
+    if losses_col is not None:
+        try:
+            max_losses = 3
+            rule_ok = not (pd.to_numeric(df[losses_col], errors="coerce") > max_losses).any()
+            rule_results["max_losses"] = bool(rule_ok)
+            if not rule_ok:
+                passed = False
+                reasons.append(f"Loss count exceeds maximum {max_losses}")
+        except Exception:
+            rule_results["max_losses"] = True
+
+    years_col = get_col(["years_in_business", "yib", "years_active"])
+    if years_col is not None:
+        try:
+            min_years = 1
+            rule_ok = not (pd.to_numeric(df[years_col], errors="coerce") < min_years).any()
+            rule_results["min_years_in_business"] = bool(rule_ok)
+            if not rule_ok:
+                passed = False
+                reasons.append(f"Years in business below {min_years}")
+        except Exception:
+            rule_results["min_years_in_business"] = True
+
+    industry_col = get_col(["industry", "naics", "sic"])
+    if industry_col is not None:
+        try:
+            restricted = {"weapons manufacturing", "gambling", "adult entertainment"}
+            rule_ok = not df[industry_col].astype(str).str.strip().str.lower().isin(restricted).any()
+            rule_results["restricted_industry"] = bool(rule_ok)
+            if not rule_ok:
+                passed = False
+                reasons.append("Restricted industry")
+        except Exception:
+            rule_results["restricted_industry"] = True
+
+    if passed:
+        reasons.append("Passed eligibility rules")
+
+    return passed, reasons, rule_results
+
+
+def build_result(
+    input_file: Path,
+    sanctions_ok: bool,
+    sanctions_reasons: List[str],
+    rules_ok: bool,
+    rules_reasons: List[str],
+    entities_checked: List[str],
+    sanctions_hits: List[str],
+    rule_evaluations: Dict[str, bool],
+) -> EligibilityResult:
+    eligible = sanctions_ok and rules_ok
+    reasons = sanctions_reasons + rules_reasons
+    return EligibilityResult(
+        eligible=eligible,
+        reasons=reasons,
+        checks={
+            "sanctions_check": sanctions_ok,
+            "eligibility_rules_check": rules_ok,
+        },
+        input_file=str(input_file.resolve()),
+        evaluated_at=datetime.utcnow().isoformat() + "Z",
+        entities_checked=entities_checked[:20],
+        sanctions_hits=sanctions_hits,
+        rule_evaluations=rule_evaluations,
+    )
+
+
+def write_outputs(result: EligibilityResult) -> Tuple[Path, Path]:
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
+    json_path = OUTPUT_DIR / f"eligibility_result_{timestamp}.json"
+    xlsx_path = OUTPUT_DIR / f"eligibility_result_{timestamp}.xlsx"
+
+    # JSON (minimal)
+    with json_path.open("w", encoding="utf-8") as f:
+        json.dump({"eligible": result.eligible}, f, indent=2)
+
+    # Excel (minimal): a single column with the eligibility decision
+    out_df = pd.DataFrame([{"eligible": result.eligible}])
+    with pd.ExcelWriter(xlsx_path, engine="openpyxl") as writer:
+        out_df.to_excel(writer, index=False, sheet_name="eligibility")
+
+    return json_path, xlsx_path
+
+
+def process_input_file(input_excel: Path, output_dir: Optional[Path] = None) -> Tuple[EligibilityResult, Path, Path]:
+    """Process a specific Excel file and write results to output directory.
+
+    Returns (result, json_path, xlsx_path)
+    """
+    ensure_directories()
+    if output_dir is not None:
+        global OUTPUT_DIR
+        OUTPUT_DIR = Path(output_dir)
+        OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+    df = read_input_dataframe(input_excel)
+    sanctions_list = load_sanctions_list()
+    entity_names = extract_entity_names(df)
+
+    sanctions_ok, sanctions_reasons, sanctions_hits = perform_sanctions_check(entity_names, sanctions_list)
+    rules_ok, rules_reasons, rule_evals = perform_eligibility_rules(df)
+
+    result = build_result(
+        input_excel,
+        sanctions_ok,
+        sanctions_reasons,
+        rules_ok,
+        rules_reasons,
+        entity_names,
+        sanctions_hits,
+        rule_evals,
+    )
+    json_path, xlsx_path = write_outputs(result)
+    return result, json_path, xlsx_path
+
+def get_downloads_dir() -> Path:
+    # Best-effort: typical Downloads folder on Windows/macOS/Linux
+    candidate = Path.home() / "Downloads"
+    return candidate if candidate.exists() else Path.home()
+
+
+def export_to_downloads(paths: List[Path]) -> List[Path]:
+    downloads = get_downloads_dir()
+    copied: List[Path] = []
+    for p in paths:
+        target = downloads / p.name
+        shutil.copy2(p, target)
+        copied.append(target)
+    return copied
+
+
+def serve_output_directory(port: int) -> None:
+    # Serve the output directory and block until Ctrl+C
+    cwd = Path.cwd()
+    try:
+        # Change to OUTPUT_DIR so files are at root
+        Path.chdir(OUTPUT_DIR)
+    except Exception:
+        # Fallback: if chdir not available, use cwd
+        pass
+    handler = SimpleHTTPRequestHandler
+    httpd = ThreadingHTTPServer(("0.0.0.0", port), handler)
+    print(f"Serving '{OUTPUT_DIR.resolve()}' at http://localhost:{port}/ (Ctrl+C to stop)")
+    try:
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        print("\nServer stopped")
+    finally:
+        try:
+            Path.chdir(cwd)
+        except Exception:
+            pass
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Eligibility Check Agent")
+    parser.add_argument("--serve", action="store_true", help="Serve output folder over HTTP for downloads")
+    parser.add_argument("--port", type=int, default=8000, help="Port for --serve (default: 8000)")
+    parser.add_argument(
+        "--export-downloads",
+        action="store_true",
+        help="Copy generated files into the user's Downloads folder",
+    )
+    parser.add_argument(
+        "--open-folder",
+        action="store_true",
+        help="Open the output folder in the system file explorer",
+    )
+    return parser.parse_args()
+
+
+def main() -> int:
+    args = parse_args()
+    ensure_directories()
+    input_excel = load_latest_input_excel()
+    df = read_input_dataframe(input_excel)
+    sanctions_list = load_sanctions_list()
+    entity_names = extract_entity_names(df)
+
+    sanctions_ok, sanctions_reasons, sanctions_hits = perform_sanctions_check(entity_names, sanctions_list)
+    rules_ok, rules_reasons, rule_evals = perform_eligibility_rules(df)
+
+    result = build_result(
+        input_excel,
+        sanctions_ok,
+        sanctions_reasons,
+        rules_ok,
+        rules_reasons,
+        entity_names,
+        sanctions_hits,
+        rule_evals,
+    )
+    json_path, xlsx_path = write_outputs(result)
+
+    print(json.dumps({"eligible": result.eligible}, indent=2))
+    print(f"\nWrote JSON: {json_path.resolve()}")
+    print(f"Wrote Excel: {xlsx_path.resolve()}")
+
+    if args.export_downloads:
+        copied = export_to_downloads([json_path, xlsx_path])
+        print("Copied to Downloads:")
+        for c in copied:
+            print(f" - {c}")
+
+    if args.open_folder:
+        try:
+            # Open output folder in file explorer
+            webbrowser.open(OUTPUT_DIR.resolve().as_uri())
+        except Exception:
+            pass
+
+    if args.serve:
+        # Provide direct URLs to the generated files
+        print("\nDownload links (after server starts):")
+        print(f" - JSON: http://localhost:{args.port}/{json_path.name}")
+        print(f" - Excel: http://localhost:{args.port}/{xlsx_path.name}")
+        serve_output_directory(args.port)
+
+    return 0 if result.eligible else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 so what i observed in the folder strucutre is the eligibility ran correctly it generated the output in output folder in the first try itsefl, but it kept on generating the out put also below is what i am gettin in terminal 
 (venv) PS C:\Users\2000137378\Desktop\orchestration8.1_agent_project> python orchestration_agent.py
 Using Azure OpenAI deployment: gpt-4
