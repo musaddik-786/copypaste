@@ -1,3 +1,673 @@
+# Standardized AI Agent Template According to Industry Standards
+
+## Executive Summary
+
+This document provides a comprehensive template and best practices for developing AI agents that adhere to industry standards and ensure proper lifecycle management. It addresses the standardization gap in AI agent development and provides reference implementations for enterprise-grade agents.
+
+## Table of Contents
+
+1. [Industry Standards Overview](#industry-standards-overview)
+2. [AI Agent Architecture Standards](#ai-agent-architecture-standards)
+3. [Standardized Code Template](#standardized-code-template)
+4. [Agent Lifecycle Management](#agent-lifecycle-management)
+5. [Housekeeping and Maintenance Standards](#housekeeping-and-maintenance-standards)
+6. [Reference Links](#reference-links)
+7. [Implementation Checklist](#implementation-checklist)
+
+## Industry Standards Overview
+
+### Key Standards and Frameworks
+
+#### 1. Open Agentic Schema Framework (OASF)
+- **Reference**: https://docs.agntcy.org/oasf/open-agentic-schema-framework/
+- **Purpose**: Standardized schema system for defining and managing AI agent capabilities, interactions, and metadata
+- **Key Features**:
+  - Common data structure for content standardization
+  - Unique agent identification for discovery
+  - Extension capabilities for third-party features
+  - Skills and domains taxonomy
+
+#### 2. FIPA (Foundation for Intelligent Physical Agents) Standards
+- **Reference**: http://www.fipa.org/specs/fipa00003/OC00003A.pdf
+- **Purpose**: Agent Communication Language (ACL) based on speech act theory
+- **Core Components**:
+  - Message structure with performatives
+  - Agent communication protocols
+  - Ontology and content language specifications
+
+#### 3. IEEE Standards
+- **IEEE P3833**: Framework for proactive AI agents with multi-modal interaction
+- **IEEE P7006**: Standard for Personal Data AI Agents
+- **Reference**: https://standards.ieee.org/ieee/3833/11922/
+
+#### 4. Microsoft Azure AI Standards
+- **Reference**: https://learn.microsoft.com/en-us/azure/ai-foundry/agents/concepts/standard-agent-setup
+- **Focus**: Enterprise-grade security, compliance, and control
+
+## AI Agent Architecture Standards
+
+### Core Architecture Layers
+
+#### 1. Perception Layer
+```python
+class PerceptionLayer:
+    """
+    Handles input processing, data preprocessing, and feature extraction
+    """
+    def __init__(self):
+        self.sensor_integration = SensorIntegration()
+        self.data_preprocessor = DataPreprocessor()
+        self.feature_extractor = FeatureExtractor()
+    
+    def process_input(self, raw_data):
+        # Sensor integration and data normalization
+        processed_data = self.data_preprocessor.preprocess(raw_data)
+        features = self.feature_extractor.extract(processed_data)
+        return features
+```
+
+#### 2. Cognitive Layer (Reasoning & Decision Making)
+```python
+class CognitiveLayer:
+    """
+    Core decision-making and reasoning engine
+    """
+    def __init__(self):
+        self.reasoning_engine = ReasoningEngine()
+        self.memory_manager = MemoryManager()
+        self.goal_manager = GoalManager()
+    
+    def make_decision(self, perception_data, context):
+        # Process information and make decisions
+        current_state = self.memory_manager.get_current_state()
+        goals = self.goal_manager.get_active_goals()
+        decision = self.reasoning_engine.reason(perception_data, current_state, goals)
+        return decision
+```
+
+#### 3. Action Layer
+```python
+class ActionLayer:
+    """
+    Executes decisions and interacts with the environment
+    """
+    def __init__(self):
+        self.action_executor = ActionExecutor()
+        self.safety_checker = SafetyChecker()
+        self.feedback_monitor = FeedbackMonitor()
+    
+    def execute_action(self, decision):
+        # Validate and execute actions safely
+        if self.safety_checker.validate(decision):
+            result = self.action_executor.execute(decision)
+            self.feedback_monitor.monitor(result)
+            return result
+        else:
+            raise SafetyException("Action validation failed")
+```
+
+### Standard Integration Patterns
+
+#### 1. Message-Based Communication (FIPA ACL Compliant)
+```python
+class FIPAMessage:
+    """
+    FIPA-compliant message structure
+    """
+    def __init__(self, performative, sender, receiver, content, 
+                 language=None, ontology=None, conversation_id=None):
+        self.performative = performative  # Required
+        self.sender = sender
+        self.receiver = receiver
+        self.content = content
+        self.language = language
+        self.ontology = ontology
+        self.conversation_id = conversation_id
+        self.reply_with = None
+        self.in_reply_to = None
+        self.protocol = None
+```
+
+#### 2. OASF-Compliant Agent Record
+```python
+class OASFAgentRecord:
+    """
+    Open Agentic Schema Framework compliant agent definition
+    """
+    def __init__(self):
+        self.agent_id = None
+        self.name = None
+        self.version = None
+        self.description = None
+        self.capabilities = []
+        self.skills = []
+        self.domains = []
+        self.metadata = {}
+        
+    def to_oasf_schema(self):
+        return {
+            "agent_id": self.agent_id,
+            "name": self.name,
+            "version": self.version,
+            "description": self.description,
+            "capabilities": self.capabilities,
+            "skills": self.skills,
+            "domains": self.domains,
+            "metadata": self.metadata
+        }
+```
+
+## Standardized Code Template
+
+### Complete AI Agent Template
+
+```python
+import logging
+import asyncio
+from datetime import datetime
+from typing import Dict, List, Optional, Any
+from dataclasses import dataclass
+from enum import Enum
+
+# Standard imports for enterprise agents
+from fastapi import FastAPI, HTTPException, BackgroundTasks
+from pydantic import BaseModel, Field
+import uvicorn
+
+# Configuration Management
+class AgentConfig:
+    """
+    Centralized configuration management following enterprise standards
+    """
+    def __init__(self):
+        self.agent_id = os.getenv("AGENT_ID", "default-agent")
+        self.version = os.getenv("AGENT_VERSION", "1.0.0")
+        self.log_level = os.getenv("LOG_LEVEL", "INFO")
+        self.max_retries = int(os.getenv("MAX_RETRIES", "3"))
+        self.timeout = int(os.getenv("TIMEOUT", "30"))
+
+# Logging Configuration (Industry Standard)
+def setup_logging(config: AgentConfig) -> logging.Logger:
+    """
+    Enterprise-standard logging setup
+    """
+    logging.basicConfig(
+        level=getattr(logging, config.log_level),
+        format='%(asctime)s - %(name)s - %(levelname)s - [%(agent_id)s] - %(message)s',
+        handlers=[
+            logging.StreamHandler(),
+            logging.FileHandler(f'agent_{config.agent_id}.log')
+        ]
+    )
+    logger = logging.getLogger(__name__)
+    logger = logging.LoggerAdapter(logger, {'agent_id': config.agent_id})
+    return logger
+
+# Data Models (Pydantic for validation)
+class AgentRequest(BaseModel):
+    """
+    Standard request model with validation
+    """
+    task_id: str = Field(..., description="Unique task identifier")
+    input_data: Dict[str, Any] = Field(..., description="Input data for processing")
+    context: Optional[Dict[str, Any]] = Field(None, description="Additional context")
+    priority: int = Field(1, ge=1, le=5, description="Task priority (1-5)")
+
+class AgentResponse(BaseModel):
+    """
+    Standard response model
+    """
+    task_id: str
+    status: str
+    result: Optional[Dict[str, Any]] = None
+    error: Optional[str] = None
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+
+# Exception Handling (Standard)
+class AgentException(Exception):
+    """Base exception for agent operations"""
+    pass
+
+class ValidationException(AgentException):
+    """Data validation exceptions"""
+    pass
+
+class ProcessingException(AgentException):
+    """Processing-related exceptions"""
+    pass
+
+# Core Agent Class (Following Industry Standards)
+class StandardizedAIAgent:
+    """
+    Standardized AI Agent implementation following industry best practices
+    """
+    
+    def __init__(self, config: AgentConfig):
+        self.config = config
+        self.logger = setup_logging(config)
+        self.agent_record = self._create_oasf_record()
+        self.state = "initialized"
+        
+        # Core components
+        self.perception_layer = PerceptionLayer()
+        self.cognitive_layer = CognitiveLayer()
+        self.action_layer = ActionLayer()
+        
+        # Lifecycle management
+        self.task_queue = asyncio.Queue()
+        self.active_tasks = {}
+        self.metrics = {
+            "tasks_processed": 0,
+            "success_rate": 0.0,
+            "average_processing_time": 0.0,
+            "last_health_check": None
+        }
+    
+    def _create_oasf_record(self) -> OASFAgentRecord:
+        """Create OASF-compliant agent record"""
+        record = OASFAgentRecord()
+        record.agent_id = self.config.agent_id
+        record.name = "Data Extraction Agent"
+        record.version = self.config.version
+        record.description = "Standardized data extraction agent"
+        record.capabilities = ["data_extraction", "document_processing"]
+        record.skills = ["ocr", "form_recognition", "data_validation"]
+        record.domains = ["document_processing", "data_extraction"]
+        return record
+    
+    async def initialize(self):
+        """Initialize agent components"""
+        try:
+            self.logger.info("Initializing agent components")
+            await self.perception_layer.initialize()
+            await self.cognitive_layer.initialize()
+            await self.action_layer.initialize()
+            self.state = "ready"
+            self.logger.info("Agent initialization complete")
+        except Exception as e:
+            self.logger.error(f"Initialization failed: {str(e)}")
+            self.state = "error"
+            raise
+    
+    async def process_task(self, request: AgentRequest) -> AgentResponse:
+        """
+        Standard task processing pipeline
+        """
+        start_time = datetime.utcnow()
+        
+        try:
+            # Validation
+            self._validate_request(request)
+            
+            # Perception phase
+            perception_data = await self.perception_layer.process_input(request.input_data)
+            
+            # Cognitive phase
+            decision = await self.cognitive_layer.make_decision(
+                perception_data, 
+                request.context
+            )
+            
+            # Action phase
+            result = await self.action_layer.execute_action(decision)
+            
+            # Update metrics
+            processing_time = (datetime.utcnow() - start_time).total_seconds()
+            self._update_metrics(processing_time, True)
+            
+            return AgentResponse(
+                task_id=request.task_id,
+                status="completed",
+                result=result,
+                metadata={
+                    "processing_time": processing_time,
+                    "agent_version": self.config.version
+                }
+            )
+            
+        except Exception as e:
+            self.logger.error(f"Task processing failed: {str(e)}")
+            processing_time = (datetime.utcnow() - start_time).total_seconds()
+            self._update_metrics(processing_time, False)
+            
+            return AgentResponse(
+                task_id=request.task_id,
+                status="error",
+                error=str(e),
+                metadata={
+                    "processing_time": processing_time,
+                    "agent_version": self.config.version
+                }
+            )
+    
+    def _validate_request(self, request: AgentRequest):
+        """Validate incoming requests"""
+        if not request.task_id:
+            raise ValidationException("Task ID is required")
+        if not request.input_data:
+            raise ValidationException("Input data is required")
+    
+    def _update_metrics(self, processing_time: float, success: bool):
+        """Update agent performance metrics"""
+        self.metrics["tasks_processed"] += 1
+        
+        # Update success rate
+        if success:
+            success_count = self.metrics["tasks_processed"] * self.metrics["success_rate"]
+            success_count += 1
+            self.metrics["success_rate"] = success_count / self.metrics["tasks_processed"]
+        else:
+            success_count = self.metrics["tasks_processed"] * self.metrics["success_rate"]
+            self.metrics["success_rate"] = success_count / self.metrics["tasks_processed"]
+        
+        # Update average processing time
+        current_avg = self.metrics["average_processing_time"]
+        total_tasks = self.metrics["tasks_processed"]
+        self.metrics["average_processing_time"] = (
+            (current_avg * (total_tasks - 1) + processing_time) / total_tasks
+        )
+    
+    async def health_check(self) -> Dict[str, Any]:
+        """Standard health check implementation"""
+        self.metrics["last_health_check"] = datetime.utcnow()
+        
+        health_status = {
+            "agent_id": self.config.agent_id,
+            "version": self.config.version,
+            "state": self.state,
+            "metrics": self.metrics,
+            "components": {
+                "perception": await self.perception_layer.health_check(),
+                "cognitive": await self.cognitive_layer.health_check(),
+                "action": await self.action_layer.health_check()
+            }
+        }
+        
+        return health_status
+
+# FastAPI Application (Enterprise Standard)
+def create_app() -> FastAPI:
+    """Create standardized FastAPI application"""
+    
+    config = AgentConfig()
+    agent = StandardizedAIAgent(config)
+    
+    app = FastAPI(
+        title="Standardized AI Agent",
+        description="Industry-standard AI agent implementation",
+        version=config.version,
+        docs_url="/docs",
+        redoc_url="/redoc"
+    )
+    
+    @app.on_event("startup")
+    async def startup_event():
+        await agent.initialize()
+    
+    @app.post("/process", response_model=AgentResponse)
+    async def process_task(request: AgentRequest) -> AgentResponse:
+        """Process task endpoint"""
+        return await agent.process_task(request)
+    
+    @app.get("/health")
+    async def health_check():
+        """Health check endpoint"""
+        return await agent.health_check()
+    
+    @app.get("/agent-info")
+    async def get_agent_info():
+        """Get agent information (OASF compliant)"""
+        return agent.agent_record.to_oasf_schema()
+    
+    return app
+
+# Application Entry Point
+if __name__ == "__main__":
+    config = AgentConfig()
+    app = create_app()
+    
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=int(os.getenv("PORT", "8080")),
+        log_level=config.log_level.lower(),
+        access_log=True
+    )
+```
+
+## Agent Lifecycle Management
+
+### 1. Development Phase
+
+#### Standards Compliance Checklist:
+- [ ] OASF agent record defined
+- [ ] FIPA ACL message compliance (if applicable)
+- [ ] Standard logging implementation
+- [ ] Configuration management
+- [ ] Error handling and validation
+- [ ] Health check endpoints
+- [ ] Metrics collection
+
+### 2. Deployment Phase
+
+#### Deployment Standards:
+```yaml
+# docker-compose.yml example
+version: '3.8'
+services:
+  ai-agent:
+    build: .
+    environment:
+      - AGENT_ID=${AGENT_ID}
+      - AGENT_VERSION=${AGENT_VERSION}
+      - LOG_LEVEL=${LOG_LEVEL}
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./logs:/app/logs
+      - ./data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+```
+
+### 3. Monitoring Phase
+
+#### Standard Monitoring Metrics:
+- Task completion rate
+- Average processing time
+- Error rates
+- Resource utilization
+- Health check status
+
+### 4. Maintenance Phase
+
+#### Maintenance Standards:
+- Regular health checks
+- Log rotation and archival
+- Performance optimization
+- Security updates
+- Configuration updates
+
+## Housekeeping and Maintenance Standards
+
+### 1. Code Organization Standards
+
+```
+project-root/
+â”œâ”€â”€ agents/
+â”‚   â”œâ”€â”€ __init__.py
+â”‚   â”œâ”€â”€ core/
+â”‚   â”‚   â”œâ”€â”€ __init__.py
+â”‚   â”‚   â”œâ”€â”€ perception.py
+â”‚   â”‚   â”œâ”€â”€ cognitive.py
+â”‚   â”‚   â””â”€â”€ action.py
+â”‚   â”œâ”€â”€ models/
+â”‚   â”‚   â”œâ”€â”€ __init__.py
+â”‚   â”‚   â”œâ”€â”€ requests.py
+â”‚   â”‚   â””â”€â”€ responses.py
+â”‚   â””â”€â”€ utils/
+â”‚       â”œâ”€â”€ __init__.py
+â”‚       â”œâ”€â”€ config.py
+â”‚       â””â”€â”€ logging.py
+â”œâ”€â”€ tests/
+â”‚   â”œâ”€â”€ __init__.py
+â”‚   â”œâ”€â”€ unit/
+â”‚   â””â”€â”€ integration/
+â”œâ”€â”€ config/
+â”‚   â”œâ”€â”€ development.env
+â”‚   â”œâ”€â”€ production.env
+â”‚   â””â”€â”€ test.env
+â”œâ”€â”€ docs/
+â”‚   â”œâ”€â”€ api.md
+â”‚   â”œâ”€â”€ deployment.md
+â”‚   â””â”€â”€ architecture.md
+â”œâ”€â”€ scripts/
+â”‚   â”œâ”€â”€ deploy.sh
+â”‚   â””â”€â”€ health_check.sh
+â”œâ”€â”€ docker-compose.yml
+â”œâ”€â”€ Dockerfile
+â”œâ”€â”€ requirements.txt
+â”œâ”€â”€ README.md
+â””â”€â”€ .gitignore
+```
+
+### 2. Documentation Standards
+
+#### Required Documentation:
+- API documentation (OpenAPI/Swagger)
+- Architecture diagrams
+- Deployment guides
+- Troubleshooting guides
+- Change logs
+
+### 3. Testing Standards
+
+```python
+# Standard test structure
+import pytest
+from agents.core import StandardizedAIAgent
+from agents.models.requests import AgentRequest
+
+class TestStandardizedAIAgent:
+    
+    @pytest.fixture
+    def agent(self):
+        config = AgentConfig()
+        return StandardizedAIAgent(config)
+    
+    @pytest.mark.asyncio
+    async def test_agent_initialization(self, agent):
+        await agent.initialize()
+        assert agent.state == "ready"
+    
+    @pytest.mark.asyncio
+    async def test_task_processing(self, agent):
+        request = AgentRequest(
+            task_id="test-123",
+            input_data={"test": "data"}
+        )
+        response = await agent.process_task(request)
+        assert response.status in ["completed", "error"]
+```
+
+### 4. Performance Standards
+
+#### Key Performance Indicators (KPIs):
+- Response time: < 5 seconds for 95% of requests
+- Availability: 99.9% uptime
+- Error rate: < 1%
+- Throughput: Configurable based on requirements
+
+### 5. Security Standards
+
+#### Security Checklist:
+- [ ] Input validation and sanitization
+- [ ] Authentication and authorization
+- [ ] Encrypted data transmission
+- [ ] Secure configuration management
+- [ ] Regular security audits
+- [ ] Vulnerability scanning
+
+## Reference Links
+
+### Industry Standards:
+1. **OASF Documentation**: https://docs.agntcy.org/oasf/open-agentic-schema-framework/
+2. **FIPA Specifications**: http://www.fipa.org/specs/fipa00003/OC00003A.pdf
+3. **IEEE P3833 Standard**: https://standards.ieee.org/ieee/3833/11922/
+4. **Microsoft Azure AI Standards**: https://learn.microsoft.com/en-us/azure/ai-foundry/agents/concepts/standard-agent-setup
+5. **TMF AI Agent Template**: https://www.tmforum.org/resources/guidebook/ig1412-ai-agent-specification-template-v1-0-0/
+
+### Best Practices:
+6. **Anthropic Agent Building Guide**: https://www.anthropic.com/research/building-effective-agents
+7. **Production-Ready AI Agents**: https://www.diagrid.io/blog/building-production-ready-ai-agents-what-your-framework-needs
+8. **AI Agent Architecture Patterns**: https://learn.microsoft.com/en-us/azure/architecture/ai-ml/guide/ai-agent-design-patterns
+9. **Enterprise AI Agent Development**: https://www.triconinfotech.com/blogs/ai-agents-implementation-at-enterprise-level/
+10. **Agent Lifecycle Management**: https://www.teneo.ai/learning-hub/call-center-glossary/ai-agent-lifecycle-management
+
+## Implementation Checklist
+
+### Pre-Development
+- [ ] Review industry standards and select applicable ones
+- [ ] Define agent capabilities and scope
+- [ ] Create OASF-compliant agent record
+- [ ] Set up project structure following standards
+- [ ] Configure development environment
+
+### Development
+- [ ] Implement standardized architecture layers
+- [ ] Add proper logging and monitoring
+- [ ] Implement health checks and metrics
+- [ ] Add comprehensive error handling
+- [ ] Create unit and integration tests
+- [ ] Document API endpoints
+
+### Pre-Deployment
+- [ ] Security review and testing
+- [ ] Performance testing and optimization
+- [ ] Configuration management setup
+- [ ] Container and orchestration setup
+- [ ] Deployment scripts and automation
+
+### Post-Deployment
+- [ ] Monitor performance metrics
+- [ ] Set up alerting and notifications
+- [ ] Regular health checks and maintenance
+- [ ] Log analysis and optimization
+- [ ] Periodic security audits
+- [ ] Documentation updates
+
+### Maintenance
+- [ ] Regular dependency updates
+- [ ] Performance optimization
+- [ ] Security patching
+- [ ] Backup and recovery procedures
+- [ ] Disaster recovery testing
+- [ ] Compliance audits
+
+---
+
+**Note**: This template provides a foundation for building industry-standard AI agents. Specific implementations may require additional customization based on use case requirements and organizational standards.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 import uvicorn
