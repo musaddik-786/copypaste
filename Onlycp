@@ -1,3 +1,350 @@
+
+
+import uvicorn
+from fastapi import FastAPI, UploadFile, File, BackgroundTasks
+from fastapi.responses import FileResponse, JSONResponse
+from dotenv import load_dotenv
+import os
+import pandas as pd
+import tempfile
+import json
+from datetime import datetime
+from image_processor import analyze_document
+import asyncio
+ 
+# Load environment variables
+load_dotenv()
+ENDPOINT = os.getenv("AZURE_FORMRECOG_ENDPOINT")
+API_KEY = os.getenv("AZURE_FORMRECOG_KEY")
+
+COMMON_DIR =  os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Eligibilty_check_UW", "input")
+# Ensure output and input directories exist
+MOUNT_DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "data")
+os.makedirs(MOUNT_DATA_DIR, exist_ok=True)  # Ensure the Mount_Data directory exists
+
+# Define the path to the Extracted_Data folder inside Mount_Data
+OUTPUT_DIR = os.path.join(MOUNT_DATA_DIR, "Extracted_Data")
+os.makedirs(OUTPUT_DIR, exist_ok=True)  # Ensure the Extracted_Data directory exists
+
+
+
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# OUTPUT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "output")
+INPUT_DIR = os.path.join(BASE_DIR, "input")
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+os.makedirs(INPUT_DIR, exist_ok=True)
+ 
+app = FastAPI()
+ 
+@app.post("/extract")
+async def extract_fields(image: UploadFile = File(...), excel: UploadFile = File(...), background_tasks: BackgroundTasks = None):
+    try:
+        image_data = await image.read()
+ 
+        # Save and read Excel file
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp_excel:
+            tmp_excel.write(await excel.read())
+            tmp_excel_path = tmp_excel.name
+ 
+        df = pd.read_excel(tmp_excel_path, engine="openpyxl", header=None)
+ 
+        if df.empty or df.shape[1] < 1:
+            try:
+                os.remove(tmp_excel_path)
+            except Exception:
+                pass
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Excel file must have at least one column with fields to extract."},
+            )
+ 
+        fields = df[0].dropna().astype(str).tolist()
+        categories = {"Uncategorized": fields}
+ 
+        result = analyze_document(
+            ENDPOINT, API_KEY, image_data=image_data, fields_to_extract=fields, categories=categories
+        )
+ 
+        rows = []
+        fields_with_values = result.get("fields_with_values", {})
+        selected_fields = set(result.get("selected_fields", []))
+ 
+        for key, val in fields_with_values.items():
+            rows.append({
+                "Field": key,
+                "Value": val,
+                "Selected": key in selected_fields
+            })
+ 
+        for key in selected_fields:
+            if key not in fields_with_values:
+                rows.append({
+                    "Field": key,
+                    "Value": "",
+                    "Selected": True
+                })
+ 
+        df_out = pd.DataFrame(rows, columns=["Field", "Value", "Selected"])
+ 
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp_out:
+            tmp_out_path = tmp_out.name
+        df_out.to_excel(tmp_out_path, index=False, engine="openpyxl")
+ 
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        # excel_filename = f"extracted_{timestamp}.xlsx"
+        # excel_filename = OUTPUT_DIR / "extracted.xlsx"
+
+        excel_filename = "extracted.xlsx"
+        # excel_filename = OUTPUT_DIR / f"extracted.xlsx"
+        json_filename = f"extracted_{timestamp}.json"
+ 
+        # excel_path = os.path.join(OUTPUT_DIR, excel_filename) - I commented
+        excel_path = os.path.join(COMMON_DIR, excel_filename)
+        df_out.to_excel(excel_path, index=False, engine="openpyxl")
+ 
+        json_path = os.path.join(OUTPUT_DIR, json_filename)
+        with open(json_path, "w", encoding="utf-8") as json_file:
+            json.dump(rows, json_file, indent=4)
+ 
+        test_json_path = os.path.join(OUTPUT_DIR, "data_extraction.json")
+        status_payload = {"status": "completed"} if rows else {"status": "not completed"}
+        with open(test_json_path, "w", encoding="utf-8") as test_file:
+            json.dump(status_payload, test_file, indent=4)
+ 
+        if background_tasks:
+            background_tasks.add_task(lambda p: os.path.exists(p) and os.remove(p), tmp_out_path)
+            background_tasks.add_task(lambda p: os.path.exists(p) and os.remove(p), tmp_excel_path)
+        else:
+            try:
+                os.remove(tmp_excel_path)
+            except Exception:
+                pass
+ 
+        return JSONResponse(
+            status_code=200,
+            content={
+                "message": "Extraction successful.",
+                "excel_file": excel_path,
+                "json_file": json_path,
+                "status_file": test_json_path
+            }
+        )
+ 
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+ 
+# ------------------ Manual Folder Processing Logic ------------------
+ 
+def find_file_pairs(input_dir):
+    print("🔍 Scanning input folder...")
+   
+    # List all files in input directory
+    files = os.listdir(input_dir)
+   
+    # Find excel files
+    excel_files = [f for f in files if f.endswith('.xlsx')]
+    # Find document files
+    doc_files = [f for f in files if f.lower().endswith(('.pdf', '.png', '.jpg', '.jpeg'))]
+   
+    print(f" Found {len(excel_files)} Excel files and {len(doc_files)} document files")
+   
+    pairs = []
+    for excel in excel_files:
+        base_name = os.path.splitext(excel)[0]
+       
+        # Look for matching document files
+        for doc in doc_files:
+            doc_base = os.path.splitext(doc)[0]
+           
+            # Match if document name starts with excel name or vice versa
+            if doc_base.startswith(base_name) or base_name.startswith(doc_base):
+                pairs.append((
+                    os.path.join(input_dir, doc),
+                    os.path.join(input_dir, excel)
+                ))
+                print(f"✓ Matched: {doc} ↔ {excel}")
+                break
+   
+    print(f" Matched {len(pairs)} file pairs")
+    return pairs
+ 
+async def process_input_folder():
+    pairs = find_file_pairs(INPUT_DIR)
+    for image_path, excel_path in pairs:
+        try:
+            print(f"Processing: {os.path.basename(image_path)} + {os.path.basename(excel_path)}")
+ 
+            with open(image_path, "rb") as img_file:
+                image_data = img_file.read()
+ 
+            df = pd.read_excel(excel_path, engine="openpyxl", header=None)
+            if df.empty or df.shape[1] < 1:
+                print(" Skipped: Excel file is empty or invalid.")
+                continue
+ 
+            fields = df[0].dropna().astype(str).tolist()
+            categories = {"Uncategorized": fields}
+ 
+            print(" Sending to Document Intelligence API...")
+            result = analyze_document(
+                ENDPOINT, API_KEY, image_data=image_data, fields_to_extract=fields, categories=categories
+            )
+ 
+            rows = []
+            fields_with_values = result.get("fields_with_values", {})
+            selected_fields = set(result.get("selected_fields", []))
+ 
+            for key, val in fields_with_values.items():
+                rows.append({"Field": key, "Value": val, "Selected": key in selected_fields})
+            for key in selected_fields:
+                if key not in fields_with_values:
+                    rows.append({"Field": key, "Value": "", "Selected": True})
+ 
+            # Create the original DataFrame
+            df_out = pd.DataFrame(rows, columns=["Field", "Value", "Selected"])
+           
+            # Create a transposed version for Excel
+            df_excel = pd.DataFrame({
+                'Field': df_out['Field'].values,
+                'Value': df_out['Value'].values,
+                'Selected': df_out['Selected'].values
+            })
+           
+            # Transpose the DataFrame and use the 'Field' column as headers
+            df_excel_transposed = pd.DataFrame([df_excel['Value'].values, df_excel['Selected'].values],
+                                             columns=df_excel['Field'].values)
+ 
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            # excel_filename = f"extracted_{timestamp}.xlsx"
+            excel_filename = "extracted.xlsx"
+            json_filename = f"extracted_{timestamp}.json"
+ 
+            # excel_path = os.path.join(OUTPUT_DIR, excel_filename) - I Commented and adde a new line below
+            excel_path = os.path.join(COMMON_DIR, excel_filename)
+            json_path = os.path.join(OUTPUT_DIR, json_filename)
+            test_json_path = os.path.join(OUTPUT_DIR, "data_extraction.json")
+ 
+            print("Saving extracted data...")
+            # Save Excel file in transposed format
+            df_excel_transposed.to_excel(excel_path, index=False, engine="openpyxl")
+            print(f"Excel saved: {excel_filename}")
+           
+            # Save JSON files (keeping original format)
+            with open(json_path, "w", encoding="utf-8") as json_file:
+                json.dump(rows, json_file, indent=4)
+            print(f"JSON saved: {json_filename}")
+           
+            with open(test_json_path, "w", encoding="utf-8") as test_file:
+                json.dump({"status": "completed" if rows else "not completed"}, test_file, indent=4)
+ 
+            print(" Extraction complete. Files saved to output folder.")
+ 
+        except Exception as e:
+            print(f" Error processing {image_path} and {excel_path}: {e}")
+ 
+
+ 
+@app.on_event("startup")
+async def startup_event():
+    print(" FastAPI server starting...")
+    asyncio.create_task(process_input_folder())
+
+
+
+# if __name__ == "__main__":
+#     uvicorn.run(app, host="0.0.0.0", port=env.get(Port_Number)
+if __name__ == "__main__":
+    # Read PORT_NUMBER from environment variables
+    port = int(os.getenv("PORT_NUMBER", 8056))  # Default to 8000 if not set
+    uvicorn.run(app, host="0.0.0.0", port=port)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 so what i observed in the folder strucutre is the eligibility ran correctly it generated the output in output folder in the first try itsefl, but it kept on generating the out put also below is what i am gettin in terminal 
  (venv) PS C:\Users\2000137378\Desktop\orchestration8.1_agent_project> python orchestration_agent.py  
 Using Azure OpenAI deployment: gpt-4
