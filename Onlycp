@@ -1,3 +1,78 @@
+Here is a detailed prompt you can provide to AI tools for creating an architectural diagram of your orchestration AI agent based on the shared code:
+
+***
+
+Create a clear architectural diagram for an **Orchestration AI Agent system** based on the following description and code functionality.
+
+### Problem Statement:
+Design an architecture diagram illustrating a centralized orchestration system that manages multiple AI agents sequentially. The purpose is to coordinate the execution of distinct AI agents—DataExtractionAgent, EligibilityCheckAgent, and RiskAssessmentAgent—based on the state of shared JSON files, using a large language model (LLM) to decide which agent runs next.
+
+### Diagram Requirements:
+
+1. **System Components:**
+   - **Orchestration Controller:** Central component running a continuous loop.
+   - **LLM-based Decision Engine:** Receives current state of input/output JSON files and uses a static prompt to decide the next AI agent to activate.
+   - **Agents:** Three AI agents represented as separate components or services:
+     - DataExtractionAgent
+     - EligibilityCheckAgent
+     - RiskAssessmentAgent
+   - **File System Storage:** Shared JSON files for state persistence between agents; includes `data_dir` and `Extracted_Data` directory.
+   - **External HTTP APIs:** Each agent is triggered by HTTP POST calls to local endpoints.
+
+2. **Flow Description:**
+   - The orchestration controller reads the current JSON state files.
+   - It sends the aggregated state as input to the LLM decision engine.
+   - The LLM returns the next agent to activate or "NONE" to stop.
+   - The orchestration controller triggers the corresponding agent via an HTTP POST request.
+   - Each agent updates specific JSON files reflecting its output.
+   - This new file state influences the next LLM decision in the loop.
+   - Loop control exists to prevent infinite repetitions (exit after 5 repeated agent suggestions).
+
+3. **Interactions and Dependencies:**
+   - Depict sequential processing flow from DataExtraction → EligibilityCheck → RiskAssessment.
+   - Show the file dependencies, e.g., EligibilityCheckAgent reads from `data_extraction.json`, writes to `eligibility.json`.
+   - Explicitly show the orchestration controller’s interaction with the LLM and agents.
+   - Highlight simple error handling and status logging within the loop.
+
+4. **Visual Style:**
+   - Use clear labeled blocks for each agent, the controller, LLM engine, and shared storage.
+   - Arrows should represent the flow of control and data (JSON files and HTTP calls).
+   - Include brief annotations for key roles (LLM prompt, file state reading, HTTP triggering).
+   - Emphasize the centralized orchestration approach with a single decision-making loop.
+
+***
+
+This prompt ensures the AI tool understands the functional components, data flow, execution pattern, and key architectural aspects for an accurate diagram that aligns with your orchestration AI agent code.
+
+Sources
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 import subprocess
 import requests
