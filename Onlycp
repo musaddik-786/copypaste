@@ -1,3 +1,43 @@
+Should the diagram include any details about the underlying infrastructure or deployment environment (e.g., cloud services, containerization, networking) supporting the orchestration system?
+
+Enter your response...
+2. Are there any specific failure scenarios or error handling strategies beyond simple logging that you want to illustrate in the architecture?
+
+Enter your response...
+3. Which additional aspects of the orchestration system would you like to see represented in the diagram if any?
+
+
+Authentication and authorization mechanisms for API calls
+Versioning or schema validation of JSON files
+Monitoring and alerting components
+Concurrency or parallelism considerations
+Data privacy or security controls
+4. Do you want to show how the prompt to the LLM decision engine is constructed or managed (e.g., static prompt only, prompt templates, dynamic inputs)?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Here is a detailed prompt you can provide to AI tools for creating an architectural diagram of your orchestration AI agent based on the shared code:
 
 ***
