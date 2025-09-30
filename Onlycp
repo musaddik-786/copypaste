@@ -1,3 +1,296 @@
+
+import subprocess
+import requests
+import argparse
+import json
+import os
+import time
+from typing import Dict
+import sys
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# OpenAI SDK
+from openai import OpenAI, AzureOpenAI
+
+# Local agents
+# from agents import data_extraction_agent, eligibility_agent, risk_assessment_agent
+
+
+def create_client_from_env() -> OpenAI:
+    """Return an OpenAI client that's pre-configured for Azure if the
+    AZURE_OPENAI_* variables are set; otherwise return a default client that
+    talks to api.openai.com.
+    """
+    azure_key = os.getenv("AZURE_OPENAI_API_KEY")
+    azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+    azure_version = os.getenv("AZURE_OPENAI_API_VERSION")
+    deployment = os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT")
+
+    if azure_key and azure_endpoint and azure_version and deployment:
+        client: OpenAI = AzureOpenAI(
+            api_key=azure_key,
+            azure_endpoint=azure_endpoint,
+            api_version=azure_version,
+        )
+        client._is_azure = True
+        client._azure_deployment = deployment
+        return client
+
+    if not os.getenv("OPENAI_API_KEY"):
+        raise RuntimeError(
+            "OPENAI_API_KEY must be set for OpenAI-platform mode "
+            "or provide all AZURE_OPENAI_* variables for Azure mode."
+        )
+
+    client = OpenAI()
+    client._is_azure = False
+    client._azure_deployment = None
+    return client
+
+
+# Create the client once, globally
+client = create_client_from_env()
+
+ALLOWED_AGENTS = ["RiskAssessmentAgent", "DataExtractionAgent", "EligibilityCheckAgent", "NONE"]
+
+PROMPT_TEMPLATE = (
+    "You are an orchestration-decider."
+    "Available agents (do NOT create new ones):"
+    "1) RiskAssessmentAgent – reads eligibility.json, writes risk_scores.json."
+    "2) DataExtractionAgent – writes data_extraction.json."
+    "3) EligibilityCheckAgent – reads data_extraction.json, writes eligibility.json."
+    "Your task is to decide which agent should run next, based on the current state of the files and their contents. "
+    "Evaluate the outcome of each agent's operation as reflected in the file contents and ensure that the operation is valid and complete before proceeding to the next agent."
+    "Important considerations:"
+    "1) Each agent's operation depends on the validity and completeness of the previous agent's output. If an agent's output indicates that further processing is not required or possible, you must stop and not proceed to the next agent."
+    "2) If an agent's output is incomplete, invalid, or indicates that further processing should not occur, provide a reason for why the next agent cannot be activated and stop further processing."
+    "3) If an agent's output is complete and valid, proceed to the next agent."
+    "Input: a JSON object called 'state' listing files in the data folder and their contents."
+    "Reply with ONE JSON object, schema:"
+    '{ "next_agent": "RiskAssessmentAgent|DataExtractionAgent|EligibilityCheckAgent|NONE", '
+    '"reason": "short explanation" }'
+)
+
+
+def ask_llm_for_next_agent(state: Dict, model: str = "gpt-4o") -> Dict:
+    """Query the LLM and return its JSON choice."""
+    system_msg = {"role": "system", "content": PROMPT_TEMPLATE}
+    user_msg = {"role": "user", "content": json.dumps({"state": state}, indent=2)}
+
+    # Choose correct model / deployment
+    if getattr(client, "_is_azure", False):
+        model_to_call = client._azure_deployment
+    else:
+        model_to_call = model
+
+    try:
+        resp = client.chat.completions.create(
+            model=model_to_call,
+            messages=[system_msg, user_msg],
+            temperature=0.0,
+            max_tokens=300
+        )
+        print(resp)
+    except Exception as e:
+        raise RuntimeError(f"LLM call failed: {e}")
+
+    try:
+        text = resp.choices[0].message.content.strip()
+    except Exception:
+        text = str(resp)
+
+    try:
+        start, end = text.find("{"), text.rfind("}")
+        parsed = json.loads(text[start:end + 1])
+    except Exception as e:
+        raise RuntimeError(f"LLM did not return valid JSON. Raw: {text} Error: {e}")
+
+    return parsed
+
+
+def run_orchestration(data_dir: str, model: str = "gpt-4") -> None:
+    """Main loop."""
+    state = {"data_dir": data_dir}
+    os.makedirs(data_dir, exist_ok=True)
+
+    # Define the extracted data folder path
+    extracted_data_dir = os.path.join(data_dir, "Extracted_Data")
+    os.makedirs(extracted_data_dir, exist_ok=True)
+
+    print("Starting orchestration loop. Data folder:", data_dir)
+
+    # Track the number of times the same agent is suggested
+    consecutive_agent_suggestions = 0
+    last_suggested_agent = None
+
+    while True:
+        # Get the current state of files in both data_dir and extracted_data_dir
+        try:
+            files_now = os.listdir(data_dir)
+        except Exception:
+            files_now = []
+        try:
+            extracted_files_now = os.listdir(extracted_data_dir)
+        except Exception:
+            extracted_files_now = []
+
+        llm_state = {"files": files_now, "extracted_files": extracted_files_now}
+
+        # Read the contents of each file in data_dir and add to state
+        for file in files_now:
+            full = os.path.join(data_dir, file)
+            try:
+                with open(full, "r", encoding="utf-8") as f:
+                    llm_state[file] = json.load(f)
+            except Exception:
+                llm_state[file] = None  # If file is unreadable, set its content to None
+
+        # Read the contents of each file in extracted_data_dir and add to state
+        for file in extracted_files_now:
+            full = os.path.join(extracted_data_dir, file)
+            try:
+                with open(full, "r", encoding="utf-8") as f:
+                    llm_state[file] = json.load(f)
+            except Exception:
+                llm_state[file] = None  # If file is unreadable, set its content to None
+
+        # Ask the LLM for the next agent
+        try:
+            parsed = ask_llm_for_next_agent(llm_state, model=model)
+        except Exception as e:
+            print("LLM call failed – falling back to rule-based choice.", e)
+            parsed = {"next_agent": "NONE", "reason": "llm-failed"}
+
+        chosen = parsed.get("next_agent")
+        reason = parsed.get("reason", "No reason provided.")
+        print(f"LLM suggested: {chosen} | Reason: {reason}")
+
+        # Check for repeated agent suggestions
+        if chosen == last_suggested_agent:
+            consecutive_agent_suggestions += 1
+        else:
+            consecutive_agent_suggestions = 0
+        last_suggested_agent = chosen
+
+        if consecutive_agent_suggestions > 5:
+            print("The same agent has been suggested multiple times without progress. Exiting.")
+            break
+
+        if chosen == "DataExtractionAgent":
+            try:
+                url = "http://127.0.0.1:8661/start-processing"
+                response = requests.post(url, timeout=10)
+                if response.status_code == 200:
+                    print("Data Extraction Agent triggered successfully.")
+                else:
+                    print(f"Failed to trigger Data Extraction Agent. Status code: {response.status_code}")
+            except Exception as e:
+                print(f"Error triggering Data Extraction Agent: {e}")
+
+        # elif chosen == "NONE":
+        #     print("No further agents to run. Exiting orchestration loop.")
+        #     break
+
+        time.sleep(10)
+
+        if chosen == "EligibilityCheckAgent":
+            try:
+                url = "http://127.0.0.1:8022/start-processing"
+                response = requests.post(url, timeout=10)
+                if response.status_code == 200:
+                    print("Eligibility Agent triggered successfully.")
+                else:
+                    print(f"Failed to trigger Eligibility Agent. Status code: {response.status_code}")
+            except Exception as e:
+                print(f"Error triggering Eligibility Agent: {e}")
+
+            time.sleep(10)
+
+
+        if chosen == "RiskAssessmentAgent":
+            try:
+                url = "http://127.0.0.1:8045/risk/run"
+                response = requests.post(url, timeout=20)
+                if response.status_code == 200:
+                    print("Risk Assesment Agent triggered successfully.")
+                else:
+                    print(f"Failed to trigger Risk Assesment Agent. Status code: {response.status_code}")
+            except Exception as e:
+                print(f"Error triggering Risk Assesment Agent: {e}")
+
+            time.sleep(10)   
+
+
+
+        elif chosen == "NONE":
+            print("No further agents to run. Exiting orchestration loop.")
+            break
+
+        time.sleep(5)
+
+        
+   
+#-----------------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Run orchestration agent (demo)")
+    parser.add_argument("--data-dir", default="./data",
+                        help="Folder used to read/write JSON files")
+    parser.add_argument("--model", default="gpt-4o",
+                        help="Model name for OpenAI-platform mode (ignored for Azure)")
+    args = parser.parse_args()
+
+    if getattr(client, "_is_azure", False):
+        print("Using Azure OpenAI deployment:", client._azure_deployment)
+    else:
+        if not os.getenv("OPENAI_API_KEY"):
+            print("Warning: OPENAI_API_KEY not set – first LLM call will fail.")
+
+    run_orchestration(args.data_dir, model=args.model)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # Standardized AI Agent Template According to Industry Standards
 
 ## Executive Summary
