@@ -32,6 +32,40 @@ Sources
 
 
 
+Here are concise responses you can provide to the architecture tool based on your orchestration AI agent code:
+
+***
+
+1. **Should the diagram include infrastructure or deployment details?**  
+No. Focus the diagram solely on the logical architecture and workflow of the orchestration system. Infrastructure details like cloud services, containerization, or networking are not included.
+
+2. **Specific failure scenarios or error handling strategies beyond simple logging?**  
+No. The system only implements basic error handling with try-catch blocks and console logging. No advanced failure recovery or fallback strategies are present.
+
+3. **Additional aspects to represent in the diagram?**  
+- Authentication and authorization mechanisms for API calls are *not* implemented, so omit.  
+- Versioning or schema validation of JSON files is *not* present, so omit.  
+- Monitoring and alerting components are minimal (console logs only), so can be omitted or lightly represented.  
+- No concurrency or parallelism; purely sequential execution.  
+- Basic data privacy and security controls exist only as environment variable configuration for API keys; detailed security controls can be omitted.
+
+4. **Show how the prompt to the LLM decision engine is constructed or managed?**  
+Yes, show the LLM prompt as a static, hard-coded template used by the orchestration controller to decide the next agent based on the current file state.
+
+***
+
+These responses align accurately with what the code supports and will help generate a focused architecture diagram.
+
+Sources
+
+
+
+
+
+
+
+
+
 
 
 
