@@ -1,3 +1,33 @@
+import requests
+
+# Base URL of your running server
+BASE_URL = "http://127.0.0.1:8501"
+
+# 1. Test get_file_list
+print("Fetching file list...")
+resp = requests.get(f"{BASE_URL}/get_file_list")
+print(resp.json())
+
+# 2. Test compare_files
+payload = {
+    "excel_filename": "sample.xlsx",   # put actual file name from input/
+    "csv_filename": "sample.csv"       # put actual file name from input/
+}
+print("Comparing files...")
+resp = requests.post(f"{BASE_URL}/compare_files", json=payload)
+print(resp.json())
+
+
+
+
+
+
+
+
+
+
+
+
 import os
 import pandas as pd
 import json
