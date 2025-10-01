@@ -1,3 +1,120 @@
+import pandas as pd
+from fastapi import FastAPI
+import uvicorn
+import os
+from pydantic import BaseModel
+from typing import Optional
+from fastapi_mcp import FastApiMCP
+
+app = FastAPI()
+
+class Item(BaseModel):
+    filename: Optional[str]
+    table_name: Optional[str]
+    database_name: Optional[str]
+
+
+@app.get("/get_file_list", operation_id="get_file_list")
+def get_file_list() -> list:
+    """Returns the list of file names in the storage.
+    """
+
+    return ['requirement.txt','data model requirement.txt']
+
+
+@app.post("/get_file_content",operation_id="get_file_content")
+def get_file_content(p_body: Item) -> str:
+    """Returns the content of the file.
+
+    Args:
+        filename
+    """
+    content = """
+    prepare the data model in 3NF for the HR_DB database.
+    The target database is Oracle.
+   
+    """
+    return content
+
+
+@app.post("/get_table_metadata",operation_id="get_table_metadata")
+def get_table_metadata(p_body: Item) -> str:
+    """Get the metadata of the table from the database.
+
+    Args:
+        table_name
+        database_name
+    """
+    table_meta = """
+        Create table employee(emp_id int, emp_name varchar(50), dept_name varchar(25));
+    """
+    return table_meta
+
+
+@app.post("/get_source_tables",operation_id="get_source_tables")
+def get_source_tables(p_body: Item) -> list:
+    """Returns the list of table names from the database 
+
+    Args:
+        database_name
+    """
+    return ["employee"]
+
+
+mcp = FastApiMCP(app,include_operations=["get_file_list", 
+                                         "get_file_content", 
+                                         "get_table_metadata", 
+                                         "get_source_tables"]
+                )
+mcp.mount()
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8501)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Here are concise responses you can provide to the architecture tool based on your orchestration AI agent code:
 
 ***
