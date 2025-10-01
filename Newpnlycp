@@ -1,3 +1,70 @@
+# API 2: Perform Excel vs CSV comparison
+@app.post("/compare_files", operation_id="compare_files")
+def compare_files(request: CompareRequest) -> dict:
+    """Compare Excel (OWNER NAME:) column with CSV (entity_name)."""
+
+    # Resolve file paths (same style as get_sheet_names)
+    excel_file_path = f'./input/{request.excel_filename}' if request.excel_filename else None
+    csv_file_path = f'./input/{request.csv_filename}' if request.csv_filename else None
+
+    if not excel_file_path or not os.path.exists(excel_file_path):
+        return {"error": "Excel file not found."}
+    if not csv_file_path or not os.path.exists(csv_file_path):
+        return {"error": "CSV file not found."}
+
+    try:
+        # Read Excel & CSV
+        excel_data = pd.read_excel(excel_file_path)
+        csv_data = pd.read_csv(csv_file_path)
+
+        # Extract owner names
+        owner_name_column = "OWNER NAME:"
+        if owner_name_column not in excel_data.columns:
+            return {"error": f"Column '{owner_name_column}' not found in Excel."}
+
+        owner_names = excel_data[owner_name_column].dropna().tolist()
+        owner_names = [name for name in owner_names if isinstance(name, str) and name.strip()]
+
+        # Extract entity names
+        if "entity_name" not in csv_data.columns:
+            return {"error": "Column 'entity_name' not found in CSV."}
+        csv_names = csv_data["entity_name"].dropna().tolist()
+
+        # Compare
+        results = []
+        for name in owner_names:
+            match = name in csv_names
+            results.append({"Owner Name": name, "Unique": not match})
+
+        # Save results
+        json_output_path = './output/comparison_results.json'
+        with open(json_output_path, "w") as json_file:
+            json.dump(results, json_file, indent=4)
+
+        excel_output_path = './output/comparison_results.xlsx'
+        pd.DataFrame(results).to_excel(excel_output_path, index=False)
+
+        return {
+            "message": "Comparison completed successfully.",
+            "json_result": json_output_path,
+            "excel_result": excel_output_path,
+            "results": results
+        }
+
+    except Exception as e:
+        return {"error": str(e)}
+
+
+
+
+
+
+
+
+
+
+
+
 This is my current code here in compare files endpoint, lets take excel and scv in this format of code
 
 ((@app.post("/get_sheet_names",operation_id="get_sheet_names")
