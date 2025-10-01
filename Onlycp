@@ -1,3 +1,115 @@
+import os
+import pandas as pd
+import json
+from pathlib import Path
+from fastapi import FastAPI
+import uvicorn
+from pydantic import BaseModel
+from typing import Optional, List
+from fastapi_mcp import FastApiMCP
+
+# Initialize FastAPI app
+app = FastAPI()
+
+# Define input model for comparison request
+class CompareRequest(BaseModel):
+    excel_filename: Optional[str]
+    csv_filename: Optional[str]
+
+# Define global folders
+current_directory = os.path.dirname(os.path.abspath(__file__))
+input_folder = os.path.join(current_directory, "input")
+output_folder = os.path.join(current_directory, "output")
+
+# Ensure output folder exists
+if not os.path.exists(output_folder):
+    os.makedirs(output_folder)
+
+# API 1: Get list of available files
+@app.get("/get_file_list", operation_id="get_file_list")
+def get_file_list() -> List[str]:
+    """Returns the list of files in the input folder."""
+    if not os.path.exists(input_folder):
+        return []
+    return os.listdir(input_folder)
+
+
+# API 2: Perform Excel vs CSV comparison
+@app.post("/compare_files", operation_id="compare_files")
+def compare_files(request: CompareRequest) -> dict:
+    """Compare Excel (OWNER NAME:) column with CSV (entity_name)."""
+
+    # Resolve file paths
+    excel_file = os.path.join(input_folder, request.excel_filename) if request.excel_filename else None
+    csv_file = os.path.join(input_folder, request.csv_filename) if request.csv_filename else None
+
+    if not excel_file or not os.path.exists(excel_file):
+        return {"error": "Excel file not found."}
+    if not csv_file or not os.path.exists(csv_file):
+        return {"error": "CSV file not found."}
+
+    try:
+        # Read Excel & CSV
+        excel_data = pd.read_excel(excel_file)
+        csv_data = pd.read_csv(csv_file)
+
+        # Extract owner names
+        owner_name_column = "OWNER NAME:"
+        if owner_name_column not in excel_data.columns:
+            return {"error": f"Column '{owner_name_column}' not found in Excel."}
+
+        owner_names = excel_data[owner_name_column].dropna().tolist()
+        owner_names = [name for name in owner_names if isinstance(name, str) and name.strip()]
+
+        # Extract entity names
+        if "entity_name" not in csv_data.columns:
+            return {"error": "Column 'entity_name' not found in CSV."}
+        csv_names = csv_data["entity_name"].dropna().tolist()
+
+        # Compare
+        results = []
+        for name in owner_names:
+            match = name in csv_names
+            results.append({"Owner Name": name, "Unique": not match})
+
+        # Save results
+        json_output_path = os.path.join(output_folder, "comparison_results.json")
+        with open(json_output_path, "w") as json_file:
+            json.dump(results, json_file, indent=4)
+
+        excel_output_path = os.path.join(output_folder, "comparison_results.xlsx")
+        pd.DataFrame(results).to_excel(excel_output_path, index=False)
+
+        return {
+            "message": "Comparison completed successfully.",
+            "json_result": json_output_path,
+            "excel_result": excel_output_path,
+            "results": results
+        }
+
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# Bind MCP
+mcp = FastApiMCP(app, include_operations=["get_file_list", "compare_files"])
+mcp.mount()
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8501)
+
+
+
+
+
+
+
+
+
+
+
+
+
 from pathlib import Path
 
 # app = FastAPI()
