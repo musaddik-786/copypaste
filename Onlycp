@@ -1,3 +1,274 @@
+from pathlib import Path
+
+# app = FastAPI()
+
+# INPUT_DIR = Path("input")
+# OUTPUT_DIR = Path("output")
+import os
+import pandas as pd
+import json
+
+# Get the current directory where the Python script is located
+current_directory = os.path.dirname(os.path.abspath(__file__))
+
+# Define the path to the 'input' folder
+input_folder = os.path.join(current_directory, 'input')
+output_folder = os.path.join(current_directory, 'output')
+
+# Create the 'output' folder if it doesn't exist
+if not os.path.exists(output_folder):
+    os.makedirs(output_folder)
+
+# Find the first Excel file in the 'input' folder
+excel_file = None
+for file in os.listdir(input_folder):
+    if file.endswith(('.xlsx', '.xls')):
+        excel_file = os.path.join(input_folder, file)
+        break
+
+# Find the first CSV file in the 'input' folder
+csv_file = None
+for file in os.listdir(input_folder):
+    if file.endswith('.csv'):
+        csv_file = os.path.join(input_folder, file)
+        break
+
+# Check if both files are found
+if not excel_file:
+    print("No Excel file found in the 'input' folder.")
+elif not csv_file:
+    print("No CSV file found in the 'input' folder.")
+else:
+    try:
+        # Read the Excel file
+        excel_data = pd.read_excel(excel_file)
+        print(f"Excel file '{excel_file}' loaded successfully!")
+        
+        # Read the CSV file
+        csv_data = pd.read_csv(csv_file)
+        print(f"CSV file '{csv_file}' loaded successfully!")
+        
+        # Locate the 'OWNER NAME:' column dynamically
+        owner_name_column = 'OWNER NAME:'
+        if owner_name_column in excel_data.columns:
+            # Extract the values from the 'OWNER NAME:' column and filter out invalid values
+            owner_names = excel_data[owner_name_column].dropna().tolist()
+            # Filter out invalid values (e.g., False, empty strings, None)
+            owner_names = [name for name in owner_names if isinstance(name, str) and name.strip()]
+            print("Filtered Owner Names in Excel file:")
+            print(owner_names)
+            
+            # Extract the 'entity_name' column from the CSV file
+            if 'entity_name' in csv_data.columns:
+                csv_names = csv_data['entity_name'].dropna().tolist()
+                print("Entity Names in CSV file:")
+                print(csv_names)
+                
+                # Compare names and output results
+                results = []
+                for name in owner_names:
+                    match = name in csv_names
+                    # If match, value is False; otherwise, True
+                    results.append({'Owner Name': name, 'Match': not match})
+                
+                # Print comparison results for debugging
+                print("Comparison Results:")
+                for result in results:
+                    print(result)
+                
+                # Save results to JSON
+                json_output_path = os.path.join(output_folder, 'comparison_results.json')
+                with open(json_output_path, 'w') as json_file:
+                    json.dump(results, json_file, indent=4)
+                print(f"Results saved to JSON file: {json_output_path}")
+                
+                # Save results to Excel
+                excel_output_path = os.path.join(output_folder, 'comparison_results.xlsx')
+                results_df = pd.DataFrame(results)
+                results_df.to_excel(excel_output_path, index=False)
+                print(f"Results saved to Excel file: {excel_output_path}")
+            else:
+                print("Column 'entity_name' not found in the CSV file.")
+        else:
+            print(f"Column '{owner_name_column}' not found in the Excel file.")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+
+
+i was told to convert this code in mcp format like this 
+import pandas as pd
+from fastapi import FastAPI
+import uvicorn
+import os
+from pydantic import BaseModel
+from typing import Optional
+from fastapi_mcp import FastApiMCP
+
+app = FastAPI()
+
+class Item(BaseModel):
+    filename: Optional[str]
+    table_name: Optional[str]
+    database_name: Optional[str]
+
+
+@app.get("/get_file_list", operation_id="get_file_list")
+def get_file_list() -> list:
+    """Returns the list of file names in the storage.
+    """
+
+    return ['requirement.txt','data model requirement.txt']
+
+
+@app.post("/get_file_content",operation_id="get_file_content")
+def get_file_content(p_body: Item) -> str:
+    """Returns the content of the file.
+
+    Args:
+        filename
+    """
+    content = """
+    prepare the data model in 3NF for the HR_DB database.
+    The target database is Oracle.
+   
+    """
+    return content
+
+
+@app.post("/get_table_metadata",operation_id="get_table_metadata")
+def get_table_metadata(p_body: Item) -> str:
+    """Get the metadata of the table from the database.
+
+    Args:
+        table_name
+        database_name
+    """
+    table_meta = """
+        Create table employee(emp_id int, emp_name varchar(50), dept_name varchar(25));
+    """
+    return table_meta
+
+
+@app.post("/get_source_tables",operation_id="get_source_tables")
+def get_source_tables(p_body: Item) -> list:
+    """Returns the list of table names from the database 
+
+    Args:
+        database_name
+    """
+    return ["employee"]
+
+
+mcp = FastApiMCP(app,include_operations=["get_file_list", 
+                                         "get_file_content", 
+                                         "get_table_metadata", 
+                                         "get_source_tables"]
+                )
+mcp.mount()
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8501)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import pandas as pd
 from fastapi import FastAPI
 import uvicorn
