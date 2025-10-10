@@ -1,0 +1,553 @@
+Great — I transformed Code 1 into the requested Code-2-like structure and kept the original functionality intact (Gmail service, attachment checks vs Azure Blob Storage, state file, polling + webhook processing). Below are all files with full code. Put them into the project structure you confirmed:
+
+EmailAgent/
+├─ routers/
+│  ├─ gmail_router.py
+│  └─ attachment_router.py
+├─ gmail_watch.py
+├─ utils.py
+├─ main.py
+└─ .env.sample
+
+
+⸻
+
+1) main.py
+
+# main.py
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi_mcp import FastApiMCP
+import uvicorn
+import os
+
+# Import routers
+
+from routers import gmail_router, attachment_router
+
+# Shared CORS config
+def apply_cors(app: FastAPI):
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+def create_sub_app(title: str, description: str, version: str = "0.1.0") -> FastAPI:
+    app = FastAPI(title=title, description=description, version=version)
+    apply_cors(app)
+    return app
+
+# Main app
+app = FastAPI(title="EmailAgent Main App", description="Gmail -> Azure Blob attachment comparator")
+apply_cors(app)
+
+# Email Agent sub-app (like code2's dq_app style)
+email_app = create_sub_app(
+    title="EmailAgent Gmail Processor",
+    description="Polls Gmail, processes notifications, compares attachments to Azure Blob Storage."
+)
+
+# Include routers
+email_app.include_router(gmail_router.router, prefix="/gmail", tags=["gmail"])
+email_app.include_router(attachment_router.router, prefix="/attachments", tags=["attachments"])
+
+# Register startup/shutdown events for polling
+gmail_router.register_events(email_app)
+
+# Mount with MCP exposing operations
+FastApiMCP(email_app, include_operations=[
+    "process_notification", "get_blob_names", "get_state", "create_state", "manual_poll"
+]).mount_http()
+
+# Mount sub-app under main app
+app.mount("/api/v1/emailagent", email_app)
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8054))
+    uvicorn.run(app, host="0.0.0.0", port=port)
+
+
+⸻
+
+2) utils.py
+
+Common helpers: Azure blob client, state load/save, attachment extraction, and comparison logic. These are synchronous I/O heavy operations so the routers will call them via asyncio.to_thread when used in async endpoints.
+
+# utils.py
+import os
+import json
+from typing import Dict, List, Any, Generator
+from azure.storage.blob import BlobServiceClient
+from dotenv import load_dotenv
+
+load_dotenv()  # pick up environment vars from .env if present
+
+STATE_FILE = os.environ.get("STATE_FILE", "history_state.json")
+OUTPUT_DIR = os.environ.get("OUTPUT_DIR", "storage_output")
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+AZURE_STORAGE_CONNECTION_STRING = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "")
+AZURE_BLOB_CONTAINER = os.environ.get("AZURE_BLOB_CONTAINER", "")
+
+def _get_blob_service_client() -> BlobServiceClient:
+    if not AZURE_STORAGE_CONNECTION_STRING:
+        raise RuntimeError("Missing AZURE_STORAGE_CONNECTION_STRING")
+    return BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING)
+
+def _ensure_container_exists(blob_service_client: BlobServiceClient):
+    if not AZURE_BLOB_CONTAINER:
+        raise RuntimeError("Missing AZURE_BLOB_CONTAINER")
+    container_client = blob_service_client.get_container_client(AZURE_BLOB_CONTAINER)
+    try:
+        container_client.create_container()
+    except Exception:
+        # container probably exists
+        pass
+    return container_client
+
+def get_blob_names_from_container() -> List[str]:
+    """Return list of blob names in the configured container."""
+    blob_names = []
+    try:
+        client = _get_blob_service_client()
+        container = _ensure_container_exists(client)
+        blobs = container.list_blobs()
+        blob_names = [b.name for b in blobs]
+    except Exception as e:
+        print(f"[utils.get_blob_names_from_container] Error: {e}")
+    return blob_names
+
+def load_state() -> Dict[str, Any]:
+    try:
+        with open(STATE_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+def save_state(state: Dict[str, Any]) -> None:
+    with open(STATE_FILE, "w", encoding="utf-8") as f:
+        json.dump(state, f, indent=2)
+
+def _walk_parts(parts: List[Dict[str, Any]]) -> Generator[Dict[str, Any], None, None]:
+    for p in parts or []:
+        yield p
+        for sub in p.get("parts", []) or []:
+            yield from _walk_parts([sub])
+
+def extract_attachment_filenames_from_message(message: Dict[str, Any]) -> List[str]:
+    """Given a Gmail message payload, return all filenames found in parts."""
+    filenames = []
+    parts = message.get("payload", {}).get("parts", [])
+    for part in _walk_parts(parts):
+        filename = part.get("filename")
+        if filename:
+            filenames.append(filename)
+    return filenames
+
+def compare_filenames_with_blob(filenames: List[str]) -> List[Dict[str, Any]]:
+    """Check each filename against Azure blob container; return list of dicts with is_duplicate flag."""
+    results = []
+    try:
+        blob_service_client = _get_blob_service_client()
+        container_client = _ensure_container_exists(blob_service_client)
+        for fn in filenames:
+            is_duplicate = False
+            try:
+                blob_client = container_client.get_blob_client(blob=fn)
+                # azure sdk .exists() is available on blob client in newer SDKs
+                if blob_client.exists():
+                    is_duplicate = True
+            except Exception as e:
+                print(f"[utils.compare_filenames_with_blob] Error checking {fn}: {e}")
+            results.append({"filename": fn, "is_duplicate": is_duplicate})
+    except Exception as e:
+        print(f"[utils.compare_filenames_with_blob] Blob access error: {e}")
+        # If blob access failed, mark results with error
+        results = [{"filename": fn, "error": str(e)} for fn in filenames]
+    return results
+
+def save_comparison_result(message_id: str, comparison_result: Dict[str, Any]) -> str:
+    """Write the comparison JSON to OUTPUT_DIR and return the path."""
+    out_path = os.path.join(OUTPUT_DIR, f"{message_id}_comparison.json")
+    try:
+        with open(out_path, "w", encoding="utf-8") as f:
+            json.dump(comparison_result, f, indent=2)
+        return out_path
+    except Exception as exc:
+        print(f"[utils.save_comparison_result] Failed to write file: {exc}")
+        raise
+
+
+⸻
+
+3) gmail_watch.py
+
+This is nearly the same as your original gmail_watch.py but kept as a helper. We keep synchronous Gmail client creation (since Google library is blocking) and the routers call it via asyncio.to_thread.
+
+# gmail_watch.py
+import os
+import pickle
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
+
+SCOPES = [
+    'https://www.googleapis.com/auth/gmail.readonly'
+]
+
+TOKEN_PATH = os.environ.get("GMAIL_TOKEN_PATH", "token.pickle")
+CLIENT_SECRET_PATH = os.environ.get("GMAIL_CLIENT_SECRET", "credentials/client_secret.json")
+
+def get_gmail_service():
+    """Authenticate with Gmail API and return the service object (blocking)."""
+    creds = None
+    token_path = TOKEN_PATH
+
+    if os.path.exists(token_path):
+        try:
+            with open(token_path, "rb") as f:
+                creds = pickle.load(f)
+        except Exception:
+            creds = None
+
+    if not creds or not creds.valid:
+        flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRET_PATH, SCOPES)
+        creds = flow.run_local_server(port=0)
+        with open(token_path, "wb") as f:
+            pickle.dump(creds, f)
+
+    service = build("gmail", "v1", credentials=creds, cache_discovery=False)
+    return service
+
+def create_watch(project_id: str, topic_full_name: str):
+    """Create a Gmail watch for Pub/Sub notifications (blocking)."""
+    service = get_gmail_service()
+    body = {
+        "labelIds": ["INBOX"],
+        "topicName": topic_full_name
+    }
+    resp = service.users().watch(userId="me", body=body).execute()
+    print("Watch created:", resp)
+    return resp
+
+if __name__ == "__main__":
+    import sys
+    if len(sys.argv) < 3:
+        print("Usage: python gmail_watch.py <PROJECT_ID> <projects/PROJECT_ID/topics/TOPIC>")
+        raise SystemExit(1)
+    project = sys.argv[1]
+    topic = sys.argv[2]
+    create_watch(project, topic)
+
+
+⸻
+
+4) routers/attachment_router.py
+
+This router exposes endpoints for blob-name listing, state operations, and a manual poll trigger. Endpoints are async and use asyncio.to_thread to call blocking functions in utils.py.
+
+# routers/attachment_router.py
+from fastapi import APIRouter
+from pydantic import BaseModel
+import asyncio
+from typing import Any, Dict
+import os
+
+from utils import get_blob_names_from_container, load_state, save_state
+
+router = APIRouter()
+
+class StateRequest(BaseModel):
+    email: str
+    historyId: int
+
+@router.get("/get_blob_names", operation_id="get_blob_names", summary="List blob names in configured container")
+async def get_blob_names():
+    try:
+        names = await asyncio.to_thread(get_blob_names_from_container)
+        return {"success": True, "blob_names": names}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@router.get("/get_state", operation_id="get_state", summary="Get saved state")
+async def get_state():
+    try:
+        state = await asyncio.to_thread(load_state)
+        return {"success": True, "state": state}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@router.post("/create_state", operation_id="create_state", summary="Create or update a state entry")
+async def create_state(payload: StateRequest):
+    try:
+        state = await asyncio.to_thread(load_state)
+        state[payload.email] = payload.historyId
+        await asyncio.to_thread(save_state, state)
+        return {"success": True, "message": f"Saved history id for {payload.email}"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@router.post("/manual_poll", operation_id="manual_poll", summary="Trigger a manual email poll (blocking call executed in thread)")
+async def manual_poll():
+    """
+    Trigger a single run of check_new_emails (useful for manual checks).
+    This simply calls the gmail polling code path via the gmail router's helper.
+    """
+    try:
+        # Import inside function to avoid circular import at module level
+        from routers.gmail_router import check_new_emails_once
+        processed = await check_new_emails_once()  # check_new_emails_once is async
+        return {"success": True, "processed": processed}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+⸻
+
+5) routers/gmail_router.py
+
+This router implements the process_notification endpoint and a startup polling loop similar to your mcp_enail_server.py. It delegates heavy blocking work to gmail_watch.get_gmail_service and utils functions via asyncio.to_thread.
+
+# routers/gmail_router.py
+from fastapi import APIRouter, BackgroundTasks
+from pydantic import BaseModel
+import asyncio
+from typing import Dict, Any, List
+from datetime import datetime
+import traceback
+
+from gmail_watch import get_gmail_service
+from utils import (
+    extract_attachment_filenames_from_message,
+    compare_filenames_with_blob,
+    save_comparison_result,
+    load_state,
+    save_state
+)
+
+router = APIRouter()
+
+class EmailNotification(BaseModel):
+    emailAddress: str
+    historyId: int
+
+# Internal control for the polling loop
+_running = True
+_last_check_time = None
+_poll_task = None
+
+async def check_new_emails():
+    """Wrapper that runs the blocking Gmail API calls in threads and processes messages."""
+    global _last_check_time
+    processed = []
+    try:
+        # Build the service in a thread
+        service = await asyncio.to_thread(get_gmail_service)
+
+        if not _last_check_time:
+            # initial fetch - last 5 messages
+            results = await asyncio.to_thread(
+                lambda: service.users().messages().list(userId="me", maxResults=5).execute()
+            )
+        else:
+            query = f"after:{int(_last_check_time.timestamp())}"
+            results = await asyncio.to_thread(
+                lambda: service.users().messages().list(userId="me", q=query).execute()
+            )
+
+        messages = results.get("messages", [])
+        for message_meta in messages:
+            mid = message_meta.get("id")
+            # fetch full message
+            msg = await asyncio.to_thread(lambda: service.users().messages().get(userId="me", id=mid, format="full").execute())
+            filenames = extract_attachment_filenames_from_message(msg)
+            comparison = await asyncio.to_thread(compare_filenames_with_blob, filenames)
+            # Save result file
+            await asyncio.to_thread(save_comparison_result, mid, {"attachments": comparison})
+            processed.append({"message_id": mid, "comparison": comparison})
+        _last_check_time = datetime.now()
+    except Exception as e:
+        print("[check_new_emails] Error:", str(e))
+        traceback.print_exc()
+    return processed
+
+async def check_new_emails_loop():
+    global _running
+    while _running:
+        try:
+            await check_new_emails()
+        except Exception as e:
+            print("[check_new_emails_loop] iteration error:", e)
+        await asyncio.sleep(int(__import__("os").environ.get("POLL_INTERVAL_SECONDS", "10")))
+
+async def check_new_emails_once():
+    """Exposed helper to run a single poll iteration and return processed messages."""
+    return await check_new_emails()
+
+def register_events(app):
+    """
+    Attach startup and shutdown handlers to the sub-app for polling behavior.
+    Call this from main when the sub-app is created.
+    """
+    @app.on_event("startup")
+    async def _startup_event():
+        global _poll_task, _running
+        try:
+            print("📧 Starting Gmail polling task (background)...")
+            _running = True
+            loop = asyncio.get_event_loop()
+            # create background task
+            _poll_task = loop.create_task(check_new_emails_loop())
+        except Exception as e:
+            print("[gmail_router.register_events] startup non-fatal error:", e)
+
+    @app.on_event("shutdown")
+    async def _shutdown_event():
+        global _running, _poll_task
+        print("🛑 Stopping Gmail polling...")
+        _running = False
+        if _poll_task:
+            _poll_task.cancel()
+            try:
+                await _poll_task
+            except asyncio.CancelledError:
+                pass
+
+@router.post("/process_notification", operation_id="process_notification", summary="Process a Gmail Pub/Sub notification")
+async def process_notification(notification: EmailNotification, background_tasks: BackgroundTasks):
+    """
+    Process a Gmail notification by reading history since last saved historyId,
+    retrieving messages that are new, extracting attachment filenames and comparing them
+    against Azure Blob Storage. Uses state file to keep track of last processed historyId.
+    """
+    try:
+        service = await asyncio.to_thread(get_gmail_service)
+        email = notification.emailAddress
+        history_id = notification.historyId
+
+        state = await asyncio.to_thread(load_state)
+        last_hist = state.get(email)
+
+        if not last_hist:
+            # Initialize state on first notification
+            state[email] = history_id
+            await asyncio.to_thread(save_state, state)
+            return {"message": f"Initialized history id {history_id}"}
+
+        processed_messages = []
+
+        try:
+            # Try to get history since last saved id
+            resp = await asyncio.to_thread(
+                lambda: service.users().history().list(
+                    userId="me",
+                    startHistoryId=str(last_hist),
+                    historyTypes="messageAdded"
+                ).execute()
+            )
+            histories = resp.get("history", [])
+            message_ids = []
+            for h in histories:
+                for ma in h.get("messagesAdded", []):
+                    message_ids.append(ma["message"]["id"])
+        except Exception as e:
+            # on failure, fallback to recent messages
+            print("[process_notification] history list failed:", e)
+            res = await asyncio.to_thread(lambda: service.users().messages().list(
+                userId="me",
+                q="newer_than:7d",
+                maxResults=20
+            ).execute())
+            message_ids = [m["id"] for m in res.get("messages", [])]
+
+        for mid in message_ids:
+            msg = await asyncio.to_thread(lambda: service.users().messages().get(
+                userId="me", id=mid, format="full").execute()
+            )
+            filenames = extract_attachment_filenames_from_message(msg)
+            comparison = await asyncio.to_thread(compare_filenames_with_blob, filenames)
+            await asyncio.to_thread(save_comparison_result, mid, {"attachments": comparison})
+            processed_messages.append({"message_id": mid, "comparison_result": comparison})
+
+        # Update state
+        state[email] = history_id
+        await asyncio.to_thread(save_state, state)
+
+        return {
+            "message": f"Processed {len(processed_messages)} messages",
+            "processed": processed_messages
+        }
+
+    except Exception as e:
+        return {"error": str(e)}
+
+
+⸻
+
+6) .env.sample
+
+Put your secrets here (do not check this into git). Name your real file .env.
+
+# .env.sample - copy to .env and fill values
+AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=https;AccountName=...;AccountKey=...;EndpointSuffix=core.windows.net
+AZURE_BLOB_CONTAINER=my-container
+STATE_FILE=history_state.json
+OUTPUT_DIR=storage_output
+GMAIL_TOKEN_PATH=token.pickle
+GMAIL_CLIENT_SECRET=credentials/client_secret.json
+POLL_INTERVAL_SECONDS=10
+PORT=8054
+
+
+⸻
+
+Notes, rationale & small implementation details
+	•	I preserved all original logic:
+	•	Gmail authentication & service creation remains in gmail_watch.py.
+	•	Attachment extraction + Azure blob comparison logic is in utils.py (so both polling and webhook use the same routines).
+	•	State load/save uses configurable STATE_FILE.
+	•	Comparison results are saved under OUTPUT_DIR just like before.
+	•	All API endpoints are async and offload blocking I/O to threads using asyncio.to_thread (so the FastAPI event loop isn’t blocked).
+	•	The polling loop is registered on the email sub-app via register_events called from main.py, similar to how Code 1 used @app.on_event("startup") and consistent with Code 2 style (sub-app + MCP).
+	•	MCP mounting is included in main.py with representative operation IDs matching endpoints.
+	•	I added a manual_poll endpoint under attachments that uses the same single-run helper to allow manual invocation (useful for testing).
+	•	I purposely avoided changing function semantics: routes still return similar JSON structure as your original code.
+	•	The code assumes you have azure-storage-blob, google-api-python-client, google-auth-httplib2, google-auth-oauthlib, fastapi, uvicorn, fastapi_mcp, python-dotenv, and pydantic installed.
+
+⸻
+
+How to run
+	1.	Create a .env from .env.sample and fill secrets.
+	2.	Ensure credentials/client_secret.json exists for Gmail OAuth flow.
+	3.	Install dependencies (example):
+
+pip install fastapi uvicorn fastapi-mcp python-dotenv azure-storage-blob google-api-python-client google-auth-oauthlib pydantic
+
+
+	4.	Start the app:
+
+uvicorn main:app --port 8054
+
+or
+
+python main.py
+
+
+	5.	Test endpoints:
+	•	POST /api/v1/emailagent/gmail/process_notification with body:
+
+{"emailAddress": "me@example.com", "historyId": 12345}
+
+
+	•	GET /api/v1/emailagent/attachments/get_blob_names
+
+⸻
+
+If you’d like, I can:
+	•	add typing hints & docstrings everywhere,
+	•	add logging (vs prints),
+	•	move more config into a config.py,
+	•	or package this as a pip-installable layout with setup.cfg + pyproject.toml.
+
+Which would you like next?
