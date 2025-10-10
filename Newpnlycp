@@ -1,375 +1,657 @@
-# API 2: Perform Excel vs CSV comparison
-@app.post("/compare_files", operation_id="compare_files")
-def compare_files(request: CompareRequest) -> dict:
-    """Compare Excel (OWNER NAME:) column with CSV (entity_name)."""
+can you make code 1 look like code 2 i mean the overall thing mcp etc,. not the changes in functionality, and after making changes and making it look similar to code 2 give me complete code with changes for code 1 all the code files 
 
-    # Resolve file paths (same style as get_sheet_names)
-    excel_file_path = f'./input/{request.excel_filename}' if request.excel_filename else None
-    csv_file_path = f'./input/{request.csv_filename}' if request.csv_filename else None
 
-    if not excel_file_path or not os.path.exists(excel_file_path):
-        return {"error": "Excel file not found."}
-    if not csv_file_path or not os.path.exists(csv_file_path):
-        return {"error": "CSV file not found."}
+below is code 1
+attachment handler.py
+import os, json
+from azure.storage.blob import BlobServiceClient
+from dotenv import load_dotenv
 
+load_dotenv()  # Load environment variables from .env if present
+
+STATE_FILE = "history_state.json"
+OUTPUT_DIR = "storage_output"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+# Azure Blob configuration via environment variables
+AZURE_STORAGE_CONNECTION_STRING = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "")
+AZURE_BLOB_CONTAINER = os.environ.get("AZURE_BLOB_CONTAINER", "")
+
+def _get_blob_service_client():
+    if not AZURE_STORAGE_CONNECTION_STRING:
+        raise RuntimeError("Missing AZURE_STORAGE_CONNECTION_STRING")
+    return BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING)
+
+def _ensure_container_exists(blob_service_client):
+    if not AZURE_BLOB_CONTAINER:
+        raise RuntimeError("Missing AZURE_BLOB_CONTAINER")
+    container_client = blob_service_client.get_container_client(AZURE_BLOB_CONTAINER)
     try:
-        # Read Excel & CSV
-        excel_data = pd.read_excel(excel_file_path)
-        csv_data = pd.read_csv(csv_file_path)
+        container_client.create_container()
+    except Exception:
+        pass  # Likely already exists
+    return container_client
 
-        # Extract owner names
-        owner_name_column = "OWNER NAME:"
-        if owner_name_column not in excel_data.columns:
-            return {"error": f"Column '{owner_name_column}' not found in Excel."}
-
-        owner_names = excel_data[owner_name_column].dropna().tolist()
-        owner_names = [name for name in owner_names if isinstance(name, str) and name.strip()]
-
-        # Extract entity names
-        if "entity_name" not in csv_data.columns:
-            return {"error": "Column 'entity_name' not found in CSV."}
-        csv_names = csv_data["entity_name"].dropna().tolist()
-
-        # Compare
-        results = []
-        for name in owner_names:
-            match = name in csv_names
-            results.append({"Owner Name": name, "Unique": not match})
-
-        # Save results
-        json_output_path = './output/comparison_results.json'
-        with open(json_output_path, "w") as json_file:
-            json.dump(results, json_file, indent=4)
-
-        excel_output_path = './output/comparison_results.xlsx'
-        pd.DataFrame(results).to_excel(excel_output_path, index=False)
-
-        return {
-            "message": "Comparison completed successfully.",
-            "json_result": json_output_path,
-            "excel_result": excel_output_path,
-            "results": results
-        }
-
+def get_blob_names_from_container():
+    """Retrieve all blob names from the Azure Blob Storage container."""
+    blob_names = []
+    try:
+        blob_service_client = _get_blob_service_client()
+        container_client = _ensure_container_exists(blob_service_client)
+        blobs = container_client.list_blobs()
+        blob_names = [blob.name for blob in blobs]
     except Exception as e:
-        return {"error": str(e)}
+        print(f"Error retrieving blob names: {e}")
+    return blob_names
+
+def load_state():
+    try:
+        with open(STATE_FILE, "r") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+def save_state(state):
+    with open(STATE_FILE, "w") as f:
+        json.dump(state, f, indent=2)
+
+def _walk_parts(parts):
+    for p in parts or []:
+        yield p
+        for sub in p.get("parts", []) or []:
+            yield from _walk_parts([sub])
 
 
 
+def save_attachments_from_message(service, message):
+    """Extract attachment filenames from Gmail message and compare with Azure Blob Storage.
 
-
-
-
-
-
-
-
-
-This is my current code here in compare files endpoint, lets take excel and scv in this format of code
-
-((@app.post("/get_sheet_names",operation_id="get_sheet_names")
-def get_sheet_names(p_body: Item):
-    """Endpoint to return a list of sheet names in an Excel file. Requires the file_name.
-    Args : 
-        p_body.file_name (Item): Contains the file_name of the Excel file.
-    
+    Returns a dictionary with attachment names and comparison results, including a "is_duplicate" flag.
     """
-    excel_file_path = f'./data/{p_body.file_name}'  # Update with your Excel file path
-    if not os.path.exists(excel_file_path): 
-        return {"message": "Excel file not found."}   
-    excel_file = pd.ExcelFile(excel_file_path)
-    sheet_names = excel_file.sheet_names
-    return {"message": sheet_names}
-))
+    saved_attachments = []  # List to store attachment filenames
+    parts = message.get("payload", {}).get("parts", [])
+    
+    
+    for part in _walk_parts(parts):
+        filename = part.get("filename") 
+        if filename:
+            saved_attachments.append(filename)  
+    
+    
+    blob_service_client = _get_blob_service_client()
+    container_client = _ensure_container_exists(blob_service_client)
+    
+    attachment_results = []  
+    
+    for filename in saved_attachments:
+        is_duplicate = False  
+        try:
+           
+            blob_client = container_client.get_blob_client(blob=filename)
+            if blob_client.exists():  
+                is_duplicate = True
+        except Exception as e:
+            print(f"Error checking blob existence for {filename}: {e}")
+        
+       
+        attachment_results.append({
+            "filename": filename,
+            "is_duplicate": is_duplicate
+        })
+    
+    
+    comparison_result = {
+        "attachments": attachment_results
+    }
+    
+   
+    try:
+        out_path = os.path.join(OUTPUT_DIR, f"{message['id']}_comparison.json")
+        with open(out_path, "w", encoding="utf-8") as f:
+            json.dump(comparison_result, f, indent=2)
+    except Exception as exc:
+        print(f"Failed to write comparison result file: {exc}")
+    
+    return comparison_result
 
 
-below is my current code
+gmail_watch.py
 
 import os
-import pandas as pd
-import json
-from pathlib import Path
-from fastapi import FastAPI
-import uvicorn
-from pydantic import BaseModel
-from typing import Optional, List
-from fastapi_mcp import FastApiMCP
+import pickle
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
 
-# Initialize FastAPI app
-app = FastAPI()
+# Scopes (ONLY place where they are defined)
+# gmail.readonly → fetch full messages + attachments
+# gmail.metadata → required for Pub/Sub notifications
+SCOPES = [
+    'https://www.googleapis.com/auth/gmail.readonly'
+]
 
-# Define input model for comparison request
-class CompareRequest(BaseModel):
-    excel_filename: Optional[str]
-    csv_filename: Optional[str]
+def get_gmail_service():
+    """Authenticate with Gmail API and return the service object."""
+    creds = None
+    token_path = "token.pickle"
+    
+    # 🔄 Load existing token if valid
+    if os.path.exists(token_path):
+        with open(token_path, "rb") as f:
+            creds = pickle.load(f)
+    
+    # 🔑 If no valid token → prompt user login
+    if not creds or not creds.valid:
+        flow = InstalledAppFlow.from_client_secrets_file("credentials/client_secret.json", SCOPES)
+        creds = flow.run_local_server(port=0)
+        with open(token_path, "wb") as f:
+            pickle.dump(creds, f)
+    
+    # Build the Gmail service
+    service = build("gmail", "v1", credentials=creds, cache_discovery=False)
+    return service
 
-# Define global folders
-current_directory = os.path.dirname(os.path.abspath(__file__))
-input_folder = os.path.join(current_directory, "input")
-output_folder = os.path.join(current_directory, "output")
-
-# Ensure output folder exists
-if not os.path.exists(output_folder):
-    os.makedirs(output_folder)
-
-# API 1: Get list of available files
-@app.get("/get_file_list", operation_id="get_file_list")
-def get_file_list() -> List[str]:
-    """Returns the list of files in the input folder."""
-    if not os.path.exists(input_folder):
-        return []
-    return os.listdir(input_folder)
-
-
-# API 2: Perform Excel vs CSV comparison
-@app.post("/compare_files", operation_id="compare_files")
-def compare_files(request: CompareRequest) -> dict:
-    """Compare Excel (OWNER NAME:) column with CSV (entity_name)."""
-
-    # Resolve file paths
-    excel_file = os.path.join(input_folder, request.excel_filename) if request.excel_filename else None
-    csv_file = os.path.join(input_folder, request.csv_filename) if request.csv_filename else None
-
-    if not excel_file or not os.path.exists(excel_file):
-        return {"error": "Excel file not found."}
-    if not csv_file or not os.path.exists(csv_file):
-        return {"error": "CSV file not found."}
-
-    try:
-        # Read Excel & CSV
-        excel_data = pd.read_excel(excel_file)
-        csv_data = pd.read_csv(csv_file)
-
-        # Extract owner names
-        owner_name_column = "OWNER NAME:"
-        if owner_name_column not in excel_data.columns:
-            return {"error": f"Column '{owner_name_column}' not found in Excel."}
-
-        owner_names = excel_data[owner_name_column].dropna().tolist()
-        owner_names = [name for name in owner_names if isinstance(name, str) and name.strip()]
-
-        # Extract entity names
-        if "entity_name" not in csv_data.columns:
-            return {"error": "Column 'entity_name' not found in CSV."}
-        csv_names = csv_data["entity_name"].dropna().tolist()
-
-        # Compare
-        results = []
-        for name in owner_names:
-            match = name in csv_names
-            results.append({"Owner Name": name, "Unique": not match})
-
-        # Save results
-        json_output_path = os.path.join(output_folder, "comparison_results.json")
-        with open(json_output_path, "w") as json_file:
-            json.dump(results, json_file, indent=4)
-
-        excel_output_path = os.path.join(output_folder, "comparison_results.xlsx")
-        pd.DataFrame(results).to_excel(excel_output_path, index=False)
-
-        return {
-            "message": "Comparison completed successfully.",
-            "json_result": json_output_path,
-            "excel_result": excel_output_path,
-            "results": results
-        }
-
-    except Exception as e:
-        return {"error": str(e)}
-
-
-# Bind MCP
-mcp = FastApiMCP(app, include_operations=["get_file_list", "compare_files"])
-mcp.mount()
+def create_watch(project_id, topic_full_name):
+    """Create a Gmail watch for Pub/Sub notifications."""
+    service = get_gmail_service()
+    body = {
+        "labelIds": ["INBOX"],
+        "topicName": topic_full_name
+    }
+    resp = service.users().watch(userId="me", body=body).execute()
+    print("Watch created:", resp)
+    return resp
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8501)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-import requests
-
-# Base URL of your running server
-BASE_URL = "http://127.0.0.1:8501"
-
-# 1. Test get_file_list
-print("Fetching file list...")
-resp = requests.get(f"{BASE_URL}/get_file_list")
-print(resp.json())
-
-# 2. Test compare_files
-payload = {
-    "excel_filename": "sample.xlsx",   # put actual file name from input/
-    "csv_filename": "sample.csv"       # put actual file name from input/
-}
-print("Comparing files...")
-resp = requests.post(f"{BASE_URL}/compare_files", json=payload)
-print(resp.json())
-
-
-
-
-
-
-
-
-
-
-
-
+    import sys
+    if len(sys.argv) < 3:
+        print("Usage: python gmail_watch.py <PROJECT_ID> <projects/PROJECT_ID/topics/TOPIC>")
+        sys.exit(1)
+    
+    project = sys.argv[1]
+    topic = sys.argv[2]
+    create_watch(project, topic)
+
+mcp_enail_server.py
 import os
-import pandas as pd
 import json
-from pathlib import Path
-from fastapi import FastAPI
+import asyncio
+from fastapi import FastAPI, BackgroundTasks
 import uvicorn
 from pydantic import BaseModel
-from typing import Optional, List
-from fastapi_mcp import FastApiMCP
+from gmail_watch import get_gmail_service
+from attachment_handler import (
+    save_attachments_from_message,
+    load_state,
+    save_state
+)
+from datetime import datetime
 
-# Initialize FastAPI app
 app = FastAPI()
 
-# Define input model for comparison request
-class CompareRequest(BaseModel):
-    excel_filename: Optional[str]
-    csv_filename: Optional[str]
+# Global variables
+running = True
+last_check_time = None
 
-# Define global folders
-current_directory = os.path.dirname(os.path.abspath(__file__))
-input_folder = os.path.join(current_directory, "input")
-output_folder = os.path.join(current_directory, "output")
+class EmailNotification(BaseModel):
+    emailAddress: str
+    historyId: int
 
-# Ensure output folder exists
-if not os.path.exists(output_folder):
-    os.makedirs(output_folder)
-
-# API 1: Get list of available files
-@app.get("/get_file_list", operation_id="get_file_list")
-def get_file_list() -> List[str]:
-    """Returns the list of files in the input folder."""
-    if not os.path.exists(input_folder):
-        return []
-    return os.listdir(input_folder)
-
-
-# API 2: Perform Excel vs CSV comparison
-@app.post("/compare_files", operation_id="compare_files")
-def compare_files(request: CompareRequest) -> dict:
-    """Compare Excel (OWNER NAME:) column with CSV (entity_name)."""
-
-    # Resolve file paths
-    excel_file = os.path.join(input_folder, request.excel_filename) if request.excel_filename else None
-    csv_file = os.path.join(input_folder, request.csv_filename) if request.csv_filename else None
-
-    if not excel_file or not os.path.exists(excel_file):
-        return {"error": "Excel file not found."}
-    if not csv_file or not os.path.exists(csv_file):
-        return {"error": "CSV file not found."}
-
+async def check_new_emails():
+    """Check for new emails and process them."""
+    global last_check_time
+    service = get_gmail_service()
+    
     try:
-        # Read Excel & CSV
-        excel_data = pd.read_excel(excel_file)
-        csv_data = pd.read_csv(csv_file)
-
-        # Extract owner names
-        owner_name_column = "OWNER NAME:"
-        if owner_name_column not in excel_data.columns:
-            return {"error": f"Column '{owner_name_column}' not found in Excel."}
-
-        owner_names = excel_data[owner_name_column].dropna().tolist()
-        owner_names = [name for name in owner_names if isinstance(name, str) and name.strip()]
-
-        # Extract entity names
-        if "entity_name" not in csv_data.columns:
-            return {"error": "Column 'entity_name' not found in CSV."}
-        csv_names = csv_data["entity_name"].dropna().tolist()
-
-        # Compare
-        results = []
-        for name in owner_names:
-            match = name in csv_names
-            results.append({"Owner Name": name, "Unique": not match})
-
-        # Save results
-        json_output_path = os.path.join(output_folder, "comparison_results.json")
-        with open(json_output_path, "w") as json_file:
-            json.dump(results, json_file, indent=4)
-
-        excel_output_path = os.path.join(output_folder, "comparison_results.xlsx")
-        pd.DataFrame(results).to_excel(excel_output_path, index=False)
-
-        return {
-            "message": "Comparison completed successfully.",
-            "json_result": json_output_path,
-            "excel_result": excel_output_path,
-            "results": results
-        }
-
+        # On first run: fetch the latest 5 emails. Afterwards: incremental by timestamp.
+        if not last_check_time:
+            results = service.users().messages().list(
+                userId="me",
+                maxResults=5
+            ).execute()
+        else:
+            query = f"after:{int(last_check_time.timestamp())}"
+            results = service.users().messages().list(userId="me", q=query).execute()
+        messages = results.get("messages", [])
+        
+        for message in messages:
+            msg = service.users().messages().get(
+                userId="me",
+                id=message["id"],
+                format="full"
+            ).execute()
+            
+            print(f"📩 Processing message ID: {message['id']}")
+            
+            # Save attachment filenames and compare with Azure Blob Storage
+            comparison_result = save_attachments_from_message(service, msg)
+            print(f"📎 Comparison result: {comparison_result}")
+        
+        last_check_time = datetime.now()
+    
     except Exception as e:
-        return {"error": str(e)}
+        print(f"Error checking emails: {e}")
 
+async def email_polling_loop():
+    """Continuously poll for new emails."""
+    while running:
+        try:
+            await check_new_emails()
+        except Exception as e:
+            print("Polling iteration error:", e)
+        await asyncio.sleep(10)  # Poll every 10 seconds
 
-# Bind MCP
-mcp = FastApiMCP(app, include_operations=["get_file_list", "compare_files"])
-mcp.mount()
+@app.on_event("startup")
+async def startup_event():
+    """Initialize and start email polling on startup."""
+    global running
+    try:
+        print("📧 Starting email polling...")
+        asyncio.create_task(email_polling_loop())
+    except Exception as e:
+        print("Startup non-fatal error:", e)
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Cleanup on shutdown."""
+    global running
+    running = False
+
+@app.post("/process_notification")
+async def process_notification(notification: EmailNotification, background_tasks: BackgroundTasks):
+    """Process a Gmail notification and compare attachment filenames with Azure Blob Storage."""
+    service = get_gmail_service()
+    email = notification.emailAddress
+    history_id = notification.historyId
+    
+    state = load_state()
+    last_hist = state.get(email)
+    
+    if not last_hist:
+        # Initialize state on first notification
+        state[email] = history_id
+        save_state(state)
+        return {"message": f"Initialized history id {history_id}"}
+    
+    processed_messages = []
+    try:
+        # Get history since last check
+        resp = service.users().history().list(
+            userId="me",
+            startHistoryId=str(last_hist),
+            historyTypes="messageAdded"
+        ).execute()
+        
+        histories = resp.get("history", [])
+        message_ids = []
+        for h in histories:
+            for ma in h.get("messagesAdded", []):
+                message_ids.append(ma["message"]["id"])
+        
+    except Exception as e:
+        print("History list failed:", e)
+        # Fallback: get recent messages
+        res = service.users().messages().list(
+            userId="me",
+            q="newer_than:7d",
+            maxResults=20
+        ).execute()
+        message_ids = [m["id"] for m in res.get("messages", [])]
+
+    for mid in message_ids:
+        msg = service.users().messages().get(
+            userId="me",
+            id=mid,
+            format="full"
+        ).execute()
+        
+        # Save attachment filenames and compare with Azure Blob Storage
+        comparison_result = save_attachments_from_message(service, msg)
+        processed_messages.append({
+            "message_id": mid,
+            "comparison_result": comparison_result
+        })
+    
+    # Update state
+    state[email] = history_id
+    save_state(state)
+    
+    return {
+        "message": f"Processed {len(processed_messages)} messages",
+        "processed": processed_messages
+    }
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8501)
+    uvicorn.run(app, host="0.0.0.0", port=8054)
+
+
+
+
+and below is code 2
+
+load_dotenv(".env")
+
+router = APIRouter()
+log_path = os.environ.get('BASE_LOG_PATH')
+
+
+class GetFiles(BaseModel):
+    """ Represents the functionality for getting the list of all available files. """
+    AgentName: str = Field(default="Data_Quality" , description=("The unique agent name of the Agent that is being called e.g., 'Transformation' or 'Sas_2_Py' or'Data_Quality' etc.."))
+    UserId: str = Field(default="markRuffalo", description=("The unique user id of a specific user (default: 'markRuffalo')."))
+
+
+class GetMetadata(BaseModel):
+    """ Represents metadata fetching functionality. """
+    AgentName: str = Field(default="Data_Quality" , description=("The unique agent name of the Agent that is being called e.g., 'Transformation' or 'Sas_2_Py' or 'Data_Quality' etc.."))
+    UserID: str = Field(default="markRuffalo", description=("The unique user id of a specific user (default: 'markRuffalo')."))
+
+
+# Pydantic Class ----------------------------------------------------------------
+class DataQualityRequest(BaseModel):
+    """Represents the functionality for running a full data quality orchestration."""
+    AgentName: str = Field(default="Data_Quality")
+    UserId: str = Field(default="markRuffalo")
+    Filenames: list = Field(..., description="Comma-separated list of input filenames.")
+    SessionId: str = Field(default="Session1")
+    BizName: str = Field(default="test")
+    StorePoint: str = Field(default="Azure")
+
+
+class CreatePipelineFileRequest(BaseModel):
+    """Represents the functionality for creating a Python pipeline file."""
+    python_code: str = Field(..., description="The Python code for the data pipeline.")
+    description: str = Field(default="Data quality pipeline", description="Description of the pipeline.")
+
+
+class HumanAssistanceRequest(BaseModel):
+    """Represents the functionality for requesting human assistance."""
+    query: str = Field(..., description="The query or question for human assistance.")
+
+
+class ReadCSVFileRequest(BaseModel):
+    """Represents the functionality for reading and inspecting CSV files."""
+    file_path: str = Field(..., description="Path to the CSV file to read (relative or absolute).")
+    max_rows: int = Field(default=10, description="Maximum number of rows to display (default: 10).")
+    show_info: bool = Field(default=True, description="Whether to include file info like shape, columns, data types.")
+    show_sample: bool = Field(default=True, description="Whether to show sample data rows.")
+    encoding: str = Field(default="utf-8", description="File encoding (default: utf-8).")
+
+
+class ReadBlobCSVFileRequest(BaseModel):
+    """Represents the functionality for reading and inspecting CSV files from Azure Blob Storage."""
+    AgentName: str = Field(default="Data_Quality", description="The unique agent name.")
+    UserId: str = Field(default="markRuffalo", description="The unique user ID.")
+    filename: str = Field(..., description="Name of the CSV file to read from blob storage.")
+    max_rows: int = Field(default=10, description="Maximum number of rows to display (default: 10).")
+    show_info: bool = Field(default=True, description="Whether to include file info like shape, columns, data types.")
+    show_sample: bool = Field(default=True, description="Whether to show sample data rows.")
+    encoding: str = Field(default="utf-8", description="File encoding (default: utf-8).")
+
+
+@router.post("/get_files", operation_id="get_quality_files",
+             summary="Retreives all the list of available input files before performing an Agent execution.",
+             description=("Accepts Agent name in a single request payload."
+                          "Returns a list of available input files for the specified agent. "
+                        "Useful when the user is unsure which files to use for transformation or quality checks"))
+
+async def get_files(p_body: GetFiles):
+    """
+    Endpoint to get all the list of available input files. **Requires `AgentName`**.
+
+    NOTE: Steps to follow:-
+        - If the user asks or tells that he wants to perform `Transformation`/`data transformation` or `Data_Quality`/`quality`, call this **`get_files`** tool. The user will provide the `AgentName`. 
+        - Show the list of available files in the chat. **DO NOT start doing `Transformation`, or `Data_Quality`**.
+        - Wait for user input always.
+
+    Args:
+        p_body (GetFiles): Request body containing:
+            AgentName (str): The specific/unique name of the Agent, for which the input files are to be fetched, e.g., "Sas_2_Py" or "Transformation" or "Data_Quality" etc.
+            UserID (str): The unique user id of a specific user (Defaults to "markRuffalo").
+    """
+    try:
+        print(p_body.AgentName)
+        ls_files = get_available_files(p_body.AgentName, p_body.UserId)
+        print(f"Files available - {ls_files}")
+        return {f"Available files": ls_files}
+    
+    except Exception as e:
+        return {"error": f"Error in getting the files : {e}"}
+
+
+@router.post("/get_metadata", operation_id="get_quality_metadata",
+            summary="Retrieves all the metadata informations of the given Agent.",
+            description=("Accepts agent name in a single request payload."),
+            openapi_extra={"x-requires-human-input": True})
+async def get_metadata(p_body: GetMetadata) -> dict:
+    """
+    Endpoint to get all the metadata info for the given Agent. **Requires only `AgentName`**.
+
+    Args:
+        p_body (GetMetadata): Request body containing:
+            AgentName (str): The specific/unique name of the agent being invoked, e.g., "Sas_2_Py" or "Transformation" or "Data_Quality" etc.
+            UserID (str): The unique user id of a specific user (Defaults to "markRuffalo").
+    """
+    try:
+        print(p_body.AgentName, p_body.UserID)
+        ls_result = await asyncio.to_thread(fetch_data, p_body.AgentName, p_body.UserID)
+        print(ls_result)
+        return {"metadata": ls_result}
+    
+    except Exception as e:
+        return {"error": f"Error fetching records from table due to : {e}"}
+
+
+@router.post("/create_pipeline_file", operation_id="create_pipeline_file",
+             summary="Create a Python pipeline file with the generated code.",
+             description=("Creates a Python pipeline file with the provided code. "
+                        "Generates a timestamped filename and saves the file with metadata. "
+                        "Returns file creation results including path and size."))
+async def create_pipeline_file(p_body: CreatePipelineFileRequest):
+    """
+    Endpoint to create a Python pipeline file with the generated code.
+    **Requires `python_code`**.
+    **Optional `description` (defaults to 'Data quality pipeline')**.
+    
+    Args:
+        p_body (CreatePipelineFileRequest): Contains the Python code and description:
+            python_code (str): The Python code for the data pipeline.
+            description (str): Description of the pipeline.
+    """
+    try:
+        # Generate filename with timestamp
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"python-dq-pipeline_{timestamp}.py"
+        
+        # Ensure data directory exists
+        data_dir = "data"
+        os.makedirs(data_dir, exist_ok=True)
+        
+        file_path = os.path.join(data_dir, filename)
+        # Write the file
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(p_body.python_code)
+        
+        # Create metadata
+        metadata = {
+            'filename': filename,
+            'language': 'python',
+            'created_at': datetime.now().isoformat(),
+            'file_size': os.path.getsize(file_path),
+            'auto_generated': True,
+            'description': p_body.description
+        }
+        
+        metadata_path = os.path.join(data_dir, f"{filename}.meta.json")
+        with open(metadata_path, 'w', encoding='utf-8') as f:
+            json.dump(metadata, f, indent=2)
+        
+        return {
+            'success': True,
+            'filename': filename,
+            'file_path': file_path,
+            'size': metadata['file_size'],
+            'message': f"📁 **File Created**: {filename}\n📍 **Location**: {file_path}\n📊 **Size**: {metadata['file_size']} bytes\n\n✅ **Pipeline code has been saved successfully!**"
+        }
+        
+    except Exception as e:
+        return {
+            'success': False,
+            'error': str(e),
+            'message': f"⚠️ **File Creation Error**: {str(e)}"
+        }
+
+
+@router.post("/human_assistance", operation_id="human_assistance",
+             summary="Request assistance from a human.",
+             description=("Requests human assistance by prompting for user input. "
+                        "Useful when the AI needs clarification or human intervention. "
+                        "Returns the human response."))
+async def human_assistance(p_body: HumanAssistanceRequest):
+    """
+    Endpoint to request assistance from a human.
+    **Requires `query`**.
+    
+    Args:
+        p_body (HumanAssistanceRequest): Contains the query for human assistance:
+            query (str): The query or question for human assistance.
+    """
+    try:
+        # In a production environment, this would integrate with a proper human-in-the-loop system
+        # For now, we'll return a structured response indicating human input is needed
+        return {
+            'success': True,
+            'query': p_body.query,
+            'message': f"Human assistance requested: {p_body.query}\n\nPlease provide your response or input to continue.",
+            'requires_human_input': True
+        }
+        
+    except Exception as e:
+        return {
+            'success': False,
+            'error': str(e),
+            'message': f"⚠️ **Human Assistance Error**: {str(e)}"
+        }
+
+
+
+
+def get_vault_secret_object():
+    """Connects to the Azure Key Vault."""
+    v_url = "https://amaze-omnicore-key-vault.vault.azure.net/"
+    creds = DefaultAzureCredential()
+    return SecretClient(vault_url=v_url, credential=creds)
+
+
+@router.post("/read_blob_csv_file", operation_id="read_blob_csv_file",
+             summary="Read and inspect CSV files from Azure Blob Storage.",
+             description=("Downloads and reads a CSV file from Azure Blob Storage, providing detailed "
+                        "information about its structure, including column names, data types, shape, "
+                        "and sample data rows. Useful for understanding blob file contents before processing."))
+async def read_blob_csv_file(p_body: ReadBlobCSVFileRequest):
+    """
+    Endpoint to read and inspect CSV files from Azure Blob Storage.
+    **Requires `filename`**.
+    **Optional parameters**: `AgentName` (default: Data_Quality), `UserId` (default: markRuffalo),
+    `max_rows` (default: 10), `show_info` (default: True), `show_sample` (default: True), 
+    `encoding` (default: utf-8).
+    """
+    try:
+        print(f"🔍 Reading blob CSV file: {p_body.filename}")
+        print(f"📁 Agent: {p_body.AgentName}, User: {p_body.UserId}")
+        
+        # Get Azure Storage connection
+        sc = get_vault_secret_object()
+        conn_str = sc.get_secret('AZURE-STORAGE-CONNECTION-STRING').value
+        upload_contr = os.environ.get("AZURE_UPLOAD_STORAGE_CONTAINER_NAME")
+        
+        # Create blob client
+        blob_service_client = BlobServiceClient.from_connection_string(conn_str)
+        blob_path = f"{p_body.AgentName}/{p_body.UserId}/{p_body.filename}"
+        blob_client = blob_service_client.get_blob_client(container=upload_contr, blob=blob_path)
+        blob_data = blob_client.download_blob().readall()
+        # Read CSV from memory using BytesIO
+        df = pd.read_csv(io.BytesIO(blob_data), encoding=p_body.encoding)
+        # Basic file info
+        result = {
+            'success': True,
+            'filename': p_body.filename,
+            'blob_path': blob_path,
+            'shape': df.shape,
+            'columns': df.columns.tolist(),
+            'message': f"📊 **{p_body.filename}**: {df.shape[0]} rows × {df.shape[1]} columns"
+        }
+        
+        # Add sample data
+        if p_body.show_sample and len(df) > 0:
+            sample_size = min(p_body.max_rows, len(df))
+            result['sample_data'] = df.head(sample_size).to_dict('records')
+            result['message'] += f"\n\n🔍 **Sample Data** (First {sample_size} rows):\n```\n"
+            result['message'] += df.head(sample_size).to_string(index=False, max_cols=10, max_colwidth=20)
+            result['message'] += "\n```"
+        
+        # Add detailed info if requested
+        if p_body.show_info:
+            null_counts = df.isnull().sum()
+            duplicates = df.duplicated().sum()
+            
+            result['message'] += f"\n\n📋 **Details**:\n"
+            result['message'] += f"• **Columns**: {', '.join(df.columns.tolist())}\n"
+            result['message'] += f"• **Data Types**: {', '.join([f'{col}({dtype})' for col, dtype in df.dtypes.astype(str).items()])}\n"
+            
+            if null_counts.sum() > 0:
+                null_info = ', '.join([f'{col}({count})' for col, count in null_counts.items() if count > 0])
+                result['message'] += f"• **Null Values**: {null_info}\n"
+            
+            if duplicates > 0:
+                result['message'] += f"• **Duplicate Rows**: {duplicates} found\n"
+        
+        return result
+        
+    except Exception as e:
+        return {
+            'success': False,
+            'error': str(e),
+            'message': f"⚠️ **Error reading {p_body.filename}**: {str(e)}"
+        }
+
+
+main.py of code 2
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi_mcp import FastApiMCP
+import uvicorn
+from Data_Quality.routers import quality_router
+
+# Shared CORS config
+def apply_cors(app: FastAPI):
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+# Agent-specific sub-apps
+def create_sub_app(title: str, description: str, version: str = "0.1.0") -> FastAPI:
+    app = FastAPI(title=title, description=description, version=version)
+    apply_cors(app)
+    return app
+
+# Main app
+app = FastAPI()
+apply_cors(app)
+
+# Data Quality Agent
+dq_app = create_sub_app(
+    title="OmniCore Data Quality",
+    description="GenAI framework for performing data quality checks on input data."
+)
+dq_app.include_router(quality_router.router)
+FastApiMCP(dq_app, include_operations=["get_quality_files", "get_quality_metadata", "create_pipeline_file", "human_assistance", "read_blob_csv_file"]).mount_http()
+app.mount("/api/v1/dataquality", dq_app)
+
+
+# Entry point
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=5555)
