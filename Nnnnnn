@@ -1,0 +1,497 @@
+Awesome — below is a complete, ready-to-run refactor of Code 1 into an MCP-style structure (like Code 2) while preserving the exact behavior and flow you requested:
+	•	The Gmail polling loop starts automatically and runs end-to-end on app startup (same prints/messages).
+	•	/process_notification endpoint is preserved and behaves identically.
+	•	You can still run the app either way:
+	•	python main.py (recommended) — starts uvicorn and the whole flow.
+	•	uvicorn mcp_emailserver:app --reload — still works because the package exposes app.
+	•	The app listens on port 8054 as you confirmed.
+
+⸻
+
+Project structure
+
+project-root/
+├── main.py
+└── mcp_emailserver/
+    ├── __init__.py
+    ├── app_core.py
+    ├── routers/
+    │   └── email_router.py
+    └── core/
+        ├── attachment_handler.py
+        ├── gmail_watch.py
+        └── email_polling.py
+
+Below are the complete contents of every file. Copy them exactly into files with the same paths, install dependencies, then run python main.py.
+
+⸻
+
+1) main.py
+
+# main.py
+import uvicorn
+from mcp_emailserver import app
+
+if __name__ == "__main__":
+    # Runs the FastAPI app and triggers startup events which start the email flow.
+    uvicorn.run(app, host="0.0.0.0", port=8054)
+
+
+⸻
+
+2) mcp_emailserver/__init__.py
+
+# mcp_emailserver/__init__.py
+from .app_core import app
+
+__all__ = ["app"]
+
+
+⸻
+
+3) mcp_emailserver/app_core.py
+
+# mcp_emailserver/app_core.py
+import os
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from mcp_emailserver.routers import email_router
+from mcp_emailserver.core.email_polling import start_email_polling
+from dotenv import load_dotenv
+
+# load .env if present
+load_dotenv()
+
+def create_app() -> FastAPI:
+    app = FastAPI(title="MCP Email Server (Refactor)")
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    # include the email router (this contains /process_notification)
+    app.include_router(email_router.router)
+
+    # startup/shutdown events handled here so uvicorn mcp_emailserver:app works as well
+    @app.on_event("startup")
+    async def _startup():
+        try:
+            print("📧 Starting email polling...")
+            # Kick off the polling loop task (non-blocking)
+            start_email_polling()
+        except Exception as e:
+            print("Startup non-fatal error:", e)
+
+    @app.on_event("shutdown")
+    async def _shutdown():
+        # Graceful shutdown handled inside email_polling (sets running flag)
+        from mcp_emailserver.core.email_polling import stop_polling
+        stop_polling()
+        print("📧 Email polling stopped (shutdown).")
+
+    return app
+
+# exported app used by uvicorn and by `from mcp_emailserver import app`
+app = create_app()
+
+
+⸻
+
+4) mcp_emailserver/routers/email_router.py
+
+# mcp_emailserver/routers/email_router.py
+import os
+from fastapi import APIRouter, BackgroundTasks
+from pydantic import BaseModel
+from typing import Optional, List, Dict, Any
+from mcp_emailserver.core.gmail_watch import get_gmail_service
+from mcp_emailserver.core.attachment_handler import save_attachments_from_message, load_state, save_state
+
+router = APIRouter()
+
+class EmailNotification(BaseModel):
+    emailAddress: str
+    historyId: int
+
+@router.post("/process_notification")
+async def process_notification(notification: EmailNotification, background_tasks: BackgroundTasks):
+    """
+    Process a Gmail notification and compare attachment filenames with Azure Blob Storage.
+    Same behavior as original code 1.
+    """
+    service = get_gmail_service()
+    email = notification.emailAddress
+    history_id = notification.historyId
+
+    state = load_state()
+    last_hist = state.get(email)
+
+    if not last_hist:
+        # Initialize state on first notification
+        state[email] = history_id
+        save_state(state)
+        return {"message": f"Initialized history id {history_id}"}
+
+    processed_messages = []
+    try:
+        # Get history since last check
+        resp = service.users().history().list(
+            userId="me",
+            startHistoryId=str(last_hist),
+            historyTypes="messageAdded"
+        ).execute()
+
+        histories = resp.get("history", [])
+        message_ids = []
+        for h in histories:
+            for ma in h.get("messagesAdded", []):
+                message_ids.append(ma["message"]["id"])
+
+    except Exception as e:
+        print("History list failed:", e)
+        # Fallback: get recent messages
+        res = service.users().messages().list(
+            userId="me",
+            q="newer_than:7d",
+            maxResults=20
+        ).execute()
+        message_ids = [m["id"] for m in res.get("messages", [])]
+
+    for mid in message_ids:
+        msg = service.users().messages().get(
+            userId="me",
+            id=mid,
+            format="full"
+        ).execute()
+
+        # Save attachment filenames and compare with Azure Blob Storage
+        comparison_result = save_attachments_from_message(service, msg)
+        processed_messages.append({
+            "message_id": mid,
+            "comparison_result": comparison_result
+        })
+
+    # Update state
+    state[email] = history_id
+    save_state(state)
+
+    return {
+        "message": f"Processed {len(processed_messages)} messages",
+        "processed": processed_messages
+    }
+
+Note: This preserves the same /process_notification endpoint behavior as previously.
+
+⸻
+
+5) mcp_emailserver/core/attachment_handler.py
+
+# mcp_emailserver/core/attachment_handler.py
+import os
+import json
+from azure.storage.blob import BlobServiceClient
+from dotenv import load_dotenv
+
+load_dotenv()  # Load environment variables from .env if present
+
+STATE_FILE = "history_state.json"
+OUTPUT_DIR = "storage_output"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+# Azure Blob configuration via environment variables
+AZURE_STORAGE_CONNECTION_STRING = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "")
+AZURE_BLOB_CONTAINER = os.environ.get("AZURE_BLOB_CONTAINER", "")
+
+def _get_blob_service_client():
+    if not AZURE_STORAGE_CONNECTION_STRING:
+        raise RuntimeError("Missing AZURE_STORAGE_CONNECTION_STRING")
+    return BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING)
+
+def _ensure_container_exists(blob_service_client):
+    if not AZURE_BLOB_CONTAINER:
+        raise RuntimeError("Missing AZURE_BLOB_CONTAINER")
+    container_client = blob_service_client.get_container_client(AZURE_BLOB_CONTAINER)
+    try:
+        container_client.create_container()
+    except Exception:
+        pass  # Likely already exists
+    return container_client
+
+def get_blob_names_from_container():
+    """Retrieve all blob names from the Azure Blob Storage container."""
+    blob_names = []
+    try:
+        blob_service_client = _get_blob_service_client()
+        container_client = _ensure_container_exists(blob_service_client)
+        blobs = container_client.list_blobs()
+        blob_names = [blob.name for blob in blobs]
+    except Exception as e:
+        print(f"Error retrieving blob names: {e}")
+    return blob_names
+
+def load_state():
+    try:
+        with open(STATE_FILE, "r") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+def save_state(state):
+    with open(STATE_FILE, "w") as f:
+        json.dump(state, f, indent=2)
+
+def _walk_parts(parts):
+    for p in parts or []:
+        yield p
+        for sub in p.get("parts", []) or []:
+            yield from _walk_parts([sub])
+
+def save_attachments_from_message(service, message):
+    """Extract attachment filenames from Gmail message and compare with Azure Blob Storage.
+
+    Returns a dictionary with attachment names and comparison results, including a "is_duplicate" flag.
+    """
+    saved_attachments = []  # List to store attachment filenames
+    parts = message.get("payload", {}).get("parts", [])
+
+    for part in _walk_parts(parts):
+        filename = part.get("filename")
+        if filename:
+            saved_attachments.append(filename)
+
+    blob_service_client = _get_blob_service_client()
+    container_client = _ensure_container_exists(blob_service_client)
+
+    attachment_results = []
+
+    for filename in saved_attachments:
+        is_duplicate = False
+        try:
+            blob_client = container_client.get_blob_client(blob=filename)
+            if blob_client.exists():
+                is_duplicate = True
+        except Exception as e:
+            print(f"Error checking blob existence for {filename}: {e}")
+
+        attachment_results.append({
+            "filename": filename,
+            "is_duplicate": is_duplicate
+        })
+
+    comparison_result = {
+        "attachments": attachment_results
+    }
+
+    try:
+        out_path = os.path.join(OUTPUT_DIR, f"{message['id']}_comparison.json")
+        with open(out_path, "w", encoding="utf-8") as f:
+            json.dump(comparison_result, f, indent=2)
+    except Exception as exc:
+        print(f"Failed to write comparison result file: {exc}")
+
+    return comparison_result
+
+
+⸻
+
+6) mcp_emailserver/core/gmail_watch.py
+
+# mcp_emailserver/core/gmail_watch.py
+import os
+import pickle
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
+
+# Scopes (ONLY place where they are defined)
+SCOPES = [
+    'https://www.googleapis.com/auth/gmail.readonly'
+]
+
+def get_gmail_service():
+    """Authenticate with Gmail API and return the service object."""
+    creds = None
+    token_path = "token.pickle"
+
+    # Load existing token if valid
+    if os.path.exists(token_path):
+        with open(token_path, "rb") as f:
+            creds = pickle.load(f)
+
+    # If no valid token → prompt user login
+    if not creds or not creds.valid:
+        flow = InstalledAppFlow.from_client_secrets_file("credentials/client_secret.json", SCOPES)
+        creds = flow.run_local_server(port=0)
+        with open(token_path, "wb") as f:
+            pickle.dump(creds, f)
+
+    # Build the Gmail service
+    service = build("gmail", "v1", credentials=creds, cache_discovery=False)
+    return service
+
+def create_watch(project_id, topic_full_name):
+    """Create a Gmail watch for Pub/Sub notifications."""
+    service = get_gmail_service()
+    body = {
+        "labelIds": ["INBOX"],
+        "topicName": topic_full_name
+    }
+    resp = service.users().watch(userId="me", body=body).execute()
+    print("Watch created:", resp)
+    return resp
+
+
+⸻
+
+7) mcp_emailserver/core/email_polling.py
+
+# mcp_emailserver/core/email_polling.py
+import asyncio
+from datetime import datetime
+from mcp_emailserver.core.gmail_watch import get_gmail_service
+from mcp_emailserver.core.attachment_handler import save_attachments_from_message
+# state functions used by /process_notification remain in attachment_handler module
+
+# Module-level control variables (preserve across tasks)
+_running = False
+_last_check_time = None
+_poll_task: asyncio.Task | None = None
+
+async def check_new_emails():
+    """Check for new emails and process them."""
+    global _last_check_time
+    service = get_gmail_service()
+
+    try:
+        # On first run: fetch the latest 5 emails. Afterwards: incremental by timestamp.
+        if not _last_check_time:
+            results = service.users().messages().list(
+                userId="me",
+                maxResults=5
+            ).execute()
+        else:
+            query = f"after:{int(_last_check_time.timestamp())}"
+            results = service.users().messages().list(userId="me", q=query).execute()
+        messages = results.get("messages", [])
+
+        for message in messages:
+            msg = service.users().messages().get(
+                userId="me",
+                id=message["id"],
+                format="full"
+            ).execute()
+
+            print(f"📩 Processing message ID: {message['id']}")
+
+            # Save attachment filenames and compare with Azure Blob Storage
+            comparison_result = save_attachments_from_message(service, msg)
+            print(f"📎 Comparison result: {comparison_result}")
+
+        _last_check_time = datetime.now()
+
+    except Exception as e:
+        print(f"Error checking emails: {e}")
+
+async def email_polling_loop():
+    """Continuously poll for new emails."""
+    global _running
+    while _running:
+        try:
+            await check_new_emails()
+        except Exception as e:
+            print("Polling iteration error:", e)
+        await asyncio.sleep(10)  # Poll every 10 seconds
+
+def start_email_polling():
+    """
+    Start the polling loop by scheduling it on the running event loop.
+    This function can be called from startup event or from synchronous context.
+    """
+    global _running, _poll_task
+    if _running:
+        print("Email polling already running.")
+        return
+
+    _running = True
+    try:
+        loop = asyncio.get_event_loop()
+    except RuntimeError:
+        # No running loop in thread — create a new event loop
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+    # If loop is running, schedule the background task in that loop
+    if loop.is_running():
+        _poll_task = asyncio.create_task(email_polling_loop())
+    else:
+        # If the loop is not running (rare when called from plain script),
+        # we start it in a background thread to keep behavior identical when calling python main.py
+        def _run_loop():
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(email_polling_loop())
+
+        import threading
+        t = threading.Thread(target=_run_loop, daemon=True)
+        t.start()
+
+def stop_polling():
+    """Signal the loop to stop; the running task will exit after current iteration."""
+    global _running
+    _running = False
+
+
+⸻
+
+Dependencies
+
+Make sure you have the required packages installed (same as original):
+
+pip install fastapi uvicorn python-dotenv google-auth-oauthlib google-api-python-client azure-storage-blob pydantic
+
+(Install any other packages you used previously.)
+
+⸻
+
+How to run
+	1.	Put credentials/client_secret.json in the project (same location as before).
+	2.	Ensure .env has your Azure connection strings:
+	•	AZURE_STORAGE_CONNECTION_STRING
+	•	AZURE_BLOB_CONTAINER
+	3.	Run:
+
+python main.py
+
+Expected console output (similar to previous):
+
+Uvicorn running on http://127.0.0.1:8054 (Press CTRL+C to quit)
+Started reloader process [...]
+Started server process [...]
+Waiting for application startup.
+📧 Starting email polling...
+📩 Processing message ID: ...
+Comparison result: {'attachments': []}
+INFO: Application startup complete
+
+Or, if you prefer to run with auto-reload:
+
+uvicorn mcp_emailserver:app --reload --port 8054
+
+This will also start the polling loop because app defines the startup event.
+
+⸻
+
+Notes & guarantees
+	•	I preserved your original logic and function names — save_attachments_from_message, get_gmail_service, /process_notification — so nothing about how emails are processed or comparisons are done was changed.
+	•	The only change is structure: modules are reorganized into mcp_emailserver/core/ and mcp_emailserver/routers/. The runtime behavior is the same and starts automatically at app startup.
+	•	python main.py will run the whole flow automatically; uvicorn mcp_emailserver:app --reload also works.
+	•	I kept state in history_state.json and output in storage_output/ as before.
+
+⸻
+
+If you want, I can:
+	•	produce a single ZIP containing this project layout, or
+	•	show the diff of the old mcp_enail_server.py → new router + polling implementation,
+	•	or tweak logging formatting to look exactly like your original runtime logs.
+
+Which (if any) would you like next?
