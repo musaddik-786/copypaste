@@ -1,3 +1,73 @@
+# main.py
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi_mcp import FastApiMCP
+import uvicorn
+import asyncio
+
+# Import router and polling function
+from routers import notification_router
+
+
+# Shared CORS config
+def apply_cors(app: FastAPI):
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+
+# Agent-specific sub-app creator
+def create_sub_app(title: str, description: str, version: str = "0.1.0") -> FastAPI:
+    app = FastAPI(title=title, description=description, version=version)
+    apply_cors(app)
+    return app
+
+
+# Main app
+app = FastAPI(title="MCP Email Server")
+apply_cors(app)
+
+# Create sub-app and include router
+email_app = create_sub_app(
+    title="MCP Email Server",
+    description="Gmail to Azure Blob duplicate attachment checker using MCP-style sub-app."
+)
+email_app.include_router(notification_router.router)
+FastApiMCP(email_app, include_operations=["process_notification"]).mount_http()
+app.mount("/api/v1/email", email_app)
+
+
+# -------- THIS PART IS NEW --------
+@app.on_event("startup")
+async def startup_main():
+    """Start the email polling loop from the main app (since mounted app startup events don’t auto-run)."""
+    print("📧 Starting email polling from main app...")
+    asyncio.create_task(notification_router.email_polling_loop())
+# ----------------------------------
+
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8854)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 attachment handler.py
 import os, json
 from azure.storage.blob import BlobServiceClient
