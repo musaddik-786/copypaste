@@ -1,0 +1,429 @@
+Nice — I converted Code 1 to the Code 2 / MCP style and kept all original functionality exactly the same (Gmail auth/watch, attachment comparison with Azure Blob, state file, startup polling, and the /process_notification API). Drop these files into your project, keep your existing credentials/, .env, and token.pickle where they were, then run:
+
+python main.py
+
+This will start the FastAPI app (same behaviour as running uvicorn mcp_emailserver:app --reload previously) and will start the email polling task at startup. The /process_notification endpoint is exposed under the mounted MCP sub-app and has the same processing flow as in your Code 1.
+
+⸻
+
+Files to add/replace
+
+Place these files in your project root and a routers/ folder as shown:
+
+Project layout:
+
+.
+├─ main.py
+├─ attachment_handler.py
+├─ gmail_watch.py
+├─ history_state.json        # optional (will be created)
+├─ storage_output/           # will be created automatically
+└─ routers/
+   └─ notification_router.py
+
+
+⸻
+
+1) attachment_handler.py
+
+# attachment_handler.py
+import os
+import json
+from azure.storage.blob import BlobServiceClient
+from dotenv import load_dotenv
+
+load_dotenv()  # Load environment variables from .env if present
+
+STATE_FILE = "history_state.json"
+OUTPUT_DIR = "storage_output"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+# Azure Blob configuration via environment variables
+AZURE_STORAGE_CONNECTION_STRING = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "")
+AZURE_BLOB_CONTAINER = os.environ.get("AZURE_BLOB_CONTAINER", "")
+
+def _get_blob_service_client():
+    if not AZURE_STORAGE_CONNECTION_STRING:
+        raise RuntimeError("Missing AZURE_STORAGE_CONNECTION_STRING")
+    return BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING)
+
+def _ensure_container_exists(blob_service_client):
+    if not AZURE_BLOB_CONTAINER:
+        raise RuntimeError("Missing AZURE_BLOB_CONTAINER")
+    container_client = blob_service_client.get_container_client(AZURE_BLOB_CONTAINER)
+    try:
+        container_client.create_container()
+    except Exception:
+        pass  # Likely already exists
+    return container_client
+
+def get_blob_names_from_container():
+    """Retrieve all blob names from the Azure Blob Storage container."""
+    blob_names = []
+    try:
+        blob_service_client = _get_blob_service_client()
+        container_client = _ensure_container_exists(blob_service_client)
+        blobs = container_client.list_blobs()
+        blob_names = [blob.name for blob in blobs]
+    except Exception as e:
+        print(f"Error retrieving blob names: {e}")
+    return blob_names
+
+def load_state():
+    try:
+        with open(STATE_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+def save_state(state):
+    with open(STATE_FILE, "w", encoding="utf-8") as f:
+        json.dump(state, f, indent=2)
+
+def _walk_parts(parts):
+    for p in parts or []:
+        yield p
+        for sub in p.get("parts", []) or []:
+            yield from _walk_parts([sub])
+
+def save_attachments_from_message(service, message):
+    """Extract attachment filenames from Gmail message and compare with Azure Blob Storage.
+
+    Returns a dictionary with attachment names and comparison results, including a "is_duplicate" flag.
+    """
+    saved_attachments = []  # List to store attachment filenames
+    parts = message.get("payload", {}).get("parts", [])
+    
+    for part in _walk_parts(parts):
+        filename = part.get("filename") 
+        if filename:
+            saved_attachments.append(filename)  
+    
+    blob_service_client = _get_blob_service_client()
+    container_client = _ensure_container_exists(blob_service_client)
+    
+    attachment_results = []  
+    
+    for filename in saved_attachments:
+        is_duplicate = False  
+        try:
+            blob_client = container_client.get_blob_client(blob=filename)
+            if blob_client.exists():
+                is_duplicate = True
+        except Exception as e:
+            print(f"Error checking blob existence for {filename}: {e}")
+        
+        attachment_results.append({
+            "filename": filename,
+            "is_duplicate": is_duplicate
+        })
+    
+    comparison_result = {
+        "attachments": attachment_results
+    }
+    
+    try:
+        out_path = os.path.join(OUTPUT_DIR, f"{message.get('id')}_comparison.json")
+        with open(out_path, "w", encoding="utf-8") as f:
+            json.dump(comparison_result, f, indent=2)
+    except Exception as exc:
+        print(f"Failed to write comparison result file: {exc}")
+    
+    return comparison_result
+
+
+⸻
+
+2) gmail_watch.py
+
+(keeps same Gmail auth flow as your original; no functional changes)
+
+# gmail_watch.py
+import os
+import pickle
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
+
+# Scopes (ONLY place where they are defined)
+# gmail.readonly → fetch full messages + attachments
+# gmail.metadata → required for Pub/Sub notifications
+SCOPES = [
+    'https://www.googleapis.com/auth/gmail.readonly'
+]
+
+def get_gmail_service():
+    """Authenticate with Gmail API and return the service object."""
+    creds = None
+    token_path = "token.pickle"
+    
+    # 🔄 Load existing token if valid
+    if os.path.exists(token_path):
+        with open(token_path, "rb") as f:
+            creds = pickle.load(f)
+    
+    # 🔑 If no valid token → prompt user login
+    if not creds or not creds.valid:
+        flow = InstalledAppFlow.from_client_secrets_file("credentials/client_secret.json", SCOPES)
+        creds = flow.run_local_server(port=0)
+        with open(token_path, "wb") as f:
+            pickle.dump(creds, f)
+    
+    # Build the Gmail service
+    service = build("gmail", "v1", credentials=creds, cache_discovery=False)
+    return service
+
+def create_watch(project_id, topic_full_name):
+    """Create a Gmail watch for Pub/Sub notifications."""
+    service = get_gmail_service()
+    body = {
+        "labelIds": ["INBOX"],
+        "topicName": topic_full_name
+    }
+    resp = service.users().watch(userId="me", body=body).execute()
+    print("Watch created:", resp)
+    return resp
+
+if __name__ == "__main__":
+    import sys
+    if len(sys.argv) < 3:
+        print("Usage: python gmail_watch.py <PROJECT_ID> <projects/PROJECT_ID/topics/TOPIC>")
+        sys.exit(1)
+    
+    project = sys.argv[1]
+    topic = sys.argv[2]
+    create_watch(project, topic)
+
+
+⸻
+
+3) routers/notification_router.py
+
+(An MCP-style router file — exposes /process_notification and keeps the startup polling logic.)
+
+# routers/notification_router.py
+import asyncio
+from fastapi import APIRouter, BackgroundTasks
+from pydantic import BaseModel
+import uvicorn
+from datetime import datetime
+from gmail_watch import get_gmail_service
+from attachment_handler import (
+    save_attachments_from_message,
+    load_state,
+    save_state
+)
+
+router = APIRouter()
+
+# Global variables for polling
+running = True
+last_check_time = None
+
+class EmailNotification(BaseModel):
+    emailAddress: str
+    historyId: int
+
+async def check_new_emails():
+    """Check for new emails and process them."""
+    global last_check_time
+    service = get_gmail_service()
+    
+    try:
+        # On first run: fetch the latest 5 emails. Afterwards: incremental by timestamp.
+        if not last_check_time:
+            results = service.users().messages().list(
+                userId="me",
+                maxResults=5
+            ).execute()
+        else:
+            query = f"after:{int(last_check_time.timestamp())}"
+            results = service.users().messages().list(userId="me", q=query).execute()
+        messages = results.get("messages", [])
+        
+        for message in messages:
+            msg = service.users().messages().get(
+                userId="me",
+                id=message["id"],
+                format="full"
+            ).execute()
+            
+            print(f"📩 Processing message ID: {message['id']}")
+            
+            # Save attachment filenames and compare with Azure Blob Storage
+            comparison_result = save_attachments_from_message(service, msg)
+            print(f"📎 Comparison result: {comparison_result}")
+        
+        last_check_time = datetime.now()
+    
+    except Exception as e:
+        print(f"Error checking emails: {e}")
+
+async def email_polling_loop():
+    """Continuously poll for new emails."""
+    while running:
+        try:
+            await check_new_emails()
+        except Exception as e:
+            print("Polling iteration error:", e)
+        await asyncio.sleep(10)  # Poll every 10 seconds
+
+# Startup and shutdown for this router (these will be wired into the sub-app startup)
+@router.on_event("startup")
+async def startup_event():
+    """Initialize and start email polling on startup."""
+    global running
+    try:
+        print("📧 Starting email polling...")
+        asyncio.create_task(email_polling_loop())
+    except Exception as e:
+        print("Startup non-fatal error:", e)
+
+@router.on_event("shutdown")
+async def shutdown_event():
+    """Cleanup on shutdown."""
+    global running
+    running = False
+
+@router.post("/process_notification", operation_id="process_notification")
+async def process_notification(notification: EmailNotification, background_tasks: BackgroundTasks):
+    """Process a Gmail notification and compare attachment filenames with Azure Blob Storage."""
+    service = get_gmail_service()
+    email = notification.emailAddress
+    history_id = notification.historyId
+    
+    state = load_state()
+    last_hist = state.get(email)
+    
+    if not last_hist:
+        # Initialize state on first notification
+        state[email] = history_id
+        save_state(state)
+        return {"message": f"Initialized history id {history_id}"}
+    
+    processed_messages = []
+    try:
+        # Get history since last check
+        resp = service.users().history().list(
+            userId="me",
+            startHistoryId=str(last_hist),
+            historyTypes="messageAdded"
+        ).execute()
+        
+        histories = resp.get("history", [])
+        message_ids = []
+        for h in histories:
+            for ma in h.get("messagesAdded", []):
+                message_ids.append(ma["message"]["id"])
+        
+    except Exception as e:
+        print("History list failed:", e)
+        # Fallback: get recent messages
+        res = service.users().messages().list(
+            userId="me",
+            q="newer_than:7d",
+            maxResults=20
+        ).execute()
+        message_ids = [m["id"] for m in res.get("messages", [])]
+
+    for mid in message_ids:
+        msg = service.users().messages().get(
+            userId="me",
+            id=mid,
+            format="full"
+        ).execute()
+        
+        # Save attachment filenames and compare with Azure Blob Storage
+        comparison_result = save_attachments_from_message(service, msg)
+        processed_messages.append({
+            "message_id": mid,
+            "comparison_result": comparison_result
+        })
+    
+    # Update state
+    state[email] = history_id
+    save_state(state)
+    
+    return {
+        "message": f"Processed {len(processed_messages)} messages",
+        "processed": processed_messages
+    }
+
+
+⸻
+
+4) main.py
+
+(creates sub-app, mounts with FastApiMCP in the same style as Code 2, and starts uvicorn when run)
+
+# main.py
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi_mcp import FastApiMCP
+import uvicorn
+from routers import notification_router
+
+# Shared CORS config
+def apply_cors(app: FastAPI):
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+# Agent-specific sub-app creator
+def create_sub_app(title: str, description: str, version: str = "0.1.0") -> FastAPI:
+    app = FastAPI(title=title, description=description, version=version)
+    apply_cors(app)
+    return app
+
+# Main app
+app = FastAPI(title="MCP Email Server")
+apply_cors(app)
+
+# Create sub-app and include router
+email_app = create_sub_app(
+    title="MCP Email Server",
+    description="Gmail to Azure Blob duplicate attachment checker using MCP-style sub-app."
+)
+email_app.include_router(notification_router.router)
+# Mount MCP operations - we only need the process_notification op included
+FastApiMCP(email_app, include_operations=["process_notification"]).mount_http()
+app.mount("/api/v1/email", email_app)
+
+if __name__ == "__main__":
+    # When you run `python main.py` it will behave like your earlier uvicorn run.
+    uvicorn.run(app, host="0.0.0.0", port=8054)
+
+
+⸻
+
+Notes & reminders
+	1.	Operation ID: I set the operation_id="process_notification" in notification_router.py and passed ["process_notification"] to FastApiMCP(...) in main.py so that MCP-style mounting exactly exposes that operation the same way as your Code 2 pattern.
+	2.	Startup behavior: The router-level @router.on_event("startup") starts the same polling loop you had earlier, so on app start you’ll see the same “Starting email polling…” and repeated Processing/Comparison prints. The polling and the /process_notification endpoint use the same helper functions (get_gmail_service, save_attachments_from_message, load_state, save_state), so functionality is preserved.
+	3.	Environment / credentials:
+	•	Keep credentials/client_secret.json in place for Gmail OAuth.
+	•	Preserve token.pickle (or allow it to be created on first auth).
+	•	Ensure .env has AZURE_STORAGE_CONNECTION_STRING and AZURE_BLOB_CONTAINER.
+	•	storage_output/ and history_state.json will be created if missing.
+	4.	Ports & command:
+	•	Running python main.py will start uvicorn on port 8054 (same as your original if __name__ == "__main__": uvicorn.run(..., port=8054)).
+	•	If you prefer --reload behaviour during development, run:
+
+uvicorn main:app --reload
+
+(I didn’t change your desire for python main.py, but --reload is a CLI flag.)
+
+	5.	What I didn’t change:
+	•	No logic modifying the way attachments are extracted, compared against Blob, or state updates. Only structural re-organization to the MCP-style sub-apps and router separation (matching Code 2 pattern).
+	6.	If you used other files or custom imports:
+	•	I kept top-level names identical (save_attachments_from_message, get_gmail_service, load_state, save_state) so you won’t need to modify code that references them.
+
+⸻
+
+If you want, I can:
+	•	convert other endpoints (if any) into additional MCP operations and mount them (e.g., a separate admin route to view history_state.json),
+	•	show exact terminal output you should expect on startup (based on your earlier sample),
+	•	or produce a zipped project you can download.
+
+Which next step would you like?
