@@ -1,151 +1,617 @@
-Below is the updated full code with proper exception handling as you requested.
-✅ If everything runs successfully → status: true
-❌ If any error/exception occurs → status: false + error message
+Code 1
 
-⸻
-
-✅ ✅ Updated Code
-
-⸻
-
-✅ file_router.py  (inside routers folder)
-
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field
-from utils.file_utils import compare_excel_and_csv
-
-
-# Initialize APIRouter
-router = APIRouter()
-
-# Pydantic Models
-class CompareFilesRequest(BaseModel):
-    """Request model for comparing Excel and CSV files."""
-    excelfilename: str = Field(..., description="The name of the Excel file in Azure Blob Storage.")
-    csvfilename: str = Field(..., description="The name of the CSV file in Azure Blob Storage.")
-
-# API Endpoints
-@router.post("/compare_files", operation_id="compare_files", summary="Compare Excel and CSV files from Azure Blob Storage.")
-async def compare_files(request: CompareFilesRequest):
-    """
-    Endpoint to compare Excel and CSV files from Azure Blob Storage.
-    """
-    try:
-        result = compare_excel_and_csv(
-            excel_file_name=request.excelfilename,
-            csv_file_name=request.csvfilename,
-        )
-        return result  # Already has status true/false
-    except Exception as e:
-        # Final fallback exception
-        return {"status": False, "error": f"Unexpected server error: {str(e)}"}
-
-
-⸻
-
-✅ file_utils.py  (inside utils folder)
-
-import os
-import pandas as pd
-import json
-from io import BytesIO
-from azure.storage.blob import BlobServiceClient
+test_main.py
+ 
+ 
+from fastapi import FastAPI
+ 
+from fastapi.middleware.cors import CORSMiddleware
+ 
+from fastapi_mcp import FastApiMCP
+ 
+import uvicorn
+ 
+from test_email_router import router as email_router
+ 
+from email_handler import get_latest_email, start_email_polling, stop_email_polling
+ 
+from contextlib import asynccontextmanager
+ 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    await start_email_polling()
+    yield
+    # Shutdown
+    await stop_email_polling()
+app = FastAPI(lifespan=lifespan)
+ 
+def apply_cors(app: FastAPI):
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+ 
+def create_sub_app(title: str, description: str, version: str = "0.1.0") -> FastAPI:
+    app = FastAPI(title=title, description=description, version=version, lifespan=lifespan)
+    apply_cors(app)
+    return app
+ 
+apply_cors(app)
+ 
+email_reader_app = create_sub_app(title="email_reader_mcp", description="Reads the email from inbox of Underwriter and return the email body")
+email_reader_app.include_router(email_router)
+FastApiMCP(email_reader_app, include_operations=["email_reader_mcp"]).mount_http()
+app.mount("/mcp",email_reader_app)
+ 
+if __name__=="__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8502)
+ 
+ 
+test_email_router.py
+ 
+ 
 from dotenv import load_dotenv
-
-# Load environment variables
 load_dotenv()
-
-# Azure Blob Storage Configuration
-AZURE_STORAGE_CONNECTION_STRING = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "")
-AZURE_BLOB_CONTAINER = os.environ.get("AZURE_BLOB_CONTAINER", "")
-
-def read_blob_file(blob_name: str):
-    """Reads a file from Azure Blob Storage and returns its content as a BytesIO object."""
+ 
+from fastapi import APIRouter
+import asyncio
+from email_handler import get_latest_email, start_email_polling, stop_email_polling
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
+ 
+from contextlib import asynccontextmanager
+ 
+router = APIRouter()
+ 
+ 
+ 
+ 
+ 
+ 
+class EmailReaderMCP(BaseModel):
+    """Represents the functionality of reading emails from the inbox of Underwriter"""
+    AgentName: str = Field(default="EmailIntentAgent", description=("The unique agent name of the agent that is being called"))
+    UserId: str = Field(default="markRuffalo", description=("The unique user id of a specific user (default: 'markRuffalo')."))
+ 
+@router.post("/email_reader_mcp", operation_id="email_reader_mcp")
+async def email_reader_mcp(p_body: EmailReaderMCP):
+    """Reads the email from inbox of Underwriter and return the email body
+    Args:
+ 
+        p_body (EmailReaderMCP): Request body containing:
+ 
+            AgentName (str): The unique agent name of the agent that is being called.
+ 
+            UserId (str): The unique user id of a specific user (default: 'markRuffalo').
+ 
+    """
     try:
-        if not AZURE_STORAGE_CONNECTION_STRING:
-            raise ValueError("Azure Storage Connection String is missing. Please set AZURE_STORAGE_CONNECTION_STRING in .env")
-        if not AZURE_BLOB_CONTAINER:
-            raise ValueError("Azure Blob Container is missing. Please set AZURE_BLOB_CONTAINER in .env")
-
-        blob_service_client = BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING)
-        blob_client = blob_service_client.get_blob_client(container=AZURE_BLOB_CONTAINER, blob=blob_name)
-
-        if not blob_client.exists():
-            raise FileNotFoundError(f"Blob file '{blob_name}' not found in container '{AZURE_BLOB_CONTAINER}'.")
-
-        blob_data = blob_client.download_blob().readall()
-        return BytesIO(blob_data)
-
+        result = get_latest_email()
     except Exception as e:
-        raise Exception(f"Error reading blob file '{blob_name}': {str(e)}")
-
-
-def compare_excel_and_csv(excel_file_name: str, csv_file_name: str):
-    """Compares an Excel file and a CSV file from Azure Blob Storage."""
+        return {"error": f"Unable to get the latest email: {e}"}
+ 
+    return JSONResponse(content={
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": result
+    })
+ 
+email_handler.py
+ 
+import json
+import base64
+import asyncio
+from datetime import datetime
+from gmail_watch import get_gmail_service
+ 
+# Global variable to track the last check time
+last_check_time = None
+is_polling = True
+ 
+def extract_email_body(service, message):
+    """Extract email body from the message"""
     try:
-        # Read files from Azure Blob Storage
-        excel_file = read_blob_file(excel_file_name)
-        csv_file = read_blob_file(csv_file_name)
-
-        excel_data = pd.read_excel(excel_file)
-        csv_data = pd.read_csv(csv_file)
-
-        # Columns to compare
-        owner_name_column = "OWNER NAME:"
-        entity_name_column = "entity_name"
-
-        if owner_name_column not in excel_data.columns:
-            return {"status": False, "error": f"Column '{owner_name_column}' missing in Excel file."}
-        if entity_name_column not in csv_data.columns:
-            return {"status": False, "error": f"Column '{entity_name_column}' missing in CSV file."}
-
-        # Extract names
-        owner_names = excel_data[owner_name_column].dropna().astype(str).str.strip().tolist()
-        entity_names = csv_data[entity_name_column].dropna().astype(str).str.strip().tolist()
-
-        # Compare
-        results = [{"Owner Name": name, "Unique": name not in entity_names} for name in owner_names]
-
-        # Save outputs
-        output_dir = "./output"
-        os.makedirs(output_dir, exist_ok=True)
-        json_output_path = os.path.join(output_dir, "comparison_results.json")
-        excel_output_path = os.path.join(output_dir, "comparison_results.xlsx")
-
-        with open(json_output_path, "w") as json_file:
-            json.dump(results, json_file, indent=4)
-
-        pd.DataFrame(results).to_excel(excel_output_path, index=False)
-
+        if "payload" not in message:
+            return {
+                "is_body_extracted": False,
+                "content": "",
+                "error": "No payload in message"
+            }
+ 
+        def decode_body(data):
+            """Helper function to decode base64 data"""
+            try:
+                # Fix padding if needed
+                pad = 4 - (len(data) % 4)
+                if pad != 4:
+                    data += '=' * pad
+                decoded = base64.urlsafe_b64decode(data.encode('ASCII')).decode('utf-8')
+                # Clean the content
+                cleaned = decoded.strip()
+                # Remove empty HTML tags
+                cleaned = cleaned.replace('<div dir="auto"></div>', '')
+                cleaned = cleaned.replace('<div></div>', '')
+                return cleaned if cleaned else None
+            except Exception as e:
+                return None
+ 
+        def has_attachments(payload):
+            """Check if message has attachments"""
+            if not payload:
+                return False
+               
+            def check_part_for_attachment(part):
+                if part.get("filename"):
+                    return True
+                if part.get("parts"):
+                    for subpart in part["parts"]:
+                        if check_part_for_attachment(subpart):
+                            return True
+                return False
+                   
+            # Check all parts recursively
+            for part in payload.get("parts", []):
+                if check_part_for_attachment(part):
+                    return True
+            return False
+ 
+        def extract_from_parts(parts):
+            """Recursively extract body from message parts"""
+            if not parts:
+                return None
+           
+            # First try to find text/plain parts
+            for part in parts:
+                if part.get("mimeType") == "text/plain":
+                    if part.get("body", {}).get("data"):
+                        content = decode_body(part["body"]["data"])
+                        if content and content.strip():
+                            return content
+           
+            # If no text/plain, try text/html
+            for part in parts:
+                if part.get("mimeType") == "text/html":
+                    if part.get("body", {}).get("data"):
+                        content = decode_body(part["body"]["data"])
+                        if content and content.strip():
+                            return content
+               
+                # Check nested parts
+                if part.get("parts"):
+                    nested_content = extract_from_parts(part["parts"])
+                    if nested_content and nested_content.strip():
+                        return nested_content
+            return None
+           
+        payload = message["payload"]
+        content = None
+        has_attach = has_attachments(payload)
+       
+        # Try to get body directly from payload first
+        if payload.get("body", {}).get("data"):
+            content = decode_body(payload["body"]["data"])
+       
+        # If no content in direct payload, try parts
+        if not content:
+            content = extract_from_parts(payload.get("parts", []))
+           
+        # Clean up any remaining content and check if it's really empty
+        if content:
+            content = content.strip()
+           
+        if content and len(content) > 0:
+            return {
+                "is_body_extracted": True,
+                "content": content,
+                "error": None
+            }
+ 
+        # Handle empty email cases
+        if has_attach:
+            return {
+                "is_body_extracted": False,
+                "content": "",
+                "error": "Email contains attachments but no message body"
+            }
+        else:
+            return {
+                "is_body_extracted": False,
+                "content": "",
+                "error": "Email has no message body and no attachments"
+            }
+           
+    except Exception as e:
         return {
-            "status": True,
-            "message": "Comparison completed successfully.",
-            "json_result": json_output_path,
-            "excel_result": excel_output_path,
-            "results": results,
+            "is_body_extracted": False,
+            "content": "",
+            "error": str(e)
         }
-
+def get_latest_email():
+    """Fetch the latest email from Gmail"""
+    global last_check_time
+   
+    try:
+        service = get_gmail_service()
+       
+        # Get the most recent message
+        results = service.users().messages().list(userId="me", maxResults=1).execute()
+        messages = results.get("messages", [])
+       
+        if not messages:
+            return {
+                "is_body_extracted": False,
+                "content": "",
+                "error": "No messages found"
+            }
+       
+        # Get the message details
+        msg = service.users().messages().get(
+            userId="me",
+            id=messages[0]["id"],
+            format="full"
+        ).execute()
+       
+        # Extract email body
+        result = extract_email_body(service, msg)
+       
+        # Update last check time
+        last_check_time = datetime.now()
+       
+        return {
+            "body": result.get("content", ""),
+            "is_email_extracted": result.get("is_body_extracted", False),
+            "error": result.get("error")
+        }
+       
     except Exception as e:
-        return {"status": False, "error": str(e)}
+        return {
+            "body": "",
+            "is_email_extracted": False,
+            "error": str(e)
+        }
+ 
+async def check_for_new_emails():
+    """Background task to check for new emails"""
+    global last_check_time
+   
+    try:
+        service = get_gmail_service()
+       
+        # Get messages since last check
+        if last_check_time:
+            query = f"after:{int(last_check_time.timestamp())}"
+            results = service.users().messages().list(userId="me", q=query).execute()
+            messages = results.get("messages", [])
+           
+            for message in messages:
+                msg = service.users().messages().get(
+                    userId="me",
+                    id=message["id"],
+                    format="full"
+                ).execute()
+               
+                # Process new message
+                result = extract_email_body(service, msg)
+                print(f"New email received: {json.dumps(result, indent=2)}")
+       
+        # Update last check time
+        last_check_time = datetime.now()
+       
+    except Exception as e:
+        print(f"Error checking for new emails: {e}")
+ 
+async def email_polling_loop():
+    """Continuously poll for new emails"""
+    global is_polling
+    while is_polling:
+        await check_for_new_emails()
+        await asyncio.sleep(10)  # Poll every 10 seconds
+ 
+async def start_email_polling():
+    """Initialize email monitoring"""
+    global is_polling
+    is_polling = True
+   
+    # Initialize by getting the latest email
+    result = get_latest_email()
+    print(f"Initialized with latest email: {json.dumps(result, indent=2)}")
+   
+    # Start background task for polling
+    asyncio.create_task(email_polling_loop())
+ 
+async def stop_email_polling():
+    """Stop email polling"""
+    global is_polling
+    is_polling = False
+    print("Shutting down email monitoring...")
+ 
+requirements.txt
+ 
+langchain_openai==0.3.35
+langchain-mcp-adapters==0.1.11
+fastapi==0.118.3
+fastapi_mcp==0.4.0
+langgraph==0.6.10
+python-dotenv
+ 
+attachement_handler.py
+ 
+import os, base64, json
+from gmail_watch import get_gmail_service
+ 
+SAVE_DIR = os.path.join("storage", "attachments")
+STATE_FILE = os.path.join("storage", "history_state.json")
+ 
+def ensure_storage():
+    """Ensure storage directories exist"""
+    os.makedirs(SAVE_DIR, exist_ok=True)
+    os.makedirs(os.path.dirname(STATE_FILE), exist_ok=True)
+ 
+# Initialize storage on module load
+ensure_storage()
+ 
+def load_state():
+    try:
+        with open(STATE_FILE, "r") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+ 
+def save_state(state):
+    with open(STATE_FILE, "w") as f:
+        json.dump(state, f, indent=2)
+ 
+def _walk_parts(parts):
+    for p in parts or []:
+        yield p
+        for sub in p.get("parts", []) or []:
+            yield from _walk_parts([sub])
+ 
+def save_attachments_from_message(service, message):
+    saved = []
+    parts = message.get("payload", {}).get("parts", [])
+    for part in _walk_parts(parts):
+        filename = part.get("filename")
+        body = part.get("body", {})
+        att_id = body.get("attachmentId")
+ 
+        if filename and att_id:
+            att = service.users().messages().attachments().get(
+                userId="me", messageId=message["id"], id=att_id
+            ).execute()
+            data = att.get("data")
+            # Fix: Handle missing padding in base64 data
+            padding_needed = 4 - (len(data) % 4)
+            if padding_needed != 4:
+                data += '=' * padding_needed
+            file_data = base64.urlsafe_b64decode(data)
+            path = os.path.join(SAVE_DIR, filename)
+            with open(path, "wb") as f:
+                f.write(file_data)
+            saved.append(path)
+            print("Saved attachment:", path)
+    return saved
+ 
+def save_email_body(service, message):
+    """Save email body into a JSON file with status and content"""
+    body_text = None
+    error_message = None
+    metadata = {}
+   
+    try:
+        # Extract metadata headers
+        headers = message.get("payload", {}).get("headers", [])
+        for header in headers:
+            name = header.get("name", "").lower()
+            if name in ["subject", "from", "to", "date"]:
+                metadata[name] = header.get("value", "")
+       
+        # Try to get body if full format available
+        if "payload" in message:
+            # Look for plain text part
+            for part in _walk_parts(message.get("payload", {}).get("parts", [])):
+                mime_type = part.get("mimeType")
+                data = part.get("body", {}).get("data")
+                if mime_type in ["text/plain", "text/html"] and data:
+                    body_text = base64.urlsafe_b64decode(data).decode("utf-8", errors="ignore")
+                    break
+           
+            # If no parts found, try getting body directly from payload
+            if not body_text and message.get("payload", {}).get("body", {}).get("data"):
+                body_text = base64.urlsafe_b64decode(
+                    message["payload"]["body"]["data"]
+                ).decode("utf-8", errors="ignore")
+ 
+    except Exception as e:
+        error_message = f"Error extracting email body: {str(e)}"
+        print("❌", error_message)
+ 
+    # Prepare JSON content
+    email_data = {
+        "is_body_extracted": bool(body_text),
+        "content": body_text if body_text else "",
+        "error": error_message if error_message else ""
+    }
+ 
+    # Get subject for filename
+    subject = "no_subject"
+    headers = message.get("payload", {}).get("headers", [])
+    for h in headers:
+        if h["name"].lower() == "subject":
+            subject = h["value"].replace(" ", "_").replace("/", "_")
+            break
+ 
+    # Save as JSON
+    file_path = os.path.join(SAVE_DIR, f"{subject}.json")
+    with open(file_path, "w", encoding="utf-8") as f:
+        json.dump(email_data, f, indent=2, ensure_ascii=False)
+   
+    print("Saved email body as JSON:", file_path)
+    #print("Email Data: ", email_data)
+    return email_data
+ 
+def process_notification(email, history_id):
+    service = get_gmail_service()
+    state = load_state()
+    last_hist = state.get(email)
+ 
+    if not last_hist:
+        # initialize and exit on first notification
+        state[email] = history_id
+        save_state(state)
+        print("Initialized history id", history_id)
+        return
+ 
+    try:
+        resp = service.users().history().list(
+            userId="me", startHistoryId=str(last_hist), historyTypes="messageAdded"
+        ).execute()
+        histories = resp.get("history", [])
+        message_ids = []
+        for h in histories:
+            for ma in h.get("messagesAdded", []):
+                message_ids.append(ma["message"]["id"])
+    except Exception as e:
+        print("history.list failed:", e)
+        # fallback → get recent messages
+        res = service.users().messages().list(userId="me", q="newer_than:7d", maxResults=20).execute()
+        message_ids = [m["id"] for m in res.get("messages", [])]
+ 
+    for mid in message_ids:
+        msg = service.users().messages().get(userId="me", id=mid, format="full").execute()
+        print("Processing message id", mid, "snippet:", msg.get("snippet"))
+ 
+        # Save email body
+        save_email_body(service, msg)
+ 
+        # Save attachments
+        saved = save_attachments_from_message(service, msg)
+        if saved:
+            print("Attachments saved:", saved)
+ 
+    state[email] = history_id
+    save_state(state)
+ 
+ 
+gmail_watch.py
+ 
+import os
+import pickle
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
+ 
+# Scopes (ONLY place where they are defined)
+# gmail.readonly → fetch full messages + attachments
+# gmail.metadata → required for Pub/Sub notifications
+SCOPES = [
+    'https://www.googleapis.com/auth/gmail.readonly'
+]
+ 
+def get_gmail_service(force_auth=False):
+    creds = None
+    token_path = "token.pickle"
+    credentials_dir = "credentials"
+    client_secret_path = os.path.join(credentials_dir, "client_secret.json")
+ 
+    # Ensure credentials directory exists
+    if not os.path.exists(credentials_dir):
+        os.makedirs(credentials_dir)
+        print(f"📁 Created credentials directory at {credentials_dir}")
+ 
+    # Check for client_secret.json
+    if not os.path.exists(client_secret_path):
+        raise FileNotFoundError(
+            f"❌ Error: {client_secret_path} not found. Please place your Google OAuth credentials file here."
+        )
+ 
+    # Load existing token if valid and not forcing new auth
+    if not force_auth and os.path.exists(token_path):
+        try:
+            with open(token_path, "rb") as f:
+                creds = pickle.load(f)
+            if creds and creds.valid:
+                print("✅ Loaded existing valid credentials")
+                return build("gmail", "v1", credentials=creds, cache_discovery=False)
+        except Exception as e:
+            print(f"⚠️ Error loading existing token: {e}")
+            creds = None
+ 
+    # If we need new credentials, start the OAuth flow
+    try:
+        # Remove existing token if forcing new auth or token is invalid
+        if os.path.exists(token_path):
+            os.remove(token_path)
+            print("🔑 Removed existing token to force new authentication")
+       
+        print("🔐 Starting Gmail OAuth authentication flow...")
+        flow = InstalledAppFlow.from_client_secrets_file(
+            client_secret_path,
+            SCOPES
+        )
+       
+        # Run the local server on a different port to avoid conflicts
+        creds = flow.run_local_server(
+            port=0,  # Let OS assign a free port
+            prompt='consent',  # Always show the consent screen
+            success_message="Gmail authentication successful! You can close this window.",
+            open_browser=True  # Automatically open the browser
+        )
+       
+        # Save the credentials for future use
+        with open(token_path, "wb") as f:
+            pickle.dump(creds, f)
+        print("✅ Authentication successful - credentials saved")
+    except Exception as e:
+        print(f"Authentication error: {e}")
+        raise
+ 
+    service = build("gmail", "v1", credentials=creds, cache_discovery=False)
+    return service
+ 
+def create_watch(project_id, topic_full_name):
+    service = get_gmail_service()
+    body = {
+        "labelIds": ["INBOX"],
+        "topicName": topic_full_name
+    }
+    resp = service.users().watch(userId="me", body=body).execute()
+    print("Watch created:", resp)
+    return resp
+ 
+if __name__ == "__main__":
+    import sys
+    if len(sys.argv) < 3:
+        print("Usage: python gmail_watch.py <PROJECT_ID> <projects/PROJECT_ID/topics/TOPIC>")
+        sys.exit(1)
+ 
+    project = sys.argv[1]
+    topic = sys.argv[2]
+    create_watch(project, topic)
 
 
-⸻
 
-✅ main.py stays SAME ✅ (no change needed)
 
-⸻
 
-✅ testscripts.py (Optional improvement)
 
-I can update this after you confirm ✅
 
-⸻
 
-✅ Next Question
 
-Do you also want me to:
-A. Add logging for debugging (info + error logs)?
-B. Add detailed exception messages with stacktrace for debugging?
-C. Keep it exactly as it is?
 
-Reply A, B, or C ✅
+
+
+
+
+
+
+
+
+
+
+Code 2
+
+
+
+ 
