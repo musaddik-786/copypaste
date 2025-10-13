@@ -1,10 +1,19 @@
+Below is the updated full code with proper exception handling as you requested.
+✅ If everything runs successfully → status: true
+❌ If any error/exception occurs → status: false + error message
 
+⸻
 
-filerouter.py
+✅ ✅ Updated Code
 
-from fastapi import APIRouter
+⸻
+
+✅ file_router.py  (inside routers folder)
+
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from utils.file_utils import compare_excel_and_csv
+
 
 # Initialize APIRouter
 router = APIRouter()
@@ -21,26 +30,30 @@ async def compare_files(request: CompareFilesRequest):
     """
     Endpoint to compare Excel and CSV files from Azure Blob Storage.
     """
-    return compare_excel_and_csv(
-        excel_file_name=request.excelfilename,
-        csv_file_name=request.csvfilename,
-    )
+    try:
+        result = compare_excel_and_csv(
+            excel_file_name=request.excelfilename,
+            csv_file_name=request.csvfilename,
+        )
+        return result  # Already has status true/false
+    except Exception as e:
+        # Final fallback exception
+        return {"status": False, "error": f"Unexpected server error: {str(e)}"}
 
 
+⸻
 
-file_utils.py
-
-
-
-
-
-
+✅ file_utils.py  (inside utils folder)
 
 import os
 import pandas as pd
 import json
 from io import BytesIO
 from azure.storage.blob import BlobServiceClient
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Azure Blob Storage Configuration
 AZURE_STORAGE_CONNECTION_STRING = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "")
@@ -49,39 +62,51 @@ AZURE_BLOB_CONTAINER = os.environ.get("AZURE_BLOB_CONTAINER", "")
 def read_blob_file(blob_name: str):
     """Reads a file from Azure Blob Storage and returns its content as a BytesIO object."""
     try:
+        if not AZURE_STORAGE_CONNECTION_STRING:
+            raise ValueError("Azure Storage Connection String is missing. Please set AZURE_STORAGE_CONNECTION_STRING in .env")
+        if not AZURE_BLOB_CONTAINER:
+            raise ValueError("Azure Blob Container is missing. Please set AZURE_BLOB_CONTAINER in .env")
+
         blob_service_client = BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING)
         blob_client = blob_service_client.get_blob_client(container=AZURE_BLOB_CONTAINER, blob=blob_name)
+
+        if not blob_client.exists():
+            raise FileNotFoundError(f"Blob file '{blob_name}' not found in container '{AZURE_BLOB_CONTAINER}'.")
+
         blob_data = blob_client.download_blob().readall()
         return BytesIO(blob_data)
+
     except Exception as e:
-        raise FileNotFoundError(f"Error reading blob file '{blob_name}': {str(e)}")
+        raise Exception(f"Error reading blob file '{blob_name}': {str(e)}")
+
 
 def compare_excel_and_csv(excel_file_name: str, csv_file_name: str):
     """Compares an Excel file and a CSV file from Azure Blob Storage."""
     try:
-        # Read the Excel and CSV files from Azure Blob Storage
+        # Read files from Azure Blob Storage
         excel_file = read_blob_file(excel_file_name)
         csv_file = read_blob_file(csv_file_name)
 
         excel_data = pd.read_excel(excel_file)
         csv_data = pd.read_csv(csv_file)
 
-        # Define the columns to compare
+        # Columns to compare
         owner_name_column = "OWNER NAME:"
         entity_name_column = "entity_name"
 
-        if owner_name_column not in excel_data.columns or entity_name_column not in csv_data.columns:
-            raise ValueError(f"Required columns not found. Ensure '{owner_name_column}' exists in Excel and '{entity_name_column}' exists in CSV.")
+        if owner_name_column not in excel_data.columns:
+            return {"status": False, "error": f"Column '{owner_name_column}' missing in Excel file."}
+        if entity_name_column not in csv_data.columns:
+            return {"status": False, "error": f"Column '{entity_name_column}' missing in CSV file."}
 
-        # Extract and clean the data
-        owner_names = excel_data[owner_name_column].dropna().tolist()
-        owner_names = [name for name in owner_names if isinstance(name, str) and name.strip()]
-        entity_names = csv_data[entity_name_column].dropna().tolist()
+        # Extract names
+        owner_names = excel_data[owner_name_column].dropna().astype(str).str.strip().tolist()
+        entity_names = csv_data[entity_name_column].dropna().astype(str).str.strip().tolist()
 
-        # Perform the comparison
+        # Compare
         results = [{"Owner Name": name, "Unique": name not in entity_names} for name in owner_names]
 
-        # Save results to JSON and Excel
+        # Save outputs
         output_dir = "./output"
         os.makedirs(output_dir, exist_ok=True)
         json_output_path = os.path.join(output_dir, "comparison_results.json")
@@ -93,123 +118,34 @@ def compare_excel_and_csv(excel_file_name: str, csv_file_name: str):
         pd.DataFrame(results).to_excel(excel_output_path, index=False)
 
         return {
+            "status": True,
             "message": "Comparison completed successfully.",
             "json_result": json_output_path,
             "excel_result": excel_output_path,
             "results": results,
         }
+
     except Exception as e:
-        return {"error": str(e)}
+        return {"status": False, "error": str(e)}
 
 
+⸻
 
-main.py
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi_mcp import FastApiMCP
-import uvicorn
-from routers import file_router
+✅ main.py stays SAME ✅ (no change needed)
 
-# Shared CORS config
-def apply_cors(app: FastAPI):
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+⸻
 
-# Agent-specific sub-apps
-def create_sub_app(title: str, description: str, version: str = "0.1.0") -> FastAPI:
-    app = FastAPI(title=title, description=description, version=version)
-    apply_cors(app)
-    return app
+✅ testscripts.py (Optional improvement)
 
-# Main app
-app = FastAPI()
-apply_cors(app)
+I can update this after you confirm ✅
 
-# File Comparison Agent
-file_app = create_sub_app(
-    title="File Comparison API",
-    description="API for comparing Excel and CSV files from a local folder."
-)
-file_app.include_router(file_router.router)
-FastApiMCP(file_app, include_operations=["compare_files"]).mount_http()
-app.mount("/api/v1/filecomparison", file_app)
+⸻
 
+✅ Next Question
 
-# Entry point
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8601)
+Do you also want me to:
+A. Add logging for debugging (info + error logs)?
+B. Add detailed exception messages with stacktrace for debugging?
+C. Keep it exactly as it is?
 
-
-
-
-testscripts.py
-
-
-import requests
-import json
-
-# Base URL of your FastAPI application
-BASE_URL = "http://127.0.0.1:8601/api/v1/filecomparison"
-
-def test_compare_files():
-    """
-    Test the /compare_files endpoint of the File Comparison API.
-    """
-    print("Running tests for File Comparison API...\n")
-    
-    # Define the payload with the names of the files in Azure Blob Storage
-    payload = {
-        "excelfilename": "mytestextracted.xlsx",  # Replace with the actual Excel file name in Azure Blob Storage
-        "csvfilename": "sanctions_list.csv"          # Replace with the actual CSV file name in Azure Blob Storage
-    }
-    
-    print("Testing /compare_files endpoint...")
-    
-    # Send a POST request to the /compare_files endpoint
-    response = requests.post(f"{BASE_URL}/compare_files", json=payload)
-    
-    # Check the response
-    if response.status_code == 200:
-        print("\u2705 Request succeeded!")
-        result = response.json()
-        print(json.dumps(result, indent=4))
-        
-        # Assert that the response contains the expected fields
-        assert "message" in result, "Missing 'message' in response."
-        assert "results" in result, "Missing 'results' in response."
-        print("\u2705 Test passed!")
-    else:
-        print("\u274C Request failed!")
-        print(f"Status Code: {response.status_code}")
-        print(f"Response: {response.text}")
-
-if __name__ == "__main__":
-    test_compare_files()
-
-
-(venv) PS C:\Users\2000137378\Desktop\NewMCP_Sanction> python main.py
-INFO:     Started server process [27352]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     Uvicorn running on http://0.0.0.0:8601 (Press CTRL+C to quit)
-INFO:     127.0.0.1:55074 - "POST /api/v1/filecomparison/compare_files HTTP/1.1" 200 OK
-(venv) PS C:\Users\2000137378\Desktop\NewMCP_Sanction> python testscripts.py
-Running tests for File Comparison API...
-
-Testing /compare_files endpoint...
-✅ Request succeeded!
-{
-    "error": "Error reading blob file 'mytestextracted.xlsx': Connection string is either blank or malformed."
-}
-Traceback (most recent call last):
-  File "C:\Users\2000137378\Desktop\NewMCP_Sanction\testscripts.py", line 101, in <module>
-    test_compare_files()
-  File "C:\Users\2000137378\Desktop\NewMCP_Sanction\testscripts.py", line 92, in test_compare_files
-    assert "message" in result, "Missing 'message' in response."
-           ^^^^^^^^^^^^^^^^^^^
-AssertionError: Missing 'message' in response.
-(venv) PS C:\Users\2000137378\Desktop\NewMCP_Sanction>
+Reply A, B, or C ✅
