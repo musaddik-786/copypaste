@@ -1,482 +1,67 @@
-Perfect — I’ve modified your exact files to return status: true/false in the MCP response, always include "attachments": [] on success (even if Gmail empty or no attachments), and to return status: false + error when Azure/Gmail throws an exception.
-Logs are left intact as you wanted.
-
-Below are the full updated files (drop-in replacements).
-
-⸻
-
-main.py
-
-# main.py
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi_mcp import FastApiMCP
-import uvicorn
-from contextlib import asynccontextmanager
-
-from routers.attachment_router import router as attachment_router
-from attachment_service import start_email_polling, stop_email_polling
-
-def apply_cors(app: FastAPI):
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Startup
-    await start_email_polling()
-    yield
-    # Shutdown
-    await stop_email_polling()
-
-def create_sub_app(title: str, description: str, version: str = "0.1.0") -> FastAPI:
-    sub = FastAPI(title=title, description=description, version=version, lifespan=lifespan)
-    apply_cors(sub)
-    return sub
-
-# Root app
-app = FastAPI(lifespan=lifespan)
-apply_cors(app)
-
-# MCP-style sub-app
-email_app = create_sub_app(
-    title="attachment_checker_mcp",
-    description="Reads latest emails and compares attachment filenames with Azure Blob names."
-)
-email_app.include_router(attachment_router)
-
-# Expose MCP op
-FastApiMCP(email_app, include_operations=["attachment_checker_mcp"]).mount_http()
-
-# Mount like Code 1
-app.mount("/mcp", email_app)
-
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8502)
-
-
-⸻
-
-attachment_handler.py
-
-Change: Bubble up Azure/Gmail errors so the API can return status:false. (Previously they were swallowed and converted to a “success with error field”.)
-Success with no attachments still returns {"attachments": []}.
-
-import os
-import json
-import base64
-from azure.storage.blob import BlobServiceClient
-from dotenv import load_dotenv
-
-load_dotenv()
-
-# Storage/state files (similar to your Code 2)
-STATE_FILE = os.path.join("storage", "history_state.json")
-OUTPUT_DIR = os.path.join("storage", "attachments")
-os.makedirs(OUTPUT_DIR, exist_ok=True)
-os.makedirs(os.path.dirname(STATE_FILE), exist_ok=True)
-
-# Azure Blob config
-AZURE_STORAGE_CONNECTION_STRING = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "")
-AZURE_BLOB_CONTAINER = os.environ.get("AZURE_BLOB_CONTAINER", "")
-
-def _get_blob_service_client():
-    if not AZURE_STORAGE_CONNECTION_STRING:
-        raise RuntimeError("Missing AZURE_STORAGE_CONNECTION_STRING")
-    return BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING)
-
-def _ensure_container_exists(blob_service_client):
-    if not AZURE_BLOB_CONTAINER:
-        raise RuntimeError("Missing AZURE_BLOB_CONTAINER")
-    container_client = blob_service_client.get_container_client(AZURE_BLOB_CONTAINER)
-    try:
-        container_client.create_container()
-    except Exception:
-        # container likely exists; proceed
-        pass
-    return container_client
-
-def load_state():
-    try:
-        with open(STATE_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        return {}
-
-def save_state(state):
-    with open(STATE_FILE, "w", encoding="utf-8") as f:
-        json.dump(state, f, indent=2, ensure_ascii=False)
-
-def _walk_parts(parts):
-    for p in parts or []:
-        yield p
-        for sub in p.get("parts", []) or []:
-            yield from _walk_parts([sub])
-
-def save_attachments_from_message(service, message):
-    """
-    Extract attachment filenames from Gmail message and compare with Azure Blob Storage.
-    Success:
-      returns {"attachments": [{"filename": "...", "is_duplicate": bool}, ...]}
-    No attachments:
-      returns {"attachments": []}
-    Azure/Gmail errors:
-      raise exception → caller returns status:false + error
-    """
-    filenames = []
-    parts = message.get("payload", {}).get("parts", [])
-    for part in _walk_parts(parts):
-        filename = part.get("filename")
-        body = part.get("body", {}) or {}
-        if filename:
-            filenames.append(filename)
-
-    # No attachments → success with empty list
-    if not filenames:
-        # Optionally persist an empty artifact for traceability
-        try:
-            out_path = os.path.join(OUTPUT_DIR, f"{message.get('id', 'unknown')}_comparison.json")
-            with open(out_path, "w", encoding="utf-8") as f:
-                json.dump({"attachments": []}, f, indent=2, ensure_ascii=False)
-        except Exception as exc:
-            print(f"Failed to write comparison result file: {exc}")
-        return {"attachments": []}
-
-    # Azure comparison (let exceptions bubble up)
-    blob_service_client = _get_blob_service_client()
-    container_client = _ensure_container_exists(blob_service_client)
-
-    attachment_results = []
-    for name in filenames:
-        # if this errors (e.g., network/permissions), let it raise → API returns status:false
-        blob_client = container_client.get_blob_client(blob=name)
-        is_duplicate = bool(blob_client.exists())
-        attachment_results.append({
-            "filename": name,
-            "is_duplicate": is_duplicate
-        })
-
-    # Optional: persist artifact
-    try:
-        out_path = os.path.join(OUTPUT_DIR, f"{message.get('id', 'unknown')}_comparison.json")
-        with open(out_path, "w", encoding="utf-8") as f:
-            json.dump({"attachments": attachment_results}, f, indent=2, ensure_ascii=False)
-    except Exception as exc:
-        print(f"Failed to write comparison result file: {exc}")
-
-    return {"attachments": attachment_results}
-
-
-⸻
-
-attachment_service.py
-
-Changes:
-• Normalize MCP result to {"status": True, "attachments": [...]} on success (even if Gmail empty).
-• On any exception (Gmail/Azure/other), return {"status": False, "error": "..."}.
-• Keep your terminal logs as-is (no silence).
-
-import asyncio
-import json
-from datetime import datetime
-from typing import Dict, Any, List
-from gmail_watch import get_gmail_service
-from attachment_handler import (
-    save_attachments_from_message,
-    load_state,
-    save_state
-)
-
-# Polling state
-_last_check_time = None
-_is_polling = True
-
-def _extract_attachment_comparison(service, msg) -> Dict[str, Any]:
-    """
-    For a Gmail message, return comparison of attachment filenames vs Azure blobs.
-    May raise exceptions → caller handles with status:false.
-    """
-    comparison = save_attachments_from_message(service, msg)
-    # Normalized for logging
-    return {
-        "message_id": msg.get("id", ""),
-        "attachments": comparison.get("attachments", [])
+(venv) PS C:\Users\2000137378\Desktop\NEW_Duplicate_Check_MCP> python main.py       
+INFO:     Started server process [13044]
+INFO:     Waiting for application startup.
+ Starting Gmail OAuth authentication flow...
+Please visit this URL to authorize this application: https://accounts.google.com/o/oauth2/auth?response_type=code&client_id=383571185627-q3es87glu8uf5gu5f8fso8hhqemi9ka5.apps.googleusercontent.com&redirect_uri=http%3A%2F%2Flocalhost%3A63634%2F&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fgmail.readonly&state=IPzKXTL7k8z6xjba0OECnQDZPVtUGe&prompt=consent&access_type=offline
+ Authentication successful - credentials saved
+📎 Attachment vs Blob comparison: {
+  "message_id": "199e142583fd90b0",
+  "attachments": [
+    {
+      "filename": "IMG_0062.jpeg",
+      "is_duplicate": false
     }
-
-def get_latest_email_attachment_check() -> Dict[str, Any]:
-    """
-    Fetch the latest email and return MCP-style result:
-      Success (even if no emails or no attachments):
-        {"status": True, "attachments": [...]}
-      Failure (on any exception):
-        {"status": False, "error": "..."}
-    """
-    try:
-        service = get_gmail_service()
-        results = service.users().messages().list(userId="me", maxResults=1).execute()
-        messages = results.get("messages", [])
-
-        # Gmail empty → success with empty attachments
-        if not messages:
-            return {
-                "status": True,
-                "attachments": []
-            }
-
-        msg = service.users().messages().get(
-            userId="me",
-            id=messages[0]["id"],
-            format="full"
-        ).execute()
-
-        comparison = _extract_attachment_comparison(service, msg)
-        print("📎 Attachment vs Blob comparison:", json.dumps(comparison, indent=2))
-
-        return {
-            "status": True,
-            "attachments": comparison.get("attachments", [])
-        }
-
-    except Exception as e:
-        # Any failure → status:false with error
-        return {
-            "status": False,
-            "error": str(e)
-        }
-
-async def _check_for_new_emails():
-    """
-    Background task step: check new emails since last check, compare attachments vs Azure blobs.
-    (Logs kept as requested.)
-    """
-    global _last_check_time
-    try:
-        service = get_gmail_service()
-
-        # Initial bootstrap (few latest) then incremental by timestamp
-        if not _last_check_time:
-            results = service.users().messages().list(userId="me", maxResults=5).execute()
-        else:
-            query = f"after:{int(_last_check_time.timestamp())}"
-            results = service.users().messages().list(userId="me", q=query).execute()
-
-        messages = results.get("messages", [])
-        for message in messages:
-            msg = service.users().messages().get(
-                userId="me",
-                id=message["id"],
-                format="full"
-            ).execute()
-            comparison = _extract_attachment_comparison(service, msg)
-            print("📎 Attachment vs Blob comparison:", json.dumps(comparison, indent=2))
-
-        _last_check_time = datetime.now()
-
-    except Exception as e:
-        print(f"Error checking for new emails: {e}")
-
-async def _email_polling_loop():
-    """
-    Continuously poll for new emails.
-    """
-    global _is_polling
-    print("📧 Email polling loop started.")
-    while _is_polling:
-        await _check_for_new_emails()
-        await asyncio.sleep(10)
-    print("📪 Email polling loop stopped.")
-
-async def start_email_polling():
-    """
-    Initialize and start background polling on app startup (lifespan).
-    """
-    global _is_polling, _last_check_time
-    _is_polling = True
-    # Bootstrap by forcing a one-shot latest check for easier debugging
-    bootstrap = get_latest_email_attachment_check()
-    print("✅ Initialized with latest attachment check:", json.dumps(bootstrap, indent=2))
-    # Start background loop
-    asyncio.create_task(_email_polling_loop())
-
-async def stop_email_polling():
-    """
-    Stop background polling on app shutdown (lifespan).
-    """
-    global _is_polling
-    _is_polling = False
-    print("🛑 Shutting down email monitoring...")
-
-
-⸻
-
-routers/attachment_router.py
-
-Change: return JSON-RPC envelope with your normalized result (status + attachments on success; status:false + error on failure).
-
-from fastapi import APIRouter
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
-
-from attachment_service import get_latest_email_attachment_check
-
-router = APIRouter()
-
-class AttachmentCheckerMCP(BaseModel):
-    """Check latest email attachments against Azure Blob Storage."""
-    AgentName: str = Field(default="EmailAttachmentChecker", description="Agent name.")
-    UserId: str = Field(default="markRuffalo", description="User id (default).")
-
-@router.post("/attachment_checker_mcp", operation_id="attachment_checker_mcp")
-async def attachment_checker_mcp(p_body: AttachmentCheckerMCP):
-    """
-    Returns JSON-RPC with:
-      Success: {"status": true, "attachments": [...]}
-      Failure: {"status": false, "error": "..."}
-    """
-    try:
-        result = get_latest_email_attachment_check()
-        # Ensure "attachments" always present on success
-        if result.get("status") is True and "attachments" not in result:
-            result["attachments"] = []
-        return JSONResponse(
-            content={
-                "jsonrpc": "2.0",
-                "id": 1,
-                "result": result
-            }
-        )
-    except Exception as e:
-        # Final safety net
-        return JSONResponse(
-            content={
-                "jsonrpc": "2.0",
-                "id": 1,
-                "result": {"status": False, "error": str(e)}
-            },
-            status_code=200
-        )
-
-
-⸻
-
-gmail_watch.py (unchanged – logs kept)
-
-import os
-import pickle
-from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import build
-
-# Scopes (ONLY place where defined)
-SCOPES = [
-    'https://www.googleapis.com/auth/gmail.readonly'
-]
-
-def get_gmail_service(force_auth=False):
-    creds = None
-    token_path = "token.pickle"
-    credentials_dir = "credentials"
-    client_secret_path = os.path.join(credentials_dir, "client_secret.json")
-
-    if not os.path.exists(credentials_dir):
-        os.makedirs(credentials_dir, exist_ok=True)
-        print(f" Created credentials directory at {credentials_dir}")
-
-    if not os.path.exists(client_secret_path):
-        raise FileNotFoundError(
-            f" {client_secret_path} not found. Place your Google OAuth credentials file here."
-        )
-
-    if not force_auth and os.path.exists(token_path):
-        try:
-            with open(token_path, "rb") as f:
-                creds = pickle.load(f)
-            if creds and creds.valid:
-                print(" Loaded existing valid credentials")
-                return build("gmail", "v1", credentials=creds, cache_discovery=False)
-        except Exception as e:
-            print(f" Error loading existing token: {e}")
-            creds = None
-
-    # Fresh OAuth flow
-    try:
-        if os.path.exists(token_path):
-            os.remove(token_path)
-            print(" Removed existing token to force new authentication")
-
-        print(" Starting Gmail OAuth authentication flow...")
-        flow = InstalledAppFlow.from_client_secrets_file(client_secret_path, SCOPES)
-        creds = flow.run_local_server(port=0, prompt='consent', success_message="Gmail authentication successful! You can close this window.", open_browser=True)
-
-        with open(token_path, "wb") as f:
-            pickle.dump(creds, f)
-        print(" Authentication successful - credentials saved")
-    except Exception as e:
-        print(f"Authentication error: {e}")
-        raise
-
-    return build("gmail", "v1", credentials=creds, cache_discovery=False)
-
-def create_watch(project_id, topic_full_name):
-    service = get_gmail_service()
-    body = {
-        "labelIds": ["INBOX"],
-        "topicName": topic_full_name
+  ]
+}
+✅ Initialized with latest attachment check: {
+  "status": true,
+  "attachments": [
+    {
+      "filename": "IMG_0062.jpeg",
+      "is_duplicate": false
     }
-    resp = service.users().watch(userId="me", body=body).execute()
-    print("Watch created:", resp)
-    return resp
-
-if __name__ == "__main__":
-    import sys
-    if len(sys.argv) < 3:
-        print("Usage: python gmail_watch.py <PROJECT_ID> <projects/PROJECT_ID/topics/TOPIC>")
-        sys.exit(1)
-    project = sys.argv[1]
-    topic = sys.argv[2]
-    create_watch(project, topic)
-
-
-⸻
-
-What you’ll now get from /mcp/attachment_checker_mcp
-
-✅ Success (attachments present)
-
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "result": {
-    "status": true,
-    "attachments": [
-      { "filename": "file.pdf", "is_duplicate": false }
-    ]
-  }
+  ]
 }
-
-✅ Success (Gmail empty or no attachments)
-
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "result": {
-    "status": true,
-    "attachments": []
-  }
+📧 Email polling loop started.
+ Loaded existing valid credentials
+📎 Attachment vs Blob comparison: {
+  "message_id": "199e142583fd90b0",
+  "attachments": [
+    {
+      "filename": "IMG_0062.jpeg",
+      "is_duplicate": false
+    }
+  ]
 }
-
-❌ Failure (Azure/Gmail exception, missing .env, etc.)
-
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "result": {
-    "status": false,
-    "error": "Missing AZURE_STORAGE_CONNECTION_STRING"
-  }
+📎 Attachment vs Blob comparison: {
+  "message_id": "199e11ffa9b0fc95",
+  "attachments": [
+    {
+      "filename": "IMG_0062.jpeg",
+      "is_duplicate": false
+    }
+  ]
 }
-
-If anything still doesn’t match what your senior wants, tell me the exact response they expect and I’ll tweak the shape accordingly.
+📎 Attachment vs Blob comparison: {
+  "message_id": "199ddea107be7421",
+  "attachments": []
+}
+📎 Attachment vs Blob comparison: {
+  "message_id": "199dde96860468fd",
+  "attachments": [
+    {
+      "filename": "Separation Dashboard Analysis (1).pdf",
+      "is_duplicate": false
+    }
+  ]
+}
+📎 Attachment vs Blob comparison: {
+  "message_id": "199dde699dfc5389",
+  "attachments": []
+}
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8502 (Press CTRL+C to quit)
+ Loaded existing valid credentials
+ Loaded existing valid credentials
+ Loaded existing valid credentials
+ Loaded existing valid credentials
