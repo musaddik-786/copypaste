@@ -1,0 +1,59 @@
+(venv) PS C:\Users\2000137378\Desktop\NEW_Duplicate_Check_MCP> python main.py
+INFO:     Started server process [1748]
+INFO:     Waiting for application startup.
+ Loaded existing valid credentials
+Initialized with latest attachment check: {
+  "attachments": [
+    {
+      "filename": "IMG_0062.jpeg",
+      "is_duplicate": false
+    }
+  ],
+  "is_email_extracted": true,
+  "error": null
+}
+ Email polling loop started.
+ Loaded existing valid credentials
+📎 Attachment vs Blob comparison: {
+  "message_id": "199e11ffa9b0fc95",
+  "attachments": [
+    {
+      "filename": "IMG_0062.jpeg",
+      "is_duplicate": false
+    }
+  ]
+}
+📎 Attachment vs Blob comparison: {
+  "message_id": "199ddea107be7421",
+  "attachments": []
+}
+📎 Attachment vs Blob comparison: {
+  "message_id": "199dde96860468fd",
+  "attachments": [
+    {
+      "filename": "Separation Dashboard Analysis (1).pdf",
+      "is_duplicate": false
+    }
+  ]
+}
+📎 Attachment vs Blob comparison: {
+  "message_id": "199dde699dfc5389",
+  "attachments": []
+}
+📎 Attachment vs Blob comparison: {
+  "message_id": "199dde5b9960d9ba",
+  "attachments": [
+    {
+      "filename": "Separation Dashboard Analysis (1).pdf",
+      "is_duplicate": false
+    }
+  ]
+}
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8502 (Press CTRL+C to quit)
+ Loaded existing valid credentials
+ Loaded existing valid credentials
+ Loaded existing valid credentials
+ Loaded existing valid credentials
+ Loaded existing valid credentials
+ Loaded existing valid credentials
