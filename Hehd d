@@ -1,168 +1,242 @@
-Sanction Check MCP API Documentation
-1.1	Overview
-This FastAPI application provides endpoints for listing files and comparing data between Excel and CSV files. The application performs sanction checks by comparing owner names from Excel files with entity names from CSV files, identifying unique entries that exist in the Excel file but not in the CSV file.
-1.2	Base URL
-http://localhost:8601
+Perfect ✅ Thanks for confirming.
+
+Here is the final documentation for your project — formatted professionally so you can copy-paste directly into Word.
+
+⸻
+
+Attachment Checker MCP API – Documentation
+
+⸻
+
+1. Overview
+
+The Attachment Checker MCP API is a FastAPI-based microservice that connects to Gmail to read email attachments and checks if the attachment filenames already exist in Azure Blob Storage. It helps in identifying duplicate documents and preventing redundant data storage.
+
+This service runs using FastAPI, supports MCP (Model Context Protocol) integration, and includes continuous email polling to detect new incoming emails automatically.
+
+⸻
+
+2. Base URL
+
+http://localhost:8502/mcp/attachment_checker_mcp
 
 
+⸻
 
-1.3	Data Models
-CompareRequest
-Request model for file comparison operations.
-Field	Type	Required	Description
-excelfilename	Optional[str]	No	Name of the Excel file to compare
-csvfilename	Optional[str]	No	Name of the CSV file to compare
-Example:
+3. Features
+
+✅ Fetches latest Gmail emails
+✅ Extracts attachment filenames
+✅ Compares with files stored in Azure Blob Storage
+✅ Identifies duplicates
+✅ MCP Compatible API design
+✅ Background Gmail polling
+✅ JSON-based response
+✅ Includes status and error handling
+✅ Logs attachment comparison in console for monitoring
+
+⸻
+
+4. API Request Format
+
+Endpoint
+
+POST /mcp/attachment_checker_mcp
+
+Headers
+
+Content-Type: application/json
+
+Request Body
+
 {
-    "excelfilename": "owners.xlsx",
-    "csvfilename": "entities.csv"
+  "AgentName": "EmailAttachmentChecker",
+  "UserId": "markRuffalo"
 }
 
+Both fields are optional and used only as identifiers. No functional change based on values.
 
-OUTPUT:
+⸻
 
-Note:
--	Name does not match with the sanction list – True, else, If matched then it is considered false
+5. Response Format
 
+✅ Success Response
 
-1.4	API Endpoints
-GET /get_file_list
-Retrieves a list of all files available in the ./input directory.
-Request
-•	Method: GET
-•	URL: /get_file_list
-•	Parameters: None
-Response
-•	Content-Type: application/json
-•	Data Type: dict[str, List[str]]
-Success Response (200):
 {
-    "message": ["file1.xlsx", "file2.csv", "data.xlsx"]
-}
-Example Usage
-curl -X GET "http://localhost:8601/get_file_list"
-POST /compare_files
-Compares data between an Excel file and a CSV file, identifying owner names that don't exist in the entity list.
-Request
-•	Method: POST
-•	URL: /compare_files
-•	Content-Type: application/json
-•	Body: CompareRequest object (excelfilename :Optional[str],    csvfilename :Optional[str])
-
-Expected File Structure
-•	Excel file: Must contain a column named "OWNER NAME:"
-•	CSV file: Must contain a column named "entity_name"
-Response
-•	Content-Type: application/json
-Success Response (200):
-{
-    "message": "Sanction Checks completed successfully.",
-    "json_result": "./output/comparison_results.json",
-    "excel_result": "./output/comparison_results.xlsx",
-    "results": [
-        {
-            "Owner Name": "John Doe",
-            "Unique": true  
-        },
-        {
-            "Owner Name": "Jane Smith",
-            "Unique": false
-        }
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "status": true,
+    "attachments": [
+      { "filename": "file1.pdf", "is_duplicate": false }
     ]
+  }
 }
-Error Response (400):
+
+❌ Error Response
+
 {
-    "error": "Both excelfilename and csvfilename must be provided."
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "status": false,
+    "error": "Azure Storage connection failed"
+  }
 }
-{
-    "error": "Required columns not found. Ensure 'OWNER NAME:' exists in Excel and 'entity_name' exists in CSV."
-}
-Error Response (500):
-{
-    "error": "File not found or invalid format"
-}
-Example Usage
-curl -X POST "http://localhost:8601/compare_files" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "excelfilename": "owners.xlsx",
-    "csvfilename": "entities.csv"
-  }'
-
-1.5	Code Logic and Functionality
-File Listing Logic
-The get_file_list endpoint uses os.listdir() to scan the ./input directory and return all available files as a list.
-File Comparison Logic
-The compare_files endpoint performs the following operations:
-1.	File Validation: Checks if both Excel and CSV filenames are provided
-2.	Data Loading:
-o	Loads Excel data using pd.read_excel()
-o	Loads CSV data using pd.read_csv()
-3.	Column Verification: Ensures required columns exist in both files
-4.	Data Processing:
-o	Extracts owner names from Excel, removing NaN values and empty strings
-o	Extracts entity names from CSV, removing NaN values
-5.	Comparison: Identifies owner names that don't exist in the entity list
-6.	Output Generation:
-o	Creates comparison results with boolean flags
-o	Saves results as JSON file in ./output/comparison_results.json
-o	Saves results as Excel file in ./output/comparison_results.xlsx
-
-1.6	Data Processing Flow
-Input Files (Excel + CSV) 
-    ↓
-Column Validation
-    ↓
-Data Extraction & Cleaning
-    ↓
-Name Comparison Logic
-    ↓
-Result Generation
-    ↓
-File Output (JSON + Excel)
-    ↓
-API Response
 
 
+⸻
 
-FastApiMCP Integration
-1.7	What is MCP?
-The code uses FastApiMCP, a library that provides additional management and mounting capabilities for FastAPI applications. It allows for better control and modularity of API endpoints.
-MCP Configuration
-mcp = FastApiMCP(app, include_operations=["get_file_list", "compare_files"])
-mcp.mount()
-•	Purpose: Manages specific API operations
-•	Operations: Only includes the two main endpoints
-•	Mounting: Integrates with the FastAPI application for enhanced functionality
-1.8	Directory Structure
-./
-├── input/          # Input files directory (Excel and CSV files)
-├── output/         # Output files directory (generated results)
-│   ├── comparison_results.json
-│   └── comparison_results.xlsx
-└── main.py         # Application code
-1.9	Dependencies
-•	FastAPI
-•	pandas
-•	uvicorn
-•	pydantic
-•	fastapi_mcp
-•	json
-•	pathlib
-•	os
-1.10	Server Configuration
-The application runs on:
-•	Host: 0.0.0.0 (accepts connections from any IP)
-•	Port: 8601
-•	Server: Uvicorn server
+6. Response Field Description
+
+Field	Type	Description
+status	boolean	true on success, false on any failure
+attachments	list	List of attachments with duplicate status
+filename	string	Attachment name extracted from Gmail
+is_duplicate	boolean	true if file exists in Azure Blob Storage
+error	string	Error description in case of failure
 
 
-1.11	Error Handling
-The API includes comprehensive error handling for:
-•	Missing required parameters
-•	File not found errors
-•	Invalid file formats
-•	Missing required columns in data files
-•	General exceptions during processing
-All errors return appropriate HTTP status codes and descriptive error messages in JSON format.
+⸻
 
+7. Polling Behavior
+	•	On startup, the service fetches the latest email and compares attachments once.
+	•	Then it runs continuous Gmail polling every 10 seconds.
+	•	If a new email arrives, it prints a full JSON summary in the terminal.
+	•	Polling does not affect API calls. /attachment_checker_mcp can be called any time.
+
+⸻
+
+8. Folder Structure
+
+project-root/
+├── main.py                         # Main FastAPI entrypoint
+├── attachment_service.py           # Email and polling service
+├── attachment_handler.py           # Azure and Gmail attachment logic
+├── gmail_watch.py                  # Gmail authentication helper
+├── routers/
+│   └── attachment_router.py        # API route
+├── storage/
+│   ├── attachments/                # JSON log of processed attachments
+│   └── history_state.json          # Reserved for future use
+├── credentials/
+│   └── client_secret.json          # Gmail OAuth credentials
+├── .env                            # Azure setup
+└── requirements.txt
+
+
+⸻
+
+9. Environment Variables (.env)
+
+AZURE_STORAGE_CONNECTION_STRING=your-azure-storage-connection-string
+AZURE_BLOB_CONTAINER=your-container-name
+
+
+⸻
+
+10. Requirements
+
+Dependency	Version
+Python	3.10+
+FastAPI	0.118.3
+uvicorn	0.30.6
+azure-storage-blob	12.23.1
+google-api-python-client	2.146.0
+google-auth-oauthlib	1.2.1
+fastapi_mcp	0.4.0
+python-dotenv	1.0.1
+
+
+⸻
+
+11. Setup Instructions
+
+11.1 Clone & Install Dependencies
+
+pip install -r requirements.txt
+
+11.2 Gmail Authentication Setup
+	•	Create Google OAuth credentials
+	•	Download client_secret.json
+	•	Place inside /credentials folder
+	•	First run will open browser for Gmail login
+
+11.3 Configure Azure Blob
+	•	Create a Storage Account
+	•	Create a Blob Container
+	•	Add connection string and container name in .env
+
+⸻
+
+12. Run Server
+
+python main.py
+
+Server runs on:
+
+http://localhost:8502
+
+
+⸻
+
+13. How It Works (Flow)
+
+Startup →
+Read latest Gmail email →
+Extract attachments →
+Compare with Azure Blob Storage →
+Return result →
+Begin polling Gmail every 10 seconds →
+Detect new emails automatically →
+Repeat comparison on new emails only
+
+
+⸻
+
+14. Error Handling
+
+Error Case	Example Message
+Azure not configured	Missing AZURE_STORAGE_CONNECTION_STRING
+Gmail API failure	Authentication failed
+No internet	Network unreachable
+Blob container missing	Missing AZURE_BLOB_CONTAINER
+
+
+⸻
+
+15. MCP Integration
+
+We use FastApiMCP to mount MCP-compatible API methods:
+
+FastApiMCP(email_app, include_operations=["attachment_checker_mcp"]).mount_http()
+
+This allows LLM agents and automation frameworks to call this API intelligently.
+
+⸻
+
+16. Future Enhancements
+
+✅ Prevent duplicate processing using history tracking
+✅ Support saving attachments to Azure
+✅ Add webhook support
+✅ Add monitoring dashboard
+✅ Add multi-user Gmail support
+
+⸻
+
+If you want, I can also:
+✅ Add diagrams
+✅ Convert this into PDF format
+✅ Create README.md for GitHub
+✅ Add Swagger UI screenshots
+
+Would you like me to add a system architecture diagram and flow diagram before finalizing? ✅
+
+Reply:
+
+Yes, add diagram also
+
+or
+
+No, keep only text
