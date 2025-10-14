@@ -1,390 +1,168 @@
-# main.py
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi_mcp import FastApiMCP
-import uvicorn
-import asyncio
-
-# Import router and polling function
-from routers import notification_router
-
-
-# Shared CORS config
-def apply_cors(app: FastAPI):
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-
-
-# Agent-specific sub-app creator
-def create_sub_app(title: str, description: str, version: str = "0.1.0") -> FastAPI:
-    app = FastAPI(title=title, description=description, version=version)
-    apply_cors(app)
-    return app
-
-
-# Main app
-app = FastAPI(title="MCP Email Server")
-apply_cors(app)
-
-# Create sub-app and include router
-email_app = create_sub_app(
-    title="MCP Email Server",
-    description="Gmail to Azure Blob duplicate attachment checker using MCP-style sub-app."
-)
-email_app.include_router(notification_router.router)
-FastApiMCP(email_app, include_operations=["process_notification"]).mount_http()
-app.mount("/api/v1/email", email_app)
-
-
-# -------- THIS PART IS NEW --------
-@app.on_event("startup")
-async def startup_main():
-    """Start the email polling loop from the main app (since mounted app startup events don’t auto-run)."""
-    print("📧 Starting email polling from main app...")
-    asyncio.create_task(notification_router.email_polling_loop())
-# ----------------------------------
-
-
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8854)
+Sanction Check MCP API Documentation
+1.1	Overview
+This FastAPI application provides endpoints for listing files and comparing data between Excel and CSV files. The application performs sanction checks by comparing owner names from Excel files with entity names from CSV files, identifying unique entries that exist in the Excel file but not in the CSV file.
+1.2	Base URL
+http://localhost:8601
 
 
 
+1.3	Data Models
+CompareRequest
+Request model for file comparison operations.
+Field	Type	Required	Description
+excelfilename	Optional[str]	No	Name of the Excel file to compare
+csvfilename	Optional[str]	No	Name of the CSV file to compare
+Example:
+{
+    "excelfilename": "owners.xlsx",
+    "csvfilename": "entities.csv"
+}
+
+
+OUTPUT:
+
+Note:
+-	Name does not match with the sanction list – True, else, If matched then it is considered false
+
+
+1.4	API Endpoints
+GET /get_file_list
+Retrieves a list of all files available in the ./input directory.
+Request
+•	Method: GET
+•	URL: /get_file_list
+•	Parameters: None
+Response
+•	Content-Type: application/json
+•	Data Type: dict[str, List[str]]
+Success Response (200):
+{
+    "message": ["file1.xlsx", "file2.csv", "data.xlsx"]
+}
+Example Usage
+curl -X GET "http://localhost:8601/get_file_list"
+POST /compare_files
+Compares data between an Excel file and a CSV file, identifying owner names that don't exist in the entity list.
+Request
+•	Method: POST
+•	URL: /compare_files
+•	Content-Type: application/json
+•	Body: CompareRequest object (excelfilename :Optional[str],    csvfilename :Optional[str])
+
+Expected File Structure
+•	Excel file: Must contain a column named "OWNER NAME:"
+•	CSV file: Must contain a column named "entity_name"
+Response
+•	Content-Type: application/json
+Success Response (200):
+{
+    "message": "Sanction Checks completed successfully.",
+    "json_result": "./output/comparison_results.json",
+    "excel_result": "./output/comparison_results.xlsx",
+    "results": [
+        {
+            "Owner Name": "John Doe",
+            "Unique": true  
+        },
+        {
+            "Owner Name": "Jane Smith",
+            "Unique": false
+        }
+    ]
+}
+Error Response (400):
+{
+    "error": "Both excelfilename and csvfilename must be provided."
+}
+{
+    "error": "Required columns not found. Ensure 'OWNER NAME:' exists in Excel and 'entity_name' exists in CSV."
+}
+Error Response (500):
+{
+    "error": "File not found or invalid format"
+}
+Example Usage
+curl -X POST "http://localhost:8601/compare_files" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "excelfilename": "owners.xlsx",
+    "csvfilename": "entities.csv"
+  }'
+
+1.5	Code Logic and Functionality
+File Listing Logic
+The get_file_list endpoint uses os.listdir() to scan the ./input directory and return all available files as a list.
+File Comparison Logic
+The compare_files endpoint performs the following operations:
+1.	File Validation: Checks if both Excel and CSV filenames are provided
+2.	Data Loading:
+o	Loads Excel data using pd.read_excel()
+o	Loads CSV data using pd.read_csv()
+3.	Column Verification: Ensures required columns exist in both files
+4.	Data Processing:
+o	Extracts owner names from Excel, removing NaN values and empty strings
+o	Extracts entity names from CSV, removing NaN values
+5.	Comparison: Identifies owner names that don't exist in the entity list
+6.	Output Generation:
+o	Creates comparison results with boolean flags
+o	Saves results as JSON file in ./output/comparison_results.json
+o	Saves results as Excel file in ./output/comparison_results.xlsx
+
+1.6	Data Processing Flow
+Input Files (Excel + CSV) 
+    ↓
+Column Validation
+    ↓
+Data Extraction & Cleaning
+    ↓
+Name Comparison Logic
+    ↓
+Result Generation
+    ↓
+File Output (JSON + Excel)
+    ↓
+API Response
 
 
 
+FastApiMCP Integration
+1.7	What is MCP?
+The code uses FastApiMCP, a library that provides additional management and mounting capabilities for FastAPI applications. It allows for better control and modularity of API endpoints.
+MCP Configuration
+mcp = FastApiMCP(app, include_operations=["get_file_list", "compare_files"])
+mcp.mount()
+•	Purpose: Manages specific API operations
+•	Operations: Only includes the two main endpoints
+•	Mounting: Integrates with the FastAPI application for enhanced functionality
+1.8	Directory Structure
+./
+├── input/          # Input files directory (Excel and CSV files)
+├── output/         # Output files directory (generated results)
+│   ├── comparison_results.json
+│   └── comparison_results.xlsx
+└── main.py         # Application code
+1.9	Dependencies
+•	FastAPI
+•	pandas
+•	uvicorn
+•	pydantic
+•	fastapi_mcp
+•	json
+•	pathlib
+•	os
+1.10	Server Configuration
+The application runs on:
+•	Host: 0.0.0.0 (accepts connections from any IP)
+•	Port: 8601
+•	Server: Uvicorn server
 
 
+1.11	Error Handling
+The API includes comprehensive error handling for:
+•	Missing required parameters
+•	File not found errors
+•	Invalid file formats
+•	Missing required columns in data files
+•	General exceptions during processing
+All errors return appropriate HTTP status codes and descriptive error messages in JSON format.
 
-
-
-
-
-
-
-
-
-attachment handler.py
-import os, json
-from azure.storage.blob import BlobServiceClient
-from dotenv import load_dotenv
-
-load_dotenv()  # Load environment variables from .env if present
-
-STATE_FILE = "history_state.json"
-OUTPUT_DIR = "storage_output"
-os.makedirs(OUTPUT_DIR, exist_ok=True)
-
-# Azure Blob configuration via environment variables
-AZURE_STORAGE_CONNECTION_STRING = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "")
-AZURE_BLOB_CONTAINER = os.environ.get("AZURE_BLOB_CONTAINER", "")
-
-def _get_blob_service_client():
-    if not AZURE_STORAGE_CONNECTION_STRING:
-        raise RuntimeError("Missing AZURE_STORAGE_CONNECTION_STRING")
-    return BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING)
-
-def _ensure_container_exists(blob_service_client):
-    if not AZURE_BLOB_CONTAINER:
-        raise RuntimeError("Missing AZURE_BLOB_CONTAINER")
-    container_client = blob_service_client.get_container_client(AZURE_BLOB_CONTAINER)
-    try:
-        container_client.create_container()
-    except Exception:
-        pass  # Likely already exists
-    return container_client
-
-def get_blob_names_from_container():
-    """Retrieve all blob names from the Azure Blob Storage container."""
-    blob_names = []
-    try:
-        blob_service_client = _get_blob_service_client()
-        container_client = _ensure_container_exists(blob_service_client)
-        blobs = container_client.list_blobs()
-        blob_names = [blob.name for blob in blobs]
-    except Exception as e:
-        print(f"Error retrieving blob names: {e}")
-    return blob_names
-
-def load_state():
-    try:
-        with open(STATE_FILE, "r") as f:
-            return json.load(f)
-    except Exception:
-        return {}
-
-def save_state(state):
-    with open(STATE_FILE, "w") as f:
-        json.dump(state, f, indent=2)
-
-def _walk_parts(parts):
-    for p in parts or []:
-        yield p
-        for sub in p.get("parts", []) or []:
-            yield from _walk_parts([sub])
-
-
-
-def save_attachments_from_message(service, message):
-    """Extract attachment filenames from Gmail message and compare with Azure Blob Storage.
-
-    Returns a dictionary with attachment names and comparison results, including a "is_duplicate" flag.
-    """
-    saved_attachments = []  # List to store attachment filenames
-    parts = message.get("payload", {}).get("parts", [])
-    
-    
-    for part in _walk_parts(parts):
-        filename = part.get("filename") 
-        if filename:
-            saved_attachments.append(filename)  
-    
-    
-    blob_service_client = _get_blob_service_client()
-    container_client = _ensure_container_exists(blob_service_client)
-    
-    attachment_results = []  
-    
-    for filename in saved_attachments:
-        is_duplicate = False  
-        try:
-           
-            blob_client = container_client.get_blob_client(blob=filename)
-            if blob_client.exists():  
-                is_duplicate = True
-        except Exception as e:
-            print(f"Error checking blob existence for {filename}: {e}")
-        
-       
-        attachment_results.append({
-            "filename": filename,
-            "is_duplicate": is_duplicate
-        })
-    
-    
-    comparison_result = {
-        "attachments": attachment_results
-    }
-    
-   
-    try:
-        out_path = os.path.join(OUTPUT_DIR, f"{message['id']}_comparison.json")
-        with open(out_path, "w", encoding="utf-8") as f:
-            json.dump(comparison_result, f, indent=2)
-    except Exception as exc:
-        print(f"Failed to write comparison result file: {exc}")
-    
-    return comparison_result
-
-
-gmail_watch.py
-
-import os
-import pickle
-from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import build
-
-# Scopes (ONLY place where they are defined)
-# gmail.readonly → fetch full messages + attachments
-# gmail.metadata → required for Pub/Sub notifications
-SCOPES = [
-    'https://www.googleapis.com/auth/gmail.readonly'
-]
-
-def get_gmail_service():
-    """Authenticate with Gmail API and return the service object."""
-    creds = None
-    token_path = "token.pickle"
-    
-    # 🔄 Load existing token if valid
-    if os.path.exists(token_path):
-        with open(token_path, "rb") as f:
-            creds = pickle.load(f)
-    
-    # 🔑 If no valid token → prompt user login
-    if not creds or not creds.valid:
-        flow = InstalledAppFlow.from_client_secrets_file("credentials/client_secret.json", SCOPES)
-        creds = flow.run_local_server(port=0)
-        with open(token_path, "wb") as f:
-            pickle.dump(creds, f)
-    
-    # Build the Gmail service
-    service = build("gmail", "v1", credentials=creds, cache_discovery=False)
-    return service
-
-def create_watch(project_id, topic_full_name):
-    """Create a Gmail watch for Pub/Sub notifications."""
-    service = get_gmail_service()
-    body = {
-        "labelIds": ["INBOX"],
-        "topicName": topic_full_name
-    }
-    resp = service.users().watch(userId="me", body=body).execute()
-    print("Watch created:", resp)
-    return resp
-
-if __name__ == "__main__":
-    import sys
-    if len(sys.argv) < 3:
-        print("Usage: python gmail_watch.py <PROJECT_ID> <projects/PROJECT_ID/topics/TOPIC>")
-        sys.exit(1)
-    
-    project = sys.argv[1]
-    topic = sys.argv[2]
-    create_watch(project, topic)
-
-mcp_enail_server.py
-import os
-import json
-import asyncio
-from fastapi import FastAPI, BackgroundTasks
-import uvicorn
-from pydantic import BaseModel
-from gmail_watch import get_gmail_service
-from attachment_handler import (
-    save_attachments_from_message,
-    load_state,
-    save_state
-)
-from datetime import datetime
-
-app = FastAPI()
-
-# Global variables
-running = True
-last_check_time = None
-
-class EmailNotification(BaseModel):
-    emailAddress: str
-    historyId: int
-
-async def check_new_emails():
-    """Check for new emails and process them."""
-    global last_check_time
-    service = get_gmail_service()
-    
-    try:
-        # On first run: fetch the latest 5 emails. Afterwards: incremental by timestamp.
-        if not last_check_time:
-            results = service.users().messages().list(
-                userId="me",
-                maxResults=5
-            ).execute()
-        else:
-            query = f"after:{int(last_check_time.timestamp())}"
-            results = service.users().messages().list(userId="me", q=query).execute()
-        messages = results.get("messages", [])
-        
-        for message in messages:
-            msg = service.users().messages().get(
-                userId="me",
-                id=message["id"],
-                format="full"
-            ).execute()
-            
-            print(f"📩 Processing message ID: {message['id']}")
-            
-            # Save attachment filenames and compare with Azure Blob Storage
-            comparison_result = save_attachments_from_message(service, msg)
-            print(f"📎 Comparison result: {comparison_result}")
-        
-        last_check_time = datetime.now()
-    
-    except Exception as e:
-        print(f"Error checking emails: {e}")
-
-async def email_polling_loop():
-    """Continuously poll for new emails."""
-    while running:
-        try:
-            await check_new_emails()
-        except Exception as e:
-            print("Polling iteration error:", e)
-        await asyncio.sleep(10)  # Poll every 10 seconds
-
-@app.on_event("startup")
-async def startup_event():
-    """Initialize and start email polling on startup."""
-    global running
-    try:
-        print("📧 Starting email polling...")
-        asyncio.create_task(email_polling_loop())
-    except Exception as e:
-        print("Startup non-fatal error:", e)
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Cleanup on shutdown."""
-    global running
-    running = False
-
-@app.post("/process_notification")
-async def process_notification(notification: EmailNotification, background_tasks: BackgroundTasks):
-    """Process a Gmail notification and compare attachment filenames with Azure Blob Storage."""
-    service = get_gmail_service()
-    email = notification.emailAddress
-    history_id = notification.historyId
-    
-    state = load_state()
-    last_hist = state.get(email)
-    
-    if not last_hist:
-        # Initialize state on first notification
-        state[email] = history_id
-        save_state(state)
-        return {"message": f"Initialized history id {history_id}"}
-    
-    processed_messages = []
-    try:
-        # Get history since last check
-        resp = service.users().history().list(
-            userId="me",
-            startHistoryId=str(last_hist),
-            historyTypes="messageAdded"
-        ).execute()
-        
-        histories = resp.get("history", [])
-        message_ids = []
-        for h in histories:
-            for ma in h.get("messagesAdded", []):
-                message_ids.append(ma["message"]["id"])
-        
-    except Exception as e:
-        print("History list failed:", e)
-        # Fallback: get recent messages
-        res = service.users().messages().list(
-            userId="me",
-            q="newer_than:7d",
-            maxResults=20
-        ).execute()
-        message_ids = [m["id"] for m in res.get("messages", [])]
-
-    for mid in message_ids:
-        msg = service.users().messages().get(
-            userId="me",
-            id=mid,
-            format="full"
-        ).execute()
-        
-        # Save attachment filenames and compare with Azure Blob Storage
-        comparison_result = save_attachments_from_message(service, msg)
-        processed_messages.append({
-            "message_id": mid,
-            "comparison_result": comparison_result
-        })
-    
-    # Update state
-    state[email] = history_id
-    save_state(state)
-    
-    return {
-        "message": f"Processed {len(processed_messages)} messages",
-        "processed": processed_messages
-    }
-
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8054)
