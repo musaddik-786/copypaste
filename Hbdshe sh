@@ -360,6 +360,68 @@ AZURE_STORAGE_CONNECTION_STRING=...
 AZURE_BLOB_CONTAINER=...
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import requests
+import json
+
+# ✅ Change BASE_URL if needed
+BASE_URL = "http://localhost:8601/api/v1/filecomparison/compare_files"
+
+def test_compare_latest_json_with_csv():
+    # ✅ Body same as your endpoint expects
+    payload = {
+        "csvfilename": "sanctions.csv"  # Change if your file name is different
+    }
+
+    try:
+        response = requests.post(BASE_URL, json=payload)
+        print("\n✅ API Response Status Code:", response.status_code)
+
+        try:
+            data = response.json()
+            print("\n✅ Parsed JSON Response:")
+            print(json.dumps(data, indent=4))
+        except json.JSONDecodeError:
+            print("\n❌ Response is not JSON. Raw response:")
+            print(response.text)
+
+    except Exception as e:
+        print("\n❌ Error calling API:", str(e))
+
+if __name__ == "__main__":
+    print("🚀 Running test for /compare_files endpoint...\n")
+    test_compare_latest_json_with_csv()
+
+
+
+
+
+
+
+
+
+
+
+
 ⸻
 
 If you want, I can follow up with a brief “how it flows” trace log or optional logging hooks for observability.
