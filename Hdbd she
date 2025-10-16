@@ -1,44 +1,147 @@
-Awesome — thanks for the green lights.
-
-Below is a complete, ready-to-run codebase that keeps Code 1’s flow/structure (lifespan startup/shutdown, MCP sub-app, background polling) but implements Code 2’s functionality (compare Gmail attachment filenames vs Azure Blob names).
-	•	Endpoint renamed to /attachment_checker_mcp (per Q1).
-	•	JSON-RPC response style kept (per Q2).
-	•	Filenames adjusted; I used a dedicated attachment_service.py and preserved your attachment_handler.py Azure logic (per Q3).
-
-⸻
-
-Project structure
-
-EmailAttachmentMCP/
-├─ main.py
-├─ routers/
-│  └─ attachment_router.py
-├─ attachment_service.py
-├─ attachment_handler.py
-├─ gmail_watch.py
-├─ requirements.txt
-├─ .env            # create this (example below)
-├─ credentials/
-│  └─ client_secret.json   # your Google OAuth creds (place here)
-└─ storage/
-   ├─ attachments/         # created at runtime
-   └─ history_state.json   # created at runtime
+file_router.py
 
 
-⸻
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field
+from utils.file_utils import compare_excel_and_csv
+
+
+# Initialize APIRouter
+router = APIRouter()
+
+# Pydantic Models
+class CompareFilesRequest(BaseModel):
+    """Request model for comparing Excel and CSV files."""
+    excelfilename: str = Field(..., description="The name of the Excel file in Azure Blob Storage.")
+    csvfilename: str = Field(..., description="The name of the CSV file in Azure Blob Storage.")
+
+# API Endpoints
+@router.post("/compare_files", operation_id="compare_files", summary="Compare Excel and CSV files from Azure Blob Storage.")
+async def compare_files(request: CompareFilesRequest):
+    """
+    Endpoint to compare Excel and CSV files from Azure Blob Storage.
+    """
+    try:
+        result = compare_excel_and_csv(
+            excel_file_name=request.excelfilename,
+            csv_file_name=request.csvfilename,
+        )
+        return result  # Already has status true/false
+    except Exception as e:
+        # Final fallback exception
+        return {"status": False, "error": f"Unexpected server error: {str(e)}"}
+
+
+file_utils.py
+
+
+import os
+import pandas as pd
+import json
+from io import BytesIO
+from azure.storage.blob import BlobServiceClient
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+# Azure Blob Storage Configuration
+AZURE_STORAGE_CONNECTION_STRING = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "")
+AZURE_BLOB_CONTAINER = os.environ.get("AZURE_BLOB_CONTAINER", "")
+
+def read_blob_file(blob_name: str):
+    """Reads a file from Azure Blob Storage and returns its content as a BytesIO object."""
+    try:
+        if not AZURE_STORAGE_CONNECTION_STRING:
+            raise ValueError("Azure Storage Connection String is missing. Please set AZURE_STORAGE_CONNECTION_STRING in .env")
+        if not AZURE_BLOB_CONTAINER:
+            raise ValueError("Azure Blob Container is missing. Please set AZURE_BLOB_CONTAINER in .env")
+
+        blob_service_client = BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING)
+        blob_client = blob_service_client.get_blob_client(container=AZURE_BLOB_CONTAINER, blob=blob_name)
+
+        if not blob_client.exists():
+            raise FileNotFoundError(f"Blob file '{blob_name}' not found in container '{AZURE_BLOB_CONTAINER}'.")
+
+        blob_data = blob_client.download_blob().readall()
+        return BytesIO(blob_data)
+
+    except Exception as e:
+        raise Exception(f"Error reading blob file '{blob_name}': {str(e)}")
+
+
+def compare_excel_and_csv(excel_file_name: str, csv_file_name: str):
+    """Compares an Excel file and a CSV file from Azure Blob Storage."""
+    try:
+        # Read files from Azure Blob Storage
+        excel_file = read_blob_file(excel_file_name)
+        csv_file = read_blob_file(csv_file_name)
+
+        excel_data = pd.read_excel(excel_file)
+        csv_data = pd.read_csv(csv_file)
+
+        # Columns to compare
+        owner_name_column = "OWNER NAME:"
+        entity_name_column = "entity_name"
+
+        if owner_name_column not in excel_data.columns:
+            return {"status": False, "error": f"Column '{owner_name_column}' missing in Excel file."}
+        if entity_name_column not in csv_data.columns:
+            return {"status": False, "error": f"Column '{entity_name_column}' missing in CSV file."}
+
+        # Extract and filter names
+        owner_names = (
+            excel_data[owner_name_column]
+            .dropna()
+            .tolist()
+        )
+        owner_names = [name for name in owner_names if isinstance(name, str) and name.strip()]
+
+        entity_names = (
+            csv_data[entity_name_column]
+            .dropna()
+            .tolist()
+        )
+        entity_names = [name for name in entity_names if isinstance(name, str) and name.strip()]
+
+        # Compare
+        results = [{"Owner Name": name, "Unique": name not in entity_names} for name in owner_names]
+
+        # Save outputs
+        output_dir = "./output"
+        os.makedirs(output_dir, exist_ok=True)
+        json_output_path = os.path.join(output_dir, "comparison_results.json")
+        excel_output_path = os.path.join(output_dir, "comparison_results.xlsx")
+
+        with open(json_output_path, "w") as json_file:
+            json.dump(results, json_file, indent=4)
+
+        pd.DataFrame(results).to_excel(excel_output_path, index=False)
+
+        return {
+            "status": True,
+            "message": "Comparison completed successfully.",
+            "json_result": json_output_path,
+            "excel_result": excel_output_path,
+            "results": results,
+        }
+
+    except Exception as e:
+        return {"status": False, "error": str(e)}
+
 
 main.py
 
-# main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi_mcp import FastApiMCP
 import uvicorn
-from contextlib import asynccontextmanager
+# from routers import file_router
 
-from routers.attachment_router import router as attachment_router
-from attachment_service import start_email_polling, stop_email_polling
+from routers.file_router import router as  file_router
 
+
+# Shared CORS config
 def apply_cors(app: FastAPI):
     app.add_middleware(
         CORSMiddleware,
@@ -47,457 +150,47 @@ def apply_cors(app: FastAPI):
         allow_headers=["*"],
     )
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Startup
-    await start_email_polling()
-    yield
-    # Shutdown
-    await stop_email_polling()
-
+# Agent-specific sub-apps
 def create_sub_app(title: str, description: str, version: str = "0.1.0") -> FastAPI:
-    sub = FastAPI(title=title, description=description, version=version, lifespan=lifespan)
-    apply_cors(sub)
-    return sub
+    app = FastAPI(title=title, description=description, version=version)
+    apply_cors(app)
+    return app
 
-# Root app
-app = FastAPI(lifespan=lifespan)
+# Main app
+app = FastAPI()
 apply_cors(app)
 
-# MCP-style sub-app
-email_app = create_sub_app(
-    title="attachment_checker_mcp",
-    description="Reads latest emails and compares attachment filenames with Azure Blob names."
+# File Comparison Agent
+file_app = create_sub_app(
+    title="File Comparison API",
+    description="API for comparing Excel and CSV files from a local folder."
 )
-email_app.include_router(attachment_router)
+file_app.include_router(file_router)
+FastApiMCP(file_app, include_operations=["compare_files"]).mount_http()
+app.mount("/api/v1/filecomparison", file_app)
 
-# Expose MCP ops (operation id must match the router's operation_id)
-FastApiMCP(email_app, include_operations=["attachment_checker_mcp"]).mount_http()
 
-# Mount sub-app at /mcp (same pattern as Code 1)
-app.mount("/mcp", email_app)
-
+# Entry point
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8502)
-
-
-⸻
-
-routers/attachment_router.py
-
-# routers/attachment_router.py
-from fastapi import APIRouter
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
-
-from attachment_service import get_latest_email_attachment_check
-
-router = APIRouter()
-
-class AttachmentCheckerMCP(BaseModel):
-    """Represents the functionality of checking latest email attachments against Azure Blob Storage"""
-    AgentName: str = Field(default="EmailAttachmentChecker", description="The unique agent name of the agent that is being called.")
-    UserId: str = Field(default="markRuffalo", description="The unique user id of a specific user (default: 'markRuffalo').")
-
-@router.post("/attachment_checker_mcp", operation_id="attachment_checker_mcp")
-async def attachment_checker_mcp(p_body: AttachmentCheckerMCP):
-    """
-    Reads the latest email and returns attachment-vs-blob comparison.
-    """
-    try:
-        result = get_latest_email_attachment_check()
-        # Wrap in JSON-RPC envelope (per Q2)
-        return JSONResponse(
-            content={
-                "jsonrpc": "2.0",
-                "id": 1,
-                "result": result
-            }
-        )
-    except Exception as e:
-        return JSONResponse(
-            content={
-                "jsonrpc": "2.0",
-                "id": 1,
-                "error": {"message": f"Unable to process latest email: {e}"}
-            },
-            status_code=500
-        )
-
-
-⸻
-
-attachment_service.py
-
-# attachment_service.py
-import asyncio
-import json
-from datetime import datetime
-from typing import Dict, Any, List
-
-from gmail_watch import get_gmail_service
-from attachment_handler import (
-    save_attachments_from_message,
-    load_state,
-    save_state
-)
-
-# Polling state
-_last_check_time = None
-_is_polling = True
-
-def _extract_attachment_comparison(service, msg) -> Dict[str, Any]:
-    """
-    For a Gmail message, return comparison of attachment filenames vs Azure blobs.
-    """
-    comparison = save_attachments_from_message(service, msg)
-    # Normalized result expected by router (jsonrpc 'result' payload)
-    return {
-        "message_id": msg.get("id", ""),
-        "attachments": comparison.get("attachments", [])
-    }
-
-def get_latest_email_attachment_check() -> Dict[str, Any]:
-    """
-    Fetch the latest email and return comparison results.
-    Mirrors Code 1's get_latest_email() pattern but for attachments.
-    """
-    try:
-        service = get_gmail_service()
-        results = service.users().messages().list(userId="me", maxResults=1).execute()
-        messages = results.get("messages", [])
-
-        if not messages:
-            return {
-                "attachments": [],
-                "is_email_extracted": False,
-                "error": "No messages found"
-            }
-
-        msg = service.users().messages().get(
-            userId="me",
-            id=messages[0]["id"],
-            format="full"
-        ).execute()
-
-        comparison = _extract_attachment_comparison(service, msg)
-
-        return {
-            "attachments": comparison.get("attachments", []),
-            "is_email_extracted": True,
-            "error": None
-        }
-    except Exception as e:
-        return {
-            "attachments": [],
-            "is_email_extracted": False,
-            "error": str(e)
-        }
-
-async def _check_for_new_emails():
-    """
-    Background task step: check new emails since last check, compare attachments vs Azure blobs.
-    """
-    global _last_check_time
-    try:
-        service = get_gmail_service()
-
-        # Initial bootstrap (few latest) then incremental by timestamp
-        if not _last_check_time:
-            results = service.users().messages().list(userId="me", maxResults=5).execute()
-        else:
-            query = f"after:{int(_last_check_time.timestamp())}"
-            results = service.users().messages().list(userId="me", q=query).execute()
-
-        messages = results.get("messages", [])
-        for message in messages:
-            msg = service.users().messages().get(
-                userId="me",
-                id=message["id"],
-                format="full"
-            ).execute()
-            comparison = _extract_attachment_comparison(service, msg)
-            print("📎 Attachment vs Blob comparison:", json.dumps(comparison, indent=2))
-
-        _last_check_time = datetime.now()
-
-    except Exception as e:
-        print(f"Error checking for new emails: {e}")
-
-async def _email_polling_loop():
-    """
-    Continuously poll for new emails.
-    """
-    global _is_polling
-    print("📧 Email polling loop started.")
-    while _is_polling:
-        await _check_for_new_emails()
-        await asyncio.sleep(10)
-    print("📪 Email polling loop stopped.")
-
-async def start_email_polling():
-    """
-    Initialize and start background polling on app startup (lifespan).
-    """
-    global _is_polling, _last_check_time
-    _is_polling = True
-    # Bootstrap by forcing a one-shot latest check for easier debugging
-    bootstrap = get_latest_email_attachment_check()
-    print("🚀 Initialized with latest attachment check:", json.dumps(bootstrap, indent=2))
-    # Start background loop
-    asyncio.create_task(_email_polling_loop())
-
-async def stop_email_polling():
-    """
-    Stop background polling on app shutdown (lifespan).
-    """
-    global _is_polling
-    _is_polling = False
-    print("🛑 Shutting down email monitoring...")
-
-
-⸻
-
-attachment_handler.py
-
-# attachment_handler.py
-import os
-import json
-import base64
-from azure.storage.blob import BlobServiceClient
-from dotenv import load_dotenv
-
-load_dotenv()
-
-# Storage/state files (similar to your Code 2)
-STATE_FILE = os.path.join("storage", "history_state.json")
-OUTPUT_DIR = os.path.join("storage", "attachments")
-os.makedirs(OUTPUT_DIR, exist_ok=True)
-os.makedirs(os.path.dirname(STATE_FILE), exist_ok=True)
-
-# Azure Blob config
-AZURE_STORAGE_CONNECTION_STRING = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "")
-AZURE_BLOB_CONTAINER = os.environ.get("AZURE_BLOB_CONTAINER", "")
-
-def _get_blob_service_client():
-    if not AZURE_STORAGE_CONNECTION_STRING:
-        raise RuntimeError("Missing AZURE_STORAGE_CONNECTION_STRING")
-    return BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING)
-
-def _ensure_container_exists(blob_service_client):
-    if not AZURE_BLOB_CONTAINER:
-        raise RuntimeError("Missing AZURE_BLOB_CONTAINER")
-    container_client = blob_service_client.get_container_client(AZURE_BLOB_CONTAINER)
-    try:
-        container_client.create_container()
-    except Exception:
-        pass
-    return container_client
-
-def load_state():
-    try:
-        with open(STATE_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        return {}
-
-def save_state(state):
-    with open(STATE_FILE, "w", encoding="utf-8") as f:
-        json.dump(state, f, indent=2, ensure_ascii=False)
-
-def _walk_parts(parts):
-    for p in parts or []:
-        yield p
-        for sub in p.get("parts", []) or []:
-            yield from _walk_parts([sub])
-
-def save_attachments_from_message(service, message):
-    """
-    Extract attachment filenames from Gmail message and compare with Azure Blob Storage.
-    Returns: {"attachments": [{"filename": "...", "is_duplicate": bool}, ...]}
-    """
-    filenames = []
-    parts = message.get("payload", {}).get("parts", [])
-    for part in _walk_parts(parts):
-        filename = part.get("filename")
-        body = part.get("body", {}) or {}
-        # Only care about filename presence for comparison purpose
-        if filename:
-            filenames.append(filename)
-
-    # Compare with Azure container
-    attachment_results = []
-    try:
-        blob_service_client = _get_blob_service_client()
-        container_client = _ensure_container_exists(blob_service_client)
-
-        for name in filenames:
-            is_duplicate = False
-            try:
-                blob_client = container_client.get_blob_client(blob=name)
-                if blob_client.exists():
-                    is_duplicate = True
-            except Exception as e:
-                print(f"Error checking blob existence for {name}: {e}")
-
-            attachment_results.append({
-                "filename": name,
-                "is_duplicate": is_duplicate
-            })
-    except Exception as e:
-        # If Azure check fails entirely, still return filenames with error context
-        print(f"Azure comparison error: {e}")
-        attachment_results = [{"filename": n, "is_duplicate": False, "error": str(e)} for n in filenames]
-
-    # Optional: persist a small artifact per message
-    try:
-        out_path = os.path.join(OUTPUT_DIR, f"{message.get('id', 'unknown')}_comparison.json")
-        with open(out_path, "w", encoding="utf-8") as f:
-            json.dump({"attachments": attachment_results}, f, indent=2, ensure_ascii=False)
-    except Exception as exc:
-        print(f"Failed to write comparison result file: {exc}")
-
-    return {"attachments": attachment_results}
-
-
-⸻
-
-gmail_watch.py
-
-# gmail_watch.py
-import os
-import pickle
-from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import build
-
-# Scopes (ONLY place where defined)
-SCOPES = [
-    'https://www.googleapis.com/auth/gmail.readonly'
-]
-
-def get_gmail_service(force_auth=False):
-    creds = None
-    token_path = "token.pickle"
-    credentials_dir = "credentials"
-    client_secret_path = os.path.join(credentials_dir, "client_secret.json")
-
-    if not os.path.exists(credentials_dir):
-        os.makedirs(credentials_dir, exist_ok=True)
-        print(f"📁 Created credentials directory at {credentials_dir}")
-
-    if not os.path.exists(client_secret_path):
-        raise FileNotFoundError(
-            f"❌ {client_secret_path} not found. Place your Google OAuth credentials file here."
-        )
-
-    if not force_auth and os.path.exists(token_path):
-        try:
-            with open(token_path, "rb") as f:
-                creds = pickle.load(f)
-            if creds and creds.valid:
-                print("✅ Loaded existing valid credentials")
-                return build("gmail", "v1", credentials=creds, cache_discovery=False)
-        except Exception as e:
-            print(f"⚠️ Error loading existing token: {e}")
-            creds = None
-
-    # Fresh OAuth flow
-    try:
-        if os.path.exists(token_path):
-            os.remove(token_path)
-            print("🔑 Removed existing token to force new authentication")
-
-        print("🔐 Starting Gmail OAuth authentication flow...")
-        flow = InstalledAppFlow.from_client_secrets_file(client_secret_path, SCOPES)
-        creds = flow.run_local_server(port=0, prompt='consent', success_message="Gmail authentication successful! You can close this window.", open_browser=True)
-
-        with open(token_path, "wb") as f:
-            pickle.dump(creds, f)
-        print("✅ Authentication successful - credentials saved")
-    except Exception as e:
-        print(f"Authentication error: {e}")
-        raise
-
-    return build("gmail", "v1", credentials=creds, cache_discovery=False)
-
-def create_watch(project_id, topic_full_name):
-    service = get_gmail_service()
-    body = {
-        "labelIds": ["INBOX"],
-        "topicName": topic_full_name
-    }
-    resp = service.users().watch(userId="me", body=body).execute()
-    print("Watch created:", resp)
-    return resp
-
-if __name__ == "__main__":
-    import sys
-    if len(sys.argv) < 3:
-        print("Usage: python gmail_watch.py <PROJECT_ID> <projects/PROJECT_ID/topics/TOPIC>")
-        sys.exit(1)
-    project = sys.argv[1]
-    topic = sys.argv[2]
-    create_watch(project, topic)
-
-
-⸻
-
-requirements.txt
-
-fastapi==0.118.3
-uvicorn==0.30.6
-fastapi_mcp==0.4.0
-
-python-dotenv==1.0.1
-
-google-api-python-client==2.146.0
-google-auth-oauthlib==1.2.1
-google-auth==2.34.0
-
-azure-storage-blob==12.23.1
-
-
-⸻
-
-.env (example)
-
-AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=https;AccountName=YOUR_ACCOUNT;AccountKey=YOUR_KEY;EndpointSuffix=core.windows.net
-AZURE_BLOB_CONTAINER=your-container-name
-
-
-⸻
-
-How this mirrors Code 1 (but with your functionality)
-	•	Lifespan hooks (main.py): start_email_polling() on startup, stop_email_polling() on shutdown ✅
-	•	MCP Sub-app mounted under /mcp with FastApiMCP and include_operations=["attachment_checker_mcp"] ✅
-	•	Single MCP endpoint POST /mcp/attachment_checker_mcp that returns JSON-RPC envelope ✅
-	•	Background polling loop checks new emails and prints comparison logs ✅
-	•	Azure Blob comparison taken from your Code 2’s attachment_handler.py ✅
-
-⸻
-
-Run
-
-pip install -r requirements.txt
-# Put credentials/client_secret.json in place
-# Create .env with your Azure details
-python main.py
-
-	•	MCP endpoint: POST http://localhost:8502/mcp/attachment_checker_mcp
-	•	Response example:
-
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "result": {
-    "attachments": [
-      {"filename": "abc.pdf", "is_duplicate": false},
-      {"filename": "report.xlsx", "is_duplicate": true}
-    ],
-    "is_email_extracted": true,
-    "error": null
-  }
-}
-
-If you want me to adapt filenames to exactly match your repo naming (e.g., keep test_main.py / test_email_router.py) I can swap names quickly without changing logic.
+    uvicorn.run(app, host="0.0.0.0", port=8601)
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
