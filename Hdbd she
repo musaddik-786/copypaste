@@ -242,7 +242,9 @@ json
 
 
 
-
+so below is my current code and above is a json 
+earlier i had to take excel as input and then compare the owner name: to name in sanctoions.csv but now the json has to be the input now instead of excel the above json 
+will be the input it will be in same blob storage where excel is currently
 
 
 
