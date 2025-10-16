@@ -1,0 +1,365 @@
+Awesome — here’s the fully async drop-in code for all files.
+
+It uses azure.storage.blob.aio for non-blocking Azure calls, and asyncio.to_thread() to safely run Pandas + file writes off the event loop. The API surface stays the same: POST /api/v1/filecomparison/compare_files with body {"csvfilename": "sanctions.csv"}.
+
+⸻
+
+routers/file_router.py
+
+# File: routers/file_router.py
+
+from fastapi import APIRouter
+from pydantic import BaseModel, Field
+from utils.file_utils import compare_json_and_csv  # async function
+
+# Initialize APIRouter
+router = APIRouter()
+
+class CompareFilesRequest(BaseModel):
+    """
+    Request model to compare latest JSON owner name with CSV sanctions file from Azure Blob Storage.
+    """
+    csvfilename: str = Field(..., description="The name of the CSV file in Azure Blob Storage.")
+
+@router.post(
+    "/compare_files",
+    operation_id="compare_files",
+    summary="Compare latest JSON with CSV sanctions file from Azure Blob Storage (async)."
+)
+async def compare_files(request: CompareFilesRequest):
+    """
+    Endpoint to compare latest JSON file's Owner Name with CSV sanctions list (async end-to-end).
+    """
+    try:
+        result = await compare_json_and_csv(csv_file_name=request.csvfilename)
+        return result
+    except Exception as e:
+        return {"status": False, "error": f"Unexpected server error: {str(e)}"}
+
+
+⸻
+
+utils/file_utils.py
+
+# File: utils/file_utils.py
+
+import os
+import json
+import asyncio
+from io import BytesIO
+from typing import List, Tuple
+
+import pandas as pd
+from dotenv import load_dotenv
+from azure.storage.blob.aio import BlobServiceClient
+from azure.core.exceptions import ResourceNotFoundError
+
+# Load environment variables
+load_dotenv()
+
+# Azure Blob Storage Configuration
+AZURE_STORAGE_CONNECTION_STRING = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "")
+AZURE_BLOB_CONTAINER = os.environ.get("AZURE_BLOB_CONTAINER", "")
+
+# ---------- Core Blob Helpers (ASYNC) ----------
+
+def _validate_env():
+    if not AZURE_STORAGE_CONNECTION_STRING:
+        raise ValueError("Azure Storage Connection String is missing. Set AZURE_STORAGE_CONNECTION_STRING in .env")
+    if not AZURE_BLOB_CONTAINER:
+        raise ValueError("Azure Blob Container is missing. Set AZURE_BLOB_CONTAINER in .env")
+
+async def _get_blob_service_and_container():
+    """
+    Creates BlobServiceClient (aio) and ContainerClient after validating env vars.
+    """
+    _validate_env()
+    blob_service_client = BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING)
+    container_client = blob_service_client.get_container_client(AZURE_BLOB_CONTAINER)
+    return blob_service_client, container_client
+
+async def _blob_exists(container_name: str, blob_name: str) -> bool:
+    """
+    Checks if a blob exists by fetching its properties (non-blocking).
+    """
+    _validate_env()
+    bsc = BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING)
+    blob_client = bsc.get_blob_client(container=container_name, blob=blob_name)
+    try:
+        await blob_client.get_blob_properties()
+        return True
+    except ResourceNotFoundError:
+        return False
+
+async def read_blob_file(blob_name: str) -> BytesIO:
+    """
+    Reads a file from Azure Blob Storage and returns its content as a BytesIO object (async).
+    """
+    try:
+        _validate_env()
+        bsc = BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING)
+        blob_client = bsc.get_blob_client(container=AZURE_BLOB_CONTAINER, blob=blob_name)
+
+        # Clear error if not found
+        if not await _blob_exists(AZURE_BLOB_CONTAINER, blob_name):
+            raise FileNotFoundError(f"Blob file '{blob_name}' not found in container '{AZURE_BLOB_CONTAINER}'.")
+
+        downloader = await blob_client.download_blob()
+        data = await downloader.readall()
+        return BytesIO(data)
+
+    except Exception as e:
+        raise Exception(f"Error reading blob file '{blob_name}': {str(e)}")
+
+async def _list_json_blobs_sorted_latest_first() -> List[Tuple[str, "datetime"]]:
+    """
+    Returns a list of (blob_name, last_modified) tuples for .json blobs,
+    sorted by last_modified DESC (latest first). (async)
+    """
+    try:
+        _, container_client = await _get_blob_service_and_container()
+        json_blobs: List[Tuple[str, "datetime"]] = []
+        async for b in container_client.list_blobs():  # async iterator
+            name = getattr(b, "name", "")
+            if name.lower().endswith(".json"):
+                last_modified = getattr(b, "last_modified", None)
+                if last_modified is not None:
+                    json_blobs.append((name, last_modified))
+        json_blobs.sort(key=lambda x: x[1], reverse=True)
+        return json_blobs
+    except Exception as e:
+        raise Exception(f"Error listing JSON blobs: {str(e)}")
+
+async def _get_latest_json_blob_name() -> str:
+    """
+    Picks the most recently modified .json blob from the container. (async)
+    """
+    json_blobs = await _list_json_blobs_sorted_latest_first()
+    if not json_blobs:
+        raise FileNotFoundError(f"No JSON files found in container '{AZURE_BLOB_CONTAINER}'.")
+    latest_name, _ = json_blobs[0]
+    return latest_name
+
+# ---------- JSON Parsing & Owner Name Extraction (sync, CPU-bound light) ----------
+
+def _normalize_field_name(s: str) -> str:
+    """
+    Normalizes field names for case-insensitive and colon/space-insensitive comparison.
+    E.g., "Owner Name:", "owner name", "OWNER  NAME : " => "ownername"
+    """
+    if not isinstance(s, str):
+        return ""
+    lowered = s.lower()
+    return lowered.replace(" ", "").replace(":", "")
+
+def _extract_owner_names_from_json_dict(data: dict) -> List[str]:
+    """
+    Scans data['extracted_fields'] and returns all owner name values found.
+    Uses case-insensitive match for "Owner Name" and ignores colon/space differences.
+    """
+    owner_names: List[str] = []
+    fields = data.get("extracted_fields")
+
+    if not isinstance(fields, list):
+        return owner_names
+
+    target_key = "ownername"  # normalized target
+
+    for item in fields:
+        if not isinstance(item, dict):
+            continue
+        field_label = _normalize_field_name(item.get("Field", ""))
+        if field_label == target_key:
+            value = item.get("Value")
+            if isinstance(value, str):
+                clean = value.strip()
+                if clean:
+                    owner_names.append(clean)
+    return owner_names
+
+# ---------- Async-safe wrappers for blocking work ----------
+
+async def _pd_read_csv_async(csv_bytes: BytesIO) -> pd.DataFrame:
+    """
+    Reads CSV using pandas in a worker thread to avoid blocking the event loop.
+    """
+    csv_bytes.seek(0)
+    return await asyncio.to_thread(pd.read_csv, csv_bytes)
+
+async def _save_json_async(path: str, payload: dict):
+    """
+    Writes JSON to disk in a worker thread (non-blocking to event loop).
+    """
+    def _write():
+        with open(path, "w", encoding="utf-8") as jf:
+            json.dump(payload, jf, indent=4, ensure_ascii=False)
+    await asyncio.to_thread(_write)
+
+async def _df_to_excel_async(df: pd.DataFrame, path: str):
+    """
+    Saves DataFrame to Excel in a worker thread.
+    """
+    await asyncio.to_thread(df.to_excel, path, False)
+
+# ---------- Public Function: Compare Latest JSON vs CSV (ASYNC) ----------
+
+async def compare_json_and_csv(csv_file_name: str):
+    """
+    ASYNC:
+    1) Finds the LATEST .json blob in the container by last_modified.
+    2) Reads and parses the JSON.
+    3) Extracts 'Owner Name' values (case-insensitive match on field label).
+    4) Reads the CSV sanctions list; expects 'entity_name' column.
+    5) Compares each owner name to entity_name list (case-insensitive, trimmed).
+    6) Saves results to ./output as JSON & XLSX; returns a structured response.
+    """
+    try:
+        # --- 1) Find latest JSON blob
+        latest_json_blob = await _get_latest_json_blob_name()
+
+        # --- 2) Read and parse JSON
+        json_bytes = await read_blob_file(latest_json_blob)
+
+        # Parsing JSON (small CPU) is fine on event loop, but to be safe use to_thread
+        def _parse_json(b: BytesIO):
+            b.seek(0)
+            return json.load(b)
+
+        try:
+            data = await asyncio.to_thread(_parse_json, json_bytes)
+        except Exception as parse_err:
+            raise ValueError(f"Latest JSON '{latest_json_blob}' could not be parsed: {parse_err}")
+
+        # --- 3) Extract Owner Name(s)
+        owner_names = _extract_owner_names_from_json_dict(data)
+        if not owner_names:
+            raise ValueError(
+                f"No 'Owner Name' found in '{latest_json_blob}'. "
+                f"Ensure 'extracted_fields' contains an item where Field ~ 'Owner Name'."
+            )
+
+        # --- 4) Read CSV sanctions list
+        csv_bytes = await read_blob_file(csv_file_name)
+        try:
+            csv_data = await _pd_read_csv_async(csv_bytes)
+        except Exception as csv_err:
+            raise ValueError(f"Failed to read CSV '{csv_file_name}': {csv_err}")
+
+        entity_name_column = "entity_name"
+        if entity_name_column not in csv_data.columns:
+            return {"status": False, "error": f"Column '{entity_name_column}' missing in CSV file '{csv_file_name}'."}
+
+        # --- Normalize names (lower/strip) for comparison
+        def _norm(s: str) -> str:
+            return s.strip().lower() if isinstance(s, str) else ""
+
+        entity_names_norm = set(
+            _norm(x) for x in csv_data[entity_name_column].dropna().tolist() if isinstance(x, str) and x.strip()
+        )
+
+        # --- 5) Compare
+        results = []
+        for name in owner_names:
+            n = _norm(name)
+            unique = n not in entity_names_norm
+            results.append({"Owner Name": name, "Unique": unique})
+
+        # --- 6) Save outputs locally (non-blocking)
+        output_dir = "./output"
+        os.makedirs(output_dir, exist_ok=True)
+        json_output_path = os.path.join(output_dir, "comparison_results.json")
+        excel_output_path = os.path.join(output_dir, "comparison_results.xlsx")
+
+        await _save_json_async(
+            json_output_path,
+            {
+                "latest_json_blob": latest_json_blob,
+                "csv_file_name": csv_file_name,
+                "results": results
+            }
+        )
+
+        # to_excel needs a DataFrame
+        df = pd.DataFrame(results)
+        await _df_to_excel_async(df, excel_output_path)
+
+        # --- 7) Return structured response
+        return {
+            "status": True,
+            "message": "Comparison completed successfully.",
+            "latest_json_blob": latest_json_blob,
+            "csv_file_name": csv_file_name,
+            "json_result": json_output_path,
+            "excel_result": excel_output_path,
+            "results": results,
+        }
+
+    except Exception as e:
+        return {"status": False, "error": str(e)}
+
+
+⸻
+
+main.py
+
+# File: main.py
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi_mcp import FastApiMCP
+import uvicorn
+
+from routers.file_router import router as file_router
+
+# Shared CORS config
+def apply_cors(app: FastAPI):
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+# Agent-specific sub-apps
+def create_sub_app(title: str, description: str, version: str = "0.1.0") -> FastAPI:
+    app = FastAPI(title=title, description=description, version=version)
+    apply_cors(app)
+    return app
+
+# Main app
+app = FastAPI()
+apply_cors(app)
+
+# File Comparison Agent
+file_app = create_sub_app(
+    title="File Comparison API",
+    description="API for comparing latest JSON owner name with a CSV sanctions list from Azure Blob Storage (async)."
+)
+file_app.include_router(file_router)
+FastApiMCP(file_app, include_operations=["compare_files"]).mount_http()
+app.mount("/api/v1/filecomparison", file_app)
+
+# Entry point
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8601)
+
+
+⸻
+
+Notes / Dependencies
+
+Add or update these packages (examples with pip):
+
+pip install fastapi uvicorn "[azure-storage-blob>=12.20.0]" python-dotenv pandas
+# IMPORTANT: install the async package (same distribution, but we import from .aio)
+# If you already had azure-storage-blob, ensure it's a recent version that includes aio clients.
+
+No changes needed to .env, just ensure:
+
+AZURE_STORAGE_CONNECTION_STRING=...
+AZURE_BLOB_CONTAINER=...
+
+
+⸻
+
+If you want, I can follow up with a brief “how it flows” trace log or optional logging hooks for observability.
