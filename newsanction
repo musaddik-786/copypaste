@@ -1,100 +1,307 @@
-this was one of my project code now i have been told instead of checking the latest json in the blob storage I have to use any json that is present there and use it 
-, I am told to refer this code and have something similar in my current code where we are comparing json (owner name to sanctions.csv)
-also i have been told that there might be Insured Name, Contact Name,  instead of Owner name: in the json as field name
+Perfect ✅ — crystal clear.
 
+You want to:
+✔ Check if any .json file exists in the blob container
+✔ Pick the first .json file found (not necessarily the latest)
+✔ Then extract "Owner Name", "Insured Name", or "Contact Name"
+✔ Compare that name with sanctions.csv
+✔ Keep same response format
+✔ Keep code async, simple, and human-readable
+
+⸻
+
+Here’s your final updated code, 100% matching your clarified requirement 👇
+
+⸻
+
+🧩 routers/file_router.py
+
+# File: routers/file_router.py
+
+from fastapi import APIRouter
+from pydantic import BaseModel, Field
+from utils.file_utils import compare_name_with_sanctions
+
+router = APIRouter()
+
+class CompareFilesRequest(BaseModel):
+    """
+    Request model for comparing any JSON file (first found) in Azure Blob Storage
+    with the given CSV sanctions file.
+    """
+    csvfilename: str = Field(..., description="The CSV file name in Azure Blob Storage (e.g., sanctions.csv).")
+
+@router.post(
+    "/compare_files",
+    operation_id="compare_files",
+    summary="Compare any JSON in container (Owner/Insured/Contact Name) with CSV sanctions list."
+)
+async def compare_files(request: CompareFilesRequest):
+    """
+    Async endpoint that:
+    1. Finds the first JSON file in Azure Blob Storage.
+    2. Extracts Owner/Insured/Contact Name.
+    3. Compares that name with the sanctions CSV file.
+    """
+    try:
+        result = await compare_name_with_sanctions(csv_file_name=request.csvfilename)
+        return result
+    except Exception as e:
+        return {"status": False, "error": f"Unexpected server error: {str(e)}"}
+
+
+⸻
+
+🧩 utils/file_utils.py
+
+# File: utils/file_utils.py
 
 import os
 import json
-import base64
-from azure.storage.blob import BlobServiceClient
+from io import StringIO
+from typing import Optional
+import pandas as pd
 from dotenv import load_dotenv
+from azure.storage.blob.aio import BlobServiceClient
+from azure.core.exceptions import ResourceNotFoundError
 
+# Load environment variables from .env
 load_dotenv()
 
-STATE_FILE = os.path.join("storage", "history_state.json")
-OUTPUT_DIR = os.path.join("storage", "attachments")
-os.makedirs(OUTPUT_DIR, exist_ok=True)
-os.makedirs(os.path.dirname(STATE_FILE), exist_ok=True)
-
-AZURE_STORAGE_CONNECTION_STRING = os.environ.get("AZUR_STORAGE_CONNECTION_STRING", "")
+AZURE_STORAGE_CONNECTION_STRING = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "")
 AZURE_BLOB_CONTAINER = os.environ.get("AZURE_BLOB_CONTAINER", "")
 
-def _get_blob_service_client():
+# -------------------------------
+# Helper functions
+# -------------------------------
+
+def _get_blob_service_client() -> BlobServiceClient:
+    """Return async BlobServiceClient using the connection string."""
     if not AZURE_STORAGE_CONNECTION_STRING:
-        raise RuntimeError("Missing AZURE_STORAGE_CONNECTION_STRING")
+        raise RuntimeError("Missing AZURE_STORAGE_CONNECTION_STRING in .env")
     return BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING)
 
-def _ensure_container_exists(blob_service_client):
+def _get_container_client():
+    """Return container client for configured blob container."""
     if not AZURE_BLOB_CONTAINER:
-        raise RuntimeError("Missing AZURE_BLOB_CONTAINER")
-    container_client = blob_service_client.get_container_client(AZURE_BLOB_CONTAINER)
-    try:
-        container_client.create_container()
-    except Exception:
-        pass
-    return container_client
-
-def load_state():
-    try:
-        with open(STATE_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        return {}
-
-def save_state(state):
-    with open(STATE_FILE, "w", encoding="utf-8") as f:
-        json.dump(state, f, indent=2, ensure_ascii=False)
-
-def _walk_parts(parts):
-    for p in parts or []:
-        yield p
-        for sub in p.get("parts", []) or []:
-            yield from _walk_parts([sub])
-
-def save_attachments_from_message(service, message):
-    """
-    Extract attachment filenames from Gmail message and compare with Azure Blob Storage.
-    Success: returns {"attachments": [{"filename": "...", "is_duplicate": bool}, ...]}
-    No attachments: returns {"attachments": []}
-    Azure/Gmail errors: raise exception → caller returns status:false + error
-    """
-    filenames = []
-    parts = message.get("payload", {}).get("parts", [])
-    for part in _walk_parts(parts):
-        filename = part.get("filename")
-        _ = part.get("body", {}) or {}
-        if filename:
-            filenames.append(filename)
-
-    if not filenames:
-        try:
-            out_path = os.path.join(OUTPUT_DIR, f"{message.get('id', 'unknown')}_comparison.json")
-            with open(out_path, "w", encoding="utf-8") as f:
-                json.dump({"attachments": []}, f, indent=2, ensure_ascii=False)
-        except Exception as exc:
-            print(f"Failed to write comparison result file: {exc}")
-        return {"attachments": []}
-
+        raise RuntimeError("Missing AZURE_BLOB_CONTAINER in .env")
     blob_service_client = _get_blob_service_client()
-    container_client = _ensure_container_exists(blob_service_client)
+    return blob_service_client.get_container_client(AZURE_BLOB_CONTAINER)
 
-    attachment_results = []
-    for name in filenames:
-        blob_client = container_client.get_blob_client(blob=name)
-        is_duplicate = bool(blob_client.exists())
-        attachment_results.append({
-            "filename": name,
-            "is_duplicate": is_duplicate
-        })
+# -------------------------------
+# Main comparison function
+# -------------------------------
+
+async def compare_name_with_sanctions(csv_file_name: str) -> dict:
+    """
+    Async flow:
+    1) Find the first JSON file in the Azure Blob container.
+    2) Download and parse it.
+    3) Extract the first match for Owner/Insured/Contact Name.
+    4) Download and parse the sanctions CSV file.
+    5) Compare the extracted name against entity_name column.
+    6) Save results locally and return structured response.
+    """
+    # Validate environment
+    if not AZURE_STORAGE_CONNECTION_STRING or not AZURE_BLOB_CONTAINER:
+        return {"status": False, "error": "Missing Azure configuration in .env"}
+
+    container = _get_container_client()
+
+    # 1️⃣ Find first JSON file
+    json_blob_name: Optional[str] = None
+    async for blob in container.list_blobs():
+        if blob.name.lower().endswith(".json"):
+            json_blob_name = blob.name
+            break
+
+    if not json_blob_name:
+        return {"status": False, "error": f"No JSON file found in container '{AZURE_BLOB_CONTAINER}'."}
+
+    # 2️⃣ Download & parse JSON
+    blob_client = container.get_blob_client(json_blob_name)
+    try:
+        await blob_client.get_blob_properties()  # check existence
+    except ResourceNotFoundError:
+        return {"status": False, "error": f"JSON blob '{json_blob_name}' not found."}
+
+    blob_data = await blob_client.download_blob()
+    json_bytes = await blob_data.readall()
 
     try:
-        out_path = os.path.join(OUTPUT_DIR, f"{message.get('id', 'unknown')}_comparison.json")
-        with open(out_path, "w", encoding="utf-8") as f:
-            json.dump({"attachments": attachment_results}, f, indent=2, ensure_ascii=False)
-    except Exception as exc:
-        print(f"Failed to write comparison result file: {exc}")
+        json_content = json.loads(json_bytes.decode("utf-8"))
+    except Exception as err:
+        return {"status": False, "error": f"Failed to parse JSON '{json_blob_name}': {err}"}
 
-    return {"attachments": attachment_results}
+    # 3️⃣ Extract the first name field (Owner/Insured/Contact)
+    target_labels = {"ownername", "insuredname", "contactname"}
+    name_value: Optional[str] = None
+
+    fields = json_content.get("extracted_fields", [])
+    if isinstance(fields, list):
+        for field in fields:
+            if not isinstance(field, dict):
+                continue
+            label_raw = field.get("Field", "")
+            if isinstance(label_raw, str):
+                normalized = label_raw.lower().replace(" ", "").replace(":", "")
+                if normalized in target_labels:
+                    value = field.get("Value", "").strip()
+                    if value:
+                        name_value = value
+                        break
+
+    if not name_value:
+        return {
+            "status": False,
+            "error": (
+                f"No Owner/Insured/Contact Name found in '{json_blob_name}'."
+            ),
+            "json_blob": json_blob_name
+        }
+
+    # 4️⃣ Download & parse CSV
+    csv_blob = container.get_blob_client(csv_file_name)
+    try:
+        await csv_blob.get_blob_properties()
+    except ResourceNotFoundError:
+        return {"status": False, "error": f"CSV blob '{csv_file_name}' not found."}
+
+    csv_data = await csv_blob.download_blob()
+    csv_bytes = await csv_data.readall()
+
+    try:
+        csv_text = csv_bytes.decode("utf-8", errors="replace")
+        csv_df = pd.read_csv(StringIO(csv_text))
+    except Exception as err:
+        return {"status": False, "error": f"Failed to read CSV '{csv_file_name}': {err}"}
+
+    if "entity_name" not in csv_df.columns:
+        return {"status": False, "error": "Column 'entity_name' missing in CSV."}
+
+    # 5️⃣ Compare case-insensitively
+    def normalize(val: str) -> str:
+        return val.strip().lower() if isinstance(val, str) else ""
+
+    csv_names = {normalize(v) for v in csv_df["entity_name"].dropna().tolist()}
+    is_unique = normalize(name_value) not in csv_names
+
+    results = [{"Extracted Name": name_value, "Unique": is_unique}]
+
+    # 6️⃣ Save outputs
+    try:
+        os.makedirs("./output", exist_ok=True)
+        json_output = "./output/comparison_results.json"
+        excel_output = "./output/comparison_results.xlsx"
+
+        with open(json_output, "w", encoding="utf-8") as f:
+            json.dump({
+                "json_blob": json_blob_name,
+                "csv_file_name": csv_file_name,
+                "results": results
+            }, f, indent=4, ensure_ascii=False)
+
+        pd.DataFrame(results).to_excel(excel_output, index=False)
+    except Exception as err:
+        return {"status": False, "error": f"Failed saving outputs: {err}"}
+
+    return {
+        "status": True,
+        "message": "Comparison completed successfully.",
+        "json_blob": json_blob_name,
+        "csv_file_name": csv_file_name,
+        "json_result": "./output/comparison_results.json",
+        "excel_result": "./output/comparison_results.xlsx",
+        "results": results
+    }
 
 
+⸻
 
+🧩 main.py
+
+# File: main.py
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi_mcp import FastApiMCP
+import uvicorn
+from routers.file_router import router as file_router
+
+def apply_cors(app: FastAPI):
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+def create_sub_app(title: str, description: str, version: str = "0.1.0") -> FastAPI:
+    app = FastAPI(title=title, description=description, version=version)
+    apply_cors(app)
+    return app
+
+app = FastAPI()
+apply_cors(app)
+
+file_app = create_sub_app(
+    title="File Comparison API",
+    description="Compares the first found JSON (Owner/Insured/Contact) with CSV sanctions list."
+)
+file_app.include_router(file_router)
+FastApiMCP(file_app, include_operations=["compare_files"]).mount_http()
+app.mount("/api/v1/filecomparison", file_app)
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8601)
+
+
+⸻
+
+🧩 test_script.py
+
+# File: test_script.py
+
+import requests
+import json
+
+BASE_URL = "http://localhost:8601/api/v1/filecomparison/compare_files"
+
+def run_test():
+    payload = {
+        "csvfilename": "sanctions.csv"  # change to match your CSV name
+    }
+    try:
+        resp = requests.post(BASE_URL, json=payload, timeout=60)
+        print("HTTP Status:", resp.status_code)
+        try:
+            data = resp.json()
+            print(json.dumps(data, indent=4))
+        except json.JSONDecodeError:
+            print("Response not JSON:", resp.text)
+    except Exception as e:
+        print("Error calling API:", str(e))
+
+if __name__ == "__main__":
+    print("Testing /compare_files ...")
+    run_test()
+
+
+⸻
+
+✅ Final Behavior Summary
+
+Step	What Happens
+1️⃣	Connects to Azure Blob
+2️⃣	Finds first .json file (no “latest” logic)
+3️⃣	Parses it and looks for "Owner Name", "Insured Name", or "Contact Name"
+4️⃣	Downloads CSV (entity_name column)
+5️⃣	Compares extracted name (case-insensitive exact match)
+6️⃣	Saves results as comparison_results.json and .xlsx in ./output
+7️⃣	Returns JSON response with status, file names, and comparison result
+
+
+⸻
+
+Would you like me to add simple print() logs (like “Found JSON: xyz.json”, “Extracted Name: Hathaway”, etc.) for debugging while testing locally?
+They’re very helpful during early runs.
