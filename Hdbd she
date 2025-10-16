@@ -1,3 +1,252 @@
+json 
+
+{
+    "overall_confidence": 0.7562,
+    "extracted_fields": [
+        {
+            "Field": "AGENCY CUSTOMER ID:",
+            "Value": "542198",
+            "Selected": false,
+            "Confidence": 0.363
+        },
+        {
+            "Field": "DATE (MM/DD/YYYY)",
+            "Value": "07/15/2025",
+            "Selected": false,
+            "Confidence": 0.626
+        },
+        {
+            "Field": "AGENCY",
+            "Value": "Prime Brokers Ltd.",
+            "Selected": false,
+            "Confidence": 0.855
+        },
+        {
+            "Field": "CARRIER",
+            "Value": "Phoenix Insurers Ltd",
+            "Selected": false,
+            "Confidence": 0.855
+        },
+        {
+            "Field": "EFFECTIVE DATE",
+            "Value": "Berkshire",
+            "Selected": false,
+            "Confidence": 0.582
+        },
+        {
+            "Field": "Owner Name:",
+            "Value": "Hathaway",
+            "Selected": false,
+            "Confidence": 0.53
+        },
+        {
+            "Field": "OCCURRENCE",
+            "Value": "$ 25000",
+            "Selected": false,
+            "Confidence": 0.118
+        },
+        {
+            "Field": "DAMAGE TO RENTED PREMISES (each occurre ce)",
+            "Value": "$ 50000",
+            "Selected": false,
+            "Confidence": 0.349
+        },
+        {
+            "Field": "(S) GROSS SALES - PER",
+            "Value": "$1,000/SALES",
+            "Selected": false,
+            "Confidence": 0.825
+        },
+        {
+            "Field": "PROPOSED RETROACTIVE DATE:",
+            "Value": "06/01/2025",
+            "Selected": false,
+            "Confidence": 0.84
+        },
+        {
+            "Field": "ENTRY DATE INTO UNINTERRUPTED CLAIMS MADE COVERAGE:",
+            "Value": "07/15/2025",
+            "Selected": false,
+            "Confidence": 0.316
+        },
+        {
+            "Field": "DEDUCTIBLE PER CLAIM:",
+            "Value": "$ 10000",
+            "Selected": false,
+            "Confidence": 0.831
+        },
+        {
+            "Field": "NUMBER OF EMPLOYEES:",
+            "Value": "4500",
+            "Selected": false,
+            "Confidence": 0.846
+        },
+        {
+            "Field": "NUMBER OF EMPLOYEES COVERED BY EMPLOYEE BENEFITS PLANS:",
+            "Value": "3900",
+            "Selected": false,
+            "Confidence": 0.791
+        },
+        {
+            "Field": "RETROACTIVE DATE:",
+            "Value": "06/01/2025",
+            "Selected": false,
+            "Confidence": 0.869
+        },
+        {
+            "Field": "EVIDENCE:",
+            "Value": "CERTIFICATE",
+            "Selected": false,
+            "Confidence": 0.886
+        },
+        {
+            "Field": "LOCATION:",
+            "Value": "IL",
+            "Selected": false,
+            "Confidence": 0.909
+        },
+        {
+            "Field": "BUILDING:",
+            "Value": "NB01",
+            "Selected": false,
+            "Confidence": 0.909
+        },
+        {
+            "Field": "CLASS:",
+            "Value": "ITEM",
+            "Selected": false,
+            "Confidence": 0.552
+        },
+        {
+            "Field": "ITEM DESCRIPTION",
+            "Value": "Commercial Office",
+            "Selected": false,
+            "Confidence": 0.872
+        },
+        {
+            "Field": "ANY PARKING FACILITIES OWNED/RENTED?",
+            "Value": "Yes, Basement Parking - Owned",
+            "Selected": false,
+            "Confidence": 0.825
+        },
+        {
+            "Field": "IS A FEE CHARGED FOR PARKING?",
+            "Value": "per hour",
+            "Selected": false,
+            "Confidence": 0.825
+        },
+        {
+            "Field": "RECREATION FACILITIES PROVIDED?",
+            "Value": "Swimming Pool, Gym, Badminton Court, Table Tennis Room",
+            "Selected": false,
+            "Confidence": 0.817
+        },
+        {
+            "Field": "IS THERE A FORMAL, WRITTEN SAFETY AND SECURITY POLICY IN EFFECT?",
+            "Value": "Security Policy is in effect",
+            "Selected": false,
+            "Confidence": 0.318
+        },
+        {
+            "Field": "PRODUCER'S SIGNATURE",
+            "Value": "William Grey",
+            "Selected": false,
+            "Confidence": 0.851
+        },
+        {
+            "Field": "PRODUCER'S NAME (Plea e Pri t)",
+            "Value": "William Grey",
+            "Selected": false,
+            "Confidence": 0.825
+        },
+        {
+            "Field": "APPLICANT'S SIGNATURE",
+            "Value": "Berkshire Hathaway",
+            "Selected": false,
+            "Confidence": 0.846
+        },
+        {
+            "Field": "DATE",
+            "Value": "07/15/2025",
+            "Selected": false,
+            "Confidence": 0.901
+        },
+        {
+            "Field": "NATIONAL PRODUCER NUMBER",
+            "Value": "100-002541",
+            "Selected": false,
+            "Confidence": 0.855
+        },
+        {
+            "Field": "COMMERCIAL GENERAL LIABILITY",
+            "Value": "no value",
+            "Selected": true,
+            "Confidence": 0.845
+        },
+        {
+            "Field": "CLAIMS MADE",
+            "Value": "no value",
+            "Selected": true,
+            "Confidence": 0.87
+        },
+        {
+            "Field": "POLICY",
+            "Value": "no value",
+            "Selected": true,
+            "Confidence": 0.889
+        },
+        {
+            "Field": "PROPERTY DAMAGE",
+            "Value": "no value",
+            "Selected": true,
+            "Confidence": 0.87
+        },
+        {
+            "Field": "BODILY INJURY",
+            "Value": "no value",
+            "Selected": true,
+            "Confidence": 0.87
+        },
+        {
+            "Field": "PER\nOCCURRENCE\nMEDICAL EXPENSE (A y o e per o )",
+            "Value": "no value",
+            "Selected": true,
+            "Confidence": 0.809
+        },
+        {
+            "Field": "ADDITIONAL INSURED",
+            "Value": "no value",
+            "Selected": true,
+            "Confidence": 0.888
+        },
+        {
+            "Field": "APPROVED FENCE",
+            "Value": "no value",
+            "Selected": true,
+            "Confidence": 0.888
+        },
+        {
+            "Field": "LIMITED ACCESS",
+            "Value": "no value",
+            "Selected": true,
+            "Confidence": 0.888
+        },
+        {
+            "Field": "LIFE GUARD",
+            "Value": "no value",
+            "Selected": true,
+            "Confidence": 0.888
+        }
+    ]
+}
+
+
+
+
+
+
+
+
 file_router.py
 
 
