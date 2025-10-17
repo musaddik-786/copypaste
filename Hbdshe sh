@@ -1,306 +1,139 @@
-awesome — here’s the final, simple, async code you asked for.
-No fancy stuff, minimal helpers, flat logic, clean & human-readable.
-It:
-	•	auto-picks the latest .json in your container
-	•	extracts the first “Owner Name” (case-insensitive, colon/space-insensitive)
-	•	compares with the entity_name column of the CSV you pass
-	•	saves JSON + XLSX outputs to ./output/
-	•	returns the same structured response (status, results, paths, etc.)
-	•	keeps async only where needed (Azure Blob I/O). Pandas & file writes are plain sync (simple & readable)
-
-⸻
-
-routers/file_router.py
-
-# File: routers/file_router.py
-
-from fastapi import APIRouter
-from pydantic import BaseModel, Field
-from utils.file_utils import compare_owner_with_sanctions
-
-router = APIRouter()
-
-class CompareFilesRequest(BaseModel):
+async def compare_name_with_sanctions(json_file_url: str) -> dict:
     """
-    Request model to compare latest JSON owner name with a CSV sanctions file from Azure Blob Storage.
+    Flow:
+    1) Parse the given blob URL -> (container, blob_name)
+    2) Download and parse the JSON file
+    3) Extract FIRST matching name among:
+       Owner Name / Insured Name / Contact Name / Named Insured(s)
+       (case-insensitive, ignores spaces and colons)
+    4) Read local CSV from 'input/sanctions.csv'
+    5) Compare extracted name against CSV entity_name column
+    6) Save results to ./output and return response
     """
-    csvfilename: str = Field(..., description="CSV file name in Azure Blob Storage (e.g., sanctions.csv).")
-
-@router.post(
-    "/compare_files",
-    operation_id="compare_files",
-    summary="Compare latest JSON (Owner Name) with CSV sanctions file."
-)
-async def compare_files(request: CompareFilesRequest):
-    """
-    Async endpoint to compare the latest JSON file's first Owner Name with the CSV sanctions list.
-    """
+    # Validate environment setup
     try:
-        result = await compare_owner_with_sanctions(csv_file_name=request.csvfilename)
-        return result
+        _require_env()
     except Exception as e:
-        return {"status": False, "error": f"Unexpected server error: {str(e)}"}
+        return {"status": False, "error": str(e)}
 
-
-⸻
-
-utils/file_utils.py
-
-# File: utils/file_utils.py
-
-import os
-import json
-from io import StringIO
-from typing import Optional, List, Tuple
-
-import pandas as pd
-from dotenv import load_dotenv
-from azure.storage.blob.aio import BlobServiceClient
-from azure.core.exceptions import ResourceNotFoundError
-
-# Load env
-load_dotenv()
-
-AZURE_STORAGE_CONNECTION_STRING = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "")
-AZURE_BLOB_CONTAINER = os.environ.get("AZURE_BLOB_CONTAINER", "")
-
-async def compare_owner_with_sanctions(csv_file_name: str) -> dict:
-    """
-    Simple, flat, async logic:
-    1) Find latest .json blob in the container by last_modified.
-    2) Download & parse it to dict.
-    3) Extract FIRST 'Owner Name' (case-insensitive, ignore spaces/colons).
-    4) Download CSV; expects 'entity_name' column.
-    5) Compare owner name vs entity_name list (case-insensitive).
-    6) Save outputs to ./output and return structured result.
-    """
-    # --- Basic env validation
-    if not AZURE_STORAGE_CONNECTION_STRING:
-        return {"status": False, "error": "Missing AZURE_STORAGE_CONNECTION_STRING in .env"}
-    if not AZURE_BLOB_CONTAINER:
-        return {"status": False, "error": "Missing AZURE_BLOB_CONTAINER in .env"}
-
-    # --- Clients
-    blob_service = BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING)
-    container = blob_service.get_container_client(AZURE_BLOB_CONTAINER)
-
-    # --- 1) Find latest .json
-    latest_json_name: Optional[str] = None
-    latest_last_modified = None
-    async for blob in container.list_blobs():
-        name = getattr(blob, "name", "")
-        if name.lower().endswith(".json"):
-            lm = getattr(blob, "last_modified", None)
-            if lm is not None:
-                if latest_last_modified is None or lm > latest_last_modified:
-                    latest_last_modified = lm
-                    latest_json_name = name
-
-    if not latest_json_name:
-        return {"status": False, "error": f"No JSON files found in container '{AZURE_BLOB_CONTAINER}'."}
-
-    # --- 2) Download & parse JSON
-    json_blob_client = blob_service.get_blob_client(container=AZURE_BLOB_CONTAINER, blob=latest_json_name)
+    # Parse JSON file URL
     try:
-        await json_blob_client.get_blob_properties()  # simple existence check
-    except ResourceNotFoundError:
-        return {"status": False, "error": f"Latest JSON blob '{latest_json_name}' not found."}
+        container_name, blob_name = _parse_blob_url(json_file_url)
+    except Exception as e:
+        return {"status": False, "error": f"Invalid jsonfilepath: {e}"}
 
-    json_stream = await json_blob_client.download_blob()
-    json_bytes = await json_stream.readall()
+    # Download JSON file from Azure Blob
     try:
-        data = json.loads(json_bytes.decode("utf-8"))
-    except Exception as parse_err:
-        return {"status": False, "error": f"Unable to parse JSON '{latest_json_name}': {parse_err}"}
+        async with BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING) as blob_service:
+            container_client = blob_service.get_container_client(container_name)
+            blob_client = container_client.get_blob_client(blob_name)
 
-    # --- 3) Extract FIRST Owner Name
-    owner_name: Optional[str] = None
-    fields = data.get("extracted_fields")
-    if isinstance(fields, list):
-        for item in fields:
-            if not isinstance(item, dict):
-                continue
-            label_raw = item.get("Field", "")
-            if isinstance(label_raw, str):
-                # normalize: lowercase + remove spaces/colons
-                label = label_raw.lower().replace(" ", "").replace(":", "")
-                if label == "ownername":
-                    value = item.get("Value")
-                    if isinstance(value, str):
-                        cleaned = value.strip()
-                        if cleaned:
-                            owner_name = cleaned
-                            break
+            try:
+                await blob_client.get_blob_properties()
+            except ResourceNotFoundError:
+                return {
+                    "status": False,
+                    "error": f"JSON blob not found: container='{container_name}', blob='{blob_name}'"
+                }
 
-    if not owner_name:
+            stream = await blob_client.download_blob()
+            raw_bytes = await stream.readall()
+    except Exception as e:
+        return {"status": False, "error": f"Error connecting to Azure Blob Storage: {e}"}
+
+    # Parse JSON content
+    try:
+        data = json.loads(raw_bytes.decode("utf-8"))
+    except Exception as e:
         return {
             "status": False,
-            "error": (
-                f"No 'Owner Name' found in '{latest_json_name}'. "
-                f"Ensure 'extracted_fields' contains an item where Field is 'Owner Name'."
-            ),
-            "latest_json_blob": latest_json_name
+            "error": f"Failed to parse JSON: {e}",
+            "json_blob_url": json_file_url
         }
 
-    # --- 4) Download CSV
-    csv_blob_client = blob_service.get_blob_client(container=AZURE_BLOB_CONTAINER, blob=csv_file_name)
+    # Extract Owner/Insured/Contact Name
+    target_labels = {
+        "ownername",
+        "insuredname",
+        "contactname",
+        "namedinsured(s)"  # ✅ Added support
+    }
+
+    extracted_name = None
+    fields = data.get("extracted_fields", [])
+
+    if isinstance(fields, list):
+        for item in fields:
+            if isinstance(item, dict):
+                label_raw = item.get("Field", "")
+                if isinstance(label_raw, str):
+                    normalized_label = label_raw.lower().replace(" ", "").replace(":", "")
+                    if normalized_label in target_labels:
+                        value = item.get("Value", "").strip()
+                        if value:
+                            extracted_name = value
+                            break
+
+    if not extracted_name:
+        return {
+            "status": False,
+            "error": "No matching name field found in JSON. "
+                     "Expected one of: Owner Name / Insured Name / Contact Name / Named Insured(s).",
+            "json_blob_url": json_file_url
+        }
+
+    # Read local CSV
+    if not os.path.exists(LOCAL_CSV_PATH):
+        return {"status": False, "error": f"Local CSV not found at '{LOCAL_CSV_PATH}'"}
+
     try:
-        await csv_blob_client.get_blob_properties()
-    except ResourceNotFoundError:
-        return {"status": False, "error": f"CSV blob '{csv_file_name}' not found in container '{AZURE_BLOB_CONTAINER}'."}
+        csv_df = pd.read_csv(LOCAL_CSV_PATH)
+    except Exception as e:
+        return {"status": False, "error": f"Failed to read CSV '{LOCAL_CSV_PATH}': {e}"}
 
-    csv_stream = await csv_blob_client.download_blob()
-    csv_bytes = await csv_stream.readall()
+    if "entity_name" not in csv_df.columns:
+        return {"status": False, "error": f"CSV must contain 'entity_name' column"}
 
-    # simple pandas read (no seek, no threading)
-    try:
-        csv_text = csv_bytes.decode("utf-8", errors="replace")
-        csv_df = pd.read_csv(StringIO(csv_text))
-    except Exception as csv_err:
-        return {"status": False, "error": f"Failed to read CSV '{csv_file_name}': {csv_err}"}
+    # Compare extracted name with sanctions list
+    def normalize(value: str) -> str:
+        return value.strip().lower() if isinstance(value, str) else ""
 
-    entity_col = "entity_name"
-    if entity_col not in csv_df.columns:
-        return {"status": False, "error": f"Column '{entity_col}' missing in CSV file '{csv_file_name}'."}
+    entity_set = {normalize(x) for x in csv_df["entity_name"].dropna()}
+    is_unique = normalize(extracted_name) not in entity_set
 
-    # --- 5) Compare (case-insensitive)
-    def norm(s: str) -> str:
-        return s.strip().lower() if isinstance(s, str) else ""
+    results = [{"Extracted Name": extracted_name, "Unique": is_unique}]
 
-    entities_norm = {norm(x) for x in csv_df[entity_col].dropna().tolist() if isinstance(x, str) and x.strip()}
-    is_unique = norm(owner_name) not in entities_norm
-    results = [{"Owner Name": owner_name, "Unique": is_unique}]
-
-    # --- 6) Save outputs locally
+    # Save outputs
     try:
         os.makedirs("./output", exist_ok=True)
-        json_out = "./output/comparison_results.json"
-        xlsx_out = "./output/comparison_results.xlsx"
+        json_output = "./output/comparison_results.json"
+        excel_output = "./output/comparison_results.xlsx"
 
-        with open(json_out, "w", encoding="utf-8") as f:
+        with open(json_output, "w", encoding="utf-8") as f:
             json.dump(
                 {
-                    "latest_json_blob": latest_json_name,
-                    "csv_file_name": csv_file_name,
+                    "json_blob_url": json_file_url,
+                    "container": container_name,
+                    "blob_name": blob_name,
+                    "csv_path": LOCAL_CSV_PATH,
                     "results": results
                 },
                 f,
-                indent=4,
-                ensure_ascii=False
+                indent=4
             )
 
-        pd.DataFrame(results).to_excel(xlsx_out, index=False)
-    except Exception as write_err:
-        return {"status": False, "error": f"Failed saving outputs: {write_err}"}
+        pd.DataFrame(results).to_excel(excel_output, index=False)
+    except Exception as e:
+        return {"status": False, "error": f"Failed saving results: {e}"}
 
-    # --- 7) Return structured response
     return {
         "status": True,
         "message": "Comparison completed successfully.",
-        "latest_json_blob": latest_json_name,
-        "csv_file_name": csv_file_name,
-        "json_result": "./output/comparison_results.json",
-        "excel_result": "./output/comparison_results.xlsx",
+        "json_blob_url": json_file_url,
+        "container": container_name,
+        "blob_name": blob_name,
+        "csv_path": LOCAL_CSV_PATH,
+        "json_result": json_output,
+        "excel_result": excel_output,
         "results": results
     }
-
-
-⸻
-
-main.py
-
-# File: main.py
-
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi_mcp import FastApiMCP
-import uvicorn
-
-from routers.file_router import router as file_router
-
-def apply_cors(app: FastAPI):
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-
-def create_sub_app(title: str, description: str, version: str = "0.1.0") -> FastAPI:
-    app = FastAPI(title=title, description=description, version=version)
-    apply_cors(app)
-    return app
-
-app = FastAPI()
-apply_cors(app)
-
-file_app = create_sub_app(
-    title="File Comparison API",
-    description="API to compare latest JSON Owner Name with CSV sanctions list from Azure Blob."
-)
-file_app.include_router(file_router)
-FastApiMCP(file_app, include_operations=["compare_files"]).mount_http()
-app.mount("/api/v1/filecomparison", file_app)
-
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8601)
-
-
-⸻
-
-test_script.py
-
-# File: test_script.py
-
-import requests
-import json
-
-BASE_URL = "http://localhost:8601/api/v1/filecomparison/compare_files"
-
-def run_test():
-    payload = {
-        "csvfilename": "sanctions.csv"   # change if your CSV has a different name
-    }
-    try:
-        resp = requests.post(BASE_URL, json=payload, timeout=60)
-        print("HTTP Status:", resp.status_code)
-        try:
-            data = resp.json()
-            print(json.dumps(data, indent=4))
-        except json.JSONDecodeError:
-            print("Response not JSON:", resp.text)
-    except Exception as e:
-        print("Error calling API:", str(e))
-
-if __name__ == "__main__":
-    print("Testing /compare_files ...")
-    run_test()
-
-
-⸻
-
-Quick setup
-
-pip install fastapi uvicorn python-dotenv pandas requests
-pip install azure-storage-blob  # includes aio clients
-
-.env:
-
-AZURE_STORAGE_CONNECTION_STRING=your-conn-string
-AZURE_BLOB_CONTAINER=your-container
-
-Then:
-
-python main.py
-# in another terminal
-python test_script.py
-
-
-⸻
-
-If you want later, I can add:
-	•	filtering by blob prefix (e.g., only files under forms/)
-	•	support for multiple owner names (collect all, not just first)
-	•	simple logging (print-style) without “fancy” logging frameworks
-
-But for now, this is the clean, simple async solution you asked for ✅
