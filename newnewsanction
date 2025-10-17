@@ -1,0 +1,343 @@
+Awesome — here’s the final, clean, async implementation that matches your new requirements exactly:
+	•	The router receives jsonfilepath (full Azure Blob URL) from the Data Extraction Agent.
+	•	We parse the URL to get the container and blob name, then download that exact JSON using your existing AZURE_STORAGE_CONNECTION_STRING.
+	•	We read input/sanctions.csv from local disk (not blob).
+	•	We extract the first match among Owner Name / Insured Name / Contact Name (case-insensitive; ignores spaces/colons).
+	•	We compare against the CSV’s entity_name (case-insensitive exact match).
+	•	We save outputs to ./output/ and return the same structured response.
+	•	No logs, no fancy stuff. Simple, readable, beginner-friendly.
+
+⸻
+
+routers/file_router.py
+
+# File: routers/file_router.py
+
+from fastapi import APIRouter
+from pydantic import BaseModel, Field
+from utils.file_utils import compare_name_with_sanctions
+
+router = APIRouter()
+
+class CompareRequest(BaseModel):
+    """
+    This endpoint is called by the Data Extraction Agent.
+    It passes the FULL Azure Blob URL of the extracted JSON file as input (jsonfilepath).
+    Example:
+      {
+        "jsonfilepath": "https://<account>.blob.core.windows.net/<container>/<path>/file.json"
+      }
+    The service will:
+    - Download that exact JSON from Azure Blob Storage (using AZURE_STORAGE_CONNECTION_STRING),
+    - Extract the name from Owner/Insured/Contact fields,
+    - Compare it with the local CSV 'input/sanctions.csv',
+    - Return the comparison result.
+    """
+    jsonfilepath: str = Field(..., description="Full Azure Blob URL to the JSON produced by the Data Extraction Agent.")
+
+@router.post(
+    "/compare_files",
+    operation_id="compare_files",
+    summary="Compare JSON (Owner/Insured/Contact Name) from a given blob URL with local sanctions CSV."
+)
+async def compare_files(request: CompareRequest):
+    """
+    Receives the JSON blob URL from the Data Extraction Agent and compares the extracted name
+    against the local 'input/sanctions.csv' sanctions list.
+    """
+    try:
+        result = await compare_name_with_sanctions(json_file_url=request.jsonfilepath)
+        return result
+    except Exception as e:
+        return {"status": False, "error": f"Unexpected server error: {str(e)}"}
+
+
+⸻
+
+utils/file_utils.py
+
+# File: utils/file_utils.py
+
+import os
+import json
+from typing import Optional
+from urllib.parse import urlparse, unquote
+
+import pandas as pd
+from dotenv import load_dotenv
+from azure.storage.blob.aio import BlobServiceClient
+from azure.core.exceptions import ResourceNotFoundError
+
+# Load environment variables
+load_dotenv()
+
+AZURE_STORAGE_CONNECTION_STRING = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "")
+
+# Local CSV path (as per new requirement)
+LOCAL_CSV_PATH = os.path.join("input", "sanctions.csv")
+
+def _require_env() -> None:
+    if not AZURE_STORAGE_CONNECTION_STRING:
+        raise RuntimeError("Missing AZURE_STORAGE_CONNECTION_STRING in .env")
+
+def _parse_blob_url(url: str) -> tuple[str, str]:
+    """
+    Parse an Azure Blob URL and return (container_name, blob_path).
+    Example URL:
+      https://account.blob.core.windows.net/output-results/folder/name.json
+    Returns:
+      ("output-results", "folder/name.json")
+    """
+    parsed = urlparse(url)
+    if not parsed.scheme.startswith("http"):
+        raise ValueError("jsonfilepath must be a valid http(s) URL to Azure Blob Storage.")
+    # parsed.path -> "/output-results/folder/name.json"
+    path = parsed.path.lstrip("/")
+    if "/" not in path:
+        # container only (no blob) is invalid for our case
+        raise ValueError("jsonfilepath must include both container and blob path.")
+    parts = path.split("/", 1)
+    container = parts[0]
+    blob_path = parts[1]
+    # Decode percent-encoded sequences if any
+    return unquote(container), unquote(blob_path)
+
+async def compare_name_with_sanctions(json_file_url: str) -> dict:
+    """
+    Flow:
+      1) Parse the given blob URL -> (container, blob_name).
+      2) Download and parse the JSON file.
+      3) Extract FIRST matching name among: Owner Name / Insured Name / Contact Name
+         (case-insensitive, ignores spaces and colons).
+      4) Read local CSV from 'input/sanctions.csv'.
+      5) Compare (case-insensitive exact match) with CSV 'entity_name' column.
+      6) Save outputs to ./output and return structured response.
+    """
+    try:
+        _require_env()
+    except Exception as e:
+        return {"status": False, "error": str(e)}
+
+    # 1) Parse blob URL
+    try:
+        container_name, blob_name = _parse_blob_url(json_file_url)
+    except Exception as e:
+        return {"status": False, "error": f"Invalid jsonfilepath: {e}"}
+
+    # 2) Download JSON from Azure Blob
+    blob_service = BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING)
+    container_client = blob_service.get_container_client(container_name)
+    blob_client = container_client.get_blob_client(blob_name)
+
+    try:
+        await blob_client.get_blob_properties()  # existence check
+    except ResourceNotFoundError:
+        return {"status": False, "error": f"JSON blob not found: container='{container_name}', blob='{blob_name}'"}
+
+    stream = await blob_client.download_blob()
+    raw_bytes = await stream.readall()
+
+    try:
+        data = json.loads(raw_bytes.decode("utf-8"))
+    except Exception as e:
+        return {"status": False, "error": f"Failed to parse JSON from blob '{blob_name}': {e}"}
+
+    # 3) Extract FIRST matching name (Owner/Insured/Contact)
+    target_labels = {"ownername", "insuredname", "contactname"}
+    extracted_name: Optional[str] = None
+
+    fields = data.get("extracted_fields")
+    if isinstance(fields, list):
+        for item in fields:
+            if not isinstance(item, dict):
+                continue
+            label_raw = item.get("Field", "")
+            if isinstance(label_raw, str):
+                normalized_label = label_raw.lower().replace(" ", "").replace(":", "")
+                if normalized_label in target_labels:
+                    val = item.get("Value", "")
+                    if isinstance(val, str):
+                        name_clean = val.strip()
+                        if name_clean:
+                            extracted_name = name_clean
+                            break
+
+    if not extracted_name:
+        return {
+            "status": False,
+            "error": (
+                "No matching name field found in JSON. Expected one of: "
+                "Owner Name / Insured Name / Contact Name."
+            ),
+            "json_blob_url": json_file_url,
+            "container": container_name,
+            "blob_name": blob_name
+        }
+
+    # 4) Read local CSV
+    if not os.path.exists(LOCAL_CSV_PATH):
+        return {"status": False, "error": f"Local CSV not found at '{LOCAL_CSV_PATH}'"}
+
+    try:
+        csv_df = pd.read_csv(LOCAL_CSV_PATH)
+    except Exception as e:
+        return {"status": False, "error": f"Failed to read local CSV '{LOCAL_CSV_PATH}': {e}"}
+
+    entity_col = "entity_name"
+    if entity_col not in csv_df.columns:
+        return {"status": False, "error": f"Column '{entity_col}' missing in CSV '{LOCAL_CSV_PATH}'"}
+
+    # 5) Compare (case-insensitive exact match)
+    def norm(s: str) -> str:
+        return s.strip().lower() if isinstance(s, str) else ""
+
+    entity_values = [v for v in csv_df[entity_col].dropna().tolist() if isinstance(v, str) and v.strip()]
+    entity_set = {norm(v) for v in entity_values}
+    is_unique = norm(extracted_name) not in entity_set
+
+    results = [{"Extracted Name": extracted_name, "Unique": is_unique}]
+
+    # 6) Save outputs
+    try:
+        os.makedirs("./output", exist_ok=True)
+        json_out = "./output/comparison_results.json"
+        xlsx_out = "./output/comparison_results.xlsx"
+
+        with open(json_out, "w", encoding="utf-8") as f:
+            json.dump({
+                "json_blob_url": json_file_url,
+                "container": container_name,
+                "blob_name": blob_name,
+                "csv_path": LOCAL_CSV_PATH,
+                "results": results
+            }, f, indent=4, ensure_ascii=False)
+
+        pd.DataFrame(results).to_excel(xlsx_out, index=False)
+    except Exception as e:
+        return {"status": False, "error": f"Failed saving outputs: {e}"}
+
+    return {
+        "status": True,
+        "message": "Comparison completed successfully.",
+        "json_blob_url": json_file_url,
+        "container": container_name,
+        "blob_name": blob_name,
+        "csv_path": LOCAL_CSV_PATH,
+        "json_result": "./output/comparison_results.json",
+        "excel_result": "./output/comparison_results.xlsx",
+        "results": results
+    }
+
+
+⸻
+
+main.py
+
+# File: main.py
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi_mcp import FastApiMCP
+import uvicorn
+
+from routers.file_router import router as file_router
+
+def apply_cors(app: FastAPI):
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+def create_sub_app(title: str, description: str, version: str = "0.1.0") -> FastAPI:
+    app = FastAPI(title=title, description=description, version=version)
+    apply_cors(app)
+    return app
+
+app = FastAPI()
+apply_cors(app)
+
+file_app = create_sub_app(
+    title="File Comparison API",
+    description="Receives JSON blob URL from Data Extraction Agent, compares extracted name with local sanctions CSV."
+)
+file_app.include_router(file_router)
+FastApiMCP(file_app, include_operations=["compare_files"]).mount_http()
+app.mount("/api/v1/filecomparison", file_app)
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8601)
+
+
+⸻
+
+test_script.py
+
+# File: test_script.py
+
+import requests
+import json
+
+BASE_URL = "http://localhost:8601/api/v1/filecomparison/compare_files"
+
+def run_test():
+    payload = {
+        # Replace with a real blob URL in your storage account & container
+        "jsonfilepath": "https://agenticail.blob.core.windows.net/output-results/20251016_195158_00ef7b4eff98472d9d8bc2a00019937d_extracted_20251016_195158.json"
+    }
+    try:
+        resp = requests.post(BASE_URL, json=payload, timeout=60)
+        print("HTTP Status:", resp.status_code)
+        try:
+            data = resp.json()
+            print(json.dumps(data, indent=4))
+        except json.JSONDecodeError:
+            print("Response not JSON:", resp.text)
+    except Exception as e:
+        print("Error calling API:", str(e))
+
+if __name__ == "__main__":
+    print("Testing /compare_files ...")
+    run_test()
+
+
+⸻
+
+Folder layout you should have
+
+YourProject/
+├─ main.py
+├─ routers/
+│  └─ file_router.py
+├─ utils/
+│  └─ file_utils.py
+├─ input/
+│  └─ sanctions.csv
+├─ output/
+│  └─ (created automatically)
+├─ test_script.py
+├─ .env
+
+.env:
+
+AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=...<your full connection string>...
+
+
+⸻
+
+How to run
+
+# 1) Install
+pip install fastapi uvicorn python-dotenv pandas requests azure-storage-blob
+
+# 2) Ensure input CSV exists
+#    Put your sanctions.csv at: ./input/sanctions.csv
+
+# 3) Start API
+python main.py
+
+# 4) In another terminal, run test
+python test_script.py
+
+If you want partial matching (e.g., “Hathaway” should match “Hathaway Holdings”), I can update the compare line to do substring or fuzzy match.
