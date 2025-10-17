@@ -1,3 +1,155 @@
+import asyncio
+import json
+from typing import Dict, Any
+from gmail_watch import get_gmail_service
+from attachment_handler import save_attachments_from_message
+
+# ✅ Polling flag
+_is_polling = True
+
+# ✅ In-memory history to avoid printing the same email again
+_processed_email_ids = set()
+
+
+def _extract_attachment_comparison(service, msg) -> Dict[str, Any]:
+    """
+    Extracts attachments and compares with Azure.
+    """
+    comparison = save_attachments_from_message(service, msg)
+    return {
+        "message_id": msg.get("id", ""),
+        "attachments": comparison.get("attachments", [])
+    }
+
+
+def get_latest_email_attachment_check() -> Dict[str, Any]:
+    """
+    ✅ Called by API endpoint
+    ✅ This should ALWAYS check and return the latest email (even if old)
+    ✅ Never skip here
+    """
+    try:
+        service = get_gmail_service()
+        # ✅ Fetch latest 1 email, Inbox only
+        results = service.users().messages().list(
+            userId="me",
+            q="in:inbox",
+            maxResults=1
+        ).execute()
+
+        messages = results.get("messages", [])
+        if not messages:
+            return {"status": True, "attachments": []}
+
+        msg = service.users().messages().get(
+            userId="me",
+            id=messages[0]["id"],
+            format="full"
+        ).execute()
+
+        comparison = _extract_attachment_comparison(service, msg)
+        return {"status": True, "attachments": comparison.get("attachments", [])}
+
+    except Exception as e:
+        return {"status": False, "error": str(e)}
+
+
+async def _check_for_new_emails():
+    """
+    ✅ Polling logic:
+       - Check latest 1 email every cycle
+       - Print ONLY if it is a NEW email (not printed before)
+       - Do NOT skip first email
+       - History stored only in memory
+    """
+    try:
+        service = get_gmail_service()
+
+        # ✅ Always fetch latest email from Inbox
+        results = service.users().messages().list(
+            userId="me",
+            q="in:inbox",
+            maxResults=1
+        ).execute()
+
+        messages = results.get("messages", [])
+        for message in messages:
+            email_id = message["id"]
+
+            # ✅ If already processed, skip printing
+            if email_id in _processed_email_ids:
+                return
+
+            # ✅ Fetch full email only if new
+            msg = service.users().messages().get(
+                userId="me",
+                id=email_id,
+                format="full"
+            ).execute()
+
+            # ✅ Run attachment comparison
+            comparison = _extract_attachment_comparison(service, msg)
+            result = {
+                "status": True,
+                "attachments": comparison.get("attachments", [])
+            }
+
+            # ✅ Print result ONLY once per email
+            print(json.dumps(result, indent=2))
+
+            # ✅ Mark email as processed in memory
+            _processed_email_ids.add(email_id)
+
+    except Exception as e:
+        print(f"Error checking for new emails: {e}")
+
+
+async def _email_polling_loop():
+    """
+    ✅ Background polling loop
+    """
+    global _is_polling
+    print(" Email polling loop started.")
+    while _is_polling:
+        await _check_for_new_emails()
+        await asyncio.sleep(10)  # ✅ Poll every 10 seconds
+    print(" Email polling loop stopped.")
+
+
+async def start_email_polling():
+    """
+    ✅ Triggered on app startup
+    ✅ Should check latest email immediately (same as before)
+    """
+    global _is_polling
+    _is_polling = True
+
+    # ✅ Keep this line exactly as you requested
+    print(" Latest Attachment Comparison:")
+
+    # ✅ Immediately check latest email once on startup
+    await _check_for_new_emails()
+
+    # ✅ Start polling loop
+    asyncio.create_task(_email_polling_loop())
+
+
+async def stop_email_polling():
+    """
+    ✅ Stops background polling
+    """
+    global _is_polling
+    _is_polling = False
+    print("Shutting down email monitoring...")
+
+
+
+
+
+
+
+
+
 this is my output
 
 
