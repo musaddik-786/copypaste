@@ -1,331 +1,279 @@
-so i have just changes the folder structure and few naming conventions here please verify yes?
-so here 
-main.py is running good
-(venv) PS C:\Users\2000137378\Desktop\Licensing & Sanction Checker MCP> python main.py
-INFO:     Started server process [5632]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     Uvicorn running on http://0.0.0.0:8601 (Press CTRL+C to quit)
-INFO:     127.0.0.1:52174 - "POST /api/v1/eligibility_agent/Licensing_%26_Sanction_Checker_MCP HTTP/1.1" 200 OK
-
-
-testscripts.py is running good
-(venv) PS C:\Users\2000137378\Desktop\Licensing & Sanction Checker MCP> python testscripts.py      Testing /compare_files ...       HTTP Status: 200
-{
-    "message": "Comparison completed successfully.",
-    "results": [        {
-            "Extracted Name": "Berkshire Hathaway",
-            "Unique": true               }
-    ]
-}
-(venv) PS C:\Users\2000137378\Desktop\Licensing & Sanction Checker MCP>
-
-
-but testclinet.py is not running good
-
-PS C:\Users\2000137378\Desktop\Licensing & Sanction Checker MCP> Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-PS C:\Users\2000137378\Desktop\Licensing & Sanction Checker MCP> venv\Scripts\activate
-(venv) PS C:\Users\2000137378\Desktop\Licensing & Sanction Checker MCP> python test_client.py
-  + Exception Group Traceback (most recent call last):
-  |   File "C:\Users\2000137378\Desktop\Licensing & Sanction Checker MCP\test_client.py", line 24, in <module>
-  |     asyncio.run(main())
-  |   File "C:\Program Files\Python311\Lib\asyncio\runners.py", line 190, in run
-  |     return runner.run(main)
-  |            ^^^^^^^^^^^^^^^^
-  |   File "C:\Program Files\Python311\Lib\asyncio\runners.py", line 118, in run
-  |     return self._loop.run_until_complete(task)
-  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  |   File "C:\Program Files\Python311\Lib\asyncio\base_events.py", line 653, in run_until_complete
-  |     return future.result()
-  |            ^^^^^^^^^^^^^^^
-  |   File "C:\Users\2000137378\Desktop\Licensing & Sanction Checker MCP\test_client.py", line 20, in main
-  |     tools = await get_tool_list(config_mcp_server=config_mcp_server)
-  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  |   File "C:\Users\2000137378\Desktop\Licensing & Sanction Checker MCP\test_client.py", line 10, in get_tool_list
-  |     tools_list = await client.get_tools()
-  |                  ^^^^^^^^^^^^^^^^^^^^^^^^
-  |   File "C:\Users\2000137378\Desktop\Licensing & Sanction Checker MCP\venv\Lib\site-packages\langchain_mcp_adapters\client.py", line 157, in get_tools
-  |     tools_list = await asyncio.gather(*load_mcp_tool_tasks)
-  |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  |   File "C:\Users\2000137378\Desktop\Licensing & Sanction Checker MCP\venv\Lib\site-packages\langchain_mcp_adapters\tools.py", line 189, in load_mcp_tools
-  |     async with create_session(connection) as tool_session:
-  |   File "C:\Program Files\Python311\Lib\contextlib.py", line 222, in __aexit__
-  |     await self.gen.athrow(typ, value, traceback)
-  |   File "C:\Users\2000137378\Desktop\Licensing & Sanction Checker MCP\venv\Lib\site-packages\langchain_mcp_adapters\sessions.py", line 394, in create_session
-  |     async with _create_streamable_http_session(**params) as session:
-  |   File "C:\Program Files\Python311\Lib\contextlib.py", line 222, in __aexit__
-  |     await self.gen.athrow(typ, value, traceback)
-  |   File "C:\Users\2000137378\Desktop\Licensing & Sanction Checker MCP\venv\Lib\site-packages\langchain_mcp_adapters\sessions.py", line 308, in _create_streamable_http_session
-  |     async with (
-  |   File "C:\Program Files\Python311\Lib\contextlib.py", line 222, in __aexit__
-  |     await self.gen.athrow(typ, value, traceback)
-  |   File "C:\Users\2000137378\Desktop\Licensing & Sanction Checker MCP\venv\Lib\site-packages\mcp\client\streamable_http.py", line 478, in streamablehttp_client
-  |     async with anyio.create_task_group() as tg:
-  |   File "C:\Users\2000137378\Desktop\Licensing & Sanction Checker MCP\venv\Lib\site-packages\anyio\_backends\_asyncio.py", line 781, in __aexit__
-  |     raise BaseExceptionGroup(
-  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
-  +-+---------------- 1 ----------------
-    | Traceback (most recent call last):
-    |   File "C:\Users\2000137378\Desktop\Licensing & Sanction Checker MCP\venv\Lib\site-packages\httpx\_transports\default.py", line 101, in map_httpcore_exceptions
-    |     yield
-    |   File "C:\Users\2000137378\Desktop\Licensing & Sanction Checker MCP\venv\Lib\site-packages\httpx\_transports\default.py", line 394, in handle_async_request
-    |     resp = await self._pool.handle_async_request(req)
-    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |   File "C:\Users\2000137378\Desktop\Licensing & Sanction Checker MCP\venv\Lib\site-packages\httpcore\_async\connection_pool.py", line 256, in handle_async_request
-    |     raise exc from None
-    |   File "C:\Users\2000137378\Desktop\Licensing & Sanction Checker MCP\venv\Lib\site-packages\httpcore\_async\connection_pool.py", line 236, in handle_async_request
-    |     response = await connection.handle_async_request(
-    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |   File "C:\Users\2000137378\Desktop\Licensing & Sanction Checker MCP\venv\Lib\site-packages\httpcore\_async\connection.py", line 101, in handle_async_request
-    |     raise exc
-    |   File "C:\Users\2000137378\Desktop\Licensing & Sanction Checker MCP\venv\Lib\site-packages\httpcore\_async\connection.py", line 78, in handle_async_request
-    |     stream = await self._connect(request)
-    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |   File "C:\Users\2000137378\Desktop\Licensing & Sanction Checker MCP\venv\Lib\site-packages\httpcore\_async\connection.py", line 124, in _connect
-    |     stream = await self._network_backend.connect_tcp(**kwargs)
-    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |   File "C:\Users\2000137378\Desktop\Licensing & Sanction Checker MCP\venv\Lib\site-packages\httpcore\_backends\auto.py", line 31, in connect_tcp
-    |     return await self._backend.connect_tcp(
-    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |   File "C:\Users\2000137378\Desktop\Licensing & Sanction Checker MCP\venv\Lib\site-packages\httpcore\_backends\anyio.py", line 113, in connect_tcp
-    |     with map_exceptions(exc_map):
-    |   File "C:\Program Files\Python311\Lib\contextlib.py", line 155, in __exit__
-    |     self.gen.throw(typ, value, traceback)
-    |   File "C:\Users\2000137378\Desktop\Licensing & Sanction Checker MCP\venv\Lib\site-packages\httpcore\_exceptions.py", line 14, in map_exceptions
-    |     raise to_exc(exc) from exc
-    | httpcore.ConnectError: All connection attempts failed
-    |
-    | The above exception was the direct cause of the following exception:
-    |
-    | Traceback (most recent call last):
-    |   File "C:\Users\2000137378\Desktop\Licensing & Sanction Checker MCP\venv\Lib\site-packages\mcp\client\streamable_http.py", line 409, in handle_request_async
-    |     await self._handle_post_request(ctx)
-    |   File "C:\Users\2000137378\Desktop\Licensing & Sanction Checker MCP\venv\Lib\site-packages\mcp\client\streamable_http.py", line 260, in _handle_post_request
-    |     async with ctx.client.stream(
-ng_auth
-    |     response = await self._send_handling_redirects(
-    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |   File "C:\Users\2000137378\Desktop\Licensing & Sanction Checker MCP\venv\Lib\site-packages\httpx\_client.py", line 1694, in _send_handling_redirects
-    |     response = await self._send_single_request(request)
-    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |   File "C:\Users\2000137378\Desktop\Licensing & Sanction Checker MCP\venv\Lib\site-packages\httpx\_client.py", line 1730, in _send_single_request
-    |     response = await transport.handle_async_request(request)               |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |   File "C:\Users\2000137378\Desktop\Licensing & Sanction Checker MCP\venv\Lib\site-packages\httpx\_transports\default.py", line 393, in handle_async_request
-    |     with map_httpcore_exceptions():tions():    |   File "C:\Program Files\Python311\Lib\contextlib.py", line 155, in __exit__
-    |     self.gen.throw(typ, value, traceback)
-    |   File "C:\Users\2000137378\Desktop\Licensing & Sanction Checker MCP\venv\Lib\site-packages\httpx\_transports\default.py", line 118, in map_httpcore_exceptions
-    |     raise mapped_exc(message) from exc    | httpx.ConnectError: All connection attempts failed
-    +------------------------------------
-(venv) PS C:\Users\2000137378\Desktop\Licensing & Sanction Checker MCP>
-
-
-
-
-
-file router.py
-
+attachment router.py
 
 from fastapi import APIRouter
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
-# from utils.file_utils import compare_name_with_sanctions
-from handler import compare_name_with_sanctions 
+from attachment_service import get_latest_email_attachment_check
 
 router = APIRouter()
 
-class CompareRequest(BaseModel):
-    """
-    This endpoint is called by the Data Extraction Agent.
-    It passes the FULL Azure Blob URL of the extracted JSON file as input (jsonfilepath).
-    Example:
-      {
-        "jsonfilepath": "https://<account>.blob.core.windows.net/<container>/<path>/file.json"
-      }
-    The service will:
-    - Download that exact JSON from Azure Blob Storage (using AZURE_STORAGE_CONNECTION_STRING),
-    - Extract the name from Owner/Insured/Contact fields,
-    - Compare it with the local CSV 'input/sanctions.csv',
-    - Return the comparison result.
-    """
-    jsonfilepath: str = Field(..., description="Full Azure Blob URL to the JSON produced by the Data Extraction Agent.")
+class AttachmentCheckerMCP(BaseModel):
+    
+    """Represents the functionality of checking email attachments for duplicate in Azure Blob."""
 
-# @router.post(
-#     "/compare_files",
-#     operation_id="compare_files",
-#     summary="Compare JSON (Owner/Insured/Contact Name/NAMED INSURED(S)) from a given blob URL with local sanctions CSV."
-# )
+    AgentName: str = Field(default="EmailAttachmentChecker", description="Agent name.")
+    UserId: str = Field(default="markRuffalo", description="User id (default).")
 
-@router.post(
-    "/Licensing_&_Sanction_Checker_MCP",
-    operation_id="Licensing_&_Sanction_Checker_MCP",
-    summary="Compare JSON (Owner/Insured/Contact Name/NAMED INSURED(S)) from a given blob URL with local sanctions CSV."
-)
+@router.post("/attachment_checker_mcp", operation_id="attachment_checker_mcp")
 
 
-async def compare_files(request: CompareRequest):
+async def attachment_checker_mcp(p_body: AttachmentCheckerMCP):
+
     """
-    Receives the JSON blob URL from the Data Extraction Agent and compares the extracted name
-    against the local 'input/sanctions.csv' sanctions list.
+    Fetches the latest Gmail email and checks if its attachments already exist in Azure Blob Storage.
+    Args:
+        p_body (AttachmentCheckerMCP): Request body containing:
+            AgentName (str): The name of the MCP agent calling this endpoint.
+            UserId (str): Identifier for the user making the request.
+    Returns:
+        JSONResponse: Returns JSON-RPC response containing:
+            status (bool): True if executed successfully, else False.
+            attachments (list): List of attachment comparison results.
+            error (str, optional): Error message if any exception occurred.
     """
+
     try:
-        result = await compare_name_with_sanctions(json_file_url=request.jsonfilepath)
-        return result
+        result = get_latest_email_attachment_check()
+        if result.get("status") is True and "attachments" not in result:
+            result["attachments"] = []
+        return JSONResponse(
+            content={
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": result
+            }
+        )
     except Exception as e:
-        return {"status": False, "error": f"Unexpected server error: {str(e)}"}
+        return JSONResponse(
+            content={
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": {"status": False, "error": str(e)}
+            },
+            status_code=200
+        )
 
 
-handler.py
 
 
+
+attachment_handler..py
 import os
 import json
-from typing import Optional
-from urllib.parse import urlparse, unquote
-import pandas as pd
-from azure.storage.blob.aio import BlobServiceClient
-from azure.core.exceptions import ResourceNotFoundError
+import base64
+from azure.storage.blob import BlobServiceClient
 from dotenv import load_dotenv
-from service import _require_env, _parse_blob_url
 
 load_dotenv()
 
-AZURE_STORAGE_CONNECTION_STRING = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "")
-LOCAL_CSV_PATH = os.path.join("input", "sanctions.csv")
+STATE_FILE = os.path.join("storage", "history_state.json")
+OUTPUT_DIR = os.path.join("storage", "attachments")
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+os.makedirs(os.path.dirname(STATE_FILE), exist_ok=True)
 
+AZURE_STORAGE_CONNECTION_STRING = os.environ.get("AZUR_STORAGE_CONNECTION_STRING", "")
+AZURE_BLOB_CONTAINER = os.environ.get("AZURE_BLOB_CONTAINER", "")
 
-async def compare_name_with_sanctions(json_file_url: str) -> dict:
-    """
-    Flow:
-    1) Parse the given blob URL -> (container, blob_name)
-    2) Download and parse the JSON file
-    3) Extract FIRST matching name among:
-       Owner Name / Insured Name / Contact Name / Named Insured(s)
-       (case-insensitive, ignores spaces and colons)
-    4) Read local CSV from 'input/sanctions.csv'
-    5) Compare extracted name against CSV entity_name column
-    6) Save results to ./output and return response
-    """
-    # Validate environment setup
+def _get_blob_service_client():
+    if not AZURE_STORAGE_CONNECTION_STRING:
+        raise RuntimeError("Missing AZURE_STORAGE_CONNECTION_STRING")
+    return BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING)
+
+def _ensure_container_exists(blob_service_client):
+    if not AZURE_BLOB_CONTAINER:
+        raise RuntimeError("Missing AZURE_BLOB_CONTAINER")
+    container_client = blob_service_client.get_container_client(AZURE_BLOB_CONTAINER)
     try:
-        _require_env()
+        container_client.create_container()
+    except Exception:
+        pass
+    return container_client
+
+def load_state():
+    try:
+        with open(STATE_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+def save_state(state):
+    with open(STATE_FILE, "w", encoding="utf-8") as f:
+        json.dump(state, f, indent=2, ensure_ascii=False)
+
+def _walk_parts(parts):
+    for p in parts or []:
+        yield p
+        for sub in p.get("parts", []) or []:
+            yield from _walk_parts([sub])
+
+def save_attachments_from_message(service, message):
+    """
+    Extract attachment filenames from Gmail message and compare with Azure Blob Storage.
+    Success: returns {"attachments": [{"filename": "...", "is_duplicate": bool}, ...]}
+    No attachments: returns {"attachments": []}
+    Azure/Gmail errors: raise exception → caller returns status:false + error
+    """
+    filenames = []
+    parts = message.get("payload", {}).get("parts", [])
+    for part in _walk_parts(parts):
+        filename = part.get("filename")
+        _ = part.get("body", {}) or {}
+        if filename:
+            filenames.append(filename)
+
+    if not filenames:
+        try:
+            out_path = os.path.join(OUTPUT_DIR, f"{message.get('id', 'unknown')}_comparison.json")
+            with open(out_path, "w", encoding="utf-8") as f:
+                json.dump({"attachments": []}, f, indent=2, ensure_ascii=False)
+        except Exception as exc:
+            print(f"Failed to write comparison result file: {exc}")
+        return {"attachments": []}
+
+    blob_service_client = _get_blob_service_client()
+    container_client = _ensure_container_exists(blob_service_client)
+
+    attachment_results = []
+    for name in filenames:
+        blob_client = container_client.get_blob_client(blob=name)
+        is_duplicate = bool(blob_client.exists())
+        attachment_results.append({
+            "filename": name,
+            "is_duplicate": is_duplicate
+        })
+
+    try:
+        out_path = os.path.join(OUTPUT_DIR, f"{message.get('id', 'unknown')}_comparison.json")
+        with open(out_path, "w", encoding="utf-8") as f:
+            json.dump({"attachments": attachment_results}, f, indent=2, ensure_ascii=False)
+    except Exception as exc:
+        print(f"Failed to write comparison result file: {exc}")
+
+    return {"attachments": attachment_results}
+
+
+
+attachment_service.py
+
+import asyncio
+import json
+from datetime import datetime
+from typing import Dict, Any
+from gmail_watch import get_gmail_service
+from attachment_handler import save_attachments_from_message
+
+_last_check_time = None
+_is_polling = True
+
+def _extract_attachment_comparison(service, msg) -> Dict[str, Any]:
+    comparison = save_attachments_from_message(service, msg)
+    return {
+        "message_id": msg.get("id", ""),
+        "attachments": comparison.get("attachments", [])
+    }
+
+def get_latest_email_attachment_check() -> Dict[str, Any]:
+    """
+    Success (even if no emails or no attachments):
+      {"status": True, "attachments": [...]}
+    Failure (on any exception):
+      {"status": False, "error": "..."}
+    """
+    try:
+        service = get_gmail_service()
+        results = service.users().messages().list(userId="me", maxResults=1).execute()
+        messages = results.get("messages", [])
+
+        if not messages:
+            return {"status": True, "attachments": []}
+
+        msg = service.users().messages().get(
+            userId="me",
+            id=messages[0]["id"],
+            format="full"
+        ).execute()
+
+        comparison = _extract_attachment_comparison(service, msg)
+        return {"status": True, "attachments": comparison.get("attachments", [])}
+
     except Exception as e:
         return {"status": False, "error": str(e)}
 
-    # Parse JSON file URL
+async def _check_for_new_emails():
+    """
+    During polling: print full JSON ONLY for messages found in this cycle (i.e., since last_check_time).
+    On per-message errors: print full JSON with status:false + error.
+    """
+    global _last_check_time
     try:
-        container_name, blob_name = _parse_blob_url(json_file_url)
-    except Exception as e:
-        return {"status": False, "error": f"Invalid jsonfilepath: {e}"}
+        service = get_gmail_service()
 
-    # Download JSON file from Azure Blob
-    try:
-        async with BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING) as blob_service:
-            container_client = blob_service.get_container_client(container_name)
-            blob_client = container_client.get_blob_client(blob_name)
+        if not _last_check_time:
+            results = service.users().messages().list(userId="me", maxResults=1).execute()
+        else:
+            query = f"after:{int(_last_check_time.timestamp())}"
+            results = service.users().messages().list(userId="me", q=query).execute()
 
+        messages = results.get("messages", [])
+        for message in messages:
             try:
-                await blob_client.get_blob_properties()
-            except ResourceNotFoundError:
-                return {
-                    "status": False,
-                    "error": f"JSON blob not found: container='{container_name}', blob='{blob_name}'"
+                msg = service.users().messages().get(
+                    userId="me",
+                    id=message["id"],
+                    format="full"
+                ).execute()
+                comparison = _extract_attachment_comparison(service, msg)
+                result = {
+                    "status": True,
+                    "attachments": comparison.get("attachments", [])
                 }
+                print(json.dumps(result, indent=2))
+            except Exception as inner_e:
+                error_result = {"status": False, "error": str(inner_e)}
+                print(json.dumps(error_result, indent=2))
 
-            stream = await blob_client.download_blob()
-            raw_bytes = await stream.readall()
+        _last_check_time = datetime.now()
+
     except Exception as e:
-        return {"status": False, "error": f"Error connecting to Azure Blob Storage: {e}"}
+        print(f"Error checking for new emails: {e}")
 
-    # Parse JSON content
-    try:
-        data = json.loads(raw_bytes.decode("utf-8"))
-    except Exception as e:
-        return {
-            "status": False,
-            "error": f"Failed to parse JSON: {e}",
-            "json_blob_url": json_file_url
-        }
+async def _email_polling_loop():
+    global _is_polling
+    print(" Email polling loop started.")
+    while _is_polling:
+        await _check_for_new_emails()
+        await asyncio.sleep(10)
+    print(" Email polling loop stopped.")
 
-    target_labels = {
-        "ownername",
-        "insuredname",
-        "contactname",
-        "namedinsured(s)"  
-    }
+async def start_email_polling():
+    global _is_polling, _last_check_time
+    _is_polling = True
 
-    extracted_name = None
-    fields = data.get("extracted_fields", [])
+    # bootstrap = get_latest_email_attachment_check()
+    print(" Latest Attachment Comparison:")
+    # print(json.dumps(bootstrap, indent=2))
 
-    if isinstance(fields, list):
-        for item in fields:
-            if isinstance(item, dict):
-                label_raw = item.get("Field", "")
-                if isinstance(label_raw, str):
-                    normalized_label = label_raw.lower().replace(" ", "").replace(":", "")
-                    if normalized_label in target_labels:
-                        value = item.get("Value", "").strip()
-                        if value:
-                            extracted_name = value
-                            break
+    asyncio.create_task(_email_polling_loop())
 
-    if not extracted_name:
-        return {
-            "status": False,
-            "error": "No matching name field found in JSON. "
-        }
-
-    # Read local CSV
-    if not os.path.exists(LOCAL_CSV_PATH):
-        return {"status": False, "error": f"Local CSV not found at '{LOCAL_CSV_PATH}'"}
-
-    try:
-        csv_df = pd.read_csv(LOCAL_CSV_PATH)
-    except Exception as e:
-        return {"status": False, "error": f"Failed to read CSV '{LOCAL_CSV_PATH}': {e}"}
-
-    if "entity_name" not in csv_df.columns:
-        return {"status": False, "error": f"CSV must contain 'entity_name' column"}
-
-    # Compare extracted name with sanctions list
-    def normalize(value: str) -> str:
-        return value.strip().lower() if isinstance(value, str) else ""
-
-    entity_set = {normalize(x) for x in csv_df["entity_name"].dropna()}
-    is_unique = normalize(extracted_name) not in entity_set
-
-    results = [{"Extracted Name": extracted_name, "Unique": is_unique}]
-
-    # Save outputs
-    try:
-        os.makedirs("./output", exist_ok=True)
-        json_output = "./output/comparison_results.json"
-
-        with open(json_output, "w", encoding="utf-8") as f:
-            json.dump(
-                {
-                    "results": results
-                },
-                f,
-                indent=4
-            )
-    except Exception as e:
-        return {"status": False, "error": f"Failed saving results: {e}"}
-
-    return {
-        "message": "Comparison completed successfully.",
-        "results": results
-    }
+async def stop_email_polling():
+    global _is_polling
+    _is_polling = False
+    print("Shutting down email monitoring...")
 
 
 
 
 main.py
+
+# main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi_mcp import FastApiMCP
 import uvicorn
+from contextlib import asynccontextmanager
 
-# from routers.file_router import router as file_router
-from file_router import router as file_router 
+from routers.attachment_router import router as attachment_router
+from attachment_service import start_email_polling, stop_email_polling
 
 def apply_cors(app: FastAPI):
     app.add_middleware(
@@ -335,97 +283,40 @@ def apply_cors(app: FastAPI):
         allow_headers=["*"],
     )
 
-def create_sub_app(title: str, description: str, version: str = "0.1.0") -> FastAPI:
-    app = FastAPI(title=title, description=description, version=version)
-    apply_cors(app)
-    return app
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await start_email_polling()
+    yield
+    await stop_email_polling()
 
-app = FastAPI()
+def create_sub_app(title: str, description: str, version: str = "0.1.0") -> FastAPI:
+    sub = FastAPI(title=title, description=description, version=version, lifespan=lifespan)
+    apply_cors(sub)
+    return sub
+
+app = FastAPI(lifespan=lifespan)
 apply_cors(app)
 
-file_app = create_sub_app(
-    title="File Comparison API",
-    description="Receives JSON blob URL from Data Extraction Agent, compares extracted name with local sanctions CSV."
+email_app = create_sub_app(
+    title="attachment_checker_mcp",
+    description="Reads latest emails and compares attachment filenames with Azure Blob names."
 )
-file_app.include_router(file_router)
-# FastApiMCP(file_app, include_operations=["compare_files"]).mount_http()
-FastApiMCP(file_app, include_operations=["Licensing_&_Sanction_Checker_MCP"]).mount_http()
-app.mount("/api/v1/eligibility_agent", file_app)
+email_app.include_router(attachment_router)
+
+FastApiMCP(email_app, include_operations=["attachment_checker_mcp"]).mount_http()
+# app.mount("/mcp", email_app)
+
+# app.mount("/api/v1/attachment_checker",email_app)
+
+app.mount("/api/v1/email_intent_agent",email_app)
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8601)
-
-
-service.py
-
-import os
-from urllib.parse import urlparse, unquote
-from dotenv import load_dotenv
-
-load_dotenv()
-
-AZURE_STORAGE_CONNECTION_STRING = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "")
-
-
-def _require_env() -> None:
-    if not AZURE_STORAGE_CONNECTION_STRING:
-        raise RuntimeError("Missing AZURE_STORAGE_CONNECTION_STRING in .env")
-
-
-def _parse_blob_url(url: str) -> tuple[str, str]:
-    """
-    Parse an Azure Blob URL and return (container_name, blob_path).
-    Example URL:
-      https://account.blob.core.windows.net/output-results/folder/name.json
-    Returns:
-      ("output-results", "folder/name.json")
-    """
-    parsed = urlparse(url)
-    if not parsed.scheme.startswith("http"):
-        raise ValueError("jsonfilepath must be a valid http(s) URL to Azure Blob Storage.")
-   
-    path = parsed.path.lstrip("/")
-    if "/" not in path:
-        raise ValueError("jsonfilepath must include both container and blob path.")
-    parts = path.split("/", 1)
-    container = parts[0]
-    blob_path = parts[1]
-    return unquote(container), unquote(blob_path)
-
-testscripts.py
-
-import requests
-import json
-
-BASE_URL = "http://localhost:8601/api/v1/eligibility_agent/Licensing_&_Sanction_Checker_MCP"
-
-def run_test():
-    payload = {
-       
-        "jsonfilepath": "https://agenticai1.blob.core.windows.net/output-results/20251017_104717_1e7215f653a64e45a0a4c8139623b6a9_extracted_20251017_104717.json"
-    }
-    try:
-        resp = requests.post(BASE_URL, json=payload, timeout=60)
-        print("HTTP Status:", resp.status_code)
-        try:
-            data = resp.json()
-            print(json.dumps(data, indent=4))
-        except json.JSONDecodeError:
-            print("Response not JSON:", resp.text)
-    except Exception as e:
-        print("Error calling API:", str(e))
-
-if __name__ == "__main__":
-    print("Testing /compare_files ...")
-    run_test()
-
+    uvicorn.run(app, host="0.0.0.0", port=8502)
 
 
 
 
 test_client.py
-
-
 
 
 
@@ -440,7 +331,7 @@ async def get_tool_list(config_mcp_server):
         return tools_list
 config_mcp_server = {
         "email_reader_mcp":{
-            "url":"http://localhost:8502/api/v1/eligibility_agent/mcp",
+            "url":"http://localhost:8502/api/v1/email_intent_agent/mcp",
             "transport":"streamable_http",
         }}
  
