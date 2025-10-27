@@ -8,7 +8,6 @@ from azure.ai.documentintelligence import DocumentIntelligenceClient
 
 
 def main():
-    # 1️⃣ Load .env
     load_dotenv()
     endpoint = os.getenv("ENDPOINT")
     key = os.getenv("KEY")
@@ -17,38 +16,34 @@ def main():
     if not (endpoint and key and model_id):
         raise ValueError("Missing ENDPOINT, KEY, or MODEL_ID in .env file.")
 
-    # 2️⃣ Define default file paths
     input_path = os.path.join(os.getcwd(), "input.pdf")
     output_path = os.path.join(os.getcwd(), "output.json")
 
     if not os.path.exists(input_path):
         raise FileNotFoundError(
-            f"❌ Could not find 'input.pdf' in {os.getcwd()}.\n"
+            f"Could not find 'input.pdf' in {os.getcwd()}.\n"
             f"Please place your document there and re-run: python analyze_local.py"
         )
 
-    # 3️⃣ Create Azure client
-    print("🔗 Connecting to Azure Document Intelligence service...")
+    print("Connecting to Azure Document Intelligence service...")
     client = DocumentIntelligenceClient(
         endpoint=endpoint,
         credential=AzureKeyCredential(key)
     )
 
-    # 4️⃣ Analyze document
-    print(f"📄 Analyzing '{input_path}' using model '{model_id}'...")
+    print(f" Analyzing '{input_path}' using model '{model_id}'...")
     with open(input_path, "rb") as f:
         poller = client.begin_analyze_document(model_id=model_id, body=f)
         result = poller.result()
+    # print(result)    
 
-    # 5️⃣ Save exact JSON output
-    print("💾 Saving results as 'output.json'...")
+    print("Saving results as 'output.json'...")
     json_data = result.as_dict()
     with open(output_path, "w", encoding="utf-8") as wf:
         json.dump(json_data, wf, indent=2, ensure_ascii=False)
 
-    print("\n✅ Done!")
-    print(f"📂 Input file:  {input_path}")
-    print(f"📁 Output file: {output_path}")
+    print(f"Input file:  {input_path}")
+    print(f"Output file: {output_path}")
     print("You can open 'output.json' to see the same JSON as in Azure Studio.\n")
 
 
