@@ -1,495 +1,75 @@
-Awesome — here’s the unified Endpoint design (Option B) you asked for:
-	•	Only one MCP endpoint: /process_notification
-	•	No background loop
-	•	Startup auto-triggers the same endpoint logic once
-	•	The endpoint contains BOTH behaviors:
-	•	If body has emailAddress + historyId → History/PubSub style (delta since last)
-	•	If body is missing/empty → Polling-style (recent emails since last run timestamp; first run = latest 5)
+"""
+This code sample shows Custom Extraction Model operations with the Azure AI Document Intelligence client library.
+The async versions of the samples require Python 3.8 or later.
 
-Everything else (Gmail auth, Azure duplicate check, JSON logs) stays the same.
+To learn more, please visit the documentation - Quickstart: Document Intelligence (formerly Form Recognizer) SDKs
+https://learn.microsoft.com/azure/ai-services/document-intelligence/quickstarts/get-started-sdks-rest-api?pivots=programming-language-python
+"""
 
-⸻
+from azure.core.credentials import AzureKeyCredential
+from azure.ai.documentintelligence import DocumentIntelligenceClient
+from azure.ai.documentintelligence.models import AnalyzeDocumentRequest
 
-Project structure
+"""
+Remember to remove the key from your code when you're done, and never post it publicly. For production, use
+secure methods to store and access your credentials. For more information, see 
+https://docs.microsoft.com/en-us/azure/cognitive-services/cognitive-services-security?tabs=command-line%2Ccsharp#environment-variables-and-application-configuration
+"""
+endpoint = "YOUR_FORM_RECOGNIZER_ENDPOINT"
+key = "YOUR_FORM_RECOGNIZER_KEY"
 
-Duplication-MCP_Check/
-├─ main.py
-├─ gmail_watch.py
-├─ attachment_handler.py
-├─ history_state.json          # created/updated automatically
-├─ storage_output/             # created automatically
-├─ routers/
-│  ├─ __init__.py
-│  └─ notification_router.py
-└─ requirements.txt            # recommended
+model_id = "YOUR_CUSTOM_BUILT_MODEL_ID"
+formUrl = "YOUR_DOCUMENT"
 
-
-⸻
-
-main.py
-
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi_mcp import FastApiMCP
-import uvicorn
-import asyncio
-
-from routers import notification_router
-
-
-def apply_cors(app: FastAPI):
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-
-
-def create_sub_app(title: str, description: str, version: str = "0.1.0") -> FastAPI:
-    sub = FastAPI(title=title, description=description, version=version)
-    apply_cors(sub)
-    return sub
-
-
-# Root app (served by uvicorn)
-app = FastAPI(title="MCP Email Server (Unified Endpoint)")
-apply_cors(app)
-
-# Sub-app that contains email routes (MCP-enabled)
-email_app = create_sub_app(
-    title="MCP Email Server (Unified Endpoint)",
-    description="Single /process_notification endpoint that handles Pub/Sub-style (history) or polling-style (recent)."
-)
-email_app.include_router(notification_router.router)
-
-# Expose ONLY the /process_notification as an MCP tool
-FastApiMCP(email_app, include_operations=["process_notification"]).mount_http()
-
-# Mount sub-app
-app.mount("/api/v1/email", email_app)
-
-
-# Auto-trigger the same logic ON STARTUP (no background loop)
-@app.on_event("startup")
-async def startup_main():
-    print("🚀 Startup: auto-triggering unified /process_notification logic (no request body)")
-    # Call the helper that runs the endpoint core with "polling-style" (no body)
-    await notification_router.run_endpoint_core(notification=None)
-
-
-if __name__ == "__main__":
-    # Pick your preferred port
-    uvicorn.run(app, host="0.0.0.0", port=8854)
-
-
-⸻
-
-routers/__init__.py
-
-# empty file, just to make `routers` a package
-
-
-⸻
-
-routers/notification_router.py
-
-import time
-from datetime import datetime
-from typing import Optional
-
-from fastapi import APIRouter
-from pydantic import BaseModel
-
-from gmail_watch import get_gmail_service
-from attachment_handler import (
-    save_attachments_from_message,
-    load_state,
-    save_state,
+document_intelligence_client  = DocumentIntelligenceClient(
+    endpoint=endpoint, credential=AzureKeyCredential(key)
 )
 
-router = APIRouter()
+# Make sure your document's type is included in the list of document types the custom model can analyze
+poller = document_intelligence_client.begin_analyze_document(
+    model_id, AnalyzeDocumentRequest(url_source=formUrl)
+)
+result = poller.result()
+
+for idx, document in enumerate(result.documents):
+    print("--------Analyzing document #{}--------".format(idx + 1))
+    print("Document has type {}".format(document.doc_type))
+    print("Document has confidence {}".format(document.confidence))
+    print("Document was analyzed by model with ID {}".format(result.model_id))
+    for name, field in document.fields.items():
+        print("......found field of type '{}' with value '{}' and with confidence {}".format(field.type, field.content, field.confidence))
+
+
+# iterate over tables, lines, and selection marks on each page
+for page in result.pages:
+    print("\nLines found on page {}".format(page.page_number))
+    for line in page.lines:
+        print("...Line '{}'".format(line.content.encode('utf-8')))
+    for word in page.words:
+        print(
+            "...Word '{}' has a confidence of {}".format(
+                word.content.encode('utf-8'), word.confidence
+            )
+        )
+    if page.selection_marks:
+        for selection_mark in page.selection_marks:
+            print(
+                "...Selection mark is '{}' and has a confidence of {}".format(
+                    selection_mark.state, selection_mark.confidence
+                )
+            )
+
+for i, table in enumerate(result.tables):
+    print("\nTable {} can be found on page:".format(i + 1))
+    for region in table.bounding_regions:
+        print("...{}".format(i + 1, region.page_number))
+    for cell in table.cells:
+        print(
+            "...Cell[{}][{}] has content '{}'".format(
+                cell.row_index, cell.column_index, cell.content.encode('utf-8')
+            )
+        )
+print("-----------------------------------")
 
-# Keys used inside history_state.json
-STATE_KEY_LAST_RUN_TS = "__last_run_ts__"   # unix epoch seconds for last polling-style run
 
 
-class EmailNotification(BaseModel):
-    """Optional body:
-       - If emailAddress + historyId present => history/PubSub flow
-       - If missing/partial => polling-style recent flow
-    """
-    emailAddress: Optional[str] = None
-    historyId: Optional[int] = None
-
-
-async def _process_via_history(email: str, history_id: int) -> dict:
-    """Pub/Sub-style processing: process messages added since last stored historyId for this email."""
-    service = get_gmail_service()
-    state = load_state()
-    last_hist = state.get(email)
-
-    if not last_hist:
-        # First time for this email: initialize pointer, return with no processing
-        state[email] = history_id
-        save_state(state)
-        return {"message": f"[history] Initialized history id {history_id} for {email}", "processed": []}
-
-    processed_messages = []
-    try:
-        resp = service.users().history().list(
-            userId="me",
-            startHistoryId=str(last_hist),
-            historyTypes="messageAdded"
-        ).execute()
-
-        histories = resp.get("history", [])
-        message_ids = []
-        for h in histories:
-            for ma in h.get("messagesAdded", []):
-                message_ids.append(ma["message"]["id"])
-
-    except Exception as e:
-        print("[history] History list failed, fallback to recent search:", e)
-        res = service.users().messages().list(
-            userId="me",
-            q="newer_than:7d",
-            maxResults=20
-        ).execute()
-        message_ids = [m["id"] for m in res.get("messages", [])]
-
-    for mid in message_ids:
-        msg = service.users().messages().get(
-            userId="me",
-            id=mid,
-            format="full"
-        ).execute()
-
-        comparison_result = save_attachments_from_message(service, msg)
-        processed_messages.append({
-            "message_id": mid,
-            "comparison_result": comparison_result
-        })
-
-    # Advance pointer
-    state[email] = history_id
-    save_state(state)
-
-    return {
-        "message": f"[history] Processed {len(processed_messages)} messages for {email}",
-        "processed": processed_messages
-    }
-
-
-async def _process_via_recent() -> dict:
-    """Polling-style processing but executed on-demand:
-       - First ever run (no ts): fetch latest 5 messages
-       - Later runs: fetch messages after last run timestamp
-       - Updates last-run timestamp in state
-    """
-    service = get_gmail_service()
-    state = load_state()
-    last_ts = state.get(STATE_KEY_LAST_RUN_TS)
-
-    try:
-        if not last_ts:
-            # Seed: first run, fetch latest 5
-            results = service.users().messages().list(
-                userId="me",
-                maxResults=5
-            ).execute()
-        else:
-            # Fetch messages newer than last run timestamp
-            query = f"after:{int(last_ts)}"
-            results = service.users().messages().list(
-                userId="me",
-                q=query
-            ).execute()
-
-        messages = results.get("messages", [])
-        processed = []
-        for message in messages:
-            msg = service.users().messages().get(
-                userId="me",
-                id=message["id"],
-                format="full"
-            ).execute()
-
-            print(f"📩 Processing message ID: {message['id']}")
-            comparison_result = save_attachments_from_message(service, msg)
-            print(f"📎 Comparison result: {comparison_result}")
-
-            processed.append({
-                "message_id": message["id"],
-                "comparison_result": comparison_result
-            })
-
-        # Update last run timestamp to now
-        now_epoch = int(time.time())
-        state[STATE_KEY_LAST_RUN_TS] = now_epoch
-        save_state(state)
-
-        return {
-            "message": f"[recent] Processed {len(processed)} messages (since last run)",
-            "processed": processed,
-            "last_run_ts": now_epoch
-        }
-
-    except Exception as e:
-        return {"error": f"Error checking emails: {e}"}
-
-
-# Core function BOTH the startup and the HTTP endpoint call.
-async def run_endpoint_core(notification: Optional[EmailNotification]) -> dict:
-    """Unified endpoint core:
-       - If notification has emailAddress + historyId => run history-style
-       - Else => run recent-style
-    """
-    if notification and notification.emailAddress and (notification.historyId is not None):
-        # History/PubSub-style
-        return await _process_via_history(notification.emailAddress, int(notification.historyId))
-    else:
-        # Polling-style (on-demand, no background loop)
-        return await _process_via_recent()
-
-
-@router.post("/process_notification", operation_id="process_notification")
-async def process_notification(notification: Optional[EmailNotification] = None):
-    """Unified endpoint:
-       - Called with {emailAddress, historyId} => history-style (Pub/Sub compatible)
-       - Called with empty body (or no body) => recent-style (on-demand polling)
-    """
-    result = await run_endpoint_core(notification)
-    return result
-
-
-⸻
-
-attachment_handler.py
-
-import os
-import json
-
-from azure.storage.blob import BlobServiceClient
-from dotenv import load_dotenv
-
-load_dotenv()  # Load environment variables from .env if present
-
-STATE_FILE = "history_state.json"
-OUTPUT_DIR = "storage_output"
-os.makedirs(OUTPUT_DIR, exist_ok=True)
-
-# Azure Blob configuration via environment variables
-AZURE_STORAGE_CONNECTION_STRING = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "")
-AZURE_BLOB_CONTAINER = os.environ.get("AZURE_BLOB_CONTAINER", "")
-
-
-def _get_blob_service_client():
-    if not AZURE_STORAGE_CONNECTION_STRING:
-        raise RuntimeError("Missing AZURE_STORAGE_CONNECTION_STRING")
-    return BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING)
-
-
-def _ensure_container_exists(blob_service_client):
-    if not AZURE_BLOB_CONTAINER:
-        raise RuntimeError("Missing AZURE_BLOB_CONTAINER")
-    container_client = blob_service_client.get_container_client(AZURE_BLOB_CONTAINER)
-    try:
-        container_client.create_container()
-    except Exception:
-        # Already exists or permissions issue; ignore creation error
-        pass
-    return container_client
-
-
-def get_blob_names_from_container():
-    """Optional helper: list all blob names in the configured container."""
-    blob_names = []
-    try:
-        blob_service_client = _get_blob_service_client()
-        container_client = _ensure_container_exists(blob_service_client)
-        blobs = container_client.list_blobs()
-        blob_names = [blob.name for blob in blobs]
-    except Exception as e:
-        print(f"Error retrieving blob names: {e}")
-    return blob_names
-
-
-def load_state():
-    try:
-        with open(STATE_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        return {}
-
-
-def save_state(state):
-    with open(STATE_FILE, "w", encoding="utf-8") as f:
-        json.dump(state, f, indent=2)
-
-
-def _walk_parts(parts):
-    """Recursively yield all MIME parts from Gmail message payload."""
-    for p in parts or []:
-        yield p
-        for sub in p.get("parts", []) or []:
-            yield from _walk_parts([sub])
-
-
-def save_attachments_from_message(service, message):
-    """
-    Extract attachment filenames from Gmail message and compare with Azure Blob Storage.
-
-    Returns:
-        dict: {"attachments": [{"filename": <str>, "is_duplicate": <bool>}, ...]}
-    """
-    saved_attachments = []
-    parts = message.get("payload", {}).get("parts", [])
-
-    for part in _walk_parts(parts):
-        filename = part.get("filename")
-        if filename:
-            saved_attachments.append(filename)
-
-    blob_service_client = _get_blob_service_client()
-    container_client = _ensure_container_exists(blob_service_client)
-
-    attachment_results = []
-
-    for filename in saved_attachments:
-        is_duplicate = False
-        try:
-            blob_client = container_client.get_blob_client(blob=filename)
-            if blob_client.exists():
-                is_duplicate = True
-        except Exception as e:
-            print(f"Error checking blob existence for {filename}: {e}")
-
-        attachment_results.append({
-            "filename": filename,
-            "is_duplicate": is_duplicate
-        })
-
-    comparison_result = {"attachments": attachment_results}
-
-    # Persist result for audit/debugging
-    try:
-        out_path = os.path.join(OUTPUT_DIR, f"{message.get('id')}_comparison.json")
-        with open(out_path, "w", encoding="utf-8") as f:
-            json.dump(comparison_result, f, indent=2)
-    except Exception as exc:
-        print(f"Failed to write comparison result file: {exc}")
-
-    return comparison_result
-
-
-⸻
-
-gmail_watch.py
-
-import os
-import pickle
-
-from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import build
-
-# Only read access is required for listing/fetching messages + attachments metadata
-SCOPES = [
-    "https://www.googleapis.com/auth/gmail.readonly"
-]
-
-
-def get_gmail_service():
-    """Authenticate with Gmail API and return the service object."""
-    creds = None
-    token_path = "token.pickle"
-
-    # Load existing token if present
-    if os.path.exists(token_path):
-        with open(token_path, "rb") as f:
-            creds = pickle.load(f)
-
-    # If no valid token → run local OAuth flow and cache it
-    if not creds or not getattr(creds, "valid", False):
-        flow = InstalledAppFlow.from_client_secrets_file("credentials/client_secret.json", SCOPES)
-        creds = flow.run_local_server(port=0)
-        with open(token_path, "wb") as f:
-            pickle.dump(creds, f)
-
-    # Build the Gmail service
-    service = build("gmail", "v1", credentials=creds, cache_discovery=False)
-    return service
-
-
-def create_watch(project_id, topic_full_name):
-    """
-    Optional: Create a Gmail watch for Pub/Sub push notifications.
-    Usage (CLI):
-        python gmail_watch.py <PROJECT_ID> projects/<PROJECT_ID>/topics/<TOPIC>
-    """
-    service = get_gmail_service()
-    body = {
-        "labelIds": ["INBOX"],
-        "topicName": topic_full_name
-    }
-    resp = service.users().watch(userId="me", body=body).execute()
-    print("Watch created:", resp)
-    return resp
-
-
-if __name__ == "__main__":
-    import sys
-    if len(sys.argv) < 3:
-        print("Usage: python gmail_watch.py <PROJECT_ID> <projects/PROJECT_ID/topics/TOPIC>")
-        raise SystemExit(1)
-
-    project = sys.argv[1]
-    topic = sys.argv[2]
-    create_watch(project, topic)
-
-
-⸻
-
-requirements.txt
-
-fastapi
-uvicorn
-fastapi-mcp
-python-dotenv
-azure-storage-blob
-google-api-python-client
-google-auth-oauthlib
-google-auth-httplib2
-
-
-⸻
-
-Environment needed
-	•	credentials/client_secret.json (Google OAuth client secrets)
-	•	.env with:
-
-AZURE_STORAGE_CONNECTION_STRING=...   # from Azure Storage account
-AZURE_BLOB_CONTAINER=your-container-name
-
-
-
-⸻
-
-How it behaves
-	•	python main.py:
-	•	Starts MCP FastAPI server
-	•	Startup auto-triggers the unified endpoint with no body → recent-style (first run: latest 5; later runs: messages after last run timestamp)
-	•	Agent call:
-	•	POST /api/v1/email/process_notification
-	•	With body { "emailAddress": "...", "historyId": 123 } → history-style delta processing
-	•	With empty/no body → recent-style on demand
-	•	Outputs:
-	•	For each processed message: JSON file in storage_output/<message_id>_comparison.json
-	•	Duplicates flagged via Azure Blob exists()
-	•	history_state.json stores:
-	•	Per-email historyId (for history-style)
-	•	__last_run_ts__ (for recent-style since-last-run)
-
-⸻
-
-If you want, I can add a config flag (env var) to default the startup trigger to “history-style” for a given email + historyId, but the above matches your request (run end-to-end on main.py start, and unify everything under one endpoint).
