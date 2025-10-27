@@ -1,41 +1,37 @@
 # analyze_local_singlefile.py
 """
-Single-file demo:
+Single-file demo (robust across SDK versions):
 - Reads a local document file (path from .env)
-- Sends it to Azure Document Intelligence custom model
+- Sends it to Azure Document Intelligence custom model (adapts to different SDK signatures)
 - Converts result into JSON-serializable dict and saves to disk (OUTPUT_JSON from .env)
-- Has detailed exception handling and helpful error messages
+- Detailed exception handling + helpful hints
 """
 
 import os
 import sys
 import json
 import traceback
+import mimetypes
 from pathlib import Path
 from typing import Any, Dict, List, IO
-from io import BytesIO
-
 from dotenv import load_dotenv
 
-# Azure SDK imports
+# Try to import Azure SDK modules. If these fail, the script prints a helpful message.
 try:
     from azure.core.credentials import AzureKeyCredential
     from azure.ai.documentintelligence import DocumentIntelligenceClient
-except Exception as e:
-    # If SDK import fails, show a friendly message and re-raise
-    print("ERROR: Failed to import Azure SDK modules required by this script.")
-    print("Make sure you installed the required packages (see requirements.txt).")
+except Exception:
+    print("ERROR: Could not import Azure SDK. Did you install dependencies?")
     print("Run: pip install -r requirements.txt")
-    print("\nDetailed import error:")
     traceback.print_exc()
     raise
 
 # -----------------------
-# Helper: environment
+# Configuration loader
 # -----------------------
 def load_configuration() -> Dict[str, str]:
     load_dotenv()
-    config = {
+    return {
         "FORM_RECOGNIZER_ENDPOINT": os.getenv("FORM_RECOGNIZER_ENDPOINT", "").strip(),
         "FORM_RECOGNIZER_KEY": os.getenv("FORM_RECOGNIZER_KEY", "").strip(),
         "MODEL_ID": os.getenv("MODEL_ID", "").strip(),
@@ -43,14 +39,13 @@ def load_configuration() -> Dict[str, str]:
         "OUTPUT_JSON": os.getenv("OUTPUT_JSON", "./output/analysis_result.json").strip(),
         "PRINT_TO_CONSOLE": os.getenv("PRINT_TO_CONSOLE", "true").strip().lower(),
     }
-    return config
 
 # -----------------------
-# Helper: local file functions
+# File helpers
 # -----------------------
 def get_local_file_path(path_str: str) -> Path:
     if not path_str:
-        raise ValueError("LOCAL_DOCUMENT path is required but empty. Set LOCAL_DOCUMENT in .env.")
+        raise ValueError("LOCAL_DOCUMENT is empty. Set LOCAL_DOCUMENT in .env.")
     p = Path(path_str).expanduser().resolve()
     return p
 
@@ -61,37 +56,89 @@ def open_local_file_stream(path: Path) -> IO[bytes]:
         raise FileNotFoundError(f"Not a file: {path}")
     return open(path, "rb")
 
+def guess_content_type_from_path(path: Path) -> str:
+    ctype, _ = mimetypes.guess_type(str(path))
+    if ctype:
+        return ctype
+    # default to pdf if unknown
+    return "application/pdf"
+
 # -----------------------
-# Azure Document Intelligence client & analyze
+# Azure client & analyze (adaptive)
 # -----------------------
 def create_client(endpoint: str, key: str) -> DocumentIntelligenceClient:
     if not endpoint or not key:
-        raise ValueError("Both FORM_RECOGNIZER_ENDPOINT and FORM_RECOGNIZER_KEY are required.")
-    client = DocumentIntelligenceClient(endpoint=endpoint, credential=AzureKeyCredential(key))
-    return client
+        raise ValueError("FORM_RECOGNIZER_ENDPOINT and FORM_RECOGNIZER_KEY are required.")
+    return DocumentIntelligenceClient(endpoint=endpoint, credential=AzureKeyCredential(key))
 
-def analyze_local_file(client: DocumentIntelligenceClient, model_id: str, file_stream: IO[bytes]):
+def analyze_local_file(client: DocumentIntelligenceClient, model_id: str, file_stream: IO[bytes], filename_hint: str = None):
+    """
+    Try multiple calling styles to support different SDK versions:
+      1) client.begin_analyze_document(model_id, document=file_stream)
+      2) client.begin_analyze_document(model_id, body=file_stream, content_type=<guessed>)
+    Raises whatever exception occurred if both attempts fail.
+    """
     if not model_id:
-        raise ValueError("MODEL_ID is required (set MODEL_ID in .env).")
-    poller = client.begin_analyze_document(model_id, document=file_stream)
-    result = poller.result()
-    return result
+        raise ValueError("MODEL_ID is required.")
+
+    # Make sure stream is at start
+    try:
+        file_stream.seek(0)
+    except Exception:
+        pass
+
+    # Attempt style 1: use parameter named 'document' (used in some SDK releases)
+    try:
+        poller = client.begin_analyze_document(model_id, document=file_stream)
+        return poller.result()
+    except TypeError as e:
+        # signature probably doesn't accept 'document'; fallback to 'body' below
+        first_err = e
+    except Exception as e:
+        # If this fails with some other runtime error (auth, unsupported media, etc.), raise immediately.
+        raise
+
+    # Reset stream and attempt style 2: pass as 'body' with content_type
+    try:
+        file_stream.seek(0)
+    except Exception:
+        pass
+
+    # guess content type from filename hint or default to pdf
+    guessed = "application/pdf"
+    try:
+        if filename_hint:
+            from pathlib import Path as _P
+            guessed = guess_content_type_from_path(_P(filename_hint))
+        else:
+            guessed = "application/pdf"
+    except Exception:
+        guessed = "application/pdf"
+
+    try:
+        poller = client.begin_analyze_document(model_id, body=file_stream, content_type=guessed)
+        return poller.result()
+    except TypeError as e:
+        # If this still fails, show both errors to help debugging
+        print("Both analyze attempts failed. First attempt error (document=...):")
+        traceback.print_exception(type(first_err), first_err, first_err.__traceback__)
+        print("\nSecond attempt error (body=..., content_type=...):")
+        traceback.print_exception(type(e), e, e.__traceback__)
+        raise
+    except Exception:
+        raise
 
 # -----------------------
-# Convert SDK AnalyzeResult to plain dict (JSON serializable)
+# Convert SDK result to dict
 # -----------------------
 def analyze_result_to_dict(result) -> Dict[str, Any]:
-    """
-    Convert the SDK AnalyzeResult object into a JSON-serializable dictionary.
-    We avoid importing type names like AnalyzeResult to prevent import errors.
-    """
     out: Dict[str, Any] = {}
     out["model_id"] = getattr(result, "model_id", None)
 
     # Documents / fields
     docs: List[Dict[str, Any]] = []
     for doc in getattr(result, "documents", []) or []:
-        docd: Dict[str, Any] = {
+        docd = {
             "doc_type": getattr(doc, "doc_type", None),
             "confidence": getattr(doc, "confidence", None),
             "fields": {}
@@ -147,14 +194,13 @@ def analyze_result_to_dict(result) -> Dict[str, Any]:
         tables_out.append(t)
     out["tables"] = tables_out
 
-    # Raw text
     if getattr(result, "content", None):
         out["raw_text"] = getattr(result, "content", None)
 
     return out
 
 # -----------------------
-# Save JSON to path
+# Save JSON
 # -----------------------
 def save_json_to_path(data: Dict[str, Any], path_str: str) -> Path:
     p = Path(path_str).expanduser().resolve()
@@ -165,30 +211,15 @@ def save_json_to_path(data: Dict[str, Any], path_str: str) -> Path:
     return p
 
 # -----------------------
-# Optional console printer
+# Optional pretty print
 # -----------------------
 def pretty_print_result(data: Dict[str, Any]) -> None:
     print("\n=== Summary ===")
     print(f"Model ID: {data.get('model_id')}")
-    docs = data.get("documents", [])
-    for i, doc in enumerate(docs, start=1):
-        print(f"\nDocument #{i}: type={doc.get('doc_type')} conf={doc.get('confidence')}")
-        fields = doc.get("fields", {})
-        if fields:
-            print(" Fields:")
-            for name, info in fields.items():
-                print(f"  - {name}: {info.get('content')} (conf: {info.get('confidence')})")
-        else:
-            print(" No fields found.")
-    pages = data.get("pages", [])
-    print(f"\nPages found: {len(pages)}")
-    if pages:
-        first_page = pages[0]
-        lines = first_page.get("lines", [])
-        if lines:
-            print("\nFirst page lines (first 10):")
-            for line in lines[:10]:
-                print("  " + (line or ""))
+    for i, doc in enumerate(data.get("documents", []), start=1):
+        print(f"\nDoc #{i}: type={doc.get('doc_type')} conf={doc.get('confidence')}")
+        for name, info in doc.get("fields", {}).items():
+            print(f" - {name}: {info.get('content')} (conf: {info.get('confidence')})")
     print("\n=== End Summary ===\n")
 
 # -----------------------
@@ -197,47 +228,40 @@ def pretty_print_result(data: Dict[str, Any]) -> None:
 def main():
     try:
         cfg = load_configuration()
-
-        # Validate
         required = ["FORM_RECOGNIZER_ENDPOINT", "FORM_RECOGNIZER_KEY", "MODEL_ID", "LOCAL_DOCUMENT"]
         missing = [k for k in required if not cfg.get(k)]
         if missing:
-            print(f"ERROR: Missing required env vars: {', '.join(missing)}")
-            print("Copy .env.example to .env and fill values, or set environment variables.")
+            print(f"ERROR: missing env vars: {', '.join(missing)}")
             sys.exit(1)
 
         local_path = get_local_file_path(cfg["LOCAL_DOCUMENT"])
-        print(f"Local document path resolved to: {local_path}")
+        print(f"Local document resolved to: {local_path}")
 
-        # open file and send to AI
         with open_local_file_stream(local_path) as f:
             client = create_client(cfg["FORM_RECOGNIZER_ENDPOINT"], cfg["FORM_RECOGNIZER_KEY"])
-            print("Submitting document for analysis (this may take a few seconds)...")
-            result = analyze_local_file(client, cfg["MODEL_ID"], f)
+            print("Submitting document for analysis...")
+            # Pass filename hint so we can guess content-type if needed
+            result = analyze_local_file(client, cfg["MODEL_ID"], f, filename_hint=str(local_path))
 
-        # convert and save
         result_dict = analyze_result_to_dict(result)
-        saved_path = save_json_to_path(result_dict, cfg["OUTPUT_JSON"])
-        print(f"Analysis saved to JSON at: {saved_path}")
+        saved = save_json_to_path(result_dict, cfg["OUTPUT_JSON"])
+        print(f"Analysis saved to: {saved}")
 
-        # optional print
         if cfg["PRINT_TO_CONSOLE"] in ("1", "true", "yes"):
             pretty_print_result(result_dict)
 
     except Exception as ex:
         print("\nAN ERROR OCCURRED:")
-        # full traceback
         traceback.print_exc()
-        # friendly hints for common problems
-        err_msg = str(ex).lower()
-        if "authentication failed" in err_msg or "unauthorized" in err_msg or "403" in err_msg:
-            print("\nHINT: Authentication failed. Check FORM_RECOGNIZER_ENDPOINT and FORM_RECOGNIZER_KEY in your .env.")
-        if "model_id" in err_msg or "model" in err_msg:
-            print("\nHINT: Validate MODEL_ID — make sure the custom model exists & model id is correct.")
-        if "file not found" in err_msg or "no such file" in err_msg:
-            print("\nHINT: Check LOCAL_DOCUMENT path and that the file exists.")
-        if "unsupported media type" in err_msg or "415" in err_msg:
-            print("\nHINT: The file may be an unsupported format — Azure Document Intelligence accepts PDF, TIFF, JPEG, PNG typically.")
+        em = str(ex).lower()
+        if "authentication failed" in em or "unauthorized" in em or "403" in em:
+            print("\nHINT: Authentication failed. Check FORM_RECOGNIZER_ENDPOINT and FORM_RECOGNIZER_KEY in .env.")
+        if "model_id" in em or "model" in em:
+            print("\nHINT: Validate MODEL_ID. Make sure the custom model is deployed and the id is correct.")
+        if "file not found" in em or "no such file" in em:
+            print("\nHINT: Check LOCAL_DOCUMENT path.")
+        if "unsupported media type" in em or "415" in em:
+            print("\nHINT: File format might be unsupported (use PDF, PNG, JPEG, TIFF).")
         sys.exit(2)
 
 if __name__ == "__main__":
