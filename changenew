@@ -1,0 +1,140 @@
+router.py
+
+from dotenv import load_dotenv
+load_dotenv()
+
+from fastapi import APIRouter
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field, validator
+
+import os
+
+from image_processor import analyze_file_async
+
+router = APIRouter()
+
+class DocumentExtractMCP(BaseModel):
+    """Trigger document extraction for a PDF file located in blob storage."""
+    AgentName: str = Field(
+        default="DocumentExtractAgent",
+        description="The unique agent name of the agent that is being called"
+    )
+    BlobUrl: str = Field(
+        ...,
+        description="Required: full blob URL (https://...) or container/blob path (container/path/to/file.pdf) to analyze"
+    )
+
+    @validator("BlobUrl")
+    def bloburl_must_not_be_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("BlobUrl must be a non-empty string pointing to the blob (full URL or container/blob path).")
+        return v.strip()
+
+
+@router.post("/document_extract_mcp", operation_id="document_extract_mcp")
+async def document_extract_mcp(p_body: DocumentExtractMCP):
+    """
+    Analyze a PDF from Azure Blob storage using image_processor.analyze_file_async and
+    return the analyzer's structured result.
+
+    Body:
+
+        AgentName (str): Agent name (optional)
+
+        BlobUrl (str): Required full blob URL or container/blob path.
+    """
+    try:
+        result = await analyze_file_async(bloburl=p_body.BlobUrl)
+
+        return JSONResponse(content={
+            "jsonrpc": "2.0",
+            "id": 1,
+            "result": result
+        })
+
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": f"Extraction failed: {e}"})
+
+
+  main.py
+  # python
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi_mcp import FastApiMCP
+import uvicorn
+from contextlib import asynccontextmanager
+import asyncio
+import os
+
+from router import router as document_router
+from image_processor import process_input_folder_on_startup
+
+async def _start_processing_task() -> None:
+    """
+    Create and store a background task that runs the processor.
+    This returns immediately after scheduling the task.
+    """
+    # schedule background processing
+    task = asyncio.create_task(process_input_folder_on_startup())
+    # stash on the running app (will be attached in lifespan)
+    return task
+
+async def _stop_processing_task(task: asyncio.Task) -> None:
+    """
+    Cancel and await the background task if it's still running.
+    """
+    if task and not task.done():
+        task.cancel()
+        try:
+            await task
+        except Exception:
+            # swallow exceptions on shutdown
+            pass
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: schedule the processing task and attach to app.state
+    try:
+        app.state.processing_task = await _start_processing_task()
+    except Exception:
+        app.state.processing_task = None
+
+    yield
+
+    # Shutdown: cancel the task if running
+    task = getattr(app.state, "processing_task", None)
+    if task:
+        await _stop_processing_task(task)
+
+app = FastAPI(lifespan=lifespan)
+
+def apply_cors(app: FastAPI):
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+def create_sub_app(title: str, description: str, version: str = "0.1.0") -> FastAPI:
+    sub_app = FastAPI(title=title, description=description, version=version, lifespan=lifespan)
+    apply_cors(sub_app)
+    return sub_app
+
+apply_cors(app)
+
+document_extractor_app = create_sub_app(
+    title="document_extract_mcp",
+    description="Analyze documents in blob storage using Azure Form Recognizer and return structured results"
+)
+
+document_extractor_app.include_router(document_router)
+FastApiMCP(document_extractor_app, include_operations=["document_extract_mcp"]).mount_http()
+
+# Mount path can be adjusted as needed; following your template style, use an API path
+app.mount("/api/v1/email_intent_agent", document_extractor_app)
+
+if __name__ == "__main__":
+    host = os.getenv("HOST", "0.0.0.0")
+    port = int(os.getenv("PORT", "8502"))
+    uvicorn.run(app, host=host, port=port)
