@@ -1,75 +1,386 @@
-"""
-This code sample shows Custom Extraction Model operations with the Azure AI Document Intelligence client library.
-The async versions of the samples require Python 3.8 or later.
+Great — I’ve put together a complete, copy-paste friendly mini project that:
+	•	reads a local document file via a dedicated function,
+	•	sends it to Azure Document Intelligence (custom model) via a dedicated function,
+	•	converts the SDK AnalyzeResult into a plain Python dict,
+	•	saves that dict as a JSON file to a separate local filepath via a dedicated function,
+	•	includes an optional printer function (you said you weren’t sure if you need it — it’s provided but not required), and
+	•	provides requirements.txt, .env.example, and a short README.
 
-To learn more, please visit the documentation - Quickstart: Document Intelligence (formerly Form Recognizer) SDKs
-https://learn.microsoft.com/azure/ai-services/document-intelligence/quickstarts/get-started-sdks-rest-api?pivots=programming-language-python
-"""
+Drop these files into a folder (e.g., docint_local_savejson/) and run. All code is synchronous and ready for VS Code.
 
+⸻
+
+Project tree
+
+docint_local_savejson/
+├─ analyze_local.py        # main script (run this)
+├─ file_helper.py          # functions to open/read local file
+├─ ai_client.py            # functions to call Document Intelligence + convert to dict
+├─ io_helper.py            # functions to save JSON to file
+├─ printer.py              # optional pretty printer (you can remove if not needed)
+├─ requirements.txt
+├─ .env.example
+└─ README.md
+
+
+⸻
+
+1) requirements.txt
+
+azure-ai-documentintelligence==1.0.0
+python-dotenv==1.0.0
+
+Install:
+
+pip install -r requirements.txt
+
+
+⸻
+
+2) .env.example
+
+Copy to .env and fill:
+
+# Document Intelligence (Form Recognizer) endpoint and key
+FORM_RECOGNIZER_ENDPOINT=https://<your-resource>.cognitiveservices.azure.com/
+FORM_RECOGNIZER_KEY=<your-form-recognizer-key>
+MODEL_ID=<your-custom-model-id>
+
+# Local document to analyze (relative or absolute path)
+LOCAL_DOCUMENT=./sample_docs/mydoc.pdf
+
+# Where to save JSON output
+OUTPUT_JSON=./output/analysis_result.json
+
+
+⸻
+
+3) file_helper.py
+
+Responsible for opening/reading the local file. Two functions:
+	•	get_local_file_path() — returns normalized Path (separate function as requested).
+	•	open_local_file_stream() — returns an open binary file object (caller must close).
+
+# file_helper.py
+from pathlib import Path
+from typing import Tuple, IO
+
+def get_local_file_path(path_str: str) -> Path:
+    """
+    Return a Path object for the given path string.
+    Raises ValueError if path_str is empty.
+    """
+    if not path_str or not path_str.strip():
+        raise ValueError("LOCAL_DOCUMENT path is required and cannot be empty.")
+    p = Path(path_str).expanduser().resolve()
+    return p
+
+def open_local_file_stream(path: Path) -> IO[bytes]:
+    """
+    Open the local file in binary read mode and return the file object.
+    Caller is responsible for closing the file (or use with-statement).
+    Raises FileNotFoundError if file doesn't exist.
+    """
+    if not path.is_file():
+        raise FileNotFoundError(f"Local document not found: {path}")
+    return open(path, "rb")
+
+
+⸻
+
+4) ai_client.py
+
+Handles creating the Document Intelligence client, submitting the document, and converting the AnalyzeResult into a JSON-serializable dict. All SDK-specific work is in this file.
+
+# ai_client.py
+import os
+from typing import IO, Dict, Any, List
 from azure.core.credentials import AzureKeyCredential
 from azure.ai.documentintelligence import DocumentIntelligenceClient
-from azure.ai.documentintelligence.models import AnalyzeDocumentRequest
+from azure.ai.documentintelligence import AnalyzeResult
 
-"""
-Remember to remove the key from your code when you're done, and never post it publicly. For production, use
-secure methods to store and access your credentials. For more information, see 
-https://docs.microsoft.com/en-us/azure/cognitive-services/cognitive-services-security?tabs=command-line%2Ccsharp#environment-variables-and-application-configuration
-"""
-endpoint = "YOUR_FORM_RECOGNIZER_ENDPOINT"
-key = "YOUR_FORM_RECOGNIZER_KEY"
+def create_client(endpoint: str, key: str) -> DocumentIntelligenceClient:
+    if not endpoint or not key:
+        raise ValueError("Both endpoint and key are required to create DocumentIntelligenceClient.")
+    return DocumentIntelligenceClient(endpoint=endpoint, credential=AzureKeyCredential(key))
 
-model_id = "YOUR_CUSTOM_BUILT_MODEL_ID"
-formUrl = "YOUR_DOCUMENT"
+def analyze_local_file(
+    client: DocumentIntelligenceClient, model_id: str, file_stream: IO[bytes]
+) -> AnalyzeResult:
+    """
+    Sends the open binary file_stream to Document Intelligence (custom model).
+    Returns the AnalyzeResult object.
+    """
+    if not model_id:
+        raise ValueError("MODEL_ID is required")
+    # Note: SDK expects a file-like object for the 'document' parameter
+    poller = client.begin_analyze_document(model_id, document=file_stream)
+    result = poller.result()
+    return result
 
-document_intelligence_client  = DocumentIntelligenceClient(
-    endpoint=endpoint, credential=AzureKeyCredential(key)
-)
+# Conversion helpers to serialize the AnalyzeResult to plain dict
+def analyze_result_to_dict(result: AnalyzeResult) -> Dict[str, Any]:
+    """
+    Convert AnalyzeResult (SDK object) into JSON-serializable dict.
+    """
+    out: Dict[str, Any] = {}
+    out["model_id"] = result.model_id if hasattr(result, "model_id") else None
 
-# Make sure your document's type is included in the list of document types the custom model can analyze
-poller = document_intelligence_client.begin_analyze_document(
-    model_id, AnalyzeDocumentRequest(url_source=formUrl)
-)
-result = poller.result()
+    # Documents / fields
+    docs: List[Dict[str, Any]] = []
+    for doc in result.documents:
+        doc_dict: Dict[str, Any] = {
+            "doc_type": getattr(doc, "doc_type", None),
+            "confidence": getattr(doc, "confidence", None),
+            "fields": {}
+        }
+        for name, field in (doc.fields or {}).items():
+            # field may have: content, confidence, type, bounding_regions etc.
+            doc_dict["fields"][name] = {
+                "content": getattr(field, "content", None),
+                "confidence": getattr(field, "confidence", None),
+                "type": getattr(field, "type", None),
+            }
+        docs.append(doc_dict)
+    out["documents"] = docs
 
-for idx, document in enumerate(result.documents):
-    print("--------Analyzing document #{}--------".format(idx + 1))
-    print("Document has type {}".format(document.doc_type))
-    print("Document has confidence {}".format(document.confidence))
-    print("Document was analyzed by model with ID {}".format(result.model_id))
-    for name, field in document.fields.items():
-        print("......found field of type '{}' with value '{}' and with confidence {}".format(field.type, field.content, field.confidence))
+    # Pages: lines, words, selection_marks
+    pages_list: List[Dict[str, Any]] = []
+    for page in result.pages:
+        page_dict: Dict[str, Any] = {
+            "page_number": page.page_number,
+            "width": getattr(page, "width", None),
+            "height": getattr(page, "height", None),
+            "unit": getattr(page, "unit", None),
+            "lines": [line.content for line in (page.lines or [])],
+            "words": [
+                {"content": w.content, "confidence": getattr(w, "confidence", None)}
+                for w in (page.words or [])
+            ],
+        }
+        # selection marks (checkbox/radio) if present
+        if getattr(page, "selection_marks", None):
+            page_dict["selection_marks"] = [
+                {"state": sm.state, "confidence": getattr(sm, "confidence", None)}
+                for sm in page.selection_marks
+            ]
+        pages_list.append(page_dict)
+    out["pages"] = pages_list
+
+    # Tables
+    tables_list: List[Dict[str, Any]] = []
+    for table in (result.tables or []):
+        tbl = {
+            "row_count": getattr(table, "row_count", None),
+            "column_count": getattr(table, "column_count", None),
+            "bounding_regions": [getattr(r, "page_number", None) for r in (table.bounding_regions or [])],
+            "cells": []
+        }
+        for cell in (table.cells or []):
+            tbl["cells"].append({
+                "row_index": getattr(cell, "row_index", None),
+                "column_index": getattr(cell, "column_index", None),
+                "content": getattr(cell, "content", None),
+                "row_span": getattr(cell, "row_span", None),
+                "column_span": getattr(cell, "column_span", None)
+            })
+        tables_list.append(tbl)
+    out["tables"] = tables_list
+
+    # Raw text (if available)
+    if getattr(result, "content", None):
+        out["raw_text"] = result.content
+
+    return out
 
 
-# iterate over tables, lines, and selection marks on each page
-for page in result.pages:
-    print("\nLines found on page {}".format(page.page_number))
-    for line in page.lines:
-        print("...Line '{}'".format(line.content.encode('utf-8')))
-    for word in page.words:
-        print(
-            "...Word '{}' has a confidence of {}".format(
-                word.content.encode('utf-8'), word.confidence
-            )
-        )
-    if page.selection_marks:
-        for selection_mark in page.selection_marks:
-            print(
-                "...Selection mark is '{}' and has a confidence of {}".format(
-                    selection_mark.state, selection_mark.confidence
-                )
-            )
+⸻
 
-for i, table in enumerate(result.tables):
-    print("\nTable {} can be found on page:".format(i + 1))
-    for region in table.bounding_regions:
-        print("...{}".format(i + 1, region.page_number))
-    for cell in table.cells:
-        print(
-            "...Cell[{}][{}] has content '{}'".format(
-                cell.row_index, cell.column_index, cell.content.encode('utf-8')
-            )
-        )
-print("-----------------------------------")
+5) io_helper.py
+
+Function to save the JSON dict to disk (ensures directory exists). Separate function for saving as you requested.
+
+# io_helper.py
+import json
+from pathlib import Path
+from typing import Any, Dict
+
+def save_json_to_path(data: Dict[str, Any], path_str: str) -> Path:
+    """
+    Save `data` (a JSON-serializable dict) to the given path.
+    Creates parent directories if necessary.
+    Returns the Path to the saved file.
+    """
+    p = Path(path_str).expanduser().resolve()
+    if not p.parent.exists():
+        p.parent.mkdir(parents=True, exist_ok=True)
+    with p.open("w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    return p
 
 
+⸻
 
+6) printer.py (optional)
+
+If you want human-readable console output in addition to the JSON file. You can omit calling this if you don’t want prints.
+
+# printer.py
+from typing import Dict, Any
+
+def pretty_print_result(data: Dict[str, Any]) -> None:
+    """
+    Simple console output summarizing the analyze result dict.
+    This is optional — call it only if you want printed output.
+    """
+    print("\n=== Analysis Summary ===")
+    print(f"Model ID: {data.get('model_id')}")
+    docs = data.get("documents", [])
+    for i, doc in enumerate(docs, start=1):
+        print(f"\nDocument #{i}: type={doc.get('doc_type')}  confidence={doc.get('confidence')}")
+        fields = doc.get("fields", {})
+        if fields:
+            print(" Fields:")
+            for name, info in fields.items():
+                print(f"  - {name}: {info.get('content')} (conf: {info.get('confidence')})")
+        else:
+            print(" No document-level fields.")
+
+    pages = data.get("pages", [])
+    print(f"\nPages: {len(pages)}")
+    if pages:
+        # print first page lines as example
+        first_page = pages[0]
+        lines = first_page.get("lines", [])
+        if lines:
+            print("\nFirst page lines (first 10 shown):")
+            for line in lines[:10]:
+                print("  " + line)
+    print("\nJSON output saved (see path above).")
+
+
+⸻
+
+7) analyze_local.py (main)
+
+Main script — ties everything together. It reads .env, opens the local file via file_helper.open_local_file_stream, calls analyze_local_file, converts to dict, saves JSON by calling save_json_to_path. It also has an optional flag PRINT_TO_CONSOLE (env var) to control whether printer.pretty_print_result runs.
+
+# analyze_local.py
+import os
+import sys
+from dotenv import load_dotenv
+
+from file_helper import get_local_file_path, open_local_file_stream
+from ai_client import create_client, analyze_local_file, analyze_result_to_dict
+from io_helper import save_json_to_path
+from printer import pretty_print_result
+
+def main():
+    load_dotenv()  # loads .env if present
+
+    endpoint = os.getenv("FORM_RECOGNIZER_ENDPOINT")
+    key = os.getenv("FORM_RECOGNIZER_KEY")
+    model_id = os.getenv("MODEL_ID")
+    local_document = os.getenv("LOCAL_DOCUMENT", "").strip()
+    output_json = os.getenv("OUTPUT_JSON", "./output/analysis_result.json").strip()
+    print_to_console = os.getenv("PRINT_TO_CONSOLE", "true").lower() in ("1", "true", "yes")
+
+    # validate required env vars
+    missing = [k for k, v in {
+        "FORM_RECOGNIZER_ENDPOINT": endpoint,
+        "FORM_RECOGNIZER_KEY": key,
+        "MODEL_ID": model_id,
+        "LOCAL_DOCUMENT": local_document,
+    }.items() if not v]
+    if missing:
+        print(f"Error: missing required environment variables: {', '.join(missing)}")
+        print("Copy .env.example to .env and fill the values.")
+        sys.exit(1)
+
+    try:
+        # get path and open stream
+        local_path = get_local_file_path(local_document)
+        print(f"Local document resolved to: {local_path}")
+        with open_local_file_stream(local_path) as f:
+            # create client
+            client = create_client(endpoint, key)
+            print("Sending document to Document Intelligence for analysis...")
+            result = analyze_local_file(client, model_id, f)
+
+        # convert to dict
+        result_dict = analyze_result_to_dict(result)
+
+        # save json
+        saved_path = save_json_to_path(result_dict, output_json)
+        print(f"Saved analysis JSON to: {saved_path}")
+
+        # optional console print
+        if print_to_console:
+            pretty_print_result(result_dict)
+
+    except Exception as ex:
+        print("An error occurred:")
+        print(repr(ex))
+        sys.exit(2)
+
+
+if __name__ == "__main__":
+    main()
+
+
+⸻
+
+8) README.md
+
+Short instructions.
+
+# Document Intelligence - Local File → Save JSON Demo
+
+This demo reads a local file (PDF/JPEG/PNG/TIFF), sends it to Azure Document Intelligence (custom model),
+converts the analysis result to a JSON-serializable dict, and saves it to disk.
+
+## Setup
+
+1. Create venv and activate:
+   ```bash
+   python -m venv .venv
+   # macOS / Linux
+   source .venv/bin/activate
+   # Windows (PowerShell)
+   .venv\Scripts\Activate.ps1
+
+	2.	Install dependencies:
+
+pip install -r requirements.txt
+
+
+	3.	Copy .env.example → .env and fill values:
+	•	LOCAL_DOCUMENT points to your local file (relative or absolute).
+	•	OUTPUT_JSON is where the JSON will be saved (folder will be created if needed).
+	•	PRINT_TO_CONSOLE (optional): true/false controlling console summary printing.
+	4.	Run:
+
+python analyze_local.py
+
+
+
+Notes
+	•	The code uses an open file stream (reads file from disk) — not loading entire file into memory unnecessarily.
+	•	Output JSON schema is simple and intentionally small; extend ai_client.analyze_result_to_dict if you want more fields.
+	•	Keep secrets out of source control; use secure secret management for production.
+
+---
+
+## Quick usage notes and defaults
+- Default `PRINT_TO_CONSOLE` is `"true"`; set to `"false"` in `.env` to disable console printing.
+- If you want **no printing at all**, set `PRINT_TO_CONSOLE=false` or remove the `pretty_print_result` call in `analyze_local.py`.
+- The saved JSON contains: `model_id`, `documents` (with fields), `pages` (lines/words/selection_marks), and `tables` (cells).
+
+---
+
+If you want, I can now:
+- produce a **version that streams the file without closing** (not recommended) — but current version uses safe `with` block; or
+- add more metadata into the JSON (word bounding boxes, bounding regions, confidences, page-level coords); or
+- remove the `printer.py` and inline only the JSON save if you prefer no console output.
+
+Which variant should I paste next (if any)?
