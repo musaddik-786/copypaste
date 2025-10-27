@@ -1,3 +1,33 @@
+test_client.py
+import asyncio
+from langchain_mcp_adapters.client import MultiServerMCPClient
+
+
+async def get_tool_list(config_mcp_server):
+    client = MultiServerMCPClient(config_mcp_server)
+    tools_list = await client.get_tools()
+    print("Tools fetched from MCP:", [tool.name for tool in tools_list])
+    return tools_list
+     
+    # await client.aclose()
+
+
+async def main():
+    config_mcp_server = {
+        "sanction_checker_mcp": {
+            "url": "http://localhost:8601/api/v1/eligibility_agent/mcp",
+             "transport":"streamable_http", 
+        }
+    }
+    tools = await get_tool_list(config_mcp_server=config_mcp_server)
+    print(tools)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+
+
+
 file_router.py
 
 from fastapi import APIRouter
