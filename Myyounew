@@ -1,159 +1,67 @@
-Great — I updated the single-file script so it writes the exact same JSON that appears in the Document Intelligence Studio Results tab by using result.to_dict() directly. Below are the three files you need: app.py, .env (example), and requirements.txt. Copy them into your project folder, fill the .env, install deps, and run.
-
-⸻
-
-app.py
-
 #!/usr/bin/env python3
 """
-app.py
+analyze_local.py
 
-Analyze a local document using an Azure Document Intelligence custom model
-and save the exact JSON output (the same JSON you see in Studio Results)
-to a local file.
+Run this file directly:
+    python analyze_local.py
 
-Usage:
-  python app.py analyze <input_file_path> <output_json_path>
-
-Environment variables (put them in .env):
-  ENDPOINT   - your Azure Document Intelligence endpoint
-  KEY        - your Azure key
-  MODEL_ID   - your trained custom model id
+It will:
+  • Read .env for ENDPOINT, KEY, MODEL_ID
+  • Analyze 'input.pdf' from the same folder
+  • Save exact JSON (same as Azure Studio) as 'output.json'
 """
 
 import os
 import json
-import argparse
 from dotenv import load_dotenv
 from azure.core.credentials import AzureKeyCredential
 from azure.ai.documentintelligence import DocumentIntelligenceClient
 
-# Load .env
-load_dotenv()
 
-ENDPOINT = os.getenv("ENDPOINT")
-KEY = os.getenv("KEY")
-MODEL_ID = os.getenv("MODEL_ID")
+def main():
+    # 1️⃣ Load .env
+    load_dotenv()
+    endpoint = os.getenv("ENDPOINT")
+    key = os.getenv("KEY")
+    model_id = os.getenv("MODEL_ID")
 
+    if not (endpoint and key and model_id):
+        raise ValueError("Missing ENDPOINT, KEY, or MODEL_ID in .env file.")
 
-def create_client() -> DocumentIntelligenceClient:
-    """
-    Create and return a DocumentIntelligenceClient using values from environment variables.
-    """
-    if not ENDPOINT or not KEY:
-        raise ValueError("Missing ENDPOINT or KEY in environment. Add them to your .env file.")
-    credential = AzureKeyCredential(KEY)
-    client = DocumentIntelligenceClient(endpoint=ENDPOINT, credential=credential)
-    return client
+    # 2️⃣ Define default file paths
+    input_path = os.path.join(os.getcwd(), "input.pdf")
+    output_path = os.path.join(os.getcwd(), "output.json")
 
-
-def analyze_from_file(client: DocumentIntelligenceClient, model_id: str, input_path: str):
-    """
-    Analyze a local file using a custom model.
-    Returns the SDK result object (poller.result()).
-    """
     if not os.path.exists(input_path):
-        raise FileNotFoundError(f"Input file not found: {input_path}")
+        raise FileNotFoundError(
+            f"❌ Could not find 'input.pdf' in {os.getcwd()}.\n"
+            f"Please place your document there and re-run: python analyze_local.py"
+        )
 
+    # 3️⃣ Create Azure client
+    print("🔗 Connecting to Azure Document Intelligence service...")
+    client = DocumentIntelligenceClient(
+        endpoint=endpoint,
+        credential=AzureKeyCredential(key)
+    )
+
+    # 4️⃣ Analyze document
+    print(f"📄 Analyzing '{input_path}' using model '{model_id}'...")
     with open(input_path, "rb") as f:
         poller = client.begin_analyze_document(model_id=model_id, document=f)
         result = poller.result()
-    return result
 
-
-def save_result_as_json_exact(result, output_path: str):
-    """
-    Save the *exact* JSON returned by the SDK (equivalent to Studio Results).
-    Uses result.to_dict() to preserve the same structure.
-    """
-    # Convert to built-in types (dict/list) exactly as SDK provides
-    obj = result.to_dict()
-
-    # ensure output directory exists
-    dirpath = os.path.dirname(os.path.abspath(output_path))
-    if dirpath and not os.path.exists(dirpath):
-        os.makedirs(dirpath, exist_ok=True)
-
-    # Write JSON (ensure_ascii=False to preserve unicode; indent for readability)
+    # 5️⃣ Save exact JSON output
+    print("💾 Saving results as 'output.json'...")
+    json_data = result.to_dict()
     with open(output_path, "w", encoding="utf-8") as wf:
-        json.dump(obj, wf, indent=2, ensure_ascii=False)
+        json.dump(json_data, wf, indent=2, ensure_ascii=False)
 
-    return output_path
-
-
-def main():
-    parser = argparse.ArgumentParser(description="Analyze a local document with Azure Document Intelligence custom model and save exact JSON output.")
-    subparsers = parser.add_subparsers(dest="command", required=True)
-
-    analyze_parser = subparsers.add_parser("analyze", help="Analyze a file and write JSON output.")
-    analyze_parser.add_argument("input_file", help="Path to local input file (pdf, jpg, png, docx, etc.)")
-    analyze_parser.add_argument("output_json", help="Path where to save the JSON output.")
-
-    args = parser.parse_args()
-
-    if args.command == "analyze":
-        client = create_client()
-        print(f"Analyzing '{args.input_file}' with model '{MODEL_ID}' ...")
-        try:
-            result = analyze_from_file(client, MODEL_ID, args.input_file)
-        except Exception as e:
-            print("Error while analyzing document:", str(e))
-            raise
-
-        print("Saving exact SDK JSON to", args.output_json)
-        try:
-            save_result_as_json_exact(result, args.output_json)
-        except Exception as e:
-            print("Error while saving JSON:", str(e))
-            raise
-        print("Done. JSON saved.")
+    print("\n✅ Done!")
+    print(f"📂 Input file:  {input_path}")
+    print(f"📁 Output file: {output_path}")
+    print("You can open 'output.json' to see the same JSON as in Azure Studio.\n")
 
 
 if __name__ == "__main__":
     main()
-
-
-⸻
-
-.env (example — put in same folder as app.py)
-
-# .env - fill these with your Azure Document Intelligence resource values
-ENDPOINT=https://<your-form-recognizer-resource>.cognitiveservices.azure.com/
-KEY=YOUR_FORM_RECOGNIZER_KEY
-MODEL_ID=YOUR_CUSTOM_BUILT_MODEL_ID
-
-
-⸻
-
-requirements.txt
-
-azure-ai-documentintelligence
-azure-core
-python-dotenv
-
-
-⸻
-
-Quick steps to run
-	1.	Put app.py, .env, requirements.txt in the same folder.
-	2.	Fill .env with your ENDPOINT, KEY, and MODEL_ID.
-	3.	Create a virtualenv (recommended) and install:
-
-pip install -r requirements.txt
-
-
-	4.	Run:
-
-python app.py analyze sample.pdf result.json
-
-
-	5.	result.json will contain the exact JSON structure you see in the Studio Results tab.
-
-⸻
-
-If you want, I can:
-	•	Add a --pretty flag (minified vs pretty JSON),
-	•	Add an option to send a URL (instead of local file),
-	•	Or include extra fields (bounding polygons / raw page spans) — though result.to_dict() already contains those.
-
-Which one next?
