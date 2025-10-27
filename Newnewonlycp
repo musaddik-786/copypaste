@@ -1,92 +1,218 @@
+file_router.py
+
+from fastapi import APIRouter
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
+from handler import compare_name_with_sanctions
+
+router = APIRouter()
 
 
-"""
-This code sample shows Custom Extraction Model operations with the Azure AI Document Intelligence client library.
-The async versions of the samples require Python 3.8 or later.
+class CompareRequest(BaseModel):
+    """
+    This endpoint is invoked by the Data Extraction Agent.
+    It passes the FULL Azure Blob URL of the extracted JSON in 'jsonfilepath'.
 
-To learn more, please visit the documentation - Quickstart: Document Intelligence (formerly Form Recognizer) SDKs
-https://learn.microsoft.com/azure/ai-services/document-intelligence/quickstarts/get-started-sdks-rest-api?pivots=programming-language-python
-"""
+    Example payload:
+    {
+      "jsonfilepath": "https://<account>.blob.core.windows.net/<container>/<path>/file.json"
+    }
 
-from azure.core.credentials import AzureKeyCredential
-from azure.ai.documentintelligence import DocumentIntelligenceClient
-from azure.ai.documentintelligence.models import AnalyzeDocumentRequest
+    The service will:
+    - Download that JSON from Azure Blob using AZURE_STORAGE_CONNECTION_STRING,
+    - Extract the name from Owner/Insured/Contact/NAMED INSURED(S),
+    - Compare it against local 'input/sanctions.csv',
+    - Return the comparison result in a JSON-RPC envelope (consistent with your duplicate attachment checker).
+    """
+    jsonfilepath: str = Field(..., description="Full Azure Blob URL to the extracted JSON.")
 
-"""
-Remember to remove the key from your code when you're done, and never post it publicly. For production, use
-secure methods to store and access your credentials. For more information, see 
-https://docs.microsoft.com/en-us/azure/cognitive-services/cognitive-services-security?tabs=command-line%2Ccsharp#environment-variables-and-application-configuration
-"""
-endpoint = "YOUR_FORM_RECOGNIZER_ENDPOINT"
-key = "YOUR_FORM_RECOGNIZER_KEY"
 
-model_id = "YOUR_CUSTOM_BUILT_MODEL_ID"
-formUrl = "YOUR_DOCUMENT"
-
-document_intelligence_client  = DocumentIntelligenceClient(
-    endpoint=endpoint, credential=AzureKeyCredential(key)
+@router.post(
+    "/Licensing_&_Sanction_Checker_MCP",
+    operation_id="Licensing_&_Sanction_Checker_MCP",
+    summary="Compare JSON (Owner/Insured/Contact/NAMED INSURED(S)) from blob URL with local sanctions CSV."
 )
+async def compare_files(request: CompareRequest):
+    """
+    Receives the JSON blob URL from the Data Extraction Agent and performs the comparison.
+    Returns a JSON-RPC envelope for consistency with the duplicate attachment checker.
+    """
+    try:
+        result = await compare_name_with_sanctions(json_file_url=request.jsonfilepath)
+        return JSONResponse(
+            content={
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": result
+            },
+            status_code=200
+        )
+    except Exception as e:
+        return JSONResponse(
+            content={
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": {"status": False, "error": f"Unexpected server error: {str(e)}"}
+            },
+            status_code=200
+        )
 
-# Make sure your document's type is included in the list of document types the custom model can analyze
-poller = document_intelligence_client.begin_analyze_document(
-    model_id, AnalyzeDocumentRequest(url_source=formUrl)
+
+
+
+
+handler.py
+import os
+import json
+from typing import Optional, Dict
+import pandas as pd
+from azure.storage.blob.aio import BlobServiceClient
+from azure.core.exceptions import ResourceNotFoundError
+from dotenv import load_dotenv
+
+from service import _require_env, _parse_blob_url
+
+load_dotenv()
+
+AZURE_STORAGE_CONNECTION_STRING = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "")
+LOCAL_CSV_PATH = os.path.join("input", "sanctions.csv")
+
+
+async def compare_name_with_sanctions(json_file_url: str) -> Dict:
+    """
+    Flow:
+      1) Parse blob URL -> (container, blob_name)
+      2) Download JSON (async)
+      3) Extract FIRST matching field:
+         Owner Name / Insured Name / Contact Name / NAMED INSURED(S)
+      4) Read local CSV input/sanctions.csv
+      5) Case-insensitive exact match against entity_name
+      6) Save outputs to ./output and return structured result (with 'status')
+    """
+
+    try:
+        _require_env()
+    except Exception as e:
+        return {"status": False, "error": str(e)}
+
+
+    try:
+        container_name, blob_name = _parse_blob_url(json_file_url)
+    except Exception as e:
+        return {"status": False, "error": f"Invalid jsonfilepath: {e}"}
+
+    try:
+        async with BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING) as blob_service:
+            container_client = blob_service.get_container_client(container_name)
+            blob_client = container_client.get_blob_client(blob_name)
+            try:
+                await blob_client.get_blob_properties()
+            except ResourceNotFoundError:
+                return {"status": False, "error": f"JSON blob not found: container='{container_name}', blob='{blob_name}'"}
+
+            stream = await blob_client.download_blob()
+            raw_bytes = await stream.readall()
+    except Exception as e:
+        return {"status": False, "error": f"Error connecting to Azure Blob Storage: {e}"}
+
+    #python dict
+    try:
+        data = json.loads(raw_bytes.decode("utf-8"))
+    except Exception as e:
+        return {"status": False, "error": f"Failed to parse JSON: {e}"}
+
+    
+    target_labels = {"ownername", "insuredname", "contactname", "namedinsured(s)", "applicant/firstnameinsured","insured/applicant","namedinsured","firstnameinsured","applicantname"}
+    extracted_name: Optional[str] = None
+    fields = data.get("extracted_fields", [])
+
+    if isinstance(fields, list):
+        for item in fields:
+            if isinstance(item, dict):
+                label_raw = item.get("Field", "")
+                if isinstance(label_raw, str):
+                    normalized = label_raw.lower().replace(" ", "").replace(":", "")
+                    if normalized in target_labels:
+                        value = item.get("Value", "").strip()
+                        if value:
+                            extracted_name = value
+                            break
+
+    if not extracted_name:
+        return {"status": False, "error": "No matching name field found in JSON."}
+
+    if not os.path.exists(LOCAL_CSV_PATH):
+        return {"status": False, "error": f"Local CSV not found at '{LOCAL_CSV_PATH}'"}
+
+    try:
+        csv_df = pd.read_csv(LOCAL_CSV_PATH)
+    except Exception as e:
+        return {"status": False, "error": f"Failed to read CSV '{LOCAL_CSV_PATH}': {e}"}
+
+    if "entity_name" not in csv_df.columns:
+        return {"status": False, "error": "CSV must contain 'entity_name' column"}
+    def norm(s: str) -> str:
+        return s.strip().lower() if isinstance(s, str) else ""
+
+    entity_set = {norm(x) for x in csv_df["entity_name"].dropna() if isinstance(x, str) and x.strip()}
+    # is_unique = norm(extracted_name) not in entity_set
+    is_unique = norm(extracted_name) in entity_set
+
+    results = [{"Extracted Name": extracted_name, "is_Sanctioned": is_unique}]
+
+    try:
+        os.makedirs("./output", exist_ok=True)
+        json_output = "./output/comparison_results.json"
+        with open(json_output, "w", encoding="utf-8") as f:
+            json.dump({"results": results}, f, indent=4, ensure_ascii=False)
+    except Exception as e:
+        return {"status": False, "error": f"Failed saving results: {e}"}
+
+    return {"status": True, "results": results}
+
+
+
+main.py
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi_mcp import FastApiMCP
+import uvicorn
+
+from file_router import router as file_router
+
+
+def apply_cors(app: FastAPI):
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+
+def create_sub_app(title: str, description: str, version: str = "0.1.0") -> FastAPI:
+    sub = FastAPI(title=title, description=description, version=version)
+    apply_cors(sub)
+    return sub
+
+
+app = FastAPI()
+apply_cors(app)
+
+file_app = create_sub_app(
+    title="Licensing & Sanction Checker MCP",
+    description="Receives JSON blob URL from Data Extraction Agent and compares extracted name with local sanctions CSV."
 )
-result = poller.result()
+file_app.include_router(file_router)
 
-for idx, document in enumerate(result.documents):
-    print("--------Analyzing document #{}--------".format(idx + 1))
-    print("Document has type {}".format(document.doc_type))
-    print("Document has confidence {}".format(document.confidence))
-    print("Document was analyzed by model with ID {}".format(result.model_id))
-    for name, field in document.fields.items():
-        print("......found field of type '{}' with value '{}' and with confidence {}".format(field.type, field.content, field.confidence))
+# Expose ONLY this operation id via MCP HTTP (client will use transport='http')
+FastApiMCP(file_app, include_operations=["Licensing_&_Sanction_Checker_MCP"]).mount_http()
+
+# Mount the sub-app under this prefix (keep as-is per your request)
+app.mount("/api/v1/eligibility_agent", file_app)
 
 
-# iterate over tables, lines, and selection marks on each page
-for page in result.pages:
-    print("\nLines found on page {}".format(page.page_number))
-    for line in page.lines:
-        print("...Line '{}'".format(line.content.encode('utf-8')))
-    for word in page.words:
-        print(
-            "...Word '{}' has a confidence of {}".format(
-                word.content.encode('utf-8'), word.confidence
-            )
-        )
-    if page.selection_marks:
-        for selection_mark in page.selection_marks:
-            print(
-                "...Selection mark is '{}' and has a confidence of {}".format(
-                    selection_mark.state, selection_mark.confidence
-                )
-            )
-
-for i, table in enumerate(result.tables):
-    print("\nTable {} can be found on page:".format(i + 1))
-    for region in table.bounding_regions:
-        print("...{}".format(i + 1, region.page_number))
-    for cell in table.cells:
-        print(
-            "...Cell[{}][{}] has content '{}'".format(
-                cell.row_index, cell.column_index, cell.content.encode('utf-8')
-            )
-        )
-print("-----------------------------------")
-and also tell me can i use it in my vs code and upload the pdf from the vs code file path itself whcih earlier on doc intellegenvce i was doing it why uploading on the document intellegence studio, and also i want to store the output in json in a different file path earlier as in docuemnt inteliegence i was able to see it on the screen itself
-,so create 2 functions itself for uploading doc which is stored in the filepath of the same project
-and download function to store the json in some other filepath
-
-
-
-
-
-
-
-
-
-
-
-
-
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8601)
 
 
