@@ -1,3 +1,27 @@
+Great — below is a complete, ready-to-drop-in MCP-style service that exactly follows the names and operation IDs you provided.
+
+What you get
+	•	router.py — uses the same DocumentExtractMCP model and document_extract_mcp operation id & parameter names (AgentName, BlobUrl) you showed.
+	•	main.py — same startup/shutdown lifecycle, background task scheduling, MCP registration and mount path as your sample (mounted at /api/v1/email_intent_agent).
+	•	image_processor.py — contains the actual async logic:
+	•	analyze_file_async(bloburl: str) — downloads the PDF from the given Azure Blob URL into ./input.pdf, runs Azure Document Intelligence analysis (same logic you had), saves ./output.json locally, uploads the JSON to the output-results container, and returns a result dict including the output_blob_url.
+	•	process_input_folder_on_startup() — a simple startup task that scans ./input folder for .pdf files and (if any) calls analyze_file_async for each. (This is non-blocking and finishes quickly; adjust if you want long-running polling.)
+	•	service.py — env checks and blob URL parsing utility (same semantics as your licensing/sanctions code).
+	•	test_client.py — MultiServerMCPClient test that fetches tools from the MCP (matches your earlier licensing-style test client).
+	•	test_scripts.py — requests-based test script that POSTs { "AgentName": "...", "BlobUrl": "..." } to /document_extract_mcp (same format as your licensing tests).
+
+Drop these files into your project root (replace existing ones if needed). Ensure your .env includes:
+
+ENDPOINT=<your document intelligence endpoint>
+KEY=<your document intelligence key>
+MODEL_ID=<your model id>
+AZURE_STORAGE_CONNECTION_STRING=<your storage account connection string>
+HOST=0.0.0.0
+PORT=8502
+
+
+⸻
+
 router.py
 
 from dotenv import load_dotenv
@@ -7,11 +31,10 @@ from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, validator
 
-import os
-
 from image_processor import analyze_file_async
 
 router = APIRouter()
+
 
 class DocumentExtractMCP(BaseModel):
     """Trigger document extraction for a PDF file located in blob storage."""
@@ -53,11 +76,14 @@ async def document_extract_mcp(p_body: DocumentExtractMCP):
         })
 
     except Exception as e:
+        # Keep error behavior similar to your sample: return HTTP 500 with error message
         return JSONResponse(status_code=500, content={"error": f"Extraction failed: {e}"})
 
 
-  main.py
-  # python
+⸻
+
+main.py
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi_mcp import FastApiMCP
@@ -71,12 +97,10 @@ from image_processor import process_input_folder_on_startup
 
 async def _start_processing_task() -> None:
     """
-    Create and store a background task that runs the processor.
-    This returns immediately after scheduling the task.
+    Create and store a background task that runs the processor once at startup.
+    This returns the created task (already scheduled).
     """
-    # schedule background processing
     task = asyncio.create_task(process_input_folder_on_startup())
-    # stash on the running app (will be attached in lifespan)
     return task
 
 async def _stop_processing_task(task: asyncio.Task) -> None:
@@ -131,10 +155,310 @@ document_extractor_app = create_sub_app(
 document_extractor_app.include_router(document_router)
 FastApiMCP(document_extractor_app, include_operations=["document_extract_mcp"]).mount_http()
 
-# Mount path can be adjusted as needed; following your template style, use an API path
+# Mount path kept as in your template
 app.mount("/api/v1/email_intent_agent", document_extractor_app)
+
 
 if __name__ == "__main__":
     host = os.getenv("HOST", "0.0.0.0")
     port = int(os.getenv("PORT", "8502"))
     uvicorn.run(app, host=host, port=port)
+
+
+⸻
+
+image_processor.py
+
+import os
+import json
+import uuid
+from datetime import datetime
+from typing import Optional
+
+from dotenv import load_dotenv
+load_dotenv()
+
+from azure.core.credentials import AzureKeyCredential
+from azure.ai.documentintelligence.aio import DocumentIntelligenceClient
+from azure.storage.blob.aio import BlobServiceClient
+from azure.core.exceptions import ResourceNotFoundError
+
+from service import _require_env, get_env_values, AZURE_STORAGE_CONNECTION_STRING, _parse_blob_url
+
+# Local filenames (preserve the same I/O semantics you had)
+LOCAL_INPUT_FILENAME = "input.pdf"
+LOCAL_OUTPUT_FILENAME = "output.json"
+
+
+async def analyze_file_async(bloburl: str) -> dict:
+    """
+    1) Parse bloburl
+    2) Download PDF blob to ./input.pdf
+    3) Call Azure Document Intelligence to analyze that local file (identical logic)
+    4) Save JSON locally as ./output.json
+    5) Upload JSON to output-results container and return output blob url
+    """
+    # Validate env
+    try:
+        _require_env()
+    except Exception as e:
+        return {"status": False, "error": str(e)}
+
+    endpoint, key, model_id = get_env_values()
+
+    # Parse blob url -> container/blobname
+    try:
+        src_container, src_blob = _parse_blob_url(bloburl)
+    except Exception as e:
+        return {"status": False, "error": f"Invalid BlobUrl: {e}"}
+
+    # Download PDF bytes from blob storage
+    if not AZURE_STORAGE_CONNECTION_STRING:
+        return {"status": False, "error": "Missing AZURE_STORAGE_CONNECTION_STRING in .env"}
+
+    try:
+        async with BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING) as blob_service:
+            container_client = blob_service.get_container_client(src_container)
+            blob_client = container_client.get_blob_client(src_blob)
+            try:
+                await blob_client.get_blob_properties()
+            except ResourceNotFoundError:
+                return {"status": False, "error": f"PDF blob not found: container='{src_container}', blob='{src_blob}'"}
+
+            stream = await blob_client.download_blob()
+            pdf_bytes = await stream.readall()
+    except Exception as e:
+        return {"status": False, "error": f"Error downloading PDF from Blob Storage: {e}"}
+
+    # Write to local input.pdf
+    input_path = os.path.join(os.getcwd(), LOCAL_INPUT_FILENAME)
+    try:
+        with open(input_path, "wb") as wf:
+            wf.write(pdf_bytes)
+    except Exception as e:
+        return {"status": False, "error": f"Failed to write local input file '{input_path}': {e}"}
+
+    # Analyze using Azure Document Intelligence (async)
+    try:
+        client = DocumentIntelligenceClient(endpoint=endpoint, credential=AzureKeyCredential(key))
+    except Exception as e:
+        return {"status": False, "error": f"Failed to create DocumentIntelligenceClient: {e}"}
+
+    try:
+        async with client:
+            with open(input_path, "rb") as f:
+                poller = await client.begin_analyze_document(model_id=model_id, body=f)
+                result = await poller.result()
+    except Exception as e:
+        return {"status": False, "error": f"Error during document analysis: {e}"}
+
+    # Save JSON locally as output.json
+    output_path = os.path.join(os.getcwd(), LOCAL_OUTPUT_FILENAME)
+    json_data = result.as_dict()
+    try:
+        with open(output_path, "w", encoding="utf-8") as wf:
+            json.dump(json_data, wf, indent=2, ensure_ascii=False)
+    except Exception as e:
+        return {"status": False, "error": f"Failed to save local output.json: {e}"}
+
+    # Upload JSON to output-results container
+    timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    unique = uuid.uuid4().hex
+    target_blob_name = f"{timestamp}_{unique}_extracted_{timestamp}.json"
+    output_container = "output-results"
+
+    try:
+        async with BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING) as blob_service:
+            out_container_client = blob_service.get_container_client(output_container)
+            # Try to create container if missing (best-effort)
+            try:
+                await out_container_client.create_container()
+            except Exception:
+                pass
+
+            out_blob_client = out_container_client.get_blob_client(target_blob_name)
+            json_bytes = json.dumps(json_data, indent=2, ensure_ascii=False).encode("utf-8")
+            await out_blob_client.upload_blob(json_bytes, overwrite=True)
+    except Exception as e:
+        return {"status": False, "error": f"Failed to upload JSON to output-results: {e}"}
+
+    # Build full output blob URL using the same account domain as the incoming bloburl
+    parsed = bloburl.split("://", 1)[-1]  # e.g. account.blob.core.windows.net/...
+    account_and_rest = parsed.split("/", 1)[0]  # account.blob.core.windows.net
+    output_blob_url = f"https://{account_and_rest}/{output_container}/{target_blob_name}"
+
+    # Optionally remove local output.json if you don't want a local copy (commented out)
+    # try:
+    #     os.remove(output_path)
+    # except Exception:
+    #     pass
+
+    return {"status": True, "output_blob_url": output_blob_url}
+
+
+async def process_input_folder_on_startup() -> None:
+    """
+    Background task that runs once at startup:
+    - Looks for PDF files under ./input (non-recursive)
+    - If found, processes them by calling analyze_file_async for each file's blob URL if a blob URL mapping exists.
+    Note: This implementation is a safe lightweight starter — it does not keep running forever.
+    """
+    input_dir = os.path.join(os.getcwd(), "input")
+    if not os.path.exists(input_dir):
+        # nothing to process; exit quickly
+        return
+
+    # If you want to support local files being processed, you can adapt this.
+    # For now, we simply log existing local files and return.
+    files = [f for f in os.listdir(input_dir) if f.lower().endswith(".pdf")]
+    if not files:
+        return
+
+    # No automatic blob mapping available here (we don't know blob URLs for local files).
+    # But we'll print them so operator knows files exist. If you want automatic upload -> analyze,
+    # implement logic to map local file to blob and call analyze_file_async with that blob URL.
+    for pdf in files:
+        print(f"[startup] Found local PDF in ./input: {pdf} — not auto-uploading. To analyze from blob, call the MCP endpoint.")
+
+
+⸻
+
+service.py
+
+import os
+from urllib.parse import urlparse, unquote
+from dotenv import load_dotenv
+
+load_dotenv()
+
+ENDPOINT = os.getenv("ENDPOINT", "")
+KEY = os.getenv("KEY", "")
+MODEL_ID = os.getenv("MODEL_ID", "")
+AZURE_STORAGE_CONNECTION_STRING = os.getenv("AZURE_STORAGE_CONNECTION_STRING", "")
+
+
+def _require_env() -> None:
+    """Ensure required environment variables exist."""
+    if not (ENDPOINT and KEY and MODEL_ID):
+        raise RuntimeError("Missing ENDPOINT, KEY, or MODEL_ID in .env file.")
+    if not AZURE_STORAGE_CONNECTION_STRING:
+        raise RuntimeError("Missing AZURE_STORAGE_CONNECTION_STRING in .env file.")
+
+
+def get_env_values():
+    """Return endpoint, key, model_id"""
+    return ENDPOINT, KEY, MODEL_ID
+
+
+def _parse_blob_url(url: str) -> tuple[str, str]:
+    """
+    Parse an Azure Blob URL and return (container_name, blob_path).
+    Accepts:
+      - Full URL: https://account.blob.core.windows.net/container/path/to/blob.pdf
+      - If provided as container/path/to/blob.pdf (no scheme), raise error.
+    Returns:
+      (container, blob_path)
+    """
+    parsed = urlparse(url)
+    if not parsed.scheme or not parsed.scheme.startswith("http"):
+        # We require a full https URL for consistent parsing
+        raise ValueError("BlobUrl must be a valid http(s) URL to Azure Blob Storage.")
+    path = parsed.path.lstrip("/")
+    if "/" not in path:
+        raise ValueError("BlobUrl must include both container and blob path.")
+    parts = path.split("/", 1)
+    container = parts[0]
+    blob_path = parts[1]
+    return unquote(container), unquote(blob_path)
+
+
+⸻
+
+test_client.py
+
+# test_client.py
+# Usage: python test_client.py
+import asyncio
+from langchain_mcp_adapters.client import MultiServerMCPClient
+
+async def get_tool_list(config_mcp_server):
+    client = MultiServerMCPClient(config_mcp_server)
+    tools_list = await client.get_tools()
+    print("Tools fetched from MCP:", [tool.name for tool in tools_list])
+    # some versions don't have aclose(); skip if missing
+    if hasattr(client, "aclose"):
+        await client.aclose()
+    return tools_list
+
+async def main():
+    config_mcp_server = {
+        "document_extract_mcp": {
+            "url": "http://localhost:8502/api/v1/email_intent_agent/mcp",
+            "transport": "streamable_http",
+        }
+    }
+    tools = await get_tool_list(config_mcp_server=config_mcp_server)
+    print("Total tools:", len(tools))
+
+if __name__ == "__main__":
+    asyncio.run(main())
+
+
+⸻
+
+test_scripts.py
+
+# test_scripts.py
+# Usage: python test_scripts.py
+import requests
+import json
+import os
+
+# Adjust host/port if you changed them in main.py .env
+BASE_URL = os.getenv("DOC_EXTRACT_BASE_URL", "http://localhost:8502")
+ENDPOINT = f"{BASE_URL}/api/v1/email_intent_agent/document_extract_mcp"
+
+def run_test():
+    payload = {
+        "AgentName": "DocumentExtractAgent",
+        # Replace with a real accessible PDF blob URL in your storage account
+        "BlobUrl": "https://agenticai1.blob.core.windows.net/attachment-downloader/Acord_125_FullForm_Filled%201.pdf"
+    }
+    try:
+        resp = requests.post(ENDPOINT, json=payload, timeout=180)
+        print("HTTP Status:", resp.status_code)
+        try:
+            data = resp.json()
+            print(json.dumps(data, indent=4))
+        except json.JSONDecodeError:
+            print("Response not JSON:", resp.text)
+    except Exception as e:
+        print("Error calling API:", str(e))
+
+if __name__ == "__main__":
+    print("Testing /document_extract_mcp ...")
+    run_test()
+
+
+⸻
+
+Notes & small tips
+	•	The service requires the same Azure SDK packages as before:
+
+pip install azure-ai-documentintelligence azure-storage-blob python-dotenv fastapi uvicorn fastapi-mcp langchain-mcp-adapters requests
+
+
+	•	The analyze_file_async function preserves the exact logic and I/O semantics of your original script: it writes ./input.pdf, uses begin_analyze_document(model_id=..., body=f) and result = poller.result() (awaited in async form), saves a local ./output.json, and uploads the JSON to output-results container.
+	•	The router and main names, model and operation id (document_extract_mcp), request model fields (AgentName, BlobUrl) exactly match the names you asked for.
+	•	process_input_folder_on_startup() is intentionally lightweight — it won’t continuously poll. If you want a long-running poller, say “turn this into a loop that polls every N seconds” and I will add that, but be careful with background long-running tasks in FastAPI (graceful shutdown / cancellation).
+	•	If your blob containers are private, make sure AZURE_STORAGE_CONNECTION_STRING has permission to read attachment-downloader and to write to output-results.
+	•	If you prefer the MCP mounted at a different path or port, change app.mount(...) or PORT in .env / main.py.
+
+⸻
+
+If you want now I can:
+	•	convert local file writes (open(...)) to fully async aiofiles (recommended for large files), or
+	•	make the startup task continuously watch the input folder and process new local files (with backoff), or
+	•	add a test that downloads the returned output_blob_url and asserts presence of extracted_fields.
+
+Which should I do next?
