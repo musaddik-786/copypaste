@@ -1,3 +1,7 @@
+
+
+
+
 test_client.py
 import asyncio
 from langchain_mcp_adapters.client import MultiServerMCPClient
@@ -245,4 +249,40 @@ app.mount("/api/v1/eligibility_agent", file_app)
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8601)
 
+
+service.py 
+import os
+from urllib.parse import urlparse, unquote
+from dotenv import load_dotenv
+
+load_dotenv()
+
+AZURE_STORAGE_CONNECTION_STRING = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "")
+
+
+def _require_env() -> None:
+    """Ensure required environment variables exist."""
+    if not AZURE_STORAGE_CONNECTION_STRING:
+        raise RuntimeError("Missing AZURE_STORAGE_CONNECTION_STRING in .env")
+
+
+def _parse_blob_url(url: str) -> tuple[str, str]:
+    """
+    Parse an Azure Blob URL and return (container_name, blob_path).
+    Example URL:
+      https://account.blob.core.windows.net/output-results/folder/name.json
+    Returns:
+      ("output-results", "folder/name.json")
+    """
+    parsed = urlparse(url)
+    if not parsed.scheme.startswith("http"):
+        raise ValueError("jsonfilepath must be a valid http(s) URL to Azure Blob Storage.")
+
+    path = parsed.path.lstrip("/")
+    if "/" not in path:
+        raise ValueError("jsonfilepath must include both container and blob path.")
+    parts = path.split("/", 1)
+    container = parts[0]
+    blob_path = parts[1]
+    return unquote(container), unquote(blob_path)
 
