@@ -1,268 +1,159 @@
-# analyze_local_singlefile.py
+Great — I updated the single-file script so it writes the exact same JSON that appears in the Document Intelligence Studio Results tab by using result.to_dict() directly. Below are the three files you need: app.py, .env (example), and requirements.txt. Copy them into your project folder, fill the .env, install deps, and run.
+
+⸻
+
+app.py
+
+#!/usr/bin/env python3
 """
-Single-file demo (robust across SDK versions):
-- Reads a local document file (path from .env)
-- Sends it to Azure Document Intelligence custom model (adapts to different SDK signatures)
-- Converts result into JSON-serializable dict and saves to disk (OUTPUT_JSON from .env)
-- Detailed exception handling + helpful hints
+app.py
+
+Analyze a local document using an Azure Document Intelligence custom model
+and save the exact JSON output (the same JSON you see in Studio Results)
+to a local file.
+
+Usage:
+  python app.py analyze <input_file_path> <output_json_path>
+
+Environment variables (put them in .env):
+  ENDPOINT   - your Azure Document Intelligence endpoint
+  KEY        - your Azure key
+  MODEL_ID   - your trained custom model id
 """
 
 import os
-import sys
 import json
-import traceback
-import mimetypes
-from pathlib import Path
-from typing import Any, Dict, List, IO
+import argparse
 from dotenv import load_dotenv
+from azure.core.credentials import AzureKeyCredential
+from azure.ai.documentintelligence import DocumentIntelligenceClient
 
-# Try to import Azure SDK modules. If these fail, the script prints a helpful message.
-try:
-    from azure.core.credentials import AzureKeyCredential
-    from azure.ai.documentintelligence import DocumentIntelligenceClient
-except Exception:
-    print("ERROR: Could not import Azure SDK. Did you install dependencies?")
-    print("Run: pip install -r requirements.txt")
-    traceback.print_exc()
-    raise
+# Load .env
+load_dotenv()
 
-# -----------------------
-# Configuration loader
-# -----------------------
-def load_configuration() -> Dict[str, str]:
-    load_dotenv()
-    return {
-        "FORM_RECOGNIZER_ENDPOINT": os.getenv("FORM_RECOGNIZER_ENDPOINT", "").strip(),
-        "FORM_RECOGNIZER_KEY": os.getenv("FORM_RECOGNIZER_KEY", "").strip(),
-        "MODEL_ID": os.getenv("MODEL_ID", "").strip(),
-        "LOCAL_DOCUMENT": os.getenv("LOCAL_DOCUMENT", "").strip(),
-        "OUTPUT_JSON": os.getenv("OUTPUT_JSON", "./output/analysis_result.json").strip(),
-        "PRINT_TO_CONSOLE": os.getenv("PRINT_TO_CONSOLE", "true").strip().lower(),
-    }
+ENDPOINT = os.getenv("ENDPOINT")
+KEY = os.getenv("KEY")
+MODEL_ID = os.getenv("MODEL_ID")
 
-# -----------------------
-# File helpers
-# -----------------------
-def get_local_file_path(path_str: str) -> Path:
-    if not path_str:
-        raise ValueError("LOCAL_DOCUMENT is empty. Set LOCAL_DOCUMENT in .env.")
-    p = Path(path_str).expanduser().resolve()
-    return p
 
-def open_local_file_stream(path: Path) -> IO[bytes]:
-    if not path.exists():
-        raise FileNotFoundError(f"File not found: {path}")
-    if not path.is_file():
-        raise FileNotFoundError(f"Not a file: {path}")
-    return open(path, "rb")
-
-def guess_content_type_from_path(path: Path) -> str:
-    ctype, _ = mimetypes.guess_type(str(path))
-    if ctype:
-        return ctype
-    # default to pdf if unknown
-    return "application/pdf"
-
-# -----------------------
-# Azure client & analyze (adaptive)
-# -----------------------
-def create_client(endpoint: str, key: str) -> DocumentIntelligenceClient:
-    if not endpoint or not key:
-        raise ValueError("FORM_RECOGNIZER_ENDPOINT and FORM_RECOGNIZER_KEY are required.")
-    return DocumentIntelligenceClient(endpoint=endpoint, credential=AzureKeyCredential(key))
-
-def analyze_local_file(client: DocumentIntelligenceClient, model_id: str, file_stream: IO[bytes], filename_hint: str = None):
+def create_client() -> DocumentIntelligenceClient:
     """
-    Try multiple calling styles to support different SDK versions:
-      1) client.begin_analyze_document(model_id, document=file_stream)
-      2) client.begin_analyze_document(model_id, body=file_stream, content_type=<guessed>)
-    Raises whatever exception occurred if both attempts fail.
+    Create and return a DocumentIntelligenceClient using values from environment variables.
     """
-    if not model_id:
-        raise ValueError("MODEL_ID is required.")
+    if not ENDPOINT or not KEY:
+        raise ValueError("Missing ENDPOINT or KEY in environment. Add them to your .env file.")
+    credential = AzureKeyCredential(KEY)
+    client = DocumentIntelligenceClient(endpoint=ENDPOINT, credential=credential)
+    return client
 
-    # Make sure stream is at start
-    try:
-        file_stream.seek(0)
-    except Exception:
-        pass
 
-    # Attempt style 1: use parameter named 'document' (used in some SDK releases)
-    try:
-        poller = client.begin_analyze_document(model_id, document=file_stream)
-        return poller.result()
-    except TypeError as e:
-        # signature probably doesn't accept 'document'; fallback to 'body' below
-        first_err = e
-    except Exception as e:
-        # If this fails with some other runtime error (auth, unsupported media, etc.), raise immediately.
-        raise
+def analyze_from_file(client: DocumentIntelligenceClient, model_id: str, input_path: str):
+    """
+    Analyze a local file using a custom model.
+    Returns the SDK result object (poller.result()).
+    """
+    if not os.path.exists(input_path):
+        raise FileNotFoundError(f"Input file not found: {input_path}")
 
-    # Reset stream and attempt style 2: pass as 'body' with content_type
-    try:
-        file_stream.seek(0)
-    except Exception:
-        pass
+    with open(input_path, "rb") as f:
+        poller = client.begin_analyze_document(model_id=model_id, document=f)
+        result = poller.result()
+    return result
 
-    # guess content type from filename hint or default to pdf
-    guessed = "application/pdf"
-    try:
-        if filename_hint:
-            from pathlib import Path as _P
-            guessed = guess_content_type_from_path(_P(filename_hint))
-        else:
-            guessed = "application/pdf"
-    except Exception:
-        guessed = "application/pdf"
 
-    try:
-        poller = client.begin_analyze_document(model_id, body=file_stream, content_type=guessed)
-        return poller.result()
-    except TypeError as e:
-        # If this still fails, show both errors to help debugging
-        print("Both analyze attempts failed. First attempt error (document=...):")
-        traceback.print_exception(type(first_err), first_err, first_err.__traceback__)
-        print("\nSecond attempt error (body=..., content_type=...):")
-        traceback.print_exception(type(e), e, e.__traceback__)
-        raise
-    except Exception:
-        raise
+def save_result_as_json_exact(result, output_path: str):
+    """
+    Save the *exact* JSON returned by the SDK (equivalent to Studio Results).
+    Uses result.to_dict() to preserve the same structure.
+    """
+    # Convert to built-in types (dict/list) exactly as SDK provides
+    obj = result.to_dict()
 
-# -----------------------
-# Convert SDK result to dict
-# -----------------------
-def analyze_result_to_dict(result) -> Dict[str, Any]:
-    out: Dict[str, Any] = {}
-    out["model_id"] = getattr(result, "model_id", None)
+    # ensure output directory exists
+    dirpath = os.path.dirname(os.path.abspath(output_path))
+    if dirpath and not os.path.exists(dirpath):
+        os.makedirs(dirpath, exist_ok=True)
 
-    # Documents / fields
-    docs: List[Dict[str, Any]] = []
-    for doc in getattr(result, "documents", []) or []:
-        docd = {
-            "doc_type": getattr(doc, "doc_type", None),
-            "confidence": getattr(doc, "confidence", None),
-            "fields": {}
-        }
-        for name, field in (getattr(doc, "fields", {}) or {}).items():
-            docd["fields"][name] = {
-                "content": getattr(field, "content", None),
-                "confidence": getattr(field, "confidence", None),
-                "type": getattr(field, "type", None)
-            }
-        docs.append(docd)
-    out["documents"] = docs
+    # Write JSON (ensure_ascii=False to preserve unicode; indent for readability)
+    with open(output_path, "w", encoding="utf-8") as wf:
+        json.dump(obj, wf, indent=2, ensure_ascii=False)
 
-    # Pages
-    pages_list: List[Dict[str, Any]] = []
-    for page in getattr(result, "pages", []) or []:
-        pd = {
-            "page_number": getattr(page, "page_number", None),
-            "width": getattr(page, "width", None),
-            "height": getattr(page, "height", None),
-            "unit": getattr(page, "unit", None),
-            "lines": [getattr(line, "content", None) for line in (getattr(page, "lines", []) or [])],
-            "words": [
-                {"content": getattr(w, "content", None), "confidence": getattr(w, "confidence", None)}
-                for w in (getattr(page, "words", []) or [])
-            ],
-        }
-        if getattr(page, "selection_marks", None):
-            pd["selection_marks"] = [
-                {"state": getattr(sm, "state", None), "confidence": getattr(sm, "confidence", None)}
-                for sm in (getattr(page, "selection_marks", []) or [])
-            ]
-        pages_list.append(pd)
-    out["pages"] = pages_list
+    return output_path
 
-    # Tables
-    tables_out: List[Dict[str, Any]] = []
-    for table in (getattr(result, "tables", []) or []):
-        t = {
-            "row_count": getattr(table, "row_count", None),
-            "column_count": getattr(table, "column_count", None),
-            "bounding_regions": [getattr(r, "page_number", None) for r in (getattr(table, "bounding_regions", []) or [])],
-            "cells": []
-        }
-        for cell in (getattr(table, "cells", []) or []):
-            t["cells"].append({
-                "row_index": getattr(cell, "row_index", None),
-                "column_index": getattr(cell, "column_index", None),
-                "content": getattr(cell, "content", None),
-                "row_span": getattr(cell, "row_span", None),
-                "column_span": getattr(cell, "column_span", None)
-            })
-        tables_out.append(t)
-    out["tables"] = tables_out
 
-    if getattr(result, "content", None):
-        out["raw_text"] = getattr(result, "content", None)
-
-    return out
-
-# -----------------------
-# Save JSON
-# -----------------------
-def save_json_to_path(data: Dict[str, Any], path_str: str) -> Path:
-    p = Path(path_str).expanduser().resolve()
-    if not p.parent.exists():
-        p.parent.mkdir(parents=True, exist_ok=True)
-    with p.open("w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-    return p
-
-# -----------------------
-# Optional pretty print
-# -----------------------
-def pretty_print_result(data: Dict[str, Any]) -> None:
-    print("\n=== Summary ===")
-    print(f"Model ID: {data.get('model_id')}")
-    for i, doc in enumerate(data.get("documents", []), start=1):
-        print(f"\nDoc #{i}: type={doc.get('doc_type')} conf={doc.get('confidence')}")
-        for name, info in doc.get("fields", {}).items():
-            print(f" - {name}: {info.get('content')} (conf: {info.get('confidence')})")
-    print("\n=== End Summary ===\n")
-
-# -----------------------
-# Main
-# -----------------------
 def main():
-    try:
-        cfg = load_configuration()
-        required = ["FORM_RECOGNIZER_ENDPOINT", "FORM_RECOGNIZER_KEY", "MODEL_ID", "LOCAL_DOCUMENT"]
-        missing = [k for k in required if not cfg.get(k)]
-        if missing:
-            print(f"ERROR: missing env vars: {', '.join(missing)}")
-            sys.exit(1)
+    parser = argparse.ArgumentParser(description="Analyze a local document with Azure Document Intelligence custom model and save exact JSON output.")
+    subparsers = parser.add_subparsers(dest="command", required=True)
 
-        local_path = get_local_file_path(cfg["LOCAL_DOCUMENT"])
-        print(f"Local document resolved to: {local_path}")
+    analyze_parser = subparsers.add_parser("analyze", help="Analyze a file and write JSON output.")
+    analyze_parser.add_argument("input_file", help="Path to local input file (pdf, jpg, png, docx, etc.)")
+    analyze_parser.add_argument("output_json", help="Path where to save the JSON output.")
 
-        with open_local_file_stream(local_path) as f:
-            client = create_client(cfg["FORM_RECOGNIZER_ENDPOINT"], cfg["FORM_RECOGNIZER_KEY"])
-            print("Submitting document for analysis...")
-            # Pass filename hint so we can guess content-type if needed
-            result = analyze_local_file(client, cfg["MODEL_ID"], f, filename_hint=str(local_path))
+    args = parser.parse_args()
 
-        result_dict = analyze_result_to_dict(result)
-        saved = save_json_to_path(result_dict, cfg["OUTPUT_JSON"])
-        print(f"Analysis saved to: {saved}")
+    if args.command == "analyze":
+        client = create_client()
+        print(f"Analyzing '{args.input_file}' with model '{MODEL_ID}' ...")
+        try:
+            result = analyze_from_file(client, MODEL_ID, args.input_file)
+        except Exception as e:
+            print("Error while analyzing document:", str(e))
+            raise
 
-        if cfg["PRINT_TO_CONSOLE"] in ("1", "true", "yes"):
-            pretty_print_result(result_dict)
+        print("Saving exact SDK JSON to", args.output_json)
+        try:
+            save_result_as_json_exact(result, args.output_json)
+        except Exception as e:
+            print("Error while saving JSON:", str(e))
+            raise
+        print("Done. JSON saved.")
 
-    except Exception as ex:
-        print("\nAN ERROR OCCURRED:")
-        traceback.print_exc()
-        em = str(ex).lower()
-        if "authentication failed" in em or "unauthorized" in em or "403" in em:
-            print("\nHINT: Authentication failed. Check FORM_RECOGNIZER_ENDPOINT and FORM_RECOGNIZER_KEY in .env.")
-        if "model_id" in em or "model" in em:
-            print("\nHINT: Validate MODEL_ID. Make sure the custom model is deployed and the id is correct.")
-        if "file not found" in em or "no such file" in em:
-            print("\nHINT: Check LOCAL_DOCUMENT path.")
-        if "unsupported media type" in em or "415" in em:
-            print("\nHINT: File format might be unsupported (use PDF, PNG, JPEG, TIFF).")
-        sys.exit(2)
 
 if __name__ == "__main__":
     main()
+
+
+⸻
+
+.env (example — put in same folder as app.py)
+
+# .env - fill these with your Azure Document Intelligence resource values
+ENDPOINT=https://<your-form-recognizer-resource>.cognitiveservices.azure.com/
+KEY=YOUR_FORM_RECOGNIZER_KEY
+MODEL_ID=YOUR_CUSTOM_BUILT_MODEL_ID
+
+
+⸻
+
+requirements.txt
+
+azure-ai-documentintelligence
+azure-core
+python-dotenv
+
+
+⸻
+
+Quick steps to run
+	1.	Put app.py, .env, requirements.txt in the same folder.
+	2.	Fill .env with your ENDPOINT, KEY, and MODEL_ID.
+	3.	Create a virtualenv (recommended) and install:
+
+pip install -r requirements.txt
+
+
+	4.	Run:
+
+python app.py analyze sample.pdf result.json
+
+
+	5.	result.json will contain the exact JSON structure you see in the Studio Results tab.
+
+⸻
+
+If you want, I can:
+	•	Add a --pretty flag (minified vs pretty JSON),
+	•	Add an option to send a URL (instead of local file),
+	•	Or include extra fields (bounding polygons / raw page spans) — though result.to_dict() already contains those.
+
+Which one next?
