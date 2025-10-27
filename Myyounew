@@ -1,67 +1,84 @@
 #!/usr/bin/env python3
-"""
-analyze_local.py
-
-Run this file directly:
-    python analyze_local.py
-
-It will:
-  • Read .env for ENDPOINT, KEY, MODEL_ID
-  • Analyze 'input.pdf' from the same folder
-  • Save exact JSON (same as Azure Studio) as 'output.json'
-"""
-
-import os
-import json
+import os, json, socket
+from urllib.parse import urlparse
 from dotenv import load_dotenv
 from azure.core.credentials import AzureKeyCredential
-from azure.ai.documentintelligence import DocumentIntelligenceClient
+from azure.core.exceptions import ResourceNotFoundError
+from azure.ai.documentintelligence import DocumentIntelligenceClient, DocumentModelAdministrationClient
 
+def validate_endpoint(endpoint: str):
+    parsed = urlparse(endpoint)
+    if parsed.scheme not in ("https",):
+        raise ValueError("ENDPOINT must start with https://")
+    if not parsed.hostname:
+        raise ValueError("ENDPOINT missing hostname")
+    try:
+        socket.gethostbyname(parsed.hostname)
+    except Exception:
+        raise ValueError(f"Cannot resolve host '{parsed.hostname}'. Check ENDPOINT in .env.")
 
-def main():
-    # 1️⃣ Load .env
+def get_env():
     load_dotenv()
     endpoint = os.getenv("ENDPOINT")
     key = os.getenv("KEY")
     model_id = os.getenv("MODEL_ID")
+    if not endpoint or not key or not model_id:
+        raise ValueError("Missing ENDPOINT, KEY, or MODEL_ID in .env")
+    return endpoint, key, model_id
 
-    if not (endpoint and key and model_id):
-        raise ValueError("Missing ENDPOINT, KEY, or MODEL_ID in .env file.")
+def ensure_model_exists(endpoint: str, key: str, model_id: str):
+    admin = DocumentModelAdministrationClient(endpoint=endpoint, credential=AzureKeyCredential(key))
+    try:
+        model = admin.get_model(model_id)
+        # Success: model exists
+        return model
+    except ResourceNotFoundError:
+        # List available models to help the user pick the right one
+        available = list(admin.list_models())
+        names = []
+        for m in available:
+            # m has properties like model_id and description (display name)
+            names.append({"model_id": getattr(m, "model_id", None), "description": getattr(m, "description", None)})
+        msg_lines = [
+            f"❌ Model not found: '{model_id}'.",
+            "Here are some models in this resource (use the 'model_id' value in your .env):",
+        ]
+        for i, it in enumerate(names[:10], 1):
+            msg_lines.append(f"  {i}. model_id={it['model_id']}  display_name={it['description']}")
+        hint = (
+            "\nTIP: In Studio, open the model and copy the **Model ID** (GUID), not the display name.\n"
+            "Update .env: MODEL_ID=<the GUID>\n"
+        )
+        raise ValueError("\n".join(msg_lines) + hint)
 
-    # 2️⃣ Define default file paths
+def main():
+    endpoint, key, model_id = get_env()
+    validate_endpoint(endpoint)
+
     input_path = os.path.join(os.getcwd(), "input.pdf")
     output_path = os.path.join(os.getcwd(), "output.json")
-
     if not os.path.exists(input_path):
-        raise FileNotFoundError(
-            f"❌ Could not find 'input.pdf' in {os.getcwd()}.\n"
-            f"Please place your document there and re-run: python analyze_local.py"
-        )
+        raise FileNotFoundError(f"Place your document as 'input.pdf' in {os.getcwd()}")
 
-    # 3️⃣ Create Azure client
     print("🔗 Connecting to Azure Document Intelligence service...")
-    client = DocumentIntelligenceClient(
-        endpoint=endpoint,
-        credential=AzureKeyCredential(key)
-    )
+    # Validate model exists and is accessible in this resource/region
+    ensure_model_exists(endpoint, key, model_id)
 
-    # 4️⃣ Analyze document
+    client = DocumentIntelligenceClient(endpoint=endpoint, credential=AzureKeyCredential(key))
+
     print(f"📄 Analyzing '{input_path}' using model '{model_id}'...")
     with open(input_path, "rb") as f:
+        # IMPORTANT: no hyphens; use keyword 'document'
         poller = client.begin_analyze_document(model_id=model_id, document=f)
         result = poller.result()
 
-    # 5️⃣ Save exact JSON output
-    print("💾 Saving results as 'output.json'...")
-    json_data = result.to_dict()
+    print("💾 Saving exact results to 'output.json'...")
     with open(output_path, "w", encoding="utf-8") as wf:
-        json.dump(json_data, wf, indent=2, ensure_ascii=False)
+        json.dump(result.to_dict(), wf, indent=2, ensure_ascii=False)
 
     print("\n✅ Done!")
-    print(f"📂 Input file:  {input_path}")
-    print(f"📁 Output file: {output_path}")
-    print("You can open 'output.json' to see the same JSON as in Azure Studio.\n")
-
+    print(f"📂 Input : {input_path}")
+    print(f"📁 Output: {output_path}\n")
 
 if __name__ == "__main__":
     main()
