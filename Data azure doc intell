@@ -1,0 +1,233 @@
+Nice — I converted your single-script synchronous analyze_local.py into an async MCP-style FastAPI app with the same input/output behavior and identical logic, split into the four files you asked for:
+	•	file_router.py (router)
+	•	handler.py (async handler that keeps your logic)
+	•	service.py (env & helpers)
+	•	main.py (FastAPI + MCP mount)
+
+I kept the exact file names used in your example structure and preserved the original I/O: it still reads input.pdf from the current working directory and writes output.json to the current working directory. I used the async client from azure.ai.documentintelligence.aio and kept the same flow and messages you had in the script. Paste these into the corresponding files.
+
+⸻
+
+file_router.py
+
+from fastapi import APIRouter
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
+
+from handler import analyze_local_document
+
+router = APIRouter()
+
+
+class AnalyzeLocalRequest(BaseModel):
+    """
+    This endpoint triggers the same local analysis flow you had in your script.
+    It does NOT require any body, but we keep a model for consistency with MCP clients.
+    If you prefer no body, the endpoint can be changed to receive an empty POST.
+    """
+    trigger: str = Field(default="analyze_local", description="Trigger for local analysis (ignored).")
+
+
+@router.post(
+    "/Document_Analyzer_MCP",
+    operation_id="Document_Analyzer_MCP",
+    summary="Analyze local input.pdf using Azure Document Intelligence and save output.json"
+)
+async def analyze_local(request: AnalyzeLocalRequest):
+    """
+    Calls the async handler which preserves the original logic:
+      - Loads .env (ENDPOINT, KEY, MODEL_ID)
+      - Reads ./input.pdf
+      - Calls Azure Document Intelligence begin_analyze_document with model_id
+      - Saves result to ./output.json
+      - Returns a JSON-RPC envelope for MCP clients
+    """
+    try:
+        result = await analyze_local_document()
+        return JSONResponse(
+            content={
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": result
+            },
+            status_code=200
+        )
+    except Exception as e:
+        return JSONResponse(
+            content={
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": {"status": False, "error": f"Unexpected server error: {str(e)}"}
+            },
+            status_code=200
+        )
+
+
+⸻
+
+handler.py
+
+import os
+import json
+from dotenv import load_dotenv
+from azure.core.credentials import AzureKeyCredential
+from azure.ai.documentintelligence.aio import DocumentIntelligenceClient
+
+from service import _require_env, get_env_values
+
+load_dotenv()
+
+
+async def analyze_local_document() -> dict:
+    """
+    Async wrapper that preserves your original script's logic exactly:
+      1) Load .env
+      2) Check ENDPOINT, KEY, MODEL_ID
+      3) Use ./input.pdf and ./output.json (same filenames/locations)
+      4) Create Azure async client and call begin_analyze_document
+      5) Save result.as_dict() to output.json
+      6) Return a dict with status and file paths (mirrors prints)
+    """
+    # Ensure environment is set
+    _require_env()
+    endpoint, key, model_id = get_env_values()
+
+    # Default file paths (same as your original script)
+    input_path = os.path.join(os.getcwd(), "input.pdf")
+    output_path = os.path.join(os.getcwd(), "output.json")
+
+    if not os.path.exists(input_path):
+        raise FileNotFoundError(
+            f"❌ Could not find 'input.pdf' in {os.getcwd()}.\n"
+            f"Please place your document there and re-run: call the MCP endpoint"
+        )
+
+    # 3️⃣ Create Azure async client
+    print("🔗 Connecting to Azure Document Intelligence service...")
+    client = DocumentIntelligenceClient(
+        endpoint=endpoint,
+        credential=AzureKeyCredential(key)
+    )
+
+    # 4️⃣ Analyze document (keeping the same IO behavior)
+    print(f"📄 Analyzing '{input_path}' using model '{model_id}'...")
+    # Note: to keep identical behavior to your script we open the file in binary mode
+    # and pass the file object to the SDK. This preserves the exact logic & I/O.
+    try:
+        async with client:
+            with open(input_path, "rb") as f:
+                poller = await client.begin_analyze_document(model_id=model_id, analyze_request=f)
+                result = await poller.result()
+    except Exception as e:
+        # bubble up to router which will wrap into a JSON-RPC envelope
+        raise RuntimeError(f"Error during document analysis: {e}")
+
+    # 5️⃣ Save exact JSON output (same as your original script)
+    print("💾 Saving results as 'output.json'...")
+    json_data = result.as_dict()
+    try:
+        with open(output_path, "w", encoding="utf-8") as wf:
+            json.dump(json_data, wf, indent=2, ensure_ascii=False)
+    except Exception as e:
+        raise RuntimeError(f"Failed to save output.json: {e}")
+
+    print("\n✅ Done!")
+    print(f"📂 Input file:  {input_path}")
+    print(f"📁 Output file: {output_path}")
+    print("You can open 'output.json' to see the same JSON as in Azure Studio.\n")
+
+    return {"status": True, "input": input_path, "output": output_path}
+
+
+⸻
+
+service.py
+
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# Read environment variables once
+ENDPOINT = os.getenv("ENDPOINT", "")
+KEY = os.getenv("KEY", "")
+MODEL_ID = os.getenv("MODEL_ID", "")
+
+
+def _require_env() -> None:
+    """Ensure required environment variables exist (same checks as your original script)."""
+    if not (ENDPOINT and KEY and MODEL_ID):
+        raise RuntimeError("Missing ENDPOINT, KEY, or MODEL_ID in .env file.")
+
+
+def get_env_values():
+    """Return endpoint, key, model_id"""
+    return ENDPOINT, KEY, MODEL_ID
+
+
+⸻
+
+main.py
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi_mcp import FastApiMCP
+import uvicorn
+
+from file_router import router as file_router
+
+
+def apply_cors(app: FastAPI):
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+
+def create_sub_app(title: str, description: str, version: str = "0.1.0") -> FastAPI:
+    sub = FastAPI(title=title, description=description, version=version)
+    apply_cors(sub)
+    return sub
+
+
+app = FastAPI()
+apply_cors(app)
+
+file_app = create_sub_app(
+    title="Document Analyzer MCP",
+    description="Analyze local input.pdf with Azure Document Intelligence and save output.json",
+)
+file_app.include_router(file_router)
+
+# Expose ONLY this operation id via MCP HTTP (client will use transport='http')
+FastApiMCP(file_app, include_operations=["Document_Analyzer_MCP"]).mount_http()
+
+# Mount the sub-app under this prefix (adjust if you want a different path)
+app.mount("/api/v1/document_agent", file_app)
+
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8602)
+
+
+⸻
+
+Notes & rationale
+	•	I preserved your I/O exactly: input.pdf from current working directory and output.json written there.
+	•	The Azure async SDK (azure.ai.documentintelligence.aio.DocumentIntelligenceClient) is used and begin_analyze_document(... ) is awaited, then await poller.result() — this mirrors the flow and output of your original script but in an async def handler.
+	•	I kept your printed messages and final returned dict so behavior in logs remains familiar.
+	•	I returned a JSON-RPC envelope from the router (same approach as your example), so MCP clients can call this endpoint consistently.
+	•	The main.py mounts the sub-app under /api/v1/document_agent and exposes the operation id Document_Analyzer_MCP for MCP. I used port 8602 — change if you want another port.
+	•	I intentionally left the local file reads/writes synchronous (as in your original script) because you asked to not change the existing I/O logic. If you later want fully non-blocking file I/O (and avoid blocking the event loop), I can convert reading/writing to aiofiles — but only if you want that change.
+
+⸻
+
+If you want, I can:
+	•	change the endpoint path or port,
+	•	switch to fully non-blocking file I/O (aiofiles) so the FastAPI event loop isn’t blocked while reading/writing large PDFs,
+	•	add a tiny health endpoint or example curl/http call to invoke the MCP operation,
+	•	or produce a docker-compose example to run this MCP service.
+
+Which of those (if any) would you like next?
