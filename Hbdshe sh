@@ -1,214 +1,139 @@
-Perfect question 👍 — right now, with the last version I gave you, your JSON is only being saved locally (inside the ./output/ folder).
+import requests
+from math import radians, cos, sin, asin, sqrt
 
-To also upload that same JSON file to Azure Blob Storage (just like before), we’ll simply add back the upload logic — while keeping your local storage unchanged.
+# Helper: Haversine distance (km)
+def haversine(lat1, lon1, lat2, lon2):
+    # return distance in km
+    R = 6371.0
+    dlat = radians(lat2 - lat1)
+    dlon = radians(lon2 - lon1)
+    a = sin(dlat/2)**2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon/2)**2
+    c = 2 * asin(min(1, sqrt(a)))
+    return R * c
 
-Let’s fix that cleanly 👇
-
-⸻
-
-✅ What you’ll get after this update
-
-After the PDF is analyzed:
-	1.	The JSON is saved locally at:
-./output/output.json
-	2.	The same JSON file is uploaded to Azure Blob Storage, in the container
-output-results (same as before).
-	3.	The API response includes both:
-
-{
-  "status": true,
-  "source_file": "Acord_125_FullForm_Filled 1.pdf",
-  "local_output_json": "./output/output.json",
-  "output_blob_url": "https://agenticai1.blob.core.windows.net/output-results/20251027_101657_abc123_extracted.json"
-}
-
-
-
-⸻
-
-🧠 How it works (in short)
-	•	After saving output/output.json, we connect to Azure Blob Storage using your existing
-AZURE_STORAGE_CONNECTION_STRING (already loaded from .env).
-	•	We create (if needed) the container output-results.
-	•	We upload the JSON file with a unique name using timestamp and UUID (same as before).
-	•	Then we return both file paths in the response.
-
-⸻
-
-✨ Final Updated image_processor.py
-
-(copy-paste the entire file below — it combines both local and blob saving)
-
-# image_processor.py
-
-import os
-import json
-import uuid
-from datetime import datetime
-from dotenv import load_dotenv
-
-from azure.core.credentials import AzureKeyCredential
-from azure.ai.documentintelligence import DocumentIntelligenceClient
-from azure.storage.blob.aio import BlobServiceClient
-from azure.core.exceptions import ResourceNotFoundError
-
-from service import _require_env, get_env_values, AZURE_STORAGE_CONNECTION_STRING, _parse_blob_url
-
-load_dotenv()
-
-
-async def analyze_file_async(bloburl: str) -> dict:
-    """
-    Download the PDF from bloburl, analyze it with Azure Document Intelligence,
-    save the JSON locally inside ./output/output.json,
-    and also upload the same JSON to Azure Blob Storage (output-results container).
-    """
-
-    # 1️⃣ Validate environment variables
-    try:
-        _require_env()
-    except Exception as e:
-        return {"status": False, "error": str(e)}
-
-    endpoint, key, model_id = get_env_values()
-
-    # 2️⃣ Parse the blob URL (container, blob path)
-    try:
-        src_container, src_blob = _parse_blob_url(bloburl)
-    except Exception as e:
-        return {"status": False, "error": f"Invalid BlobUrl: {e}"}
-
-    source_file_name = os.path.basename(src_blob) if src_blob else "unknown.pdf"
-    source_file_name = os.path.basename(source_file_name)
-
-    # 3️⃣ Download PDF from Azure Blob Storage
-    if not AZURE_STORAGE_CONNECTION_STRING:
-        return {"status": False, "error": "Missing AZURE_STORAGE_CONNECTION_STRING in .env"}
-
-    try:
-        async with BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING) as blob_service:
-            container_client = blob_service.get_container_client(src_container)
-            blob_client = container_client.get_blob_client(src_blob)
-            try:
-                await blob_client.get_blob_properties()
-            except ResourceNotFoundError:
-                return {"status": False, "error": f"PDF blob not found: container='{src_container}', blob='{src_blob}'"}
-
-            stream = await blob_client.download_blob()
-            pdf_bytes = await stream.readall()
-    except Exception as e:
-        return {"status": False, "error": f"Error downloading PDF from Blob Storage: {e}"}
-
-    # 4️⃣ Save the PDF locally (keep name)
-    input_path = os.path.join(os.getcwd(), source_file_name)
-    try:
-        with open(input_path, "wb") as wf:
-            wf.write(pdf_bytes)
-    except Exception as e:
-        return {"status": False, "error": f"Failed to write local input file '{input_path}': {e}"}
-
-    # 5️⃣ Analyze the PDF using Azure Document Intelligence
-    print("🔗 Connecting to Azure Document Intelligence service...")
-    try:
-        client = DocumentIntelligenceClient(
-            endpoint=endpoint,
-            credential=AzureKeyCredential(key)
-        )
-    except Exception as e:
-        return {"status": False, "error": f"Failed to create DocumentIntelligenceClient: {e}"}
-
-    print(f"📄 Analyzing '{source_file_name}' using model '{model_id}'...")
-    try:
-        with open(input_path, "rb") as f:
-            poller = client.begin_analyze_document(model_id=model_id, body=f)
-            result = poller.result()
-    except Exception as e:
-        return {"status": False, "error": f"Error during document analysis: {e}"}
-
-    # 6️⃣ Save the JSON output inside ./output/ folder
-    print("💾 Saving results in './output/output.json'...")
-    output_dir = os.path.join(os.getcwd(), "output")
-    os.makedirs(output_dir, exist_ok=True)
-    output_path = os.path.join(output_dir, "output.json")
-
-    json_data = result.as_dict()
-    try:
-        with open(output_path, "w", encoding="utf-8") as wf:
-            json.dump(json_data, wf, indent=2, ensure_ascii=False)
-    except Exception as e:
-        return {"status": False, "error": f"Failed to save local output.json: {e}"}
-
-    # 7️⃣ Also upload the same JSON to Azure Blob Storage (output-results)
-    timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-    unique = uuid.uuid4().hex
-    output_container = "output-results"
-    target_blob_name = f"{timestamp}_{unique}_extracted.json"
-
-    try:
-        async with BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING) as blob_service:
-            out_container_client = blob_service.get_container_client(output_container)
-            try:
-                await out_container_client.create_container()
-            except Exception:
-                pass  # container already exists
-
-            out_blob_client = out_container_client.get_blob_client(target_blob_name)
-
-            # Upload the same file you saved locally
-            with open(output_path, "rb") as data:
-                await out_blob_client.upload_blob(data, overwrite=True)
-    except Exception as e:
-        return {"status": False, "error": f"Failed to upload JSON to output-results: {e}"}
-
-    # Build output blob URL for the response
-    parsed = bloburl.split("://", 1)[-1]
-    account_and_rest = parsed.split("/", 1)[0]
-    output_blob_url = f"https://{account_and_rest}/{output_container}/{target_blob_name}"
-
-    print(f"✅ JSON saved locally and uploaded to: {output_blob_url}")
-
-    # 8️⃣ Return final response
-    return {
-        "status": True,
-        "source_file": source_file_name,
-        "local_output_json": output_path,
-        "output_blob_url": output_blob_url
+def query_fema_nfhl(lat, lon):
+    # FEMA ArcGIS NFHL endpoint (FeatureServer layer 0 or appropriate layer)
+    # Example query endpoint (ArcGIS REST query)
+    base = "https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/0/query"
+    params = {
+        "geometry": f"{lon},{lat}",
+        "geometryType": "esriGeometryPoint",
+        "inSR": "4326",
+        "spatialRel": "esriSpatialRelIntersects",
+        "outFields": "FLD_ZONE",
+        "f": "json"
     }
+    r = requests.get(base, params=params, timeout=10)
+    if r.status_code != 200:
+        return None
+    j = r.json()
+    features = j.get("features", [])
+    if not features:
+        return {"in_zone": False}
+    # may return multiple features; pick the first/most authoritative
+    zone = features[0]["attributes"].get("FLD_ZONE")
+    return {"in_zone": True, "zone": zone, "raw": features}
 
+def find_nearest_usgs_gauge(lat, lon, max_km=20):
+    # Use USGS monitoring-locations OGC endpoint to get nearby sites
+    # This example uses the OGC "monitoring-locations" collection; adjust if required.
+    base = "https://api.waterdata.usgs.gov/ogcapi/v0/collections/monitoring-locations/items"
+    params = {
+        "lat": lat,
+        "lon": lon,
+        "limit": 50
+    }
+    r = requests.get(base, params=params, timeout=10)
+    if r.status_code != 200:
+        return None
+    j = r.json()
+    items = j.get("features", [])
+    best = None
+    bestd = 99999
+    for it in items:
+        props = it.get("properties", {})
+        geom = it.get("geometry", {})
+        if not geom: continue
+        gcoords = geom.get("coordinates", [])
+        if len(gcoords) < 2: continue
+        glon, glat = gcoords[0], gcoords[1]
+        d = haversine(lat, lon, glat, glon)
+        if d < bestd:
+            bestd = d
+            best = {"id": props.get("siteCode") or props.get("siteIdentifier") or props.get("identifier"),
+                    "name": props.get("siteName") or props.get("name"),
+                    "lat": glat, "lon": glon, "dist_km": d, "properties": props}
+    if best and best["dist_km"] <= max_km:
+        return best
+    return None
 
-async def process_input_folder_on_startup() -> None:
-    """Background startup function — checks ./input for any PDFs and logs them."""
-    try:
-        input_dir = os.path.join(os.getcwd(), "input")
-        if not os.path.exists(input_dir):
-            return
+def check_usgs_rtfi_nearby(lat, lon, radius_km=10):
+    # RTFI API allows querying flood impact locations; we'll get impacts within a bbox
+    # Simple approach: request RTFI list and find nearest impacted location
+    base = "https://api.waterdata.usgs.gov/rtfi-api/rtfi/locations"
+    # RTFI has its own query params (may change); use bbox approx
+    # build a small bbox around lat/lon (rough)
+    delta = 0.2  # ~22 km latitude roughly - tune as needed
+    bbox = f"{lon-delta},{lat-delta},{lon+delta},{lat+delta}"
+    r = requests.get(base, params={"bbox": bbox}, timeout=10)
+    if r.status_code != 200:
+        return None
+    j = r.json()
+    # check entries for 'is_impacted' or similar flags
+    for loc in j.get("features", []):
+        props = loc.get("properties", {})
+        # property names may differ; check 'impacted' or 'flooding'
+        if props.get("impactLevel") or props.get("isImpacted") or props.get("is_impacted"):
+            # compute distance to verify
+            geom = loc.get("geometry", {})
+            coords = geom.get("coordinates", [None, None])
+            if coords[0] is None:
+                continue
+            d = haversine(lat, lon, coords[1], coords[0])
+            if d <= radius_km:
+                return {"impacted": True, "distance_km": d, "properties": props}
+    return {"impacted": False}
 
-        files = [f for f in os.listdir(input_dir) if f.lower().endswith(".pdf")]
-        if not files:
-            return
+def is_flood_prone_us(lat, lon):
+    # 1) FEMA mapped zones
+    f = query_fema_nfhl(lat, lon)
+    if f and f.get("in_zone"):
+        zone = f.get("zone")
+        high_risk = {"A","AE","AH","AO","VE","V","AR","A99"}
+        if zone and zone.upper() in high_risk:
+            return {"flood_prone": True, "reason": f"mapped_zone:{zone}"}
+        else:
+            # Not a high-risk regulatory zone
+            return {"flood_prone": False, "reason": f"mapped_zone:{zone}"}
 
-        for pdf in files:
-            print(f"[startup] Found local PDF in ./input: {pdf} — no automatic processing.")
-    except Exception as e:
-        print(f"[startup] process_input_folder_on_startup error: {e}")
-        return
+    # 2) USGS RTFI nearby impact
+    rtfi = check_usgs_rtfi_nearby(lat, lon)
+    if rtfi and rtfi.get("impacted"):
+        return {"flood_prone": True, "reason": f"rtfi_nearby (dist_km={rtfi['distance_km']:.1f})"}
 
+    # 3) Find nearest gauge and check instantaneous values / flood thresholds
+    gauge = find_nearest_usgs_gauge(lat, lon, max_km=20)
+    if gauge:
+        site = gauge['id']
+        # Instantaneous values API (example)
+        iv_url = f"https://waterservices.usgs.gov/nwis/iv/?format=json&sites={site}&parameterCd=00065"  # 00065 = gage height
+        r = requests.get(iv_url, timeout=10)
+        if r.status_code == 200:
+            data = r.json()
+            # parse to get current stage and compare to flood threshold (you must get threshold from metadata)
+            # For brevity, assume we can find a 'flood_stage' property in monitoring-locations metadata (not always present)
+            flood_stage = None
+            try:
+                flood_stage = float(gauge['properties'].get('floodStage')) if gauge['properties'].get('floodStage') else None
+            except:
+                flood_stage = None
+            # parse current value
+            try:
+                current = float(data['value']['timeSeries'][0]['values'][0]['value'][0]['value'])
+            except Exception:
+                current = None
+            if current is not None and flood_stage is not None and current >= flood_stage:
+                return {"flood_prone": True, "reason": f"gauge_{site}_above_flood_stage (current={current}, threshold={flood_stage})"}
+    # 4) NWPS forecast fallback (left as future step) - call NWPS API for forecast point nearest to lat/lon and use forecast category.
 
-⸻
-
-📦 Example output (when tested)
-
-{
-  "status": true,
-  "source_file": "Acord_125_FullForm_Filled 1.pdf",
-  "local_output_json": "/home/jarvis/Musaddique/FINALAZUREDATAEXTRACTION/output/output.json",
-  "output_blob_url": "https://agenticai1.blob.core.windows.net/output-results/20251027_101657_abcd1234_extracted.json"
-}
-
-✅ You now have both:
-	•	A local copy in ./output/output.json
-	•	An uploaded copy in your Azure Blob container output-results
-
-⸻
-
-Would you like the JSON uploaded to keep the same filename as the PDF (e.g., Acord_125_FullForm_Filled 1.json), or keep it with the timestamp + UUID format (as above)?
+    return {"flood_prone": False, "reason": "no_evidence_from_nfhl_rtfi_usgs_nwps"}
