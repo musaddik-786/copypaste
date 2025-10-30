@@ -1,285 +1,314 @@
-Great — below is a complete, ready-to-use Python implementation that uses FEMA NFHL (public ArcGIS REST service) to answer:
-“Given latitude & longitude → is this point inside a flood-prone FEMA flood zone? (yes/no)”.
+file router.py
+from fastapi import APIRouter
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
+from handler import compare_name_with_sanctions
 
-Important first note (so there’s no confusion):
-FEMA NFHL is publicly accessible — you do NOT need an API key to query the NFHL ArcGIS REST endpoint.
-I’ll still include an optional appendix that shows how to obtain an ArcGIS/Esri API key (if you want to call other ArcGIS services or use an API key for rate/quotas) and how to plug it into the code. But for the FEMA NFHL queries below, no key is required.
+router = APIRouter()
 
-⸻
 
-What this code does (summary)
-	1.	Accepts latitude and longitude.
-	2.	Calls FEMA NFHL ArcGIS REST query endpoint for the NFHL layer.
-	3.	Checks FLD_ZONE attribute returned (if any).
-	4.	Uses a deterministic mapping of FEMA zones to decide flood_prone: true|false.
-	•	Zones considered high-risk / flood-prone: A, AE, AH, AO, AR, A99, V, VE (common regulatory flood zones).
-	•	Zones considered lower risk / not regulatory high risk: X, B, C, D etc → false.
-	5.	Returns JSON: { "flood_prone": bool, "zone": <zone or None>, "reason": <string> }.
+class CompareRequest(BaseModel):
+    """
+    This endpoint is invoked by the Data Extraction Agent.
+    It passes the FULL Azure Blob URL of the extracted JSON in 'jsonfilepath'.
 
-⸻
+    Example payload:
+    {
+      "jsonfilepath": "https://<account>.blob.core.windows.net/<container>/<path>/file.json"
+    }
 
-Files & folder (what to save where)
+    The service will:
+    - Download that JSON from Azure Blob using AZURE_STORAGE_CONNECTION_STRING,
+    - Extract the name from Owner/Insured/Contact/NAMED INSURED(S),
+    - Compare it against local 'input/sanctions.csv',
+    - Return the comparison result in a JSON-RPC envelope (consistent with your duplicate attachment checker).
+    """
+    jsonfilepath: str = Field(..., description="Full Azure Blob URL to the extracted JSON.")
 
-Save these files under a single project folder. I’ll give filenames and the exact code for each.
 
-Project folder: mcp_flood_check/
+@router.post(
+    "/Licensing_&_Sanction_Checker_MCP",
+    operation_id="Licensing_&_Sanction_Checker_MCP",
+    summary="Compare JSON (Owner/Insured/Contact/NAMED INSURED(S)) from blob URL with local sanctions CSV."
+)
+async def compare_files(request: CompareRequest):
+    """
+    Receives the JSON blob URL from the Data Extraction Agent and performs the comparison.
+    Returns a JSON-RPC envelope for consistency with the duplicate attachment checker.
+    """
+    try:
+        result = await compare_name_with_sanctions(json_file_url=request.jsonfilepath)
+        return JSONResponse(
+            content={
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": result
+            },
+            status_code=200
+        )
+    except Exception as e:
+        return JSONResponse(
+            content={
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": {"status": False, "error": f"Unexpected server error: {str(e)}"}
+            },
+            status_code=200
+        )
 
-Files:
-	•	mcp_flood_check/fema_nfhl.py — core query + helper functions (main file).
-	•	mcp_flood_check/run_example.py — simple script with example coordinates to test.
 
-(You can later integrate fema_nfhl.py into your MCP agent.)
 
-⸻
+handler.py
+import os
+import json
+from typing import Optional, Dict
+import pandas as pd
+from azure.storage.blob.aio import BlobServiceClient
+from azure.core.exceptions import ResourceNotFoundError
+from dotenv import load_dotenv
 
-1) mcp_flood_check/fema_nfhl.py
+from service import _require_env, _parse_blob_url
 
-Create that file and paste this code exactly:
+load_dotenv()
 
-# mcp_flood_check/fema_nfhl.py
-"""
-Simple FEMA NFHL point-in-polygon checker.
-Input: latitude, longitude
-Output: dict { "flood_prone": bool, "zone": str|None, "reason": str }
+AZURE_STORAGE_CONNECTION_STRING = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "")
+LOCAL_CSV_PATH = os.path.join("input", "sanctions.csv")
 
-Author: (You)
-Notes:
- - This queries FEMA's NFHL ArcGIS MapServer (public). No API key required.
- - If you want to use an API key for ArcGIS services, see the appendix in README or code comments.
-"""
 
+async def compare_name_with_sanctions(json_file_url: str) -> Dict:
+    """
+    Flow:
+      1) Parse blob URL -> (container, blob_name)
+      2) Download JSON (async)
+      3) Extract FIRST matching field:
+         Owner Name / Insured Name / Contact Name / NAMED INSURED(S)
+      4) Read local CSV input/sanctions.csv
+      5) Case-insensitive exact match against entity_name
+      6) Save outputs to ./output and return structured result (with 'status')
+    """
+
+    try:
+        _require_env()
+    except Exception as e:
+        return {"status": False, "error": str(e)}
+
+
+    try:
+        container_name, blob_name = _parse_blob_url(json_file_url)
+    except Exception as e:
+        return {"status": False, "error": f"Invalid jsonfilepath: {e}"}
+
+    try:
+        async with BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING) as blob_service:
+            container_client = blob_service.get_container_client(container_name)
+            blob_client = container_client.get_blob_client(blob_name)
+            try:
+                await blob_client.get_blob_properties()
+            except ResourceNotFoundError:
+                return {"status": False, "error": f"JSON blob not found: container='{container_name}', blob='{blob_name}'"}
+
+            stream = await blob_client.download_blob()
+            raw_bytes = await stream.readall()
+    except Exception as e:
+        return {"status": False, "error": f"Error connecting to Azure Blob Storage: {e}"}
+
+    #python dict
+    try:
+        data = json.loads(raw_bytes.decode("utf-8"))
+    except Exception as e:
+        return {"status": False, "error": f"Failed to parse JSON: {e}"}
+
+    
+    target_labels = {"ownername", "insuredname", "contactname", "namedinsured(s)", "applicant/firstnameinsured","insured/applicant","namedinsured","firstnameinsured","applicantname"}
+    extracted_name: Optional[str] = None
+    fields = data.get("extracted_fields", [])
+
+    if isinstance(fields, list):
+        for item in fields:
+            if isinstance(item, dict):
+                label_raw = item.get("Field", "")
+                if isinstance(label_raw, str):
+                    normalized = label_raw.lower().replace(" ", "").replace(":", "")
+                    if normalized in target_labels:
+                        value = item.get("Value", "").strip()
+                        if value:
+                            extracted_name = value
+                            break
+
+    if not extracted_name:
+        return {"status": False, "error": "No matching name field found in JSON."}
+
+    if not os.path.exists(LOCAL_CSV_PATH):
+        return {"status": False, "error": f"Local CSV not found at '{LOCAL_CSV_PATH}'"}
+
+    try:
+        csv_df = pd.read_csv(LOCAL_CSV_PATH)
+    except Exception as e:
+        return {"status": False, "error": f"Failed to read CSV '{LOCAL_CSV_PATH}': {e}"}
+
+    if "entity_name" not in csv_df.columns:
+        return {"status": False, "error": "CSV must contain 'entity_name' column"}
+    def norm(s: str) -> str:
+        return s.strip().lower() if isinstance(s, str) else ""
+
+    entity_set = {norm(x) for x in csv_df["entity_name"].dropna() if isinstance(x, str) and x.strip()}
+    # is_unique = norm(extracted_name) not in entity_set
+    is_unique = norm(extracted_name) in entity_set
+
+    results = [{"Extracted Name": extracted_name, "is_Sanctioned": is_unique}]
+
+    try:
+        os.makedirs("./output", exist_ok=True)
+        json_output = "./output/comparison_results.json"
+        with open(json_output, "w", encoding="utf-8") as f:
+            json.dump({"results": results}, f, indent=4, ensure_ascii=False)
+    except Exception as e:
+        return {"status": False, "error": f"Failed saving results: {e}"}
+
+    return {"status": True, "results": results}
+
+
+
+
+main.py
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi_mcp import FastApiMCP
+import uvicorn
+
+from file_router import router as file_router
+
+
+def apply_cors(app: FastAPI):
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+
+def create_sub_app(title: str, description: str, version: str = "0.1.0") -> FastAPI:
+    sub = FastAPI(title=title, description=description, version=version)
+    apply_cors(sub)
+    return sub
+
+
+app = FastAPI()
+apply_cors(app)
+
+file_app = create_sub_app(
+    title="Licensing & Sanction Checker MCP",
+    description="Receives JSON blob URL from Data Extraction Agent and compares extracted name with local sanctions CSV."
+)
+file_app.include_router(file_router)
+
+# Expose ONLY this operation id via MCP HTTP (client will use transport='http')
+FastApiMCP(file_app, include_operations=["Licensing_&_Sanction_Checker_MCP"]).mount_http()
+
+# Mount the sub-app under this prefix (keep as-is per your request)
+app.mount("/api/v1/eligibility_agent", file_app)
+
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8601)
+
+
+
+service.py
+
+import os
+from urllib.parse import urlparse, unquote
+from dotenv import load_dotenv
+
+load_dotenv()
+
+AZURE_STORAGE_CONNECTION_STRING = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "")
+
+
+def _require_env() -> None:
+    """Ensure required environment variables exist."""
+    if not AZURE_STORAGE_CONNECTION_STRING:
+        raise RuntimeError("Missing AZURE_STORAGE_CONNECTION_STRING in .env")
+
+
+def _parse_blob_url(url: str) -> tuple[str, str]:
+    """
+    Parse an Azure Blob URL and return (container_name, blob_path).
+    Example URL:
+      https://account.blob.core.windows.net/output-results/folder/name.json
+    Returns:
+      ("output-results", "folder/name.json")
+    """
+    parsed = urlparse(url)
+    if not parsed.scheme.startswith("http"):
+        raise ValueError("jsonfilepath must be a valid http(s) URL to Azure Blob Storage.")
+
+    path = parsed.path.lstrip("/")
+    if "/" not in path:
+        raise ValueError("jsonfilepath must include both container and blob path.")
+    parts = path.split("/", 1)
+    container = parts[0]
+    blob_path = parts[1]
+    return unquote(container), unquote(blob_path)
+
+
+
+
+test_client.py
+import asyncio
+from langchain_mcp_adapters.client import MultiServerMCPClient
+
+
+async def get_tool_list(config_mcp_server):
+    client = MultiServerMCPClient(config_mcp_server)
+    tools_list = await client.get_tools()
+    print("Tools fetched from MCP:", [tool.name for tool in tools_list])
+    return tools_list
+     
+    # await client.aclose()
+
+
+async def main():
+    config_mcp_server = {
+        "sanction_checker_mcp": {
+            "url": "http://localhost:8601/api/v1/eligibility_agent/mcp",
+             "transport":"streamable_http", 
+        }
+    }
+    tools = await get_tool_list(config_mcp_server=config_mcp_server)
+    print(tools)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+
+
+testscripts.py
 import requests
-from typing import Tuple, Optional, Dict
+import json
 
-# FEMA NFHL ArcGIS REST service (public endpoint)
-# This is the common MapServer/0 query endpoint for NFHL polygons.
-# If it ever changes, update this base URL.
-FEMA_NFHL_QUERY_URL = "https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/0/query"
+BASE_URL = "http://localhost:8601/api/v1/eligibility_agent/Licensing_&_Sanction_Checker_MCP"
 
-# Zones considered high-risk / regulatory flood hazard (authoritative)
-HIGH_RISK_ZONES = {"A", "AE", "AH", "AO", "AR", "A99", "V", "VE"}
-
-def query_fema_nfhl(lat: float, lon: float, timeout: int = 10) -> Optional[Dict]:
-    """
-    Query FEMA NFHL for a point (lat, lon).
-    Returns parsed JSON dictionary from the ArcGIS REST query, or None on network/error.
-    """
-    params = {
-        "geometry": f"{lon},{lat}",              # ArcGIS expects lon,lat for geometry param
-        "geometryType": "esriGeometryPoint",
-        "inSR": "4326",                          # spatial reference WGS84
-        "spatialRel": "esriSpatialRelIntersects",
-        "outFields": "FLD_ZONE,FLD_AR_ID,NAME",  # request useful fields (FLD_ZONE is main)
-        "f": "json"
+def run_test():
+    payload = {
+        "jsonfilepath": "https://agenticai1.blob.core.windows.net/output-results/20251027_101657_8b635bd693b247899be4f0295a02807c_extracted_20251027_101657.json"
     }
     try:
-        resp = requests.get(FEMA_NFHL_QUERY_URL, params=params, timeout=timeout)
-        resp.raise_for_status()
-        return resp.json()
-    except requests.RequestException as e:
-        # Network or HTTP error
-        return {"error": f"network_or_http_error: {str(e)}"}
-
-def extract_zone_from_response(resp_json: Dict) -> Tuple[Optional[str], Dict]:
-    """
-    Given the ArcGIS JSON response, return (zone, raw_feature_dict).
-    If no features found or error, zone is None.
-    """
-    if resp_json is None:
-        return None, {}
-    if "error" in resp_json:
-        # Already an error dict returned from query_fema_nfhl
-        return None, {"error": resp_json["error"]}
-    features = resp_json.get("features", [])
-    if not features:
-        return None, {}
-    # The NFHL service may return multiple intersecting features; pick the most relevant.
-    # Here we pick the first feature's FLD_ZONE (ArcGIS tends to return the matching polygon).
-    first = features[0]
-    attrs = first.get("attributes", {})
-    zone_raw = attrs.get("FLD_ZONE")
-    if zone_raw is None:
-        return None, attrs
-    # FLD_ZONE may contain strings like "AE", or "X", or "AE;0.2" depending on data formatting.
-    # We'll sanitize to uppercase and extract the leading zone token.
-    zone = str(zone_raw).strip().upper().split(";")[0]
-    return zone, attrs
-
-def is_zone_high_risk(zone: Optional[str]) -> bool:
-    """Return True if zone is a FEMA high-risk regulatory zone."""
-    if zone is None:
-        return False
-    return zone in HIGH_RISK_ZONES
-
-def point_flood_check(lat: float, lon: float) -> Dict:
-    """
-    Main helper: given lat/lon returns a dict:
-    {
-      "flood_prone": bool,
-      "zone": str|None,
-      "reason": str,
-      "raw": <raw attributes or response if helpful>
-    }
-    """
-    resp = query_fema_nfhl(lat, lon)
-    # error handling
-    if resp is None:
-        return {"flood_prone": False, "zone": None, "reason": "no_response", "raw": None}
-    if isinstance(resp, dict) and resp.get("error"):
-        return {"flood_prone": False, "zone": None, "reason": resp["error"], "raw": resp}
-
-    zone, raw_attrs = extract_zone_from_response(resp)
-    if zone:
-        if is_zone_high_risk(zone):
-            return {
-                "flood_prone": True,
-                "zone": zone,
-                "reason": f"mapped_high_risk_zone:{zone}",
-                "raw": raw_attrs
-            }
-        else:
-            # Mapped zone present but not in high-risk regulatory set
-            return {
-                "flood_prone": False,
-                "zone": zone,
-                "reason": f"mapped_non_high_risk_zone:{zone}",
-                "raw": raw_attrs
-            }
-    else:
-        # No feature found => point not inside any NFHL polygon (or service has no coverage)
-        return {
-            "flood_prone": False,
-            "zone": None,
-            "reason": "no_mapped_zone_found",
-            "raw": raw_attrs
-        }
-
-# If you import this module, you can call point_flood_check(lat, lon) from your agent.
-# For standalone testing, you can run python -m mcp_flood_check.fema_nfhl
-if __name__ == "__main__":
-    # Quick test example (latitude, longitude)
-    test_coords = [
-        (29.9511, -90.0715),  # New Orleans, likely in some flood zones
-        (40.7128, -74.0060),  # NYC (varies by exact coords)
-        (36.1699, -115.1398), # Las Vegas, likely outside mapped flood zones
-    ]
-    for lat, lon in test_coords:
-        out = point_flood_check(lat, lon)
-        print(f"lat={lat}, lon={lon} -> flood_prone={out['flood_prone']}, zone={out['zone']}, reason={out['reason']}")
-
-
-⸻
-
-2) mcp_flood_check/run_example.py
-
-Create this small runner that imports the function and prints result for a lat/lon you choose:
-
-# mcp_flood_check/run_example.py
-from fema_nfhl import point_flood_check
-
-def pretty_print(result):
-    print("Flood check result:")
-    print("  flood_prone:", result.get("flood_prone"))
-    print("  zone      :", result.get("zone"))
-    print("  reason    :", result.get("reason"))
-    # optionally inspect raw attributes (remove in production)
-    # print("  raw       :", result.get("raw"))
+        resp = requests.post(BASE_URL, json=payload, timeout=60)
+        print("HTTP Status:", resp.status_code)
+        try:
+            data = resp.json()
+            print(json.dumps(data, indent=4))
+        except json.JSONDecodeError:
+            print("Response not JSON:", resp.text)
+    except Exception as e:
+        print("Error calling API:", str(e))
 
 if __name__ == "__main__":
-    # Replace these coordinates with any lat/lon you want to test
-    latitude = 29.9511    # example: New Orleans
-    longitude = -90.0715
-    result = point_flood_check(latitude, longitude)
-    pretty_print(result)
+    print("Testing /Licensing_&_Sanction_Checker_MCP ...")
+    run_test()
 
 
-⸻
+below is my current code
 
-How to run (step-by-step) — beginner friendly
-	1.	Create a folder mcp_flood_check/ and place the two files above into it as named.
-	2.	Make a virtual environment (recommended):
-
-python3 -m venv .venv
-source .venv/bin/activate    # Linux / macOS
-.venv\Scripts\activate       # Windows (PowerShell: .venv\Scripts\Activate.ps1)
-
-
-	3.	Install requests:
-
-pip install requests
-
-
-	4.	From the project root, run the example:
-
-cd mcp_flood_check
-python run_example.py
-
-You should see a printed result like:
-
-Flood check result:
-  flood_prone: True
-  zone: AE
-  reason: mapped_high_risk_zone:AE
-
-(Actual output depends on the sample coordinates; change them to test other spots.)
-
-⸻
-
-Explanation — step by step (what each piece does)
-	1.	Query endpoint & parameters
-	•	We call https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/0/query.
-	•	geometry: we pass lon,lat (ArcGIS REST expects this order).
-	•	geometryType=esriGeometryPoint + spatialRel=esriSpatialRelIntersects checks which polygons intersect that point.
-	•	outFields=FLD_ZONE asks the service to return the NFHL flood zone classification.
-	2.	Parsing the response
-	•	The ArcGIS REST query returns JSON with "features": [ ... ].
-	•	Each feature has attributes where FLD_ZONE is the field containing the zone code (e.g., "AE").
-	•	If features is empty → no polygon matched → no mapped flood zone found.
-	3.	Decision logic
-	•	If FLD_ZONE is one of HIGH_RISK_ZONES, we return flood_prone: True with reason mapped_high_risk_zone.
-	•	If FLD_ZONE present but is e.g. X (zone of lesser risk) → False with reason mapped_non_high_risk_zone.
-	•	If no features → False with reason no_mapped_zone_found.
-	•	If network error → return False + reason containing network error message.
-	4.	Why this is authoritative but static
-	•	FEMA NFHL describes mapped regulatory flood zones. Where mapping exists, membership in those FEMA zones is an authoritative “mapped flood zone” answer.
-	•	This is not a real-time flood sensor result — it tells you whether the location lies within a mapped floodplain, not whether water is currently high. If you want real-time flooding, you must combine with USGS or model APIs (I can add that in the next step).
-
-⸻
-
-Optional: How to get an ArcGIS / Esri API key (if you want to use a token or call other ArcGIS services)
-
-(Only do this if you plan to call ArcGIS Online services requiring keys or want higher quotas.)
-	1.	Open a browser and go to ArcGIS for Developers: https://developers.arcgis.com/ (search “ArcGIS developers”).
-	2.	Sign up or sign in with an Esri account.
-	3.	In the dashboard, go to API Keys and create a new API key (or create an OAuth app for tokens).
-	4.	Copy the API key string.
-	5.	To use it in requests, different ArcGIS services accept either:
-	•	Query param &token=<TOKEN> or &apiKey=<API_KEY> — service dependent; or
-	•	HTTP Authorization header: Authorization: Bearer <TOKEN> — service dependent.
-	6.	For our FEMA NFHL endpoint: it does not require this key, but if you wanted to include a key for other ArcGIS endpoints, add the param to requests:
-
-# Example: adding api_key (if needed by the service)
-params["apiKey"] = "<YOUR_API_KEY_HERE>"
-# or
-headers = {"Authorization": f"Bearer {YOUR_TOKEN}"}
-resp = requests.get(url, params=params, headers=headers)
-
-
-
-Important: ArcGIS/Esri token/API parameter names have varied historically between services — if you obtain an API key and a specific service requires a different parameter name (e.g., token vs apiKey), check that service’s docs. For FEMA NFHL the code above works without any key.
-
-⸻
-
-Next steps / Integration tips for your Risk MCP agent
-	•	Add caching of NFHL responses for repeated queries in the same region to reduce calls.
-	•	Log raw attributes in case you need to audit zone decisions.
-	•	Combine with USGS RTFI / NWPS for real-time evidence if you need “currently flooding” in addition to “mapped flood zone.” I can provide code to combine NFHL + USGS RTFI next.
-	•	For production, add retry/backoff and monitor ArcGIS endpoint availability. Also add unit tests for edge cases (coordinate in ocean, invalid coords, API downtime).
-
-⸻
-
-If you want I can now:
-	•	Provide the combined FEMA NFHL + USGS RTFI implementation (so you get both mapped zone yes/no and real-time flood evidence), or
-	•	Convert the FEMA NFHL code into a FastAPI microservice endpoint that your MCP agent can call (e.g., POST /flood-check { lat, lon } → JSON response).
-
-Which of these two should I deliver next?
