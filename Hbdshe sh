@@ -312,3 +312,271 @@ if __name__ == "__main__":
 
 below is my current code
 
+handler.py
+
+
+from service import extract_address, check_earthquake_risk, read_json_blob, extract_container_and_file_name
+ 
+async def process_blob_file(blob_url: str, providers: dict) -> dict:
+    try:
+        container_name, file_name = extract_container_and_file_name(blob_url)
+        json_data = read_json_blob(file_name)
+ 
+        fields = json_data.get("extracted_fields", [])
+        address_value = None
+ 
+        for field in fields:
+            if "MAILING ADDRESS" in field.get("Field", ""):
+                address_value = field.get("Value")
+                break
+ 
+        if not address_value:
+            return {"error": "No mailing address found in extracted_fields."}
+ 
+        address = extract_address(address_value)
+        print(address)
+        coordinates = providers["geocode"](address)
+ 
+        if "latitude" not in coordinates or "longitude" not in coordinates:
+            return {
+                "coordinates": coordinates,
+                "earthquake_prone": "Unknown (geocoding failed)",
+                "construction_type": "Unknown",
+                "distance_to_fire_hydrant": "Unknown",
+                "distance_to_fire_station": "Unknown",
+                "year_built": "Unknown"
+            }
+ 
+        latitude = coordinates["latitude"]
+        longitude = coordinates["longitude"]
+ 
+        earthquake_risk = providers["earthquake"](latitude, longitude)
+ 
+        return {
+            "coordinates": coordinates,
+            "earthquake_count": earthquake_risk,
+            "construction_type": "Cement",
+            "distance_to_fire_hydrant": "20 FT",
+            "distance_to_fire_station": "3 MI",
+            "year_built": 2018
+        }
+ 
+    except Exception as e:
+        return {"error": f"Failed to process blob file: {str(e)}"}
+
+
+main.py
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+import uvicorn
+from router import router  
+
+app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(router, prefix="/api/v1/hazard")
+ 
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+
+
+router.py
+
+from fastapi import APIRouter
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
+from handler import process_blob_file
+from service import get_coordinates_from_openweather, check_earthquake_risk
+import os
+
+API_KEY = os.getenv("OPENWEATHER_API_KEY")
+
+router = APIRouter()
+
+class BlobRequest(BaseModel):
+    file_path: str = Field(..., description="Full blob URL to the JSON file in Azure Blob Storage.")
+
+providers = {
+    "geocode": get_coordinates_from_openweather,
+    "earthquake": check_earthquake_risk,
+    "geocoder_name": "OpenWeather"
+}
+
+@router.post("/get-coordinates", operation_id="hazard_profile_checker")
+async def get_coordinates_from_blob(p_body: BlobRequest):
+    result = await process_blob_file(p_body.file_path, providers)
+    return JSONResponse(content=result, status_code=200)
+
+
+service.py
+
+import json
+import os
+from urllib.parse import urlparse
+import requests
+from dotenv import load_dotenv
+from azure.storage.blob import BlobServiceClient
+import re
+from datetime import datetime, timedelta
+
+load_dotenv()
+API_KEY = os.getenv("OPENWEATHER_API_KEY")
+USGS_API_URL = os.getenv("USGS_EARTHQUAKE_API")
+AZURE_STORAGE_CONNECTION_STRING = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "")
+AZURE_BLOB_CONTAINER_INPUT = os.environ.get("AZURE_BLOB_CONTAINER_INPUT", "")
+AZURE_BLOB_CONTAINER_OUTPUT = os.environ.get("AZURE_BLOB_CONTAINER_OUTPUT", "")
+
+def _get_blob_service_client():
+    if not AZURE_STORAGE_CONNECTION_STRING:
+        raise RuntimeError("Missing AZURE_STORAGE_CONNECTION_STRING")
+    return BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING)
+
+def _ensure_input_container_exists(blob_service_client):
+    if not AZURE_BLOB_CONTAINER_INPUT:
+        raise RuntimeError("Missing input AZURE_BLOB_CONTAINER")
+    container_client = blob_service_client.get_container_client(AZURE_BLOB_CONTAINER_INPUT)
+    try:
+        container_client.create_container()
+    except Exception:
+        pass
+    return container_client
+
+def _ensure_output_container_exists(blob_service_client):
+    if not AZURE_BLOB_CONTAINER_OUTPUT:
+        raise RuntimeError("Missing output AZURE_BLOB_CONTAINER")
+    container_client = blob_service_client.get_container_client(AZURE_BLOB_CONTAINER_OUTPUT)
+    try:
+        container_client.create_container()
+    except Exception:
+        pass
+    return container_client
+
+def read_json_blob(filename: str) -> dict:
+    """
+    Downloads a JSON file from Azure Blob Storage and returns it as a Python dictionary.
+    """
+    blob_service_client = _get_blob_service_client()
+    container_client = _ensure_input_container_exists(blob_service_client)
+    blob_client = container_client.get_blob_client(blob=filename)
+
+    if not blob_client.exists():
+        raise FileNotFoundError(f"Blob '{filename}' not found in container '{AZURE_BLOB_CONTAINER_INPUT}'")
+
+    blob_data = blob_client.download_blob().readall()
+    return json.loads(blob_data.decode("utf-8"))
+
+def extract_container_and_file_name(url: str) -> tuple[str, str]:
+    parsed = urlparse(url)
+    path_parts = parsed.path.lstrip("/").split("/", 1)
+    if len(path_parts) != 2:
+        raise ValueError("Invalid file URL format")
+    container_name, file_name = path_parts
+    return container_name, file_name
+
+def write_json_to_blob(filename: str, data: dict):
+    """
+    Uploads a JSON-serializable dictionary to Azure Blob Storage as a .json file.
+    """
+    blob_service_client = _get_blob_service_client()
+    container_client = _ensure_output_container_exists(blob_service_client)
+    blob_client = container_client.get_blob_client(blob=filename)
+
+    json_bytes = json.dumps(data, indent=4).encode("utf-8")
+    blob_client.upload_blob(json_bytes, overwrite=True)
+
+# extracts everything after street name
+def extract_address(value: str) -> str:
+    # Match any street-like pattern ending in "Street", "Road", "Lane", "Avenue", etc.
+    pattern = r"\b(?:Street|Road|Lane|Avenue|Boulevard|Drive|Way|Circle|Court|Place|Terrace|Ln|St)\b,?\s*(.*)"
+    match = re.search(pattern, value, re.IGNORECASE)
+    if match:
+        return match.group(1).strip()
+    return ""
+
+# extracts last 4 components of the adddress
+# def extract_address(value: str) -> str:
+#     parts = value.split(",")
+#     if len(parts) >= 4:
+#         return ", ".join([parts[-4].strip(), parts[-3].strip(), parts[-2].strip()])
+#     return value.strip()
+
+# extracts the complete address
+# def extract_address(value: str) -> str:
+#     parts = value.split(",", 1)
+#     if len(parts) == 2:
+#         return parts[1].strip()
+#     return value.strip()
+
+#latitude and longitude
+def get_coordinates_from_openweather(address: str) -> dict:
+    print(f"Querying OpenWeather with: {address}") 
+
+    url = "http://api.openweathermap.org/geo/1.0/direct"
+    params = {
+        "q": address,
+        "limit": 1,
+        "appid": API_KEY
+    }
+    response = requests.get(url, params=params)
+
+    if response.status_code == 404:
+        return {"error": f"Location not found for '{address}'."}
+
+    response.raise_for_status()
+    data = response.json()
+
+    if not data:
+        return {"error": f"No location found for '{address}'."}
+
+    location = data[0]
+    return {
+        "latitude": location.get("lat"),
+        "longitude": location.get("lon"),
+    }
+
+# earthquack zone
+def check_earthquake_risk(lat: float, lon: float, radius_km: int = 100, years: int = 5) -> int:
+    end = datetime.utcnow()
+    start = end - timedelta(days=365 * years)
+
+    params = {
+        "format": "geojson",
+        "latitude": lat,
+        "longitude": lon,
+        "maxradiuskm": radius_km,
+        "starttime": start.strftime("%Y-%m-%d"),
+        "endtime": end.strftime("%Y-%m-%d")
+    }
+
+    response = requests.get(USGS_API_URL, params=params)
+    response.raise_for_status()
+    data = response.json()
+    print(data)
+
+    return data.get("count", 0)
+
+
+
+test.py
+
+import requests
+
+blob_url = "https://yourstorage.blob.core.windows.net/output-results/20251027_101657_8b635bd693b247899be4f0295a02807c_extracted_20251027_101657.json"
+
+endpoint = "http://localhost:8000/api/v1/hazard/get-coordinates"
+
+payload = {
+    "file_path": blob_url
+}
+
+response = requests.post(endpoint, json=payload)
+
+print("Status Code:", response.status_code)
+print("Response JSON:", response.json())
