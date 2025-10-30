@@ -1,139 +1,285 @@
+Great — below is a complete, ready-to-use Python implementation that uses FEMA NFHL (public ArcGIS REST service) to answer:
+“Given latitude & longitude → is this point inside a flood-prone FEMA flood zone? (yes/no)”.
+
+Important first note (so there’s no confusion):
+FEMA NFHL is publicly accessible — you do NOT need an API key to query the NFHL ArcGIS REST endpoint.
+I’ll still include an optional appendix that shows how to obtain an ArcGIS/Esri API key (if you want to call other ArcGIS services or use an API key for rate/quotas) and how to plug it into the code. But for the FEMA NFHL queries below, no key is required.
+
+⸻
+
+What this code does (summary)
+	1.	Accepts latitude and longitude.
+	2.	Calls FEMA NFHL ArcGIS REST query endpoint for the NFHL layer.
+	3.	Checks FLD_ZONE attribute returned (if any).
+	4.	Uses a deterministic mapping of FEMA zones to decide flood_prone: true|false.
+	•	Zones considered high-risk / flood-prone: A, AE, AH, AO, AR, A99, V, VE (common regulatory flood zones).
+	•	Zones considered lower risk / not regulatory high risk: X, B, C, D etc → false.
+	5.	Returns JSON: { "flood_prone": bool, "zone": <zone or None>, "reason": <string> }.
+
+⸻
+
+Files & folder (what to save where)
+
+Save these files under a single project folder. I’ll give filenames and the exact code for each.
+
+Project folder: mcp_flood_check/
+
+Files:
+	•	mcp_flood_check/fema_nfhl.py — core query + helper functions (main file).
+	•	mcp_flood_check/run_example.py — simple script with example coordinates to test.
+
+(You can later integrate fema_nfhl.py into your MCP agent.)
+
+⸻
+
+1) mcp_flood_check/fema_nfhl.py
+
+Create that file and paste this code exactly:
+
+# mcp_flood_check/fema_nfhl.py
+"""
+Simple FEMA NFHL point-in-polygon checker.
+Input: latitude, longitude
+Output: dict { "flood_prone": bool, "zone": str|None, "reason": str }
+
+Author: (You)
+Notes:
+ - This queries FEMA's NFHL ArcGIS MapServer (public). No API key required.
+ - If you want to use an API key for ArcGIS services, see the appendix in README or code comments.
+"""
+
 import requests
-from math import radians, cos, sin, asin, sqrt
+from typing import Tuple, Optional, Dict
 
-# Helper: Haversine distance (km)
-def haversine(lat1, lon1, lat2, lon2):
-    # return distance in km
-    R = 6371.0
-    dlat = radians(lat2 - lat1)
-    dlon = radians(lon2 - lon1)
-    a = sin(dlat/2)**2 + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon/2)**2
-    c = 2 * asin(min(1, sqrt(a)))
-    return R * c
+# FEMA NFHL ArcGIS REST service (public endpoint)
+# This is the common MapServer/0 query endpoint for NFHL polygons.
+# If it ever changes, update this base URL.
+FEMA_NFHL_QUERY_URL = "https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/0/query"
 
-def query_fema_nfhl(lat, lon):
-    # FEMA ArcGIS NFHL endpoint (FeatureServer layer 0 or appropriate layer)
-    # Example query endpoint (ArcGIS REST query)
-    base = "https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/0/query"
+# Zones considered high-risk / regulatory flood hazard (authoritative)
+HIGH_RISK_ZONES = {"A", "AE", "AH", "AO", "AR", "A99", "V", "VE"}
+
+def query_fema_nfhl(lat: float, lon: float, timeout: int = 10) -> Optional[Dict]:
+    """
+    Query FEMA NFHL for a point (lat, lon).
+    Returns parsed JSON dictionary from the ArcGIS REST query, or None on network/error.
+    """
     params = {
-        "geometry": f"{lon},{lat}",
+        "geometry": f"{lon},{lat}",              # ArcGIS expects lon,lat for geometry param
         "geometryType": "esriGeometryPoint",
-        "inSR": "4326",
+        "inSR": "4326",                          # spatial reference WGS84
         "spatialRel": "esriSpatialRelIntersects",
-        "outFields": "FLD_ZONE",
+        "outFields": "FLD_ZONE,FLD_AR_ID,NAME",  # request useful fields (FLD_ZONE is main)
         "f": "json"
     }
-    r = requests.get(base, params=params, timeout=10)
-    if r.status_code != 200:
-        return None
-    j = r.json()
-    features = j.get("features", [])
+    try:
+        resp = requests.get(FEMA_NFHL_QUERY_URL, params=params, timeout=timeout)
+        resp.raise_for_status()
+        return resp.json()
+    except requests.RequestException as e:
+        # Network or HTTP error
+        return {"error": f"network_or_http_error: {str(e)}"}
+
+def extract_zone_from_response(resp_json: Dict) -> Tuple[Optional[str], Dict]:
+    """
+    Given the ArcGIS JSON response, return (zone, raw_feature_dict).
+    If no features found or error, zone is None.
+    """
+    if resp_json is None:
+        return None, {}
+    if "error" in resp_json:
+        # Already an error dict returned from query_fema_nfhl
+        return None, {"error": resp_json["error"]}
+    features = resp_json.get("features", [])
     if not features:
-        return {"in_zone": False}
-    # may return multiple features; pick the first/most authoritative
-    zone = features[0]["attributes"].get("FLD_ZONE")
-    return {"in_zone": True, "zone": zone, "raw": features}
+        return None, {}
+    # The NFHL service may return multiple intersecting features; pick the most relevant.
+    # Here we pick the first feature's FLD_ZONE (ArcGIS tends to return the matching polygon).
+    first = features[0]
+    attrs = first.get("attributes", {})
+    zone_raw = attrs.get("FLD_ZONE")
+    if zone_raw is None:
+        return None, attrs
+    # FLD_ZONE may contain strings like "AE", or "X", or "AE;0.2" depending on data formatting.
+    # We'll sanitize to uppercase and extract the leading zone token.
+    zone = str(zone_raw).strip().upper().split(";")[0]
+    return zone, attrs
 
-def find_nearest_usgs_gauge(lat, lon, max_km=20):
-    # Use USGS monitoring-locations OGC endpoint to get nearby sites
-    # This example uses the OGC "monitoring-locations" collection; adjust if required.
-    base = "https://api.waterdata.usgs.gov/ogcapi/v0/collections/monitoring-locations/items"
-    params = {
-        "lat": lat,
-        "lon": lon,
-        "limit": 50
+def is_zone_high_risk(zone: Optional[str]) -> bool:
+    """Return True if zone is a FEMA high-risk regulatory zone."""
+    if zone is None:
+        return False
+    return zone in HIGH_RISK_ZONES
+
+def point_flood_check(lat: float, lon: float) -> Dict:
+    """
+    Main helper: given lat/lon returns a dict:
+    {
+      "flood_prone": bool,
+      "zone": str|None,
+      "reason": str,
+      "raw": <raw attributes or response if helpful>
     }
-    r = requests.get(base, params=params, timeout=10)
-    if r.status_code != 200:
-        return None
-    j = r.json()
-    items = j.get("features", [])
-    best = None
-    bestd = 99999
-    for it in items:
-        props = it.get("properties", {})
-        geom = it.get("geometry", {})
-        if not geom: continue
-        gcoords = geom.get("coordinates", [])
-        if len(gcoords) < 2: continue
-        glon, glat = gcoords[0], gcoords[1]
-        d = haversine(lat, lon, glat, glon)
-        if d < bestd:
-            bestd = d
-            best = {"id": props.get("siteCode") or props.get("siteIdentifier") or props.get("identifier"),
-                    "name": props.get("siteName") or props.get("name"),
-                    "lat": glat, "lon": glon, "dist_km": d, "properties": props}
-    if best and best["dist_km"] <= max_km:
-        return best
-    return None
+    """
+    resp = query_fema_nfhl(lat, lon)
+    # error handling
+    if resp is None:
+        return {"flood_prone": False, "zone": None, "reason": "no_response", "raw": None}
+    if isinstance(resp, dict) and resp.get("error"):
+        return {"flood_prone": False, "zone": None, "reason": resp["error"], "raw": resp}
 
-def check_usgs_rtfi_nearby(lat, lon, radius_km=10):
-    # RTFI API allows querying flood impact locations; we'll get impacts within a bbox
-    # Simple approach: request RTFI list and find nearest impacted location
-    base = "https://api.waterdata.usgs.gov/rtfi-api/rtfi/locations"
-    # RTFI has its own query params (may change); use bbox approx
-    # build a small bbox around lat/lon (rough)
-    delta = 0.2  # ~22 km latitude roughly - tune as needed
-    bbox = f"{lon-delta},{lat-delta},{lon+delta},{lat+delta}"
-    r = requests.get(base, params={"bbox": bbox}, timeout=10)
-    if r.status_code != 200:
-        return None
-    j = r.json()
-    # check entries for 'is_impacted' or similar flags
-    for loc in j.get("features", []):
-        props = loc.get("properties", {})
-        # property names may differ; check 'impacted' or 'flooding'
-        if props.get("impactLevel") or props.get("isImpacted") or props.get("is_impacted"):
-            # compute distance to verify
-            geom = loc.get("geometry", {})
-            coords = geom.get("coordinates", [None, None])
-            if coords[0] is None:
-                continue
-            d = haversine(lat, lon, coords[1], coords[0])
-            if d <= radius_km:
-                return {"impacted": True, "distance_km": d, "properties": props}
-    return {"impacted": False}
-
-def is_flood_prone_us(lat, lon):
-    # 1) FEMA mapped zones
-    f = query_fema_nfhl(lat, lon)
-    if f and f.get("in_zone"):
-        zone = f.get("zone")
-        high_risk = {"A","AE","AH","AO","VE","V","AR","A99"}
-        if zone and zone.upper() in high_risk:
-            return {"flood_prone": True, "reason": f"mapped_zone:{zone}"}
+    zone, raw_attrs = extract_zone_from_response(resp)
+    if zone:
+        if is_zone_high_risk(zone):
+            return {
+                "flood_prone": True,
+                "zone": zone,
+                "reason": f"mapped_high_risk_zone:{zone}",
+                "raw": raw_attrs
+            }
         else:
-            # Not a high-risk regulatory zone
-            return {"flood_prone": False, "reason": f"mapped_zone:{zone}"}
+            # Mapped zone present but not in high-risk regulatory set
+            return {
+                "flood_prone": False,
+                "zone": zone,
+                "reason": f"mapped_non_high_risk_zone:{zone}",
+                "raw": raw_attrs
+            }
+    else:
+        # No feature found => point not inside any NFHL polygon (or service has no coverage)
+        return {
+            "flood_prone": False,
+            "zone": None,
+            "reason": "no_mapped_zone_found",
+            "raw": raw_attrs
+        }
 
-    # 2) USGS RTFI nearby impact
-    rtfi = check_usgs_rtfi_nearby(lat, lon)
-    if rtfi and rtfi.get("impacted"):
-        return {"flood_prone": True, "reason": f"rtfi_nearby (dist_km={rtfi['distance_km']:.1f})"}
+# If you import this module, you can call point_flood_check(lat, lon) from your agent.
+# For standalone testing, you can run python -m mcp_flood_check.fema_nfhl
+if __name__ == "__main__":
+    # Quick test example (latitude, longitude)
+    test_coords = [
+        (29.9511, -90.0715),  # New Orleans, likely in some flood zones
+        (40.7128, -74.0060),  # NYC (varies by exact coords)
+        (36.1699, -115.1398), # Las Vegas, likely outside mapped flood zones
+    ]
+    for lat, lon in test_coords:
+        out = point_flood_check(lat, lon)
+        print(f"lat={lat}, lon={lon} -> flood_prone={out['flood_prone']}, zone={out['zone']}, reason={out['reason']}")
 
-    # 3) Find nearest gauge and check instantaneous values / flood thresholds
-    gauge = find_nearest_usgs_gauge(lat, lon, max_km=20)
-    if gauge:
-        site = gauge['id']
-        # Instantaneous values API (example)
-        iv_url = f"https://waterservices.usgs.gov/nwis/iv/?format=json&sites={site}&parameterCd=00065"  # 00065 = gage height
-        r = requests.get(iv_url, timeout=10)
-        if r.status_code == 200:
-            data = r.json()
-            # parse to get current stage and compare to flood threshold (you must get threshold from metadata)
-            # For brevity, assume we can find a 'flood_stage' property in monitoring-locations metadata (not always present)
-            flood_stage = None
-            try:
-                flood_stage = float(gauge['properties'].get('floodStage')) if gauge['properties'].get('floodStage') else None
-            except:
-                flood_stage = None
-            # parse current value
-            try:
-                current = float(data['value']['timeSeries'][0]['values'][0]['value'][0]['value'])
-            except Exception:
-                current = None
-            if current is not None and flood_stage is not None and current >= flood_stage:
-                return {"flood_prone": True, "reason": f"gauge_{site}_above_flood_stage (current={current}, threshold={flood_stage})"}
-    # 4) NWPS forecast fallback (left as future step) - call NWPS API for forecast point nearest to lat/lon and use forecast category.
 
-    return {"flood_prone": False, "reason": "no_evidence_from_nfhl_rtfi_usgs_nwps"}
+⸻
+
+2) mcp_flood_check/run_example.py
+
+Create this small runner that imports the function and prints result for a lat/lon you choose:
+
+# mcp_flood_check/run_example.py
+from fema_nfhl import point_flood_check
+
+def pretty_print(result):
+    print("Flood check result:")
+    print("  flood_prone:", result.get("flood_prone"))
+    print("  zone      :", result.get("zone"))
+    print("  reason    :", result.get("reason"))
+    # optionally inspect raw attributes (remove in production)
+    # print("  raw       :", result.get("raw"))
+
+if __name__ == "__main__":
+    # Replace these coordinates with any lat/lon you want to test
+    latitude = 29.9511    # example: New Orleans
+    longitude = -90.0715
+    result = point_flood_check(latitude, longitude)
+    pretty_print(result)
+
+
+⸻
+
+How to run (step-by-step) — beginner friendly
+	1.	Create a folder mcp_flood_check/ and place the two files above into it as named.
+	2.	Make a virtual environment (recommended):
+
+python3 -m venv .venv
+source .venv/bin/activate    # Linux / macOS
+.venv\Scripts\activate       # Windows (PowerShell: .venv\Scripts\Activate.ps1)
+
+
+	3.	Install requests:
+
+pip install requests
+
+
+	4.	From the project root, run the example:
+
+cd mcp_flood_check
+python run_example.py
+
+You should see a printed result like:
+
+Flood check result:
+  flood_prone: True
+  zone: AE
+  reason: mapped_high_risk_zone:AE
+
+(Actual output depends on the sample coordinates; change them to test other spots.)
+
+⸻
+
+Explanation — step by step (what each piece does)
+	1.	Query endpoint & parameters
+	•	We call https://hazards.fema.gov/gis/nfhl/rest/services/public/NFHL/MapServer/0/query.
+	•	geometry: we pass lon,lat (ArcGIS REST expects this order).
+	•	geometryType=esriGeometryPoint + spatialRel=esriSpatialRelIntersects checks which polygons intersect that point.
+	•	outFields=FLD_ZONE asks the service to return the NFHL flood zone classification.
+	2.	Parsing the response
+	•	The ArcGIS REST query returns JSON with "features": [ ... ].
+	•	Each feature has attributes where FLD_ZONE is the field containing the zone code (e.g., "AE").
+	•	If features is empty → no polygon matched → no mapped flood zone found.
+	3.	Decision logic
+	•	If FLD_ZONE is one of HIGH_RISK_ZONES, we return flood_prone: True with reason mapped_high_risk_zone.
+	•	If FLD_ZONE present but is e.g. X (zone of lesser risk) → False with reason mapped_non_high_risk_zone.
+	•	If no features → False with reason no_mapped_zone_found.
+	•	If network error → return False + reason containing network error message.
+	4.	Why this is authoritative but static
+	•	FEMA NFHL describes mapped regulatory flood zones. Where mapping exists, membership in those FEMA zones is an authoritative “mapped flood zone” answer.
+	•	This is not a real-time flood sensor result — it tells you whether the location lies within a mapped floodplain, not whether water is currently high. If you want real-time flooding, you must combine with USGS or model APIs (I can add that in the next step).
+
+⸻
+
+Optional: How to get an ArcGIS / Esri API key (if you want to use a token or call other ArcGIS services)
+
+(Only do this if you plan to call ArcGIS Online services requiring keys or want higher quotas.)
+	1.	Open a browser and go to ArcGIS for Developers: https://developers.arcgis.com/ (search “ArcGIS developers”).
+	2.	Sign up or sign in with an Esri account.
+	3.	In the dashboard, go to API Keys and create a new API key (or create an OAuth app for tokens).
+	4.	Copy the API key string.
+	5.	To use it in requests, different ArcGIS services accept either:
+	•	Query param &token=<TOKEN> or &apiKey=<API_KEY> — service dependent; or
+	•	HTTP Authorization header: Authorization: Bearer <TOKEN> — service dependent.
+	6.	For our FEMA NFHL endpoint: it does not require this key, but if you wanted to include a key for other ArcGIS endpoints, add the param to requests:
+
+# Example: adding api_key (if needed by the service)
+params["apiKey"] = "<YOUR_API_KEY_HERE>"
+# or
+headers = {"Authorization": f"Bearer {YOUR_TOKEN}"}
+resp = requests.get(url, params=params, headers=headers)
+
+
+
+Important: ArcGIS/Esri token/API parameter names have varied historically between services — if you obtain an API key and a specific service requires a different parameter name (e.g., token vs apiKey), check that service’s docs. For FEMA NFHL the code above works without any key.
+
+⸻
+
+Next steps / Integration tips for your Risk MCP agent
+	•	Add caching of NFHL responses for repeated queries in the same region to reduce calls.
+	•	Log raw attributes in case you need to audit zone decisions.
+	•	Combine with USGS RTFI / NWPS for real-time evidence if you need “currently flooding” in addition to “mapped flood zone.” I can provide code to combine NFHL + USGS RTFI next.
+	•	For production, add retry/backoff and monitor ArcGIS endpoint availability. Also add unit tests for edge cases (coordinate in ocean, invalid coords, API downtime).
+
+⸻
+
+If you want I can now:
+	•	Provide the combined FEMA NFHL + USGS RTFI implementation (so you get both mapped zone yes/no and real-time flood evidence), or
+	•	Convert the FEMA NFHL code into a FastAPI microservice endpoint that your MCP agent can call (e.g., POST /flood-check { lat, lon } → JSON response).
+
+Which of these two should I deliver next?
