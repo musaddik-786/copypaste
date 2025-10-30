@@ -1,242 +1,506 @@
-Perfect ✅ Thanks for confirming.
+Got it — you want the complete code for every file, structured exactly like the reference project you gave me (same file names / patterns) and with a proper test script that uses a concrete example blob URL just like your reference. Below I give you the full set of files, using the same structure, names, and behavior as the reference code you shared earlier — but adapted for the Risk Data Capture logic (it will download the provided blob URL, save to input/, extract mailing address, geocode and check earthquake risk, save results to output/, and return a JSON-RPC response). I kept docstrings and comments clear and matched the reference style.
 
-Here is the final documentation for your project — formatted professionally so you can copy-paste directly into Word.
+Files included (paste each into your project):
+	•	router.py (endpoint + Pydantic model)
+	•	handler.py (main async handler flow)
+	•	service.py (env checks, blob parsing & async download, helpers)
+	•	main.py (FastAPI app and FastApiMCP mount)
+	•	testscripts.py (concrete blob URL — taken from your reference)
+	•	test_client.py (MCP client example — adapted from reference)
+	•	requirements.txt and .env.example (for quick setup)
 
-⸻
-
-Attachment Checker MCP API – Documentation
-
-⸻
-
-1. Overview
-
-The Attachment Checker MCP API is a FastAPI-based microservice that connects to Gmail to read email attachments and checks if the attachment filenames already exist in Azure Blob Storage. It helps in identifying duplicate documents and preventing redundant data storage.
-
-This service runs using FastAPI, supports MCP (Model Context Protocol) integration, and includes continuous email polling to detect new incoming emails automatically.
+Note: this is the same architecture & URL-parsing / download approach used in your reference code. I used the concrete blob URL that appeared in the reference testscript you provided earlier (so you can run the test as-is if that blob exists / is accessible to your connection string). If you prefer a different blob URL, replace it in testscripts.py.
 
 ⸻
 
-2. Base URL
+router.py
 
-http://localhost:8502/mcp/attachment_checker_mcp
+# router.py
+from fastapi import APIRouter
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
+from handler import process_risk_blob
+
+router = APIRouter()
 
 
-⸻
+class BlobRequest(BaseModel):
+    """
+    Payload:
+    {
+      "blob_url": "https://<account>.blob.core.windows.net/<container>/<path>/file.json"
+    }
+    The service will download that JSON and compute the risk profile.
+    """
+    blob_url: str = Field(..., description="Full Azure Blob URL to the JSON file.")
 
-3. Features
 
-✅ Fetches latest Gmail emails
-✅ Extracts attachment filenames
-✅ Compares with files stored in Azure Blob Storage
-✅ Identifies duplicates
-✅ MCP Compatible API design
-✅ Background Gmail polling
-✅ JSON-based response
-✅ Includes status and error handling
-✅ Logs attachment comparison in console for monitoring
-
-⸻
-
-4. API Request Format
-
-Endpoint
-
-POST /mcp/attachment_checker_mcp
-
-Headers
-
-Content-Type: application/json
-
-Request Body
-
-{
-  "AgentName": "EmailAttachmentChecker",
-  "UserId": "markRuffalo"
-}
-
-Both fields are optional and used only as identifiers. No functional change based on values.
-
-⸻
-
-5. Response Format
-
-✅ Success Response
-
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "result": {
-    "status": true,
-    "attachments": [
-      { "filename": "file1.pdf", "is_duplicate": false }
-    ]
-  }
-}
-
-❌ Error Response
-
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "result": {
-    "status": false,
-    "error": "Azure Storage connection failed"
-  }
-}
+@router.post(
+    "/Risk_Data_Capture_MCP",
+    operation_id="Risk_Data_Capture_MCP",
+    summary="Download JSON from blob URL, extract mailing address, geocode, and compute risk fields."
+)
+async def risk_data_capture_endpoint(body: BlobRequest):
+    """
+    Receives blob_url, calls handler, and returns JSON-RPC envelope.
+    """
+    try:
+        result = await process_risk_blob(blob_url=body.blob_url)
+        return JSONResponse(
+            content={
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": result
+            },
+            status_code=200
+        )
+    except Exception as e:
+        return JSONResponse(
+            content={
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": {"status": False, "error": f"Unexpected server error: {str(e)}"}
+            },
+            status_code=200
+        )
 
 
 ⸻
 
-6. Response Field Description
+handler.py
 
-Field	Type	Description
-status	boolean	true on success, false on any failure
-attachments	list	List of attachments with duplicate status
-filename	string	Attachment name extracted from Gmail
-is_duplicate	boolean	true if file exists in Azure Blob Storage
-error	string	Error description in case of failure
+# handler.py
+import os
+import json
+import logging
+from typing import Dict, Any, Optional
+from dotenv import load_dotenv
+
+from service import (
+    require_env,
+    parse_blob_url,
+    download_json_blob_to_input,
+    read_local_json,
+    extract_address,
+    get_coordinates_from_openweather,
+    check_earthquake_risk,
+    LOCAL_INPUT_DIR,
+    LOCAL_OUTPUT_DIR,
+)
+
+load_dotenv()
+
+logger = logging.getLogger("risk_capture")
+if not logger.handlers:
+    logging.basicConfig(level=logging.INFO)
+
+
+async def process_risk_blob(blob_url: str) -> Dict[str, Any]:
+    """
+    Process a blob URL: download JSON into input/, extract mailing address,
+    geocode, check earthquake risk, save results into output/ and return dict.
+
+    Returns structure:
+    {
+      "status": True/False,
+      "coordinates": {...} or error,
+      "earthquake_count": int or message,
+      "construction_type": ...,
+      "distance_to_fire_hydrant": ...,
+      "distance_to_fire_station": ...,
+      "year_built": ...,
+      "error": "..."  # if status False
+    }
+    """
+    try:
+        require_env()
+    except Exception as e:
+        return {"status": False, "error": str(e)}
+
+    # Validate blob URL
+    try:
+        _container, _blob_path = parse_blob_url(blob_url)
+    except Exception as e:
+        return {"status": False, "error": f"Invalid blob_url: {e}"}
+
+    # Download to input/
+    try:
+        local_file = await download_json_blob_to_input(blob_url=blob_url)
+    except Exception as e:
+        return {"status": False, "error": f"Failed to download blob: {e}"}
+
+    # Read JSON
+    try:
+        data = read_local_json(local_file)
+    except Exception as e:
+        return {"status": False, "error": f"Failed to read downloaded JSON: {e}"}
+
+    # Extract mailing address
+    fields = data.get("extracted_fields", [])
+    mailing_address_value: Optional[str] = None
+    if isinstance(fields, list):
+        for item in fields:
+            if isinstance(item, dict):
+                field_name = item.get("Field", "")
+                if isinstance(field_name, str) and "MAILING ADDRESS" in field_name.upper():
+                    mailing_address_value = item.get("Value", "").strip()
+                    if mailing_address_value:
+                        break
+
+    if not mailing_address_value:
+        return {"status": False, "error": "No mailing address found in extracted_fields."}
+
+    # Normalize/extract address
+    address = extract_address(mailing_address_value)
+
+    # Geocode
+    coords = get_coordinates_from_openweather(address)
+    if not isinstance(coords, dict) or "latitude" not in coords or "longitude" not in coords:
+        result_payload = {
+            "status": True,
+            "coordinates": coords,
+            "earthquake_count": "Unknown (geocoding failed)",
+            "construction_type": "Cement",
+            "distance_to_fire_hydrant": "20 FT",
+            "distance_to_fire_station": "3 MI",
+            "year_built": 2018
+        }
+        # save output
+        try:
+            os.makedirs(LOCAL_OUTPUT_DIR, exist_ok=True)
+            out_path = os.path.join(LOCAL_OUTPUT_DIR, f"risk_result_{os.path.basename(local_file)}")
+            with open(out_path, "w", encoding="utf-8") as f:
+                json.dump(result_payload, f, indent=4, ensure_ascii=False)
+        except Exception:
+            logger.exception("Failed to save result to output folder.")
+        logger.info("Result: %s", json.dumps(result_payload, ensure_ascii=False))
+        return result_payload
+
+    lat = coords["latitude"]
+    lon = coords["longitude"]
+
+    # Earthquake risk
+    try:
+        quakes = check_earthquake_risk(lat, lon)
+    except Exception as e:
+        quakes = f"USGS query failed: {str(e)}"
+
+    results = {
+        "status": True,
+        "coordinates": coords,
+        "earthquake_count": quakes,
+        "construction_type": "Cement",
+        "distance_to_fire_hydrant": "20 FT",
+        "distance_to_fire_station": "3 MI",
+        "year_built": 2018
+    }
+
+    # Save results
+    try:
+        os.makedirs(LOCAL_OUTPUT_DIR, exist_ok=True)
+        out_path = os.path.join(LOCAL_OUTPUT_DIR, f"risk_result_{os.path.basename(local_file)}")
+        with open(out_path, "w", encoding="utf-8") as f:
+            json.dump(results, f, indent=4, ensure_ascii=False)
+    except Exception as e:
+        results["save_warning"] = f"Failed to save output: {e}"
+        logger.exception("Failed to save output file: %s", e)
+
+    logger.info("Result: %s", json.dumps(results, ensure_ascii=False))
+    return results
 
 
 ⸻
 
-7. Polling Behavior
-	•	On startup, the service fetches the latest email and compares attachments once.
-	•	Then it runs continuous Gmail polling every 10 seconds.
-	•	If a new email arrives, it prints a full JSON summary in the terminal.
-	•	Polling does not affect API calls. /attachment_checker_mcp can be called any time.
+service.py
+
+# service.py
+import os
+import json
+from urllib.parse import urlparse, unquote
+from dotenv import load_dotenv
+from azure.storage.blob.aio import BlobServiceClient
+from azure.core.exceptions import ResourceNotFoundError
+import requests
+import re
+from datetime import datetime, timedelta
+
+load_dotenv()
+
+AZURE_STORAGE_CONNECTION_STRING = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "")
+OPENWEATHER_API_KEY = os.environ.get("OPENWEATHER_API_KEY", "")
+USGS_EARTHQUAKE_API = os.environ.get("USGS_EARTHQUAKE_API", "https://earthquake.usgs.gov/fdsnws/event/1/query")
+
+LOCAL_INPUT_DIR = os.path.join("input")
+LOCAL_OUTPUT_DIR = os.path.join("output")
+
+
+def require_env() -> None:
+    """
+    Ensure required environment variables exist.
+    """
+    if not AZURE_STORAGE_CONNECTION_STRING:
+        raise RuntimeError("Missing AZURE_STORAGE_CONNECTION_STRING in .env")
+
+
+def parse_blob_url(url: str) -> tuple[str, str]:
+    """
+    Parse an Azure Blob URL and return (container_name, blob_path).
+    Example:
+      https://account.blob.core.windows.net/container/path/file.json
+    """
+    parsed = urlparse(url)
+    if not parsed.scheme.startswith("http"):
+        raise ValueError("blob_url must be a valid http(s) URL.")
+    path = parsed.path.lstrip("/")
+    if "/" not in path:
+        raise ValueError("blob_url must contain container and blob path.")
+    parts = path.split("/", 1)
+    container = parts[0]
+    blob_path = parts[1]
+    return unquote(container), unquote(blob_path)
+
+
+async def download_json_blob_to_input(blob_url: str) -> str:
+    """
+    Download the JSON blob specified by blob_url and save to ./input/<basename>.
+    Returns the local path to the saved file.
+    """
+    if not AZURE_STORAGE_CONNECTION_STRING:
+        raise RuntimeError("Missing AZURE_STORAGE_CONNECTION_STRING")
+
+    container_name, blob_path = parse_blob_url(blob_url)
+
+    os.makedirs(LOCAL_INPUT_DIR, exist_ok=True)
+    local_basename = os.path.basename(blob_path) or f"downloaded_{int(datetime.utcnow().timestamp())}.json"
+    local_path = os.path.join(LOCAL_INPUT_DIR, local_basename)
+
+    async with BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING) as blob_service:
+        container_client = blob_service.get_container_client(container_name)
+        blob_client = container_client.get_blob_client(blob_path)
+        try:
+            await blob_client.get_blob_properties()
+        except ResourceNotFoundError:
+            raise FileNotFoundError(f"JSON blob not found: container='{container_name}', blob='{blob_path}'")
+        stream = await blob_client.download_blob()
+        raw_bytes = await stream.readall()
+
+    with open(local_path, "wb") as f:
+        f.write(raw_bytes)
+
+    return local_path
+
+
+def read_local_json(filepath: str) -> dict:
+    """
+    Read JSON file from local filesystem and return dict.
+    """
+    if not os.path.exists(filepath):
+        raise FileNotFoundError(f"Local file not found: {filepath}")
+    with open(filepath, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def extract_address(value: str) -> str:
+    """
+    Extract compact address from the value using heuristic regex (keeps original approach).
+    """
+    pattern = r"\b(?:Street|Road|Lane|Avenue|Boulevard|Drive|Way|Circle|Court|Place|Terrace|Ln|St)\b,?\s*(.*)"
+    match = re.search(pattern, value, re.IGNORECASE)
+    if match:
+        return match.group(1).strip()
+    return value.strip()
+
+
+def get_coordinates_from_openweather(address: str) -> dict:
+    """
+    Query OpenWeather geocoding API (sync). Returns {"latitude": ..., "longitude": ...} on success
+    or {"error": "..."} on failure.
+    """
+    if not OPENWEATHER_API_KEY:
+        return {"error": "OPENWEATHER_API_KEY not configured."}
+    url = "http://api.openweathermap.org/geo/1.0/direct"
+    params = {"q": address, "limit": 1, "appid": OPENWEATHER_API_KEY}
+    resp = requests.get(url, params=params, timeout=20)
+    if resp.status_code == 404:
+        return {"error": f"Location not found for '{address}'."}
+    resp.raise_for_status()
+    data = resp.json()
+    if not data:
+        return {"error": f"No location found for '{address}'."}
+    loc = data[0]
+    return {"latitude": loc.get("lat"), "longitude": loc.get("lon")}
+
+
+def check_earthquake_risk(lat: float, lon: float, radius_km: int = 100, years: int = 5) -> int:
+    """
+    Query USGS and return count of earthquakes within radius_km for the past `years` years.
+    """
+    end = datetime.utcnow()
+    start = end - timedelta(days=365 * years)
+    params = {
+        "format": "geojson",
+        "latitude": lat,
+        "longitude": lon,
+        "maxradiuskm": radius_km,
+        "starttime": start.strftime("%Y-%m-%d"),
+        "endtime": end.strftime("%Y-%m-%d")
+    }
+    resp = requests.get(USGS_EARTHQUAKE_API, params=params, timeout=30)
+    resp.raise_for_status()
+    data = resp.json()
+    if isinstance(data, dict):
+        if "metadata" in data and isinstance(data["metadata"], dict) and "count" in data["metadata"]:
+            return int(data["metadata"]["count"])
+        if "features" in data and isinstance(data["features"], list):
+            return len(data["features"])
+        if "count" in data:
+            return int(data["count"])
+    return 0
+
 
 ⸻
 
-8. Folder Structure
+main.py
 
-project-root/
-├── main.py                         # Main FastAPI entrypoint
-├── attachment_service.py           # Email and polling service
-├── attachment_handler.py           # Azure and Gmail attachment logic
-├── gmail_watch.py                  # Gmail authentication helper
-├── routers/
-│   └── attachment_router.py        # API route
-├── storage/
-│   ├── attachments/                # JSON log of processed attachments
-│   └── history_state.json          # Reserved for future use
-├── credentials/
-│   └── client_secret.json          # Gmail OAuth credentials
-├── .env                            # Azure setup
-└── requirements.txt
+# main.py
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi_mcp import FastApiMCP
+import uvicorn
+
+from router import router as file_router
 
 
-⸻
-
-9. Environment Variables (.env)
-
-AZURE_STORAGE_CONNECTION_STRING=your-azure-storage-connection-string
-AZURE_BLOB_CONTAINER=your-container-name
-
-
-⸻
-
-10. Requirements
-
-Dependency	Version
-Python	3.10+
-FastAPI	0.118.3
-uvicorn	0.30.6
-azure-storage-blob	12.23.1
-google-api-python-client	2.146.0
-google-auth-oauthlib	1.2.1
-fastapi_mcp	0.4.0
-python-dotenv	1.0.1
+def apply_cors(app: FastAPI):
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 
-⸻
+def create_sub_app(title: str, description: str, version: str = "0.1.0") -> FastAPI:
+    sub = FastAPI(title=title, description=description, version=version)
+    apply_cors(sub)
+    return sub
 
-11. Setup Instructions
 
-11.1 Clone & Install Dependencies
+app = FastAPI()
+apply_cors(app)
 
-pip install -r requirements.txt
+file_app = create_sub_app(
+    title="Risk Data Capture MCP",
+    description="Receives JSON blob URL from Data Extraction Agent and returns risk profile."
+)
+file_app.include_router(file_router)
 
-11.2 Gmail Authentication Setup
-	•	Create Google OAuth credentials
-	•	Download client_secret.json
-	•	Place inside /credentials folder
-	•	First run will open browser for Gmail login
+# Expose ONLY this operation id via MCP HTTP (client will use transport='http')
+FastApiMCP(file_app, include_operations=["Risk_Data_Capture_MCP"]).mount_http()
 
-11.3 Configure Azure Blob
-	•	Create a Storage Account
-	•	Create a Blob Container
-	•	Add connection string and container name in .env
+# Mount the sub-app under this prefix
+app.mount("/api/v1/risk_agent", file_app)
 
-⸻
 
-12. Run Server
-
-python main.py
-
-Server runs on:
-
-http://localhost:8502
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8601)
 
 
 ⸻
 
-13. How It Works (Flow)
+testscripts.py
 
-Startup →
-Read latest Gmail email →
-Extract attachments →
-Compare with Azure Blob Storage →
-Return result →
-Begin polling Gmail every 10 seconds →
-Detect new emails automatically →
-Repeat comparison on new emails only
+# testscripts.py
+"""
+Simple test script to POST a blob URL to the MCP endpoint.
+This uses the concrete example blob URL that was present in your reference tests.
+Replace with your own blob URL if needed.
+"""
+import requests
+import json
+
+BASE_URL = "http://localhost:8601/api/v1/risk_agent/Risk_Data_Capture_MCP"
+
+def run_test():
+    payload = {
+        # concrete example from your reference (update if you have a different blob)
+        "blob_url": "https://agenticai1.blob.core.windows.net/output-results/20251027_101657_8b635bd693b247899be4f0295a02807c_extracted_20251027_101657.json"
+    }
+    try:
+        resp = requests.post(BASE_URL, json=payload, timeout=60)
+        print("HTTP Status:", resp.status_code)
+        try:
+            data = resp.json()
+            print(json.dumps(data, indent=4))
+        except json.JSONDecodeError:
+            print("Response not JSON:", resp.text)
+    except Exception as e:
+        print("Error calling API:", str(e))
+
+if __name__ == "__main__":
+    print("Testing /Risk_Data_Capture_MCP ...")
+    run_test()
+
+
+⸻
+
+test_client.py
+
+# test_client.py
+import asyncio
+from langchain_mcp_adapters.client import MultiServerMCPClient
+
+async def get_tool_list(config_mcp_server):
+    client = MultiServerMCPClient(config_mcp_server)
+    tools_list = await client.get_tools()
+    print("Tools fetched from MCP:", [tool.name for tool in tools_list])
+    return tools_list
+
+async def main():
+    config_mcp_server = {
+        "risk_capture_mcp": {
+            "url": "http://localhost:8601/api/v1/risk_agent/mcp",
+            "transport":"streamable_http",
+        }
+    }
+    tools = await get_tool_list(config_mcp_server=config_mcp_server)
+    print(tools)
+
+if __name__ == "__main__":
+    asyncio.run(main())
 
 
 ⸻
 
-14. Error Handling
+requirements.txt
 
-Error Case	Example Message
-Azure not configured	Missing AZURE_STORAGE_CONNECTION_STRING
-Gmail API failure	Authentication failed
-No internet	Network unreachable
-Blob container missing	Missing AZURE_BLOB_CONTAINER
+fastapi
+uvicorn[standard]
+python-dotenv
+azure-storage-blob
+azure-core
+requests
+fastapi-mcp
+langchain-mcp-adapters
+
+
+⸻
+
+.env.example
+
+AZURE_STORAGE_CONNECTION_STRING="DefaultEndpointsProtocol=...;AccountName=...;AccountKey=...;EndpointSuffix=core.windows.net"
+OPENWEATHER_API_KEY="your_openweather_key"
+USGS_EARTHQUAKE_API="https://earthquake.usgs.gov/fdsnws/event/1/query"
 
 
 ⸻
 
-15. MCP Integration
-
-We use FastApiMCP to mount MCP-compatible API methods:
-
-FastApiMCP(email_app, include_operations=["attachment_checker_mcp"]).mount_http()
-
-This allows LLM agents and automation frameworks to call this API intelligently.
+Quick checklist to run
+	1.	Put .env in project root (use .env.example as template).
+	2.	pip install -r requirements.txt
+	3.	uvicorn main:app --host 0.0.0.0 --port 8601
+	4.	In another terminal: python testscripts.py (this will call the concrete example blob URL present in the reference test).
 
 ⸻
 
-16. Future Enhancements
-
-✅ Prevent duplicate processing using history tracking
-✅ Support saving attachments to Azure
-✅ Add webhook support
-✅ Add monitoring dashboard
-✅ Add multi-user Gmail support
-
-⸻
-
-If you want, I can also:
-✅ Add diagrams
-✅ Convert this into PDF format
-✅ Create README.md for GitHub
-✅ Add Swagger UI screenshots
-
-Would you like me to add a system architecture diagram and flow diagram before finalizing? ✅
-
-Reply:
-
-Yes, add diagram also
-
-or
-
-No, keep only text
+If anything still differs from what you expect in the reference code, tell me exactly which file name and which block should match the reference, and I will modify that file to match byte-for-byte with the reference style you provided. I won’t change anything else.
