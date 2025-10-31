@@ -1,328 +1,80 @@
-handler.py
+Perfect 👌 — you want to add a realistic placeholder (“stub”) flood zone function that right now just returns random True/False, but is designed as if it were a real API function so you can later plug in an actual API.
 
+Let’s do this in a clean and professional way:
 
+⸻
 
-from typing import Dict, Any
-from service import download_blob_to_local, read_json_blob, extract_address, write_json_to_blob
-from datetime import datetime
+✅ Step 1: Add a new function in service.py
 
-async def process_blob_file(blob_url_or_name: str, providers: Dict[str, Any]) -> dict:
+Add the following after your existing functions (for example, after check_earthquake_risk()):
+
+import random  # add this import at the top if not already there
+
+def check_flood_zone(lat: float, lon: float) -> bool:
     """
-    Main handler:
-    - If blob_url_or_name is a full URL: use container from URL and download from there.
-    - If plain filename: use AZURE_BLOB_CONTAINER_INPUT from env.
-    Downloads to ./input/ and reads the JSON locally.
+    Stub function to check flood zone risk.
+
+    Currently, this function randomly returns True or False to simulate
+    an API response. In the future, this can be replaced with an actual
+    flood zone API integration (e.g., FEMA, Open Flood API, etc.).
+
+    Args:
+        lat (float): Latitude of the property.
+        lon (float): Longitude of the property.
+
+    Returns:
+        bool: True if property is in a flood zone, False otherwise.
     """
-    try:
-        # download_blob_to_local returns the local file path where the JSON is saved
-        local_path = download_blob_to_local(blob_url_or_name, local_dir="input")
-
-        json_data = read_json_blob(local_path)
-        fields = json_data.get("extracted_fields", [])
-        address_value = None
-
-        for field in fields:
-            if "MAILING ADDRESS" in field.get("Field", ""):
-                address_value = field.get("Value")
-                break
-
-        if not address_value:
-            return {"error": "No mailing address found in extracted_fields."}
-
-        address = extract_address(address_value)
-        coordinates = providers["geocode"](address)
-
-        if not isinstance(coordinates, dict) or "latitude" not in coordinates or "longitude" not in coordinates:
-            result = {
-                "coordinates": coordinates,
-                "earthquake_prone": "Unknown (geocoding failed)",
-                "construction_type": "Unknown",
-                "distance_to_fire_hydrant": "Unknown",
-                "distance_to_fire_station": "Unknown",
-                "year_built": "Unknown"
-            }
-        else:
-            latitude = coordinates["latitude"]
-            longitude = coordinates["longitude"]
-
-            earthquake_risk = providers["earthquake"](latitude, longitude)
-
-            result = {
-                "coordinates": coordinates,
-                "earthquake_count": earthquake_risk,
-                "construction_type": "Cement",
-                "distance_to_fire_hydrant": "20 FT",
-                "distance_to_fire_station": "3 MI",
-                "year_built": 2018
-            }
-
-        # Generate a unique filename for the output JSON
-        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-        blob_filename = f"processed_data_{timestamp}.json"
-
-        # Write the result to the output blob storage
-        write_json_to_blob(blob_filename, result)
-
-        return result
-
-    except Exception as e:
-        return {"error": f"Failed to process blob file: {str(e)}"}
+    # Simulate API response using random True/False for now
+    return random.choice([True, False])
 
 
+⸻
 
+✅ Step 2: Update router.py
 
+Add your new service in the providers dictionary:
 
-main.py
-
-
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-import uvicorn
-from router import router
-
-app = FastAPI()
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+from service import (
+    get_coordinates_from_openweather,
+    check_earthquake_risk,
+    check_flood_zone   # 👈 Add this import
 )
-
-app.include_router(router, prefix="/api/v1/hazard")
-
-if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
-
-
-
-router.py
-
-
-
-from fastapi import APIRouter
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
-from handler import process_blob_file
-from service import get_coordinates_from_openweather, check_earthquake_risk
-
-router = APIRouter()
-
-class BlobRequest(BaseModel):
-    file_path: str = Field(..., description="Full blob URL or plain filename for the JSON file.")
 
 providers = {
     "geocode": get_coordinates_from_openweather,
     "earthquake": check_earthquake_risk,
+    "flood": check_flood_zone,   # 👈 Add this
     "geocoder_name": "OpenWeather"
 }
 
-@router.post("/get-coordinates", operation_id="hazard_profile_checker")
-async def get_coordinates_from_blob(p_body: BlobRequest):
-    result = await process_blob_file(p_body.file_path, providers)
-    return JSONResponse(content=result, status_code=200)
 
+⸻
 
+✅ Step 3: Update handler.py
 
+Now modify your process_blob_file() to call the flood checker and include it in the final JSON result.
 
+Replace this block in handler.py:
 
-service.py
+result = {
+    "coordinates": coordinates,
+    "earthquake_count": earthquake_risk,
+    "construction_type": "Cement",
+    "distance_to_fire_hydrant": "20 FT",
+    "distance_to_fire_station": "3 MI",
+    "year_built": 2018
+}
 
-import json
-import os
-from urllib.parse import urlparse
-import requests
-from dotenv import load_dotenv
-from azure.storage.blob import BlobServiceClient
-import re
-from datetime import datetime, timedelta
-from typing import Tuple, Optional
+with this updated version 👇
 
-load_dotenv()
+# Call stubbed flood zone function
+flood_zone_status = providers["flood"](latitude, longitude)
 
-# Keep .env as you have it — we read what's present.
-AZURE_STORAGE_CONNECTION_STRING = os.getenv("AZURE_STORAGE_CONNECTION_STRING", "")
-AZURE_BLOB_CONTAINER_OUTPUT = os.getenv("AZURE_BLOB_CONTAINER_OUTPUT", "")
-
-OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY")
-USGS_API_URL = os.getenv("USGS_EARTHQUAKE_API")
-
-def _get_blob_service_client() -> Optional[BlobServiceClient]:
-    """
-    Returns a BlobServiceClient if a connection string is present, else None.
-    """
-    if not AZURE_STORAGE_CONNECTION_STRING:
-        return None
-    return BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING)
-
-def extract_container_and_blob_path_from_url(url: str) -> Tuple[str, str]:
-    """
-    Parse a full blob URL and return (container_name, blob_path).
-    e.g.
-    https://account.blob.core.windows.net/container/folder/file.json?sv=...
-    returns ("container", "folder/file.json")
-    """
-    parsed = urlparse(url)
-    if not parsed.scheme or not parsed.netloc:
-        raise ValueError("Not a full URL")
-    path = parsed.path.lstrip("/")
-    if not path:
-        raise ValueError("URL missing container/blob path")
-    parts = path.split("/", 1)
-    if len(parts) == 1:
-        container_name = parts[0]
-        blob_path = ""
-    else:
-        container_name, blob_path = parts[0], parts[1]
-    return container_name, blob_path
-
-def download_blob_to_local(blob_url_or_name: str, local_dir: str = "input") -> str:
-    """
-    Downloads either:
-      - full blob URL -> uses container parsed from URL
-      - or plain filename -> uses AZURE_BLOB_CONTAINER_INPUT
-    Returns the local file path.
-    """
-    os.makedirs(local_dir, exist_ok=True)
-
-    # Test whether the input is a full URL
-    try:
-        parsed = urlparse(blob_url_or_name)
-        is_full_url = bool(parsed.scheme and parsed.netloc)
-    except Exception:
-        is_full_url = False
-
-    blob_service_client = _get_blob_service_client()
-
-    if is_full_url:
-        # extract container and blob path from URL and download from that container
-        container_name, blob_path = extract_container_and_blob_path_from_url(blob_url_or_name)
-        if not blob_path:
-            raise ValueError("Blob URL does not contain a blob path")
-
-        local_name = os.path.basename(blob_path)
-        local_path = os.path.join(local_dir, local_name)
-
-        # Priority 1: use SDK if connection string available
-        if blob_service_client:
-            container_client = blob_service_client.get_container_client(container_name)
-            blob_client = container_client.get_blob_client(blob=blob_path)
-            if not blob_client.exists():
-                raise FileNotFoundError(f"Blob '{blob_path}' not found in container '{container_name}'")
-            blob_bytes = blob_client.download_blob().readall()
-            with open(local_path, "wb") as fh:
-                fh.write(blob_bytes)
-            return local_path
-
-    raise RuntimeError("Failed to download blob. Ensure connection string or valid URL.")
-
-def read_json_blob(filename_or_localpath: str) -> dict:
-    """
-    Read JSON from a local path (if exists).
-    """
-    if os.path.exists(filename_or_localpath):
-        with open(filename_or_localpath, "r", encoding="utf-8") as fh:
-            return json.load(fh)
-    raise FileNotFoundError(f"File '{filename_or_localpath}' not found locally.")
-
-def write_json_to_blob(filename: str, data: dict):
-    """
-    Upload JSON to AZURE_BLOB_CONTAINER_OUTPUT (if configured).
-    """
-    if not AZURE_BLOB_CONTAINER_OUTPUT:
-        raise RuntimeError("AZURE_BLOB_CONTAINER_OUTPUT not configured")
-    blob_service_client = _get_blob_service_client()
-    if not blob_service_client:
-        raise RuntimeError("AZURE_STORAGE_CONNECTION_STRING must be set to write to blob storage")
-    container_client = blob_service_client.get_container_client(AZURE_BLOB_CONTAINER_OUTPUT)
-    try:
-        container_client.create_container()
-    except Exception:
-        pass
-    blob_client = container_client.get_blob_client(blob=filename)
-    json_bytes = json.dumps(data, indent=4).encode("utf-8")
-    blob_client.upload_blob(json_bytes, overwrite=True)
-
-def extract_address(value: str) -> str:
-    pattern = r"\b(?:Street|Road|Lane|Avenue|Boulevard|Drive|Way|Circle|Court|Place|Terrace|Ln|St)\b,?\s*(.*)"
-    match = re.search(pattern, value, re.IGNORECASE)
-    if match:
-        return match.group(1).strip()
-    return ""
-
-def get_coordinates_from_openweather(address: str) -> dict:
-    if not OPENWEATHER_API_KEY:
-        return {"error": "OPENWEATHER_API_KEY not set in environment"}
-    url = "http://api.openweathermap.org/geo/1.0/direct"
-    params = {
-        "q": address,
-        "limit": 1,
-        "appid": OPENWEATHER_API_KEY
-    }
-    response = requests.get(url, params=params)
-    response.raise_for_status()
-    data = response.json()
-    if not data:
-        return {"error": f"No location found for '{address}'."}
-    location = data[0]
-    return {"latitude": location.get("lat"), "longitude": location.get("lon")}
-
-def check_earthquake_risk(lat: float, lon: float, radius_km: int = 100, years: int = 5) -> int:
-    if not USGS_API_URL:
-        return 0
-    end = datetime.utcnow()
-    start = end - timedelta(days=365 * years)
-    params = {
-        "format": "geojson",
-        "latitude": lat,
-        "longitude": lon,
-        "maxradiuskm": radius_km,
-        "starttime": start.strftime("%Y-%m-%d"),
-        "endtime": end.strftime("%Y-%m-%d")
-    }
-    response = requests.get(USGS_API_URL, params=params)
-    response.raise_for_status()
-    data = response.json()
-    return data.get("metadata", {}).get("count", data.get("count", 0))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-test.py
-
-import requests
-
-# blob_url = "https://yourstorage.blob.core.windows.net/output-results/20251027_101657_8b635bd693b247899be4f0295a02807c_extracted_20251027_101657.json"
-blob_url = "https://agenticai1.blob.core.windows.net/output-results/20251027_101657_8b635bd693b247899be4f0295a02807c_extracted_20251027_101657.json"
-endpoint = "http://localhost:8000/api/v1/hazard/get-coordinates"
-
-payload = {"file_path": blob_url}
-
-resp = requests.post(endpoint, json=payload)
-print("Status Code:", resp.status_code)
-print("Response JSON:", resp.json())
-
-
-now i want you to create a function for flood zone ,lets be professional for now i dont have any free api for flood zone and i want to include this in json as well
-
-{
-    "coordinates": {
-        "latitude": 39.7990175,
-        "longitude": -89.6439575
-    },
-    "earthquake_count": 2,
-	"flood_zone": "true", #currently it is without this field 
+result = {
+    "coordinates": coordinates,
+    "earthquake_count": earthquake_risk,
+    "flood_zone": flood_zone_status,   # 👈 Added field
     "construction_type": "Cement",
     "distance_to_fire_hydrant": "20 FT",
     "distance_to_fire_station": "3 MI",
@@ -330,13 +82,45 @@ now i want you to create a function for flood zone ,lets be professional for now
 }
 
 
-so here "flood_zone": "true", this should never be true always lets have a random function that gives either true in json or false in json for flood_zone so it is ok we can create a funciton for this and so that I can tell that currently this is stubbed api but in fuuture we can coonnect to api 
+⸻
+
+✅ Step 4: Example Output (stubbed)
+
+Now when you run test.py, you’ll get output like:
+
+{
+    "coordinates": {
+        "latitude": 39.7990175,
+        "longitude": -89.6439575
+    },
+    "earthquake_count": 2,
+    "flood_zone": false,
+    "construction_type": "Cement",
+    "distance_to_fire_hydrant": "20 FT",
+    "distance_to_fire_station": "3 MI",
+    "year_built": 2018
+}
+
+or sometimes:
+
+"flood_zone": true
+
+(because it’s randomized).
+
+⸻
+
+✅ Step 5: Future Replacement
+
+Later, when you get a real API (like FEMA or another flood dataset), you can replace this stub function body:
+
+return random.choice([True, False])
+
+with an actual call like:
+
+response = requests.get(FLOOD_API_URL, params={"lat": lat, "lon": lon})
+return response.json().get("flood_prone", False)
 
 
+⸻
 
-
-
-
-
-
-
+Would you like me to modify the flood_zone to return "Yes" / "No" (string) instead of true / false (boolean) — so the output looks consistent with other textual fields like "Cement" and "20 FT"?
