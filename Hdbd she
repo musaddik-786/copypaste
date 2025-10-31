@@ -1,447 +1,406 @@
-json 
+Got it — you want the code to always use the container from the full blob URL when a full URL is provided (i.e., pull the input container directly from the URL), instead of relying on AZURE_BLOB_CONTAINER_INPUT in .env. If a plain filename (not a full URL) is given, the code will still fall back to the AZURE_BLOB_CONTAINER_INPUT value in .env (so we keep backward compatibility).
 
-{
-    "overall_confidence": 0.7562,
-    "extracted_fields": [
-        {
-            "Field": "AGENCY CUSTOMER ID:",
-            "Value": "542198",
-            "Selected": false,
-            "Confidence": 0.363
-        },
-        {
-            "Field": "DATE (MM/DD/YYYY)",
-            "Value": "07/15/2025",
-            "Selected": false,
-            "Confidence": 0.626
-        },
-        {
-            "Field": "AGENCY",
-            "Value": "Prime Brokers Ltd.",
-            "Selected": false,
-            "Confidence": 0.855
-        },
-        {
-            "Field": "CARRIER",
-            "Value": "Phoenix Insurers Ltd",
-            "Selected": false,
-            "Confidence": 0.855
-        },
-        {
-            "Field": "EFFECTIVE DATE",
-            "Value": "Berkshire",
-            "Selected": false,
-            "Confidence": 0.582
-        },
-        {
-            "Field": "Owner Name:",
-            "Value": "Hathaway",
-            "Selected": false,
-            "Confidence": 0.53
-        },
-        {
-            "Field": "OCCURRENCE",
-            "Value": "$ 25000",
-            "Selected": false,
-            "Confidence": 0.118
-        },
-        {
-            "Field": "DAMAGE TO RENTED PREMISES (each occurre ce)",
-            "Value": "$ 50000",
-            "Selected": false,
-            "Confidence": 0.349
-        },
-        {
-            "Field": "(S) GROSS SALES - PER",
-            "Value": "$1,000/SALES",
-            "Selected": false,
-            "Confidence": 0.825
-        },
-        {
-            "Field": "PROPOSED RETROACTIVE DATE:",
-            "Value": "06/01/2025",
-            "Selected": false,
-            "Confidence": 0.84
-        },
-        {
-            "Field": "ENTRY DATE INTO UNINTERRUPTED CLAIMS MADE COVERAGE:",
-            "Value": "07/15/2025",
-            "Selected": false,
-            "Confidence": 0.316
-        },
-        {
-            "Field": "DEDUCTIBLE PER CLAIM:",
-            "Value": "$ 10000",
-            "Selected": false,
-            "Confidence": 0.831
-        },
-        {
-            "Field": "NUMBER OF EMPLOYEES:",
-            "Value": "4500",
-            "Selected": false,
-            "Confidence": 0.846
-        },
-        {
-            "Field": "NUMBER OF EMPLOYEES COVERED BY EMPLOYEE BENEFITS PLANS:",
-            "Value": "3900",
-            "Selected": false,
-            "Confidence": 0.791
-        },
-        {
-            "Field": "RETROACTIVE DATE:",
-            "Value": "06/01/2025",
-            "Selected": false,
-            "Confidence": 0.869
-        },
-        {
-            "Field": "EVIDENCE:",
-            "Value": "CERTIFICATE",
-            "Selected": false,
-            "Confidence": 0.886
-        },
-        {
-            "Field": "LOCATION:",
-            "Value": "IL",
-            "Selected": false,
-            "Confidence": 0.909
-        },
-        {
-            "Field": "BUILDING:",
-            "Value": "NB01",
-            "Selected": false,
-            "Confidence": 0.909
-        },
-        {
-            "Field": "CLASS:",
-            "Value": "ITEM",
-            "Selected": false,
-            "Confidence": 0.552
-        },
-        {
-            "Field": "ITEM DESCRIPTION",
-            "Value": "Commercial Office",
-            "Selected": false,
-            "Confidence": 0.872
-        },
-        {
-            "Field": "ANY PARKING FACILITIES OWNED/RENTED?",
-            "Value": "Yes, Basement Parking - Owned",
-            "Selected": false,
-            "Confidence": 0.825
-        },
-        {
-            "Field": "IS A FEE CHARGED FOR PARKING?",
-            "Value": "per hour",
-            "Selected": false,
-            "Confidence": 0.825
-        },
-        {
-            "Field": "RECREATION FACILITIES PROVIDED?",
-            "Value": "Swimming Pool, Gym, Badminton Court, Table Tennis Room",
-            "Selected": false,
-            "Confidence": 0.817
-        },
-        {
-            "Field": "IS THERE A FORMAL, WRITTEN SAFETY AND SECURITY POLICY IN EFFECT?",
-            "Value": "Security Policy is in effect",
-            "Selected": false,
-            "Confidence": 0.318
-        },
-        {
-            "Field": "PRODUCER'S SIGNATURE",
-            "Value": "William Grey",
-            "Selected": false,
-            "Confidence": 0.851
-        },
-        {
-            "Field": "PRODUCER'S NAME (Plea e Pri t)",
-            "Value": "William Grey",
-            "Selected": false,
-            "Confidence": 0.825
-        },
-        {
-            "Field": "APPLICANT'S SIGNATURE",
-            "Value": "Berkshire Hathaway",
-            "Selected": false,
-            "Confidence": 0.846
-        },
-        {
-            "Field": "DATE",
-            "Value": "07/15/2025",
-            "Selected": false,
-            "Confidence": 0.901
-        },
-        {
-            "Field": "NATIONAL PRODUCER NUMBER",
-            "Value": "100-002541",
-            "Selected": false,
-            "Confidence": 0.855
-        },
-        {
-            "Field": "COMMERCIAL GENERAL LIABILITY",
-            "Value": "no value",
-            "Selected": true,
-            "Confidence": 0.845
-        },
-        {
-            "Field": "CLAIMS MADE",
-            "Value": "no value",
-            "Selected": true,
-            "Confidence": 0.87
-        },
-        {
-            "Field": "POLICY",
-            "Value": "no value",
-            "Selected": true,
-            "Confidence": 0.889
-        },
-        {
-            "Field": "PROPERTY DAMAGE",
-            "Value": "no value",
-            "Selected": true,
-            "Confidence": 0.87
-        },
-        {
-            "Field": "BODILY INJURY",
-            "Value": "no value",
-            "Selected": true,
-            "Confidence": 0.87
-        },
-        {
-            "Field": "PER\nOCCURRENCE\nMEDICAL EXPENSE (A y o e per o )",
-            "Value": "no value",
-            "Selected": true,
-            "Confidence": 0.809
-        },
-        {
-            "Field": "ADDITIONAL INSURED",
-            "Value": "no value",
-            "Selected": true,
-            "Confidence": 0.888
-        },
-        {
-            "Field": "APPROVED FENCE",
-            "Value": "no value",
-            "Selected": true,
-            "Confidence": 0.888
-        },
-        {
-            "Field": "LIMITED ACCESS",
-            "Value": "no value",
-            "Selected": true,
-            "Confidence": 0.888
-        },
-        {
-            "Field": "LIFE GUARD",
-            "Value": "no value",
-            "Selected": true,
-            "Confidence": 0.888
-        }
-    ]
-}
+Below is a complete, consistent set of files for your project. Drop these into your project (overwrite the corresponding files). The behavior:
+	•	If file_path is a full blob URL → we parse container and blob path from the URL and download from that container.
+	•	If file_path is a plain filename (no scheme/netloc) → we use AZURE_BLOB_CONTAINER_INPUT from .env.
+	•	If you don’t have AZURE_STORAGE_CONNECTION_STRING but the URL has a SAS token, the code will attempt HTTP download via requests (using the full URL including SAS).
+	•	Downloaded files are stored in ./input/ and read_json_blob() reads local files first.
 
+⸻
 
-
-so below is my current code and above is a json 
-earlier i had to take excel as input and then compare the owner name: to name in sanctoions.csv but now the json has to be the input now instead of excel the above json 
-will be the input it will be in same blob storage where excel is currently
-
-
-
-
-file_router.py
-
-
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field
-from utils.file_utils import compare_excel_and_csv
-
-
-# Initialize APIRouter
-router = APIRouter()
-
-# Pydantic Models
-class CompareFilesRequest(BaseModel):
-    """Request model for comparing Excel and CSV files."""
-    excelfilename: str = Field(..., description="The name of the Excel file in Azure Blob Storage.")
-    csvfilename: str = Field(..., description="The name of the CSV file in Azure Blob Storage.")
-
-# API Endpoints
-@router.post("/compare_files", operation_id="compare_files", summary="Compare Excel and CSV files from Azure Blob Storage.")
-async def compare_files(request: CompareFilesRequest):
-    """
-    Endpoint to compare Excel and CSV files from Azure Blob Storage.
-    """
-    try:
-        result = compare_excel_and_csv(
-            excel_file_name=request.excelfilename,
-            csv_file_name=request.csvfilename,
-        )
-        return result  # Already has status true/false
-    except Exception as e:
-        # Final fallback exception
-        return {"status": False, "error": f"Unexpected server error: {str(e)}"}
-
-
-file_utils.py
-
-
-import os
-import pandas as pd
-import json
-from io import BytesIO
-from azure.storage.blob import BlobServiceClient
-from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv()
-
-# Azure Blob Storage Configuration
-AZURE_STORAGE_CONNECTION_STRING = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "")
-AZURE_BLOB_CONTAINER = os.environ.get("AZURE_BLOB_CONTAINER", "")
-
-def read_blob_file(blob_name: str):
-    """Reads a file from Azure Blob Storage and returns its content as a BytesIO object."""
-    try:
-        if not AZURE_STORAGE_CONNECTION_STRING:
-            raise ValueError("Azure Storage Connection String is missing. Please set AZURE_STORAGE_CONNECTION_STRING in .env")
-        if not AZURE_BLOB_CONTAINER:
-            raise ValueError("Azure Blob Container is missing. Please set AZURE_BLOB_CONTAINER in .env")
-
-        blob_service_client = BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING)
-        blob_client = blob_service_client.get_blob_client(container=AZURE_BLOB_CONTAINER, blob=blob_name)
-
-        if not blob_client.exists():
-            raise FileNotFoundError(f"Blob file '{blob_name}' not found in container '{AZURE_BLOB_CONTAINER}'.")
-
-        blob_data = blob_client.download_blob().readall()
-        return BytesIO(blob_data)
-
-    except Exception as e:
-        raise Exception(f"Error reading blob file '{blob_name}': {str(e)}")
-
-
-def compare_excel_and_csv(excel_file_name: str, csv_file_name: str):
-    """Compares an Excel file and a CSV file from Azure Blob Storage."""
-    try:
-        # Read files from Azure Blob Storage
-        excel_file = read_blob_file(excel_file_name)
-        csv_file = read_blob_file(csv_file_name)
-
-        excel_data = pd.read_excel(excel_file)
-        csv_data = pd.read_csv(csv_file)
-
-        # Columns to compare
-        owner_name_column = "OWNER NAME:"
-        entity_name_column = "entity_name"
-
-        if owner_name_column not in excel_data.columns:
-            return {"status": False, "error": f"Column '{owner_name_column}' missing in Excel file."}
-        if entity_name_column not in csv_data.columns:
-            return {"status": False, "error": f"Column '{entity_name_column}' missing in CSV file."}
-
-        # Extract and filter names
-        owner_names = (
-            excel_data[owner_name_column]
-            .dropna()
-            .tolist()
-        )
-        owner_names = [name for name in owner_names if isinstance(name, str) and name.strip()]
-
-        entity_names = (
-            csv_data[entity_name_column]
-            .dropna()
-            .tolist()
-        )
-        entity_names = [name for name in entity_names if isinstance(name, str) and name.strip()]
-
-        # Compare
-        results = [{"Owner Name": name, "Unique": name not in entity_names} for name in owner_names]
-
-        # Save outputs
-        output_dir = "./output"
-        os.makedirs(output_dir, exist_ok=True)
-        json_output_path = os.path.join(output_dir, "comparison_results.json")
-        excel_output_path = os.path.join(output_dir, "comparison_results.xlsx")
-
-        with open(json_output_path, "w") as json_file:
-            json.dump(results, json_file, indent=4)
-
-        pd.DataFrame(results).to_excel(excel_output_path, index=False)
-
-        return {
-            "status": True,
-            "message": "Comparison completed successfully.",
-            "json_result": json_output_path,
-            "excel_result": excel_output_path,
-            "results": results,
-        }
-
-    except Exception as e:
-        return {"status": False, "error": str(e)}
-
-
-main.py
+File: main.py
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi_mcp import FastApiMCP
 import uvicorn
-# from routers import file_router
+from router import router
 
-from routers.file_router import router as  file_router
-
-
-# Shared CORS config
-def apply_cors(app: FastAPI):
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-
-# Agent-specific sub-apps
-def create_sub_app(title: str, description: str, version: str = "0.1.0") -> FastAPI:
-    app = FastAPI(title=title, description=description, version=version)
-    apply_cors(app)
-    return app
-
-# Main app
 app = FastAPI()
-apply_cors(app)
 
-# File Comparison Agent
-file_app = create_sub_app(
-    title="File Comparison API",
-    description="API for comparing Excel and CSV files from a local folder."
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
-file_app.include_router(file_router)
-FastApiMCP(file_app, include_operations=["compare_files"]).mount_http()
-app.mount("/api/v1/filecomparison", file_app)
 
+app.include_router(router, prefix="/api/v1/hazard")
 
-# Entry point
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8601)
-    
+    # dev server
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
 
 
+⸻
+
+File: router.py
+
+from fastapi import APIRouter
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
+from handler import process_blob_file
+from service import get_coordinates_from_openweather, check_earthquake_risk
+
+router = APIRouter()
+
+class BlobRequest(BaseModel):
+    # Accepts either a full blob URL or a plain filename
+    file_path: str = Field(..., description="Full blob URL or plain filename for the JSON file.")
+
+providers = {
+    "geocode": get_coordinates_from_openweather,
+    "earthquake": check_earthquake_risk,
+    "geocoder_name": "OpenWeather"
+}
+
+@router.post("/get-coordinates", operation_id="hazard_profile_checker")
+async def get_coordinates_from_blob(p_body: BlobRequest):
+    result = await process_blob_file(p_body.file_path, providers)
+    return JSONResponse(content=result, status_code=200)
 
 
+⸻
+
+File: handler.py
+
+# handler.py
+from typing import Dict, Any
+from service import download_blob_to_local, read_json_blob, extract_address
+
+async def process_blob_file(blob_url_or_name: str, providers: Dict[str, Any]) -> dict:
+    """
+    Main handler:
+    - If blob_url_or_name is a full URL: use container from URL and download from there.
+    - If plain filename: use AZURE_BLOB_CONTAINER_INPUT from env.
+    Downloads to ./input/ and reads the JSON locally.
+    """
+    try:
+        # download_blob_to_local returns the local file path where the JSON is saved
+        local_path = download_blob_to_local(blob_url_or_name, local_dir="input")
+
+        json_data = read_json_blob(local_path)
+        fields = json_data.get("extracted_fields", [])
+        address_value = None
+
+        for field in fields:
+            if "MAILING ADDRESS" in field.get("Field", ""):
+                address_value = field.get("Value")
+                break
+
+        if not address_value:
+            return {"error": "No mailing address found in extracted_fields."}
+
+        address = extract_address(address_value)
+        coordinates = providers["geocode"](address)
+
+        if not isinstance(coordinates, dict) or "latitude" not in coordinates or "longitude" not in coordinates:
+            return {
+                "coordinates": coordinates,
+                "earthquake_prone": "Unknown (geocoding failed)",
+                "construction_type": "Unknown",
+                "distance_to_fire_hydrant": "Unknown",
+                "distance_to_fire_station": "Unknown",
+                "year_built": "Unknown"
+            }
+
+        latitude = coordinates["latitude"]
+        longitude = coordinates["longitude"]
+
+        earthquake_risk = providers["earthquake"](latitude, longitude)
+
+        return {
+            "coordinates": coordinates,
+            "earthquake_count": earthquake_risk,
+            "construction_type": "Cement",
+            "distance_to_fire_hydrant": "20 FT",
+            "distance_to_fire_station": "3 MI",
+            "year_built": 2018
+        }
+
+    except Exception as e:
+        return {"error": f"Failed to process blob file: {str(e)}"}
 
 
+⸻
+
+File: service.py
+
+# service.py
+import json
+import os
+from urllib.parse import urlparse
+import requests
+from dotenv import load_dotenv
+from azure.storage.blob import BlobServiceClient
+import re
+from datetime import datetime, timedelta
+from typing import Tuple, Optional
+
+load_dotenv()
+
+# Keep .env as you have it — we read what's present.
+AZURE_STORAGE_CONNECTION_STRING = os.getenv("AZURE_STORAGE_CONNECTION_STRING", "")
+# We'll only use AZURE_BLOB_CONTAINER_INPUT if the user passes a plain filename.
+AZURE_BLOB_CONTAINER_INPUT = os.getenv("AZURE_BLOB_CONTAINER_INPUT", "")
+AZURE_BLOB_CONTAINER_OUTPUT = os.getenv("AZURE_BLOB_CONTAINER_OUTPUT", "")
+
+OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY")
+USGS_API_URL = os.getenv("USGS_EARTHQUAKE_API")
+
+def _get_blob_service_client() -> Optional[BlobServiceClient]:
+    """
+    Returns a BlobServiceClient if a connection string is present, else None.
+    """
+    if not AZURE_STORAGE_CONNECTION_STRING:
+        return None
+    return BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING)
+
+def extract_container_and_blob_path_from_url(url: str) -> Tuple[str, str]:
+    """
+    Parse a full blob URL and return (container_name, blob_path).
+    e.g.
+    https://account.blob.core.windows.net/container/folder/file.json?sv=...
+    returns ("container", "folder/file.json")
+    """
+    parsed = urlparse(url)
+    if not parsed.scheme or not parsed.netloc:
+        raise ValueError("Not a full URL")
+    path = parsed.path.lstrip("/")
+    if not path:
+        raise ValueError("URL missing container/blob path")
+    parts = path.split("/", 1)
+    if len(parts) == 1:
+        container_name = parts[0]
+        blob_path = ""
+    else:
+        container_name, blob_path = parts[0], parts[1]
+    return container_name, blob_path
+
+def _local_file_name_from_blob_path(blob_path: str) -> str:
+    return os.path.basename(blob_path) or f"downloaded_{int(datetime.utcnow().timestamp())}.json"
+
+def download_blob_to_local(blob_url_or_name: str, local_dir: str = "input") -> str:
+    """
+    Downloads either:
+      - full blob URL -> uses container parsed from URL
+      - or plain filename -> uses AZURE_BLOB_CONTAINER_INPUT
+    Returns the local file path.
+    """
+    os.makedirs(local_dir, exist_ok=True)
+
+    # Test whether the input is a full URL
+    try:
+        parsed = urlparse(blob_url_or_name)
+        is_full_url = bool(parsed.scheme and parsed.netloc)
+    except Exception:
+        is_full_url = False
+
+    blob_service_client = _get_blob_service_client()
+
+    if is_full_url:
+        # extract container and blob path from URL and download from that container
+        container_name, blob_path = extract_container_and_blob_path_from_url(blob_url_or_name)
+        if not blob_path:
+            raise ValueError("Blob URL does not contain a blob path")
+
+        local_name = _local_file_name_from_blob_path(blob_path)
+        local_path = os.path.join(local_dir, local_name)
+
+        # Priority 1: use SDK if connection string available
+        if blob_service_client:
+            container_client = blob_service_client.get_container_client(container_name)
+            blob_client = container_client.get_blob_client(blob=blob_path)
+            if not blob_client.exists():
+                raise FileNotFoundError(f"Blob '{blob_path}' not found in container '{container_name}'")
+            blob_bytes = blob_client.download_blob().readall()
+            with open(local_path, "wb") as fh:
+                fh.write(blob_bytes)
+            return local_path
+
+        # Priority 2: If no connection string, try direct HTTP download (works if URL has SAS token)
+        if parsed.query:
+            resp = requests.get(blob_url_or_name, stream=True)
+            if resp.status_code != 200:
+                raise RuntimeError(f"Failed HTTP download of blob URL (status {resp.status_code})")
+            with open(local_path, "wb") as fh:
+                for chunk in resp.iter_content(chunk_size=8192):
+                    if chunk:
+                        fh.write(chunk)
+            return local_path
+
+        # If we reach here, we cannot download
+        raise RuntimeError("No AZURE_STORAGE_CONNECTION_STRING and URL has no SAS query; cannot download blob")
+
+    else:
+        # Plain filename — use AZURE_BLOB_CONTAINER_INPUT from .env
+        if not AZURE_BLOB_CONTAINER_INPUT:
+            raise RuntimeError("Input is a filename but AZURE_BLOB_CONTAINER_INPUT is not set in environment")
+        if not blob_service_client:
+            raise RuntimeError("AZURE_STORAGE_CONNECTION_STRING must be set to download by filename from container")
+
+        container_client = blob_service_client.get_container_client(AZURE_BLOB_CONTAINER_INPUT)
+        blob_client = container_client.get_blob_client(blob=blob_url_or_name)
+        if not blob_client.exists():
+            raise FileNotFoundError(f"Blob '{blob_url_or_name}' not found in container '{AZURE_BLOB_CONTAINER_INPUT}'")
+        blob_bytes = blob_client.download_blob().readall()
+        local_path = os.path.join(local_dir, os.path.basename(blob_url_or_name))
+        with open(local_path, "wb") as fh:
+            fh.write(blob_bytes)
+        return local_path
+
+def read_json_blob(filename_or_localpath: str) -> dict:
+    """
+    Read JSON from a local path (if exists) or from AZURE_BLOB_CONTAINER_INPUT (if given a filename).
+    """
+    # If it's already a local path (exists), return it
+    if os.path.exists(filename_or_localpath):
+        with open(filename_or_localpath, "r", encoding="utf-8") as fh:
+            return json.load(fh)
+
+    # Fallback: treat as blob name in AZURE_BLOB_CONTAINER_INPUT
+    if not AZURE_BLOB_CONTAINER_INPUT:
+        raise RuntimeError("File not found locally and AZURE_BLOB_CONTAINER_INPUT not configured")
+
+    blob_service_client = _get_blob_service_client()
+    if not blob_service_client:
+        raise RuntimeError("AZURE_STORAGE_CONNECTION_STRING must be set to read blob by name from container")
+
+    container_client = blob_service_client.get_container_client(AZURE_BLOB_CONTAINER_INPUT)
+    blob_client = container_client.get_blob_client(blob=filename_or_localpath)
+    if not blob_client.exists():
+        raise FileNotFoundError(f"Blob '{filename_or_localpath}' not found in container '{AZURE_BLOB_CONTAINER_INPUT}'")
+    blob_data = blob_client.download_blob().readall()
+    return json.loads(blob_data.decode("utf-8"))
+
+def write_json_to_blob(filename: str, data: dict):
+    """
+    Upload JSON to AZURE_BLOB_CONTAINER_OUTPUT (if configured).
+    """
+    if not AZURE_BLOB_CONTAINER_OUTPUT:
+        raise RuntimeError("AZURE_BLOB_CONTAINER_OUTPUT not configured")
+    blob_service_client = _get_blob_service_client()
+    if not blob_service_client:
+        raise RuntimeError("AZURE_STORAGE_CONNECTION_STRING must be set to write to blob storage")
+    container_client = blob_service_client.get_container_client(AZURE_BLOB_CONTAINER_OUTPUT)
+    try:
+        container_client.create_container()
+    except Exception:
+        pass
+    blob_client = container_client.get_blob_client(blob=filename)
+    json_bytes = json.dumps(data, indent=4).encode("utf-8")
+    blob_client.upload_blob(json_bytes, overwrite=True)
+
+# Address extraction from the value (keeps your previous logic)
+def extract_address(value: str) -> str:
+    pattern = r"\b(?:Street|Road|Lane|Avenue|Boulevard|Drive|Way|Circle|Court|Place|Terrace|Ln|St)\b,?\s*(.*)"
+    match = re.search(pattern, value, re.IGNORECASE)
+    if match:
+        return match.group(1).strip()
+    return ""
+
+# OpenWeather geocoding (unchanged)
+def get_coordinates_from_openweather(address: str) -> dict:
+    if not OPENWEATHER_API_KEY:
+        return {"error": "OPENWEATHER_API_KEY not set in environment"}
+    url = "http://api.openweathermap.org/geo/1.0/direct"
+    params = {
+        "q": address,
+        "limit": 1,
+        "appid": OPENWEATHER_API_KEY
+    }
+    response = requests.get(url, params=params)
+    if response.status_code == 404:
+        return {"error": f"Location not found for '{address}'."}
+    response.raise_for_status()
+    data = response.json()
+    if not data:
+        return {"error": f"No location found for '{address}'."}
+    location = data[0]
+    return {"latitude": location.get("lat"), "longitude": location.get("lon")}
+
+# USGS earthquake check (unchanged)
+def check_earthquake_risk(lat: float, lon: float, radius_km: int = 100, years: int = 5) -> int:
+    if not USGS_API_URL:
+        return 0
+    end = datetime.utcnow()
+    start = end - timedelta(days=365 * years)
+    params = {
+        "format": "geojson",
+        "latitude": lat,
+        "longitude": lon,
+        "maxradiuskm": radius_km,
+        "starttime": start.strftime("%Y-%m-%d"),
+        "endtime": end.strftime("%Y-%m-%d")
+    }
+    response = requests.get(USGS_API_URL, params=params)
+    response.raise_for_status()
+    data = response.json()
+    # USGS may have count at data["metadata"]["count"] or data["count"]
+    return data.get("metadata", {}).get("count", data.get("count", 0))
 
 
+⸻
+
+File: test.py
+
+# test.py
+import requests
+
+# Replace with your actual blob URL; container will be extracted from this URL
+blob_url = "https://yourstorage.blob.core.windows.net/output-results/20251027_101657_8b635bd693b247899be4f0295a02807c_extracted_20251027_101657.json"
+
+endpoint = "http://localhost:8000/api/v1/hazard/get-coordinates"
+
+payload = {"file_path": blob_url}
+
+resp = requests.post(endpoint, json=payload)
+print("Status Code:", resp.status_code)
+print("Response JSON:", resp.json())
 
 
+⸻
+
+File: requirements.txt
+
+fastapi
+uvicorn[standard]
+python-dotenv
+azure-storage-blob
+requests
+pydantic
 
 
+⸻
+
+Example .env (leave as you currently have; but at minimum you must provide connection string)
+
+You said not to change .env. If you currently have AZURE_STORAGE_CONNECTION_STRING in .env, keep it. If not, add it.
+
+Minimal required if you want SDK downloads:
+
+AZURE_STORAGE_CONNECTION_STRING="DefaultEndpointsProtocol=...;AccountName=...;AccountKey=...;EndpointSuffix=core.windows.net"
+
+Optional (if used):
+
+AZURE_BLOB_CONTAINER_INPUT=your-default-input-container   # used only when a plain filename is passed
+AZURE_BLOB_CONTAINER_OUTPUT=your-output-container
+OPENWEATHER_API_KEY=...
+USGS_EARTHQUAKE_API=https://earthquake.usgs.gov/fdsnws/event/1/query
 
 
+⸻
 
+Quick notes & gotchas (short)
+	•	This update explicitly uses the container parsed from the blob URL when a full URL is passed — that satisfies your request to “take the INPUT from here”.
+	•	If the URL contains a SAS token (query string) and you do not have AZURE_STORAGE_CONNECTION_STRING, the code will attempt HTTP download using requests and the full URL (SAS included).
+	•	If you want to ignore AZURE_BLOB_CONTAINER_INPUT completely from .env going forward, simply remove it — the code will still work for full URLs. But keep AZURE_STORAGE_CONNECTION_STRING if you want SDK-based downloads.
+	•	Downloaded JSON is saved to ./input/<filename> (same filename as blob). Existing files are overwritten.
 
+⸻
 
+If you want now:
+	•	a unified git diff / patch file to apply these changes, OR
+	•	a variant that always downloads via HTTP requests using SAS URLs (no SDK at all), OR
+	•	a variant that streams large blobs (so we don’t call .readall()),
 
-
-
+tell me which and I’ll paste it immediately.
