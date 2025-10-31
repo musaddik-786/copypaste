@@ -1,71 +1,10 @@
-Got it — you want the code to always use the container from the full blob URL when a full URL is provided (i.e., pull the input container directly from the URL), instead of relying on AZURE_BLOB_CONTAINER_INPUT in .env. If a plain filename (not a full URL) is given, the code will still fall back to the AZURE_BLOB_CONTAINER_INPUT value in .env (so we keep backward compatibility).
-
-Below is a complete, consistent set of files for your project. Drop these into your project (overwrite the corresponding files). The behavior:
-	•	If file_path is a full blob URL → we parse container and blob path from the URL and download from that container.
-	•	If file_path is a plain filename (no scheme/netloc) → we use AZURE_BLOB_CONTAINER_INPUT from .env.
-	•	If you don’t have AZURE_STORAGE_CONNECTION_STRING but the URL has a SAS token, the code will attempt HTTP download via requests (using the full URL including SAS).
-	•	Downloaded files are stored in ./input/ and read_json_blob() reads local files first.
-
-⸻
-
-File: main.py
-
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-import uvicorn
-from router import router
-
-app = FastAPI()
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-app.include_router(router, prefix="/api/v1/hazard")
-
-if __name__ == "__main__":
-    # dev server
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+handler.py
 
 
-⸻
 
-File: router.py
-
-from fastapi import APIRouter
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
-from handler import process_blob_file
-from service import get_coordinates_from_openweather, check_earthquake_risk
-
-router = APIRouter()
-
-class BlobRequest(BaseModel):
-    # Accepts either a full blob URL or a plain filename
-    file_path: str = Field(..., description="Full blob URL or plain filename for the JSON file.")
-
-providers = {
-    "geocode": get_coordinates_from_openweather,
-    "earthquake": check_earthquake_risk,
-    "geocoder_name": "OpenWeather"
-}
-
-@router.post("/get-coordinates", operation_id="hazard_profile_checker")
-async def get_coordinates_from_blob(p_body: BlobRequest):
-    result = await process_blob_file(p_body.file_path, providers)
-    return JSONResponse(content=result, status_code=200)
-
-
-⸻
-
-File: handler.py
-
-# handler.py
 from typing import Dict, Any
-from service import download_blob_to_local, read_json_blob, extract_address
+from service import download_blob_to_local, read_json_blob, extract_address, write_json_to_blob
+from datetime import datetime
 
 async def process_blob_file(blob_url_or_name: str, providers: Dict[str, Any]) -> dict:
     """
@@ -94,7 +33,7 @@ async def process_blob_file(blob_url_or_name: str, providers: Dict[str, Any]) ->
         coordinates = providers["geocode"](address)
 
         if not isinstance(coordinates, dict) or "latitude" not in coordinates or "longitude" not in coordinates:
-            return {
+            result = {
                 "coordinates": coordinates,
                 "earthquake_prone": "Unknown (geocoding failed)",
                 "construction_type": "Unknown",
@@ -102,30 +41,93 @@ async def process_blob_file(blob_url_or_name: str, providers: Dict[str, Any]) ->
                 "distance_to_fire_station": "Unknown",
                 "year_built": "Unknown"
             }
+        else:
+            latitude = coordinates["latitude"]
+            longitude = coordinates["longitude"]
 
-        latitude = coordinates["latitude"]
-        longitude = coordinates["longitude"]
+            earthquake_risk = providers["earthquake"](latitude, longitude)
 
-        earthquake_risk = providers["earthquake"](latitude, longitude)
+            result = {
+                "coordinates": coordinates,
+                "earthquake_count": earthquake_risk,
+                "construction_type": "Cement",
+                "distance_to_fire_hydrant": "20 FT",
+                "distance_to_fire_station": "3 MI",
+                "year_built": 2018
+            }
 
-        return {
-            "coordinates": coordinates,
-            "earthquake_count": earthquake_risk,
-            "construction_type": "Cement",
-            "distance_to_fire_hydrant": "20 FT",
-            "distance_to_fire_station": "3 MI",
-            "year_built": 2018
-        }
+        # Generate a unique filename for the output JSON
+        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+        blob_filename = f"processed_data_{timestamp}.json"
+
+        # Write the result to the output blob storage
+        write_json_to_blob(blob_filename, result)
+
+        return result
 
     except Exception as e:
         return {"error": f"Failed to process blob file: {str(e)}"}
 
 
-⸻
 
-File: service.py
 
-# service.py
+
+main.py
+
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+import uvicorn
+from router import router
+
+app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(router, prefix="/api/v1/hazard")
+
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+
+
+
+router.py
+
+
+
+from fastapi import APIRouter
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
+from handler import process_blob_file
+from service import get_coordinates_from_openweather, check_earthquake_risk
+
+router = APIRouter()
+
+class BlobRequest(BaseModel):
+    file_path: str = Field(..., description="Full blob URL or plain filename for the JSON file.")
+
+providers = {
+    "geocode": get_coordinates_from_openweather,
+    "earthquake": check_earthquake_risk,
+    "geocoder_name": "OpenWeather"
+}
+
+@router.post("/get-coordinates", operation_id="hazard_profile_checker")
+async def get_coordinates_from_blob(p_body: BlobRequest):
+    result = await process_blob_file(p_body.file_path, providers)
+    return JSONResponse(content=result, status_code=200)
+
+
+
+
+
+service.py
+
 import json
 import os
 from urllib.parse import urlparse
@@ -140,8 +142,6 @@ load_dotenv()
 
 # Keep .env as you have it — we read what's present.
 AZURE_STORAGE_CONNECTION_STRING = os.getenv("AZURE_STORAGE_CONNECTION_STRING", "")
-# We'll only use AZURE_BLOB_CONTAINER_INPUT if the user passes a plain filename.
-AZURE_BLOB_CONTAINER_INPUT = os.getenv("AZURE_BLOB_CONTAINER_INPUT", "")
 AZURE_BLOB_CONTAINER_OUTPUT = os.getenv("AZURE_BLOB_CONTAINER_OUTPUT", "")
 
 OPENWEATHER_API_KEY = os.getenv("OPENWEATHER_API_KEY")
@@ -176,9 +176,6 @@ def extract_container_and_blob_path_from_url(url: str) -> Tuple[str, str]:
         container_name, blob_path = parts[0], parts[1]
     return container_name, blob_path
 
-def _local_file_name_from_blob_path(blob_path: str) -> str:
-    return os.path.basename(blob_path) or f"downloaded_{int(datetime.utcnow().timestamp())}.json"
-
 def download_blob_to_local(blob_url_or_name: str, local_dir: str = "input") -> str:
     """
     Downloads either:
@@ -203,7 +200,7 @@ def download_blob_to_local(blob_url_or_name: str, local_dir: str = "input") -> s
         if not blob_path:
             raise ValueError("Blob URL does not contain a blob path")
 
-        local_name = _local_file_name_from_blob_path(blob_path)
+        local_name = os.path.basename(blob_path)
         local_path = os.path.join(local_dir, local_name)
 
         # Priority 1: use SDK if connection string available
@@ -217,60 +214,16 @@ def download_blob_to_local(blob_url_or_name: str, local_dir: str = "input") -> s
                 fh.write(blob_bytes)
             return local_path
 
-        # Priority 2: If no connection string, try direct HTTP download (works if URL has SAS token)
-        if parsed.query:
-            resp = requests.get(blob_url_or_name, stream=True)
-            if resp.status_code != 200:
-                raise RuntimeError(f"Failed HTTP download of blob URL (status {resp.status_code})")
-            with open(local_path, "wb") as fh:
-                for chunk in resp.iter_content(chunk_size=8192):
-                    if chunk:
-                        fh.write(chunk)
-            return local_path
-
-        # If we reach here, we cannot download
-        raise RuntimeError("No AZURE_STORAGE_CONNECTION_STRING and URL has no SAS query; cannot download blob")
-
-    else:
-        # Plain filename — use AZURE_BLOB_CONTAINER_INPUT from .env
-        if not AZURE_BLOB_CONTAINER_INPUT:
-            raise RuntimeError("Input is a filename but AZURE_BLOB_CONTAINER_INPUT is not set in environment")
-        if not blob_service_client:
-            raise RuntimeError("AZURE_STORAGE_CONNECTION_STRING must be set to download by filename from container")
-
-        container_client = blob_service_client.get_container_client(AZURE_BLOB_CONTAINER_INPUT)
-        blob_client = container_client.get_blob_client(blob=blob_url_or_name)
-        if not blob_client.exists():
-            raise FileNotFoundError(f"Blob '{blob_url_or_name}' not found in container '{AZURE_BLOB_CONTAINER_INPUT}'")
-        blob_bytes = blob_client.download_blob().readall()
-        local_path = os.path.join(local_dir, os.path.basename(blob_url_or_name))
-        with open(local_path, "wb") as fh:
-            fh.write(blob_bytes)
-        return local_path
+    raise RuntimeError("Failed to download blob. Ensure connection string or valid URL.")
 
 def read_json_blob(filename_or_localpath: str) -> dict:
     """
-    Read JSON from a local path (if exists) or from AZURE_BLOB_CONTAINER_INPUT (if given a filename).
+    Read JSON from a local path (if exists).
     """
-    # If it's already a local path (exists), return it
     if os.path.exists(filename_or_localpath):
         with open(filename_or_localpath, "r", encoding="utf-8") as fh:
             return json.load(fh)
-
-    # Fallback: treat as blob name in AZURE_BLOB_CONTAINER_INPUT
-    if not AZURE_BLOB_CONTAINER_INPUT:
-        raise RuntimeError("File not found locally and AZURE_BLOB_CONTAINER_INPUT not configured")
-
-    blob_service_client = _get_blob_service_client()
-    if not blob_service_client:
-        raise RuntimeError("AZURE_STORAGE_CONNECTION_STRING must be set to read blob by name from container")
-
-    container_client = blob_service_client.get_container_client(AZURE_BLOB_CONTAINER_INPUT)
-    blob_client = container_client.get_blob_client(blob=filename_or_localpath)
-    if not blob_client.exists():
-        raise FileNotFoundError(f"Blob '{filename_or_localpath}' not found in container '{AZURE_BLOB_CONTAINER_INPUT}'")
-    blob_data = blob_client.download_blob().readall()
-    return json.loads(blob_data.decode("utf-8"))
+    raise FileNotFoundError(f"File '{filename_or_localpath}' not found locally.")
 
 def write_json_to_blob(filename: str, data: dict):
     """
@@ -290,7 +243,6 @@ def write_json_to_blob(filename: str, data: dict):
     json_bytes = json.dumps(data, indent=4).encode("utf-8")
     blob_client.upload_blob(json_bytes, overwrite=True)
 
-# Address extraction from the value (keeps your previous logic)
 def extract_address(value: str) -> str:
     pattern = r"\b(?:Street|Road|Lane|Avenue|Boulevard|Drive|Way|Circle|Court|Place|Terrace|Ln|St)\b,?\s*(.*)"
     match = re.search(pattern, value, re.IGNORECASE)
@@ -298,7 +250,6 @@ def extract_address(value: str) -> str:
         return match.group(1).strip()
     return ""
 
-# OpenWeather geocoding (unchanged)
 def get_coordinates_from_openweather(address: str) -> dict:
     if not OPENWEATHER_API_KEY:
         return {"error": "OPENWEATHER_API_KEY not set in environment"}
@@ -309,8 +260,6 @@ def get_coordinates_from_openweather(address: str) -> dict:
         "appid": OPENWEATHER_API_KEY
     }
     response = requests.get(url, params=params)
-    if response.status_code == 404:
-        return {"error": f"Location not found for '{address}'."}
     response.raise_for_status()
     data = response.json()
     if not data:
@@ -318,7 +267,6 @@ def get_coordinates_from_openweather(address: str) -> dict:
     location = data[0]
     return {"latitude": location.get("lat"), "longitude": location.get("lon")}
 
-# USGS earthquake check (unchanged)
 def check_earthquake_risk(lat: float, lon: float, radius_km: int = 100, years: int = 5) -> int:
     if not USGS_API_URL:
         return 0
@@ -335,20 +283,28 @@ def check_earthquake_risk(lat: float, lon: float, radius_km: int = 100, years: i
     response = requests.get(USGS_API_URL, params=params)
     response.raise_for_status()
     data = response.json()
-    # USGS may have count at data["metadata"]["count"] or data["count"]
     return data.get("metadata", {}).get("count", data.get("count", 0))
 
 
-⸻
 
-File: test.py
 
-# test.py
+
+
+
+
+
+
+
+
+
+
+
+test.py
+
 import requests
 
-# Replace with your actual blob URL; container will be extracted from this URL
-blob_url = "https://yourstorage.blob.core.windows.net/output-results/20251027_101657_8b635bd693b247899be4f0295a02807c_extracted_20251027_101657.json"
-
+# blob_url = "https://yourstorage.blob.core.windows.net/output-results/20251027_101657_8b635bd693b247899be4f0295a02807c_extracted_20251027_101657.json"
+blob_url = "https://agenticai1.blob.core.windows.net/output-results/20251027_101657_8b635bd693b247899be4f0295a02807c_extracted_20251027_101657.json"
 endpoint = "http://localhost:8000/api/v1/hazard/get-coordinates"
 
 payload = {"file_path": blob_url}
@@ -358,49 +314,29 @@ print("Status Code:", resp.status_code)
 print("Response JSON:", resp.json())
 
 
-⸻
+now i want you to create a function for flood zone ,lets be professional for now i dont have any free api for flood zone and i want to include this in json as well
 
-File: requirements.txt
-
-fastapi
-uvicorn[standard]
-python-dotenv
-azure-storage-blob
-requests
-pydantic
-
-
-⸻
-
-Example .env (leave as you currently have; but at minimum you must provide connection string)
-
-You said not to change .env. If you currently have AZURE_STORAGE_CONNECTION_STRING in .env, keep it. If not, add it.
-
-Minimal required if you want SDK downloads:
-
-AZURE_STORAGE_CONNECTION_STRING="DefaultEndpointsProtocol=...;AccountName=...;AccountKey=...;EndpointSuffix=core.windows.net"
-
-Optional (if used):
-
-AZURE_BLOB_CONTAINER_INPUT=your-default-input-container   # used only when a plain filename is passed
-AZURE_BLOB_CONTAINER_OUTPUT=your-output-container
-OPENWEATHER_API_KEY=...
-USGS_EARTHQUAKE_API=https://earthquake.usgs.gov/fdsnws/event/1/query
+{
+    "coordinates": {
+        "latitude": 39.7990175,
+        "longitude": -89.6439575
+    },
+    "earthquake_count": 2,
+	"flood_zone": "true", #currently it is without this field 
+    "construction_type": "Cement",
+    "distance_to_fire_hydrant": "20 FT",
+    "distance_to_fire_station": "3 MI",
+    "year_built": 2018
+}
 
 
-⸻
+so here "flood_zone": "true", this should never be true always lets have a random function that gives either true in json or false in json for flood_zone so it is ok we can create a funciton for this and so that I can tell that currently this is stubbed api but in fuuture we can coonnect to api 
 
-Quick notes & gotchas (short)
-	•	This update explicitly uses the container parsed from the blob URL when a full URL is passed — that satisfies your request to “take the INPUT from here”.
-	•	If the URL contains a SAS token (query string) and you do not have AZURE_STORAGE_CONNECTION_STRING, the code will attempt HTTP download using requests and the full URL (SAS included).
-	•	If you want to ignore AZURE_BLOB_CONTAINER_INPUT completely from .env going forward, simply remove it — the code will still work for full URLs. But keep AZURE_STORAGE_CONNECTION_STRING if you want SDK-based downloads.
-	•	Downloaded JSON is saved to ./input/<filename> (same filename as blob). Existing files are overwritten.
 
-⸻
 
-If you want now:
-	•	a unified git diff / patch file to apply these changes, OR
-	•	a variant that always downloads via HTTP requests using SAS URLs (no SDK at all), OR
-	•	a variant that streams large blobs (so we don’t call .readall()),
 
-tell me which and I’ll paste it immediately.
+
+
+
+
+
