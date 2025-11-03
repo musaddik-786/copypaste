@@ -352,7 +352,9 @@ if __name__ == "__main__":
     uvicorn.run(app, host=host, port=port)
 
 
-below is my code that i have to integrate basically th json that is getting generated in above code that json has to be taken as input in this below code and this code that it will generate the final output.josn this json should be stored in the blob and in the output folder not the earlier one 
+below is my code that i have to integrate basically the json that is getting generated in above code that json has to be taken as input in this below code so as the above code is storing the json in blob storage
+that path should be used in the below codes input 
+and this code that it will generate the final output.josn this json should be stored locally in an inpur folder 
 
 below is the code that has to be integrated in above code
 
