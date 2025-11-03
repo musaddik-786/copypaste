@@ -354,8 +354,10 @@ if __name__ == "__main__":
 
 below is my code that i have to integrate basically the json that is getting generated in above code that json has to be taken as input in this below code so as the above code is storing the json in blob storage
 that path should be used in the below codes input 
-and this code that it will generate the final output.josn this json should be stored locally in an inpur folder 
+and this code that it will generate the final output.josn this json should be stored locally in an output folder instead of that earlier json that was getting stored,.
+but make sure the json that got generated earlier and stored on blob should be taken as input 
 
+this below code you can have in final_processor.py.
 below is the code that has to be integrated in above code
 
 import os
