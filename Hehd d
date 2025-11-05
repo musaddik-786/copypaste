@@ -1,259 +1,285 @@
-Great — understood. I removed OCR, kept only the files you explicitly asked for, and implemented a clean pipeline that:
-	•	downloads the PDF from the provided Azure Blob URL to input/
-	•	renders the first page of the PDF to a PNG
-	•	encodes the PNG as base64 and embeds it in the LLM prompt (you said you want the image passed via prompt)
-	•	sends the prompt + image to your Azure OpenAI deployment (vision-capable model assumed) and asks for a strict JSON: { layout, confidence, evidence, notes }
-	•	writes a trace file into output/ and returns the JSON result via the FastAPI endpoint
+Perfect ✅
+Let’s restate your requirements clearly before I write the final version of your complete working code (with all files you need):
 
-Files included (exact names you asked for):
-	•	file_router.py
-	•	handler.py
-	•	main.py
-	•	service.py
-	•	test_scripts.py
-	•	test_client.py
+⸻
 
-Make sure you have these system deps installed: poppler (for pdf2image). Python deps: fastapi uvicorn python-dotenv azure-storage-blob pdf2image pillow openai requests langchain_mcp_adapters (install as needed).
+🎯 Updated Requirements
 
-Put credentials in .env:
+We want a service that:
+	1.	Takes a blob URL (PDF) input from Azure.
+	2.	Downloads that PDF file into the input/ folder (which is in your root directory).
+	3.	Converts only the first page of the PDF into an image.
+	4.	Sends that image to Azure OpenAI GPT-4o (vision model) using your existing chat deployment (AZURE_OPENAI_CHAT_DEPLOYMENT = "gpt4o").
+	5.	Uses a prompt that tells GPT-4o:
+“Classify whether the uploaded PDF document is structured (templated, forms, tables, invoices, quotes) or unstructured (free text, letters, paragraphs). Respond with only the word ‘structured’ or ‘unstructured’.”
+	6.	GPT-4o returns the classification ("structured" or "unstructured").
+	7.	The API response should only contain:
 
-AZURE_STORAGE_CONNECTION_STRING=...
-AZURE_OPENAI_API_KEY=...
-AZURE_OPENAI_ENDPOINT=https://<your-resource>.openai.azure.com/
-AZURE_OPENAI_DEPLOYMENT_NAME=<your-deployment-name>
+{
+  "result": "structured"
+}
+
+or
+
+{
+  "result": "unstructured"
+}
+
+
+	8.	No OCR, no heuristics, no custom extraction model — only GPT-4o classification.
+
+⸻
+
+✅ Architecture Summary
+
+Your project structure will look like this:
+
+layout_detection/
+│
+├── main.py
+├── file_router.py
+├── handler.py
+├── service.py
+├── llm_client.py
+├── pdf_utils.py
+├── test_scripts.py
+├── .env
+└── input/
 
 
 ⸻
 
-file_router.py
+🧠 .env File Example
 
-# file_router.py
-from fastapi import APIRouter
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
-from handler import process_blob_for_layout
-
-router = APIRouter()
-
-class LayoutDetectRequest(BaseModel):
-    blob_url: str = Field(..., description="Full Azure Blob URL to the PDF file")
-
-@router.post("/layout_detect", summary="Detect document layout (structured/unstructured)")
-async def layout_detect(req: LayoutDetectRequest):
-    try:
-        out = await process_blob_for_layout(req.blob_url)
-        return JSONResponse(status_code=200, content=out)
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"status": False, "error": str(e)})
+AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=...your_connection_string...
+AZURE_OPENAI_API_KEY=your_azure_openai_key
+AZURE_OPENAI_ENDPOINT=https://yourresource.openai.azure.com
+AZURE_OPENAI_API_VERSION=2024-08-01-preview
+AZURE_OPENAI_CHAT_DEPLOYMENT=gpt4o
 
 
 ⸻
 
-handler.py
-
-# handler.py
-import os
-import json
-import base64
-import asyncio
-from typing import Dict, Any
-from dotenv import load_dotenv
-from azure.storage.blob.aio import BlobServiceClient
-from azure.core.exceptions import ResourceNotFoundError
-from pdf2image import convert_from_path
-from PIL import Image
-import openai
-
-from service import _require_env, _parse_blob_url, AZURE_STORAGE_CONNECTION_STRING, AZURE_OPENAI_API_KEY, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_DEPLOYMENT_NAME
-
-load_dotenv()
-
-# directories
-BASE_DIR = os.getcwd()
-INPUT_DIR = os.path.join(BASE_DIR, "input")
-OUTPUT_DIR = os.path.join(BASE_DIR, "output")
-os.makedirs(INPUT_DIR, exist_ok=True)
-os.makedirs(OUTPUT_DIR, exist_ok=True)
-
-# configure openai for azure (synchronous)
-openai.api_type = "azure"
-openai.api_base = AZURE_OPENAI_ENDPOINT
-# set api_version if needed; you can set openai.api_version = "2024-10-01" etc in .env if required
-openai.api_key = AZURE_OPENAI_API_KEY
-
-# helper: async download blob
-async def _download_blob_to_local(container: str, blob_path: str, dest_path: str) -> None:
-    async with BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING) as blob_service:
-        container_client = blob_service.get_container_client(container)
-        blob_client = container_client.get_blob_client(blob_path)
-        try:
-            await blob_client.get_blob_properties()
-        except ResourceNotFoundError:
-            raise FileNotFoundError(f"Blob not found: container={container}, blob={blob_path}")
-
-        stream = await blob_client.download_blob()
-        data = await stream.readall()
-        with open(dest_path, "wb") as f:
-            f.write(data)
-
-def _render_first_page_to_png(pdf_path: str, png_out: str, dpi: int = 300) -> str:
-    pages = convert_from_path(pdf_path, dpi=dpi, first_page=1, last_page=1)
-    if not pages:
-        raise RuntimeError("Failed to render the first page of PDF.")
-    pages[0].save(png_out, format="PNG")
-    return png_out
-
-def _build_prompt_with_image(image_b64: str) -> str:
-    # prompt instructs model to return strict JSON only
-    return f"""
-You are a document layout classifier. You will be given IMAGE_BASE64 containing the first page of a document.
-Do NOT ask for anything else. DO NOT return any explanation. Return STRICT JSON only with these keys:
-{{"layout": "structured"|"unstructured", "confidence": 0.00, "evidence": ["key1","key2"], "notes": ""}}
-
-Use the image to decide if the document is structured (templated form, labeled fields, tables, repeated layout — e.g., ACORD, invoice, form) or unstructured (free-form quote, letter, narrative).
-Return "confidence" as a float 0.0-1.0. "evidence" should be up to 3 short words/phrases found visually that support your decision.
-
-IMAGE_BASE64:
-{image_b64}
-""".strip()
-
-def _call_llm_with_image(image_b64: str, timeout: int = 30) -> Dict[str, Any]:
-    """
-    Synchronous call to Azure OpenAI ChatCompletion. This implementation
-    embeds the base64 image inside the user message (as you requested).
-    Replace this with your SDK's native image attachment mechanism if available.
-    """
-    prompt = _build_prompt_with_image(image_b64)
-
-    # Use your Azure deployment name as 'engine' for openai.ChatCompletion.create
-    try:
-        response = openai.ChatCompletion.create(
-            engine=AZURE_OPENAI_DEPLOYMENT_NAME,
-            messages=[
-                {"role": "system", "content": "You are a strict JSON-producing assistant for layout classification."},
-                {"role": "user", "content": prompt},
-            ],
-            temperature=0.0,
-            max_tokens=256
-        )
-    except Exception as e:
-        return {"layout": "unknown", "confidence": 0.0, "evidence": [], "notes": f"LLM request failed: {e}"}
-
-    try:
-        assistant_text = response["choices"][0]["message"]["content"]
-    except Exception:
-        return {"layout": "unknown", "confidence": 0.0, "evidence": [], "notes": "No assistant content returned"}
-
-    # parse strict JSON from model output
-    try:
-        parsed = json.loads(assistant_text)
-        # normalize fields
-        layout = parsed.get("layout", "unknown")
-        confidence = float(parsed.get("confidence", 0.0))
-        evidence = parsed.get("evidence", [])
-        notes = parsed.get("notes", "")
-        return {"layout": layout, "confidence": confidence, "evidence": evidence, "notes": notes, "raw": assistant_text}
-    except Exception:
-        return {"layout": "unknown", "confidence": 0.0, "evidence": [], "notes": "Failed to parse LLM JSON", "raw": assistant_text}
-
-async def process_blob_for_layout(blob_url: str) -> Dict[str, Any]:
-    """
-    Main flow:
-      - parse blob url
-      - download pdf to input/
-      - render first page to PNG
-      - base64-encode PNG and send to LLM with prompt (no OCR)
-      - return LLM JSON and save trace
-    """
-    _require_env()
-    container, blob_path = _parse_blob_url(blob_url)
-
-    filename = os.path.basename(blob_path)
-    local_pdf = os.path.join(INPUT_DIR, filename)
-    png_name = f"{os.path.splitext(filename)[0]}_page1.png"
-    local_png = os.path.join(INPUT_DIR, png_name)
-
-    # download blob async
-    await _download_blob_to_local(container, blob_path, local_pdf)
-
-    # render to png
-    _render_first_page_to_png(local_pdf, local_png, dpi=300)
-
-    # base64 encode image
-    with open(local_png, "rb") as f:
-        img_b64 = base64.b64encode(f.read()).decode("utf-8")
-
-    # call LLM (sync)
-    llm_result = _call_llm_with_image(img_b64)
-
-    # assemble output
-    out = {
-        "status": True,
-        "source_blob": blob_url,
-        "local_pdf": local_pdf,
-        "local_png": local_png,
-        "llm_result": llm_result
-    }
-
-    # save trace
-    out_file = os.path.join(OUTPUT_DIR, f"layout_result_{os.path.splitext(filename)[0]}.json")
-    with open(out_file, "w", encoding="utf-8") as wf:
-        json.dump(out, wf, indent=2)
-
-    return out
-
+🧩 Complete Code
 
 ⸻
 
 service.py
 
-# service.py
 import os
 from urllib.parse import urlparse, unquote
 from dotenv import load_dotenv
 
 load_dotenv()
 
-AZURE_STORAGE_CONNECTION_STRING = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "")
-AZURE_OPENAI_API_KEY = os.environ.get("AZURE_OPENAI_API_KEY", "")
-AZURE_OPENAI_ENDPOINT = os.environ.get("AZURE_OPENAI_ENDPOINT", "")
-AZURE_OPENAI_DEPLOYMENT_NAME = os.environ.get("AZURE_OPENAI_DEPLOYMENT_NAME", "")
+AZURE_STORAGE_CONNECTION_STRING = os.getenv("AZURE_STORAGE_CONNECTION_STRING", "")
+INPUT_ROOT = "input"
+
 
 def _require_env() -> None:
-    missing = []
+    """Ensure required environment variables exist."""
     if not AZURE_STORAGE_CONNECTION_STRING:
-        missing.append("AZURE_STORAGE_CONNECTION_STRING")
-    if not AZURE_OPENAI_API_KEY:
-        missing.append("AZURE_OPENAI_API_KEY")
-    if not AZURE_OPENAI_ENDPOINT:
-        missing.append("AZURE_OPENAI_ENDPOINT")
-    if not AZURE_OPENAI_DEPLOYMENT_NAME:
-        missing.append("AZURE_OPENAI_DEPLOYMENT_NAME")
-    if missing:
-        raise RuntimeError(f"Missing environment vars: {', '.join(missing)}")
+        raise RuntimeError("Missing AZURE_STORAGE_CONNECTION_STRING in .env")
+
 
 def _parse_blob_url(url: str) -> tuple[str, str]:
+    """Parse an Azure Blob URL into (container, blob_path)."""
     parsed = urlparse(url)
-    if not parsed.scheme.startswith("http"):
-        raise ValueError("blob_url must be a valid http(s) URL to Azure Blob Storage.")
     path = parsed.path.lstrip("/")
-    if "/" not in path:
-        raise ValueError("blob_url must include both container and blob path.")
     parts = path.split("/", 1)
-    container = parts[0]
-    blob_path = parts[1]
-    return unquote(container), unquote(blob_path)
+    if len(parts) != 2:
+        raise ValueError("Invalid blob URL format.")
+    return unquote(parts[0]), unquote(parts[1])
+
+
+def ensure_input_folder():
+    """Ensure 'input' folder exists."""
+    os.makedirs(INPUT_ROOT, exist_ok=True)
+    return INPUT_ROOT
+
+
+⸻
+
+pdf_utils.py
+
+import os
+from azure.storage.blob.aio import BlobServiceClient
+from azure.core.exceptions import ResourceNotFoundError
+import fitz  # PyMuPDF
+from service import AZURE_STORAGE_CONNECTION_STRING, ensure_input_folder, _parse_blob_url
+
+
+async def download_pdf_from_blob(blob_url: str) -> str:
+    """Download PDF from Azure Blob and store it in input folder."""
+    ensure_input_folder()
+    container, blob_path = _parse_blob_url(blob_url)
+
+    async with BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING) as blob_service:
+        blob_client = blob_service.get_blob_client(container=container, blob=blob_path)
+        try:
+            await blob_client.get_blob_properties()
+        except ResourceNotFoundError:
+            raise FileNotFoundError(f"Blob not found: {blob_path}")
+
+        stream = await blob_client.download_blob()
+        data = await stream.readall()
+
+    local_path = os.path.join("input", os.path.basename(blob_path))
+    with open(local_path, "wb") as f:
+        f.write(data)
+
+    return local_path
+
+
+def convert_pdf_first_page_to_image(pdf_path: str) -> str:
+    """Convert first page of a PDF to PNG image."""
+    doc = fitz.open(pdf_path)
+    if doc.page_count < 1:
+        raise ValueError("Empty PDF file.")
+
+    page = doc.load_page(0)
+    pix = page.get_pixmap(dpi=150)
+    image_path = os.path.splitext(pdf_path)[0] + "_page1.png"
+    pix.save(image_path)
+    doc.close()
+
+    return image_path
+
+
+⸻
+
+llm_client.py
+
+import os
+import base64
+import requests
+from dotenv import load_dotenv
+
+load_dotenv()
+
+AZURE_KEY = os.getenv("AZURE_OPENAI_API_KEY")
+AZURE_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
+AZURE_VERSION = os.getenv("AZURE_OPENAI_API_VERSION")
+DEPLOYMENT = os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT")
+
+
+def analyze_layout_with_gpt4o(image_path: str) -> str:
+    """Send first-page image to GPT-4o to classify structured/unstructured."""
+
+    if not (AZURE_KEY and AZURE_ENDPOINT and AZURE_VERSION and DEPLOYMENT):
+        raise RuntimeError("Missing Azure OpenAI environment variables.")
+
+    # Read image bytes and encode to base64
+    with open(image_path, "rb") as f:
+        img_base64 = base64.b64encode(f.read()).decode("utf-8")
+
+    # Prompt for classification
+    prompt = (
+        "You are a document layout classifier. "
+        "Based on the visual layout of the provided image (first page of a PDF), "
+        "classify whether the document is structured (templated forms, invoices, tables, quotes) "
+        "or unstructured (letters, paragraphs, free text). "
+        "Respond with only one word: 'structured' or 'unstructured'."
+    )
+
+    url = f"{AZURE_ENDPOINT}/openai/deployments/{DEPLOYMENT}/chat/completions?api-version={AZURE_VERSION}"
+
+    headers = {
+        "Content-Type": "application/json",
+        "api-key": AZURE_KEY
+    }
+
+    payload = {
+        "messages": [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": prompt},
+                    {"type": "image_url", "image_url": f"data:image/png;base64,{img_base64}"}
+                ]
+            }
+        ],
+        "max_tokens": 20,
+        "temperature": 0.0
+    }
+
+    response = requests.post(url, headers=headers, json=payload, timeout=120)
+    response.raise_for_status()
+    data = response.json()
+    result = data["choices"][0]["message"]["content"].strip().lower()
+
+    if "structured" in result:
+        return "structured"
+    elif "unstructured" in result:
+        return "unstructured"
+    else:
+        return "unstructured"  # fallback
+
+
+⸻
+
+handler.py
+
+import json
+from typing import Dict
+from pdf_utils import download_pdf_from_blob, convert_pdf_first_page_to_image
+from llm_client import analyze_layout_with_gpt4o
+from service import _require_env
+
+async def process_pdf_layout(blob_url: str) -> Dict:
+    """
+    Flow:
+    1. Download PDF from blob
+    2. Convert first page to image
+    3. Send to GPT-4o for classification
+    4. Return {'result': 'structured'} or {'result': 'unstructured'}
+    """
+    try:
+        _require_env()
+        pdf_path = await download_pdf_from_blob(blob_url)
+        image_path = convert_pdf_first_page_to_image(pdf_path)
+        layout_type = analyze_layout_with_gpt4o(image_path)
+        return {"result": layout_type}
+
+    except Exception as e:
+        return {"error": str(e)}
+
+
+⸻
+
+file_router.py
+
+from fastapi import APIRouter
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
+from handler import process_pdf_layout
+
+router = APIRouter()
+
+class PDFLayoutRequest(BaseModel):
+    blob_url: str = Field(..., description="Azure Blob URL of the PDF file")
+
+@router.post(
+    "/layout_detection_mcp",
+    operation_id="layout_detection_mcp",
+    summary="Detect document layout as structured or unstructured using GPT-4o."
+)
+async def detect_layout(request: PDFLayoutRequest):
+    try:
+        result = await process_pdf_layout(request.blob_url)
+        return JSONResponse(content=result, status_code=200)
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=500)
 
 
 ⸻
 
 main.py
 
-# main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi_mcp import FastApiMCP
 import uvicorn
-
 from file_router import router as file_router
 
 def apply_cors(app: FastAPI):
@@ -264,35 +290,37 @@ def apply_cors(app: FastAPI):
         allow_headers=["*"],
     )
 
-app = FastAPI(title="Layout Detection MCP")
+app = FastAPI(title="Layout Detection MCP", description="Detect structured/unstructured documents using GPT-4o.")
 apply_cors(app)
 
-app.include_router(file_router, prefix="/api/v1/layout", tags=["layout"])
+file_app = FastAPI(title="Layout Detection SubApp")
+file_app.include_router(file_router)
+
+FastApiMCP(file_app, include_operations=["layout_detection_mcp"]).mount_http()
+
+app.mount("/api/v1/layout_agent", file_app)
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8602, reload=True)
+    uvicorn.run(app, host="0.0.0.0", port=8601)
 
 
 ⸻
 
 test_scripts.py
 
-# test_scripts.py
 import requests
 import json
 
-BASE = "http://localhost:8602/api/v1/layout/layout_detect"
+BASE_URL = "http://localhost:8601/api/v1/layout_agent/layout_detection_mcp"
 
 def run_test():
     payload = {
-        "blob_url": "https://<account>.blob.core.windows.net/<container>/<path>/sample.pdf"
+        "blob_url": "https://youraccount.blob.core.windows.net/yourcontainer/sample.pdf"
     }
-    resp = requests.post(BASE, json=payload, timeout=180)
-    print("Status:", resp.status_code)
-    try:
-        print(json.dumps(resp.json(), indent=2))
-    except Exception:
-        print(resp.text)
+
+    response = requests.post(BASE_URL, json=payload)
+    print("Status:", response.status_code)
+    print(json.dumps(response.json(), indent=4))
 
 if __name__ == "__main__":
     run_test()
@@ -300,48 +328,24 @@ if __name__ == "__main__":
 
 ⸻
 
-test_client.py
+✅ Output Example
 
-# test_client.py
-import asyncio
-from langchain_mcp_adapters.client import MultiServerMCPClient
+If structured:
 
-async def get_tool_list(config_mcp_server):
-    client = MultiServerMCPClient(config_mcp_server)
-    tools_list = await client.get_tools()
-    print("Tools fetched from MCP:", [tool.name for tool in tools_list])
-    await client.aclose()
-    return tools_list
+{
+  "result": "structured"
+}
 
-async def main():
-    config_mcp_server = {
-        "sanction_checker_mcp": {
-            "url": "http://localhost:8602/api/v1/layout/mcp",
-            "transport":"streamable_http",
-        }
-    }
-    tools = await get_tool_list(config_mcp_server=config_mcp_server)
-    print(tools)
+If unstructured:
 
-if __name__ == "__main__":
-    asyncio.run(main())
+{
+  "result": "unstructured"
+}
 
 
 ⸻
 
-Notes, constraints & recommended follow-ups
-	1.	The code intentionally does not run OCR — it sends the image only (embedded as base64 in the prompt) to the model as you requested. If your deployment supports native image attachments via the SDK (better), replace _call_llm_with_image with the native method — embedding base64 in the prompt can be heavy for large images.
-	2.	The ChatCompletion call uses the openai Python package configured for Azure. If your environment or SDK differs (azure-ai-openai), let me know and I’ll adapt the call.
-	3.	For testing locally: install poppler (apt install poppler-utils on Debian/Ubuntu) and pdf2image + Pillow.
-	4.	If you want the shorter flow (no async blob client), I can convert the blob download to synchronous azure.storage.blob.BlobServiceClient — but async is non-blocking and recommended in production.
-	5.	If the LLM returns malformed JSON, the endpoint will return the parsing error inside "llm_result.notes". You can add more strictness (e.g., function calling or JSON-schema validation) later.
-	6.	I left out the embedding snippet you posted (the AzureOpenAIEmbeddings init) because it’s not needed for layout detection; if you need embeddings elsewhere, tell me where and I’ll add it.
+Would you like me to modify the prompt slightly to make GPT-4o more strict in replying only the exact word (structured/unstructured, nothing else)?
+I can add a one-line rule like:
 
-⸻
-
-If you want, I can now:
-	•	adapt _call_llm_with_image to use the Azure OpenAI REST / azure-ai-openai SDK native image handling (recommended), or
-	•	change the blob download to synchronous code (if you prefer not to run async), or
-	•	add a simple threshold check (e.g., if confidence >= 0.75 then route to your extractor — I can wire that into handler.process_blob_for_layout directly.
-
-Which one should I do next?
+“Reply with only one lowercase word: structured or unstructured. Do not include punctuation or explanations.”
