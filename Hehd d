@@ -1,254 +1,64 @@
-Perfect ✅
-Let’s restate your requirements clearly before I write the final version of your complete working code (with all files you need):
+Thanks — that 404 + {"detail":"Not Found"} means the HTTP request reached a running FastAPI server but there is no route registered at the exact URL you requested. I’ll fix this and give you a simpler, reliable main.py + test_scripts.py you can run right away (avoids FastApiMCP mounting complexity which often causes path confusion). I’ll also give quick troubleshooting checks so you can confirm things step-by-step.
+
+Quick checklist (why 404 usually happens)
+	1.	The FastAPI server isn’t running (or crashed) — check console where you ran python main.py / uvicorn.
+	2.	The route path you used in test_scripts.py doesn’t match the route registered by FastAPI.
+	3.	The app was mounted under a subpath (e.g. /api/v1/layout_agent) but the request used a different path.
+	4.	FastApiMCP sometimes mounts internal paths; for now we’ll skip it to avoid confusion.
 
 ⸻
 
-🎯 Updated Requirements
+What I changed
+	•	Provide a simplified main.py that registers the router at /api/v1/layout_agent and does not use FastApiMCP.
+	•	Ensure the router path is exactly /layout_detection_mcp so your test script URL http://localhost:8601/api/v1/layout_agent/layout_detection_mcp will succeed.
+	•	Provide a test script that calls that exact URL.
+	•	Add a small health-check endpoint so you can verify the server is up quickly.
 
-We want a service that:
-	1.	Takes a blob URL (PDF) input from Azure.
-	2.	Downloads that PDF file into the input/ folder (which is in your root directory).
-	3.	Converts only the first page of the PDF into an image.
-	4.	Sends that image to Azure OpenAI GPT-4o (vision model) using your existing chat deployment (AZURE_OPENAI_CHAT_DEPLOYMENT = "gpt4o").
-	5.	Uses a prompt that tells GPT-4o:
-“Classify whether the uploaded PDF document is structured (templated, forms, tables, invoices, quotes) or unstructured (free text, letters, paragraphs). Respond with only the word ‘structured’ or ‘unstructured’.”
-	6.	GPT-4o returns the classification ("structured" or "unstructured").
-	7.	The API response should only contain:
-
-{
-  "result": "structured"
-}
-
-or
-
-{
-  "result": "unstructured"
-}
-
-
-	8.	No OCR, no heuristics, no custom extraction model — only GPT-4o classification.
+Save the following files and run them exactly in this order.
 
 ⸻
 
-✅ Architecture Summary
+1) main.py (replace your current main.py with this)
 
-Your project structure will look like this:
+# main.py
+import uvicorn
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
-layout_detection/
-│
-├── main.py
-├── file_router.py
-├── handler.py
-├── service.py
-├── llm_client.py
-├── pdf_utils.py
-├── test_scripts.py
-├── .env
-└── input/
+from file_router import router as file_router
 
-
-⸻
-
-🧠 .env File Example
-
-AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=...your_connection_string...
-AZURE_OPENAI_API_KEY=your_azure_openai_key
-AZURE_OPENAI_ENDPOINT=https://yourresource.openai.azure.com
-AZURE_OPENAI_API_VERSION=2024-08-01-preview
-AZURE_OPENAI_CHAT_DEPLOYMENT=gpt4o
-
-
-⸻
-
-🧩 Complete Code
-
-⸻
-
-service.py
-
-import os
-from urllib.parse import urlparse, unquote
-from dotenv import load_dotenv
-
-load_dotenv()
-
-AZURE_STORAGE_CONNECTION_STRING = os.getenv("AZURE_STORAGE_CONNECTION_STRING", "")
-INPUT_ROOT = "input"
-
-
-def _require_env() -> None:
-    """Ensure required environment variables exist."""
-    if not AZURE_STORAGE_CONNECTION_STRING:
-        raise RuntimeError("Missing AZURE_STORAGE_CONNECTION_STRING in .env")
-
-
-def _parse_blob_url(url: str) -> tuple[str, str]:
-    """Parse an Azure Blob URL into (container, blob_path)."""
-    parsed = urlparse(url)
-    path = parsed.path.lstrip("/")
-    parts = path.split("/", 1)
-    if len(parts) != 2:
-        raise ValueError("Invalid blob URL format.")
-    return unquote(parts[0]), unquote(parts[1])
-
-
-def ensure_input_folder():
-    """Ensure 'input' folder exists."""
-    os.makedirs(INPUT_ROOT, exist_ok=True)
-    return INPUT_ROOT
-
-
-⸻
-
-pdf_utils.py
-
-import os
-from azure.storage.blob.aio import BlobServiceClient
-from azure.core.exceptions import ResourceNotFoundError
-import fitz  # PyMuPDF
-from service import AZURE_STORAGE_CONNECTION_STRING, ensure_input_folder, _parse_blob_url
-
-
-async def download_pdf_from_blob(blob_url: str) -> str:
-    """Download PDF from Azure Blob and store it in input folder."""
-    ensure_input_folder()
-    container, blob_path = _parse_blob_url(blob_url)
-
-    async with BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING) as blob_service:
-        blob_client = blob_service.get_blob_client(container=container, blob=blob_path)
-        try:
-            await blob_client.get_blob_properties()
-        except ResourceNotFoundError:
-            raise FileNotFoundError(f"Blob not found: {blob_path}")
-
-        stream = await blob_client.download_blob()
-        data = await stream.readall()
-
-    local_path = os.path.join("input", os.path.basename(blob_path))
-    with open(local_path, "wb") as f:
-        f.write(data)
-
-    return local_path
-
-
-def convert_pdf_first_page_to_image(pdf_path: str) -> str:
-    """Convert first page of a PDF to PNG image."""
-    doc = fitz.open(pdf_path)
-    if doc.page_count < 1:
-        raise ValueError("Empty PDF file.")
-
-    page = doc.load_page(0)
-    pix = page.get_pixmap(dpi=150)
-    image_path = os.path.splitext(pdf_path)[0] + "_page1.png"
-    pix.save(image_path)
-    doc.close()
-
-    return image_path
-
-
-⸻
-
-llm_client.py
-
-import os
-import base64
-import requests
-from dotenv import load_dotenv
-
-load_dotenv()
-
-AZURE_KEY = os.getenv("AZURE_OPENAI_API_KEY")
-AZURE_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
-AZURE_VERSION = os.getenv("AZURE_OPENAI_API_VERSION")
-DEPLOYMENT = os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT")
-
-
-def analyze_layout_with_gpt4o(image_path: str) -> str:
-    """Send first-page image to GPT-4o to classify structured/unstructured."""
-
-    if not (AZURE_KEY and AZURE_ENDPOINT and AZURE_VERSION and DEPLOYMENT):
-        raise RuntimeError("Missing Azure OpenAI environment variables.")
-
-    # Read image bytes and encode to base64
-    with open(image_path, "rb") as f:
-        img_base64 = base64.b64encode(f.read()).decode("utf-8")
-
-    # Prompt for classification
-    prompt = (
-        "You are a document layout classifier. "
-        "Based on the visual layout of the provided image (first page of a PDF), "
-        "classify whether the document is structured (templated forms, invoices, tables, quotes) "
-        "or unstructured (letters, paragraphs, free text). "
-        "Respond with only one word: 'structured' or 'unstructured'."
+def create_app():
+    app = FastAPI(title="Layout Detection MCP (simple)")
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
 
-    url = f"{AZURE_ENDPOINT}/openai/deployments/{DEPLOYMENT}/chat/completions?api-version={AZURE_VERSION}"
+    # health-check
+    @app.get("/health")
+    async def health():
+        return {"status": "ok"}
 
-    headers = {
-        "Content-Type": "application/json",
-        "api-key": AZURE_KEY
-    }
+    # mount sub app routes under this prefix
+    app.include_router(file_router, prefix="/api/v1/layout_agent")
+    return app
 
-    payload = {
-        "messages": [
-            {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": prompt},
-                    {"type": "image_url", "image_url": f"data:image/png;base64,{img_base64}"}
-                ]
-            }
-        ],
-        "max_tokens": 20,
-        "temperature": 0.0
-    }
+app = create_app()
 
-    response = requests.post(url, headers=headers, json=payload, timeout=120)
-    response.raise_for_status()
-    data = response.json()
-    result = data["choices"][0]["message"]["content"].strip().lower()
-
-    if "structured" in result:
-        return "structured"
-    elif "unstructured" in result:
-        return "unstructured"
-    else:
-        return "unstructured"  # fallback
+if __name__ == "__main__":
+    # run with uvicorn in-process for convenience
+    uvicorn.run("main:app", host="0.0.0.0", port=8601, reload=False)
 
 
 ⸻
 
-handler.py
+2) file_router.py (ensure this file exists and the route path matches)
 
-import json
-from typing import Dict
-from pdf_utils import download_pdf_from_blob, convert_pdf_first_page_to_image
-from llm_client import analyze_layout_with_gpt4o
-from service import _require_env
+Make sure file_router.py is in the same folder and has the following. (If you already have it, just ensure @router.post("/layout_detection_mcp") is present — this must match.)
 
-async def process_pdf_layout(blob_url: str) -> Dict:
-    """
-    Flow:
-    1. Download PDF from blob
-    2. Convert first page to image
-    3. Send to GPT-4o for classification
-    4. Return {'result': 'structured'} or {'result': 'unstructured'}
-    """
-    try:
-        _require_env()
-        pdf_path = await download_pdf_from_blob(blob_url)
-        image_path = convert_pdf_first_page_to_image(pdf_path)
-        layout_type = analyze_layout_with_gpt4o(image_path)
-        return {"result": layout_type}
-
-    except Exception as e:
-        return {"error": str(e)}
-
-
-⸻
-
-file_router.py
-
+# file_router.py
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
@@ -267,47 +77,22 @@ class PDFLayoutRequest(BaseModel):
 async def detect_layout(request: PDFLayoutRequest):
     try:
         result = await process_pdf_layout(request.blob_url)
-        return JSONResponse(content=result, status_code=200)
+        # normalize final response shape to exactly {"result": "structured"} or {"result": "unstructured"}
+        if isinstance(result, dict) and "result" in result:
+            return JSONResponse(content={"result": result["result"]}, status_code=200)
+        # if handler returned error
+        if isinstance(result, dict) and "error" in result:
+            return JSONResponse(content={"error": result["error"]}, status_code=500)
+        return JSONResponse(content={"error": "unexpected handler response"}, status_code=500)
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)
 
 
 ⸻
 
-main.py
+3) test_scripts.py (replace existing)
 
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi_mcp import FastApiMCP
-import uvicorn
-from file_router import router as file_router
-
-def apply_cors(app: FastAPI):
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-
-app = FastAPI(title="Layout Detection MCP", description="Detect structured/unstructured documents using GPT-4o.")
-apply_cors(app)
-
-file_app = FastAPI(title="Layout Detection SubApp")
-file_app.include_router(file_router)
-
-FastApiMCP(file_app, include_operations=["layout_detection_mcp"]).mount_http()
-
-app.mount("/api/v1/layout_agent", file_app)
-
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8601)
-
-
-⸻
-
-test_scripts.py
-
+# test_scripts.py
 import requests
 import json
 
@@ -318,9 +103,15 @@ def run_test():
         "blob_url": "https://youraccount.blob.core.windows.net/yourcontainer/sample.pdf"
     }
 
-    response = requests.post(BASE_URL, json=payload)
-    print("Status:", response.status_code)
-    print(json.dumps(response.json(), indent=4))
+    try:
+        resp = requests.post(BASE_URL, json=payload, timeout=120)
+        print("HTTP Status:", resp.status_code)
+        try:
+            print(json.dumps(resp.json(), indent=4))
+        except Exception:
+            print("Non-JSON response:", resp.text)
+    except Exception as e:
+        print("Request error:", str(e))
 
 if __name__ == "__main__":
     run_test()
@@ -328,24 +119,42 @@ if __name__ == "__main__":
 
 ⸻
 
-✅ Output Example
-
-If structured:
-
-{
-  "result": "structured"
-}
-
-If unstructured:
-
-{
-  "result": "unstructured"
-}
-
+How to run (step-by-step)
+	1.	Open a terminal in the project root.
+	2.	Start the server:
+	•	(venv) PS> python main.py
+	•	You should see uvicorn logs and it should say it’s listening on 0.0.0.0:8601.
+	3.	Verify health endpoint (quick check):
+	•	In another terminal run:
+	•	curl http://localhost:8601/health
+	•	Expect: {"status":"ok"}
+	•	If this returns 404, server is not running or running on different port.
+	4.	Run the test script:
+	•	(venv) PS> python test_scripts.py
+	•	You should now get HTTP Status: 200 and either {"result":"structured"} or {"result":"unstructured"} (or an error if something else failed).
 
 ⸻
 
-Would you like me to modify the prompt slightly to make GPT-4o more strict in replying only the exact word (structured/unstructured, nothing else)?
-I can add a one-line rule like:
+Extra troubleshooting tips if you still get 404
+	•	Make sure you restarted the server after changing main.py. (Stop the previous process and start python main.py.)
+	•	Confirm port 8601 is not in use by another process.
+	•	Confirm file_router.py is in the same folder and that the import from handler import process_pdf_layout succeeds (no import errors on startup).
+	•	If imports fail, uvicorn will show stacktrace and the server may not have registered routes.
+	•	Check the server console where you started python main.py — if there was an import error, you’ll see a traceback there. Fix that before calling the test script.
+	•	If you previously used FastApiMCP and left it in code, remove/replace as above — FastApiMCP can change the exposed path.
 
-“Reply with only one lowercase word: structured or unstructured. Do not include punctuation or explanations.”
+⸻
+
+Why I removed FastApiMCP for now
+
+You previously used the FastApiMCP(file_app, include_operations=[...]).mount_http() approach. That can create a different path mapping depending on that library’s internals. Removing it gives deterministic, straightforward routing and eliminates the source of the 404.
+
+If you prefer FastApiMCP (for MCP discovery), I can put it back once everything is working. For now this simplified approach will let you test the download → convert → GPT-4o call flow reliably.
+
+⸻
+
+If you want, I will:
+	•	Provide a minimal logging wrapper so you can see each step (download succeeded, image saved, LLM response) in the server console.
+	•	Or, if you prefer to keep FastApiMCP, I can show the exact FastApiMCP mounting that will register /api/v1/eligibility_agent/mcp or whatever path you require — but first let’s confirm this simple flow works for you.
+
+Tell me to proceed with logs or to keep the FastApiMCP version — otherwise run the steps above and paste any server console error you see and I’ll fix it immediately.
