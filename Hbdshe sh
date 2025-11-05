@@ -1,3 +1,16 @@
+this is the requirement that i have been told to work on 
+
+Layout detection MCP input ->attachment blob url path
+using that url path it will download attachment from blob storage
+it will dowbload pdf/quote in input folder
+and feed that pdf image of first page to llm , (if gpt 4 is vision capable)?
+and prompt it to understand the layout of document (temp, untemp) ie (structured or unstructured)
+
+and based on the output of llm if it is structured than it will call the custom model extraction
+
+below is the structure you should refer to write the code and give me complete code for all the files 
+
+
 file_router.py
  
 from fastapi import APIRouter
@@ -313,5 +326,3 @@ async def main():
  
 if __name__ == "__main__":
     asyncio.run(main())
- 
- 
