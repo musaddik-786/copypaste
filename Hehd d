@@ -1,34 +1,28 @@
-Thanks — that 404 + {"detail":"Not Found"} means the HTTP request reached a running FastAPI server but there is no route registered at the exact URL you requested. I’ll fix this and give you a simpler, reliable main.py + test_scripts.py you can run right away (avoids FastApiMCP mounting complexity which often causes path confusion). I’ll also give quick troubleshooting checks so you can confirm things step-by-step.
+Thanks — let’s make this very obvious what’s happening at runtime and fix the 404. I’ll give you code that:
+	•	Prints all registered routes when the app starts.
+	•	Adds a /routes endpoint so you can query which endpoints are live.
+	•	Adds more logging + explicit error traces in the handler so import-time failures (which silently prevent route registration) are obvious.
+	•	Gives a small checklist of what to paste back if it still fails so I can fix it immediately.
 
-Quick checklist (why 404 usually happens)
-	1.	The FastAPI server isn’t running (or crashed) — check console where you ran python main.py / uvicorn.
-	2.	The route path you used in test_scripts.py doesn’t match the route registered by FastAPI.
-	3.	The app was mounted under a subpath (e.g. /api/v1/layout_agent) but the request used a different path.
-	4.	FastApiMCP sometimes mounts internal paths; for now we’ll skip it to avoid confusion.
-
-⸻
-
-What I changed
-	•	Provide a simplified main.py that registers the router at /api/v1/layout_agent and does not use FastApiMCP.
-	•	Ensure the router path is exactly /layout_detection_mcp so your test script URL http://localhost:8601/api/v1/layout_agent/layout_detection_mcp will succeed.
-	•	Provide a test script that calls that exact URL.
-	•	Add a small health-check endpoint so you can verify the server is up quickly.
-
-Save the following files and run them exactly in this order.
+Do this now: replace your existing main.py, file_router.py, and handler.py with the versions below, restart the server, run the curl/test script steps — and paste the console output if it still returns 404.
 
 ⸻
 
-1) main.py (replace your current main.py with this)
+1) main.py — prints routes on startup and exposes /routes and /health
 
 # main.py
 import uvicorn
+import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from file_router import router as file_router
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("layout_app")
+
 def create_app():
-    app = FastAPI(title="Layout Detection MCP (simple)")
+    app = FastAPI(title="Layout Detection MCP (debug)")
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -36,34 +30,49 @@ def create_app():
         allow_headers=["*"],
     )
 
-    # health-check
     @app.get("/health")
     async def health():
         return {"status": "ok"}
 
-    # mount sub app routes under this prefix
+    @app.get("/routes")
+    async def list_routes():
+        """
+        Return a list of registered routes (path + methods).
+        Useful for debugging 404s caused by wrong paths.
+        """
+        routes = []
+        for r in app.routes:
+            routes.append({"path": getattr(r, "path", None), "name": getattr(r, "name", None), "methods": list(getattr(r, "methods", []))})
+        return {"routes": routes}
+
+    # mount router under desired prefix
     app.include_router(file_router, prefix="/api/v1/layout_agent")
+    # after including routers, log routes
+    logger.info("Registered routes:")
+    for r in app.routes:
+        logger.info(f" - path: {getattr(r, 'path', None)}, name: {getattr(r, 'name', None)}, methods: {list(getattr(r, 'methods', []))}")
+
     return app
 
 app = create_app()
 
 if __name__ == "__main__":
-    # run with uvicorn in-process for convenience
+    # run with uvicorn in-process
     uvicorn.run("main:app", host="0.0.0.0", port=8601, reload=False)
 
 
 ⸻
 
-2) file_router.py (ensure this file exists and the route path matches)
-
-Make sure file_router.py is in the same folder and has the following. (If you already have it, just ensure @router.post("/layout_detection_mcp") is present — this must match.)
+2) file_router.py — returns normalized responses and logs
 
 # file_router.py
+import logging
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from handler import process_pdf_layout
 
+logger = logging.getLogger("layout_app.router")
 router = APIRouter()
 
 class PDFLayoutRequest(BaseModel):
@@ -75,86 +84,229 @@ class PDFLayoutRequest(BaseModel):
     summary="Detect document layout as structured or unstructured using GPT-4o."
 )
 async def detect_layout(request: PDFLayoutRequest):
+    logger.info("Received layout detection request for blob_url: %s", request.blob_url)
     try:
         result = await process_pdf_layout(request.blob_url)
-        # normalize final response shape to exactly {"result": "structured"} or {"result": "unstructured"}
+        # if handler returns {"result": "structured"} or {"result": "unstructured"}
         if isinstance(result, dict) and "result" in result:
             return JSONResponse(content={"result": result["result"]}, status_code=200)
-        # if handler returned error
+        # if handler returned an error field
         if isinstance(result, dict) and "error" in result:
+            logger.error("Handler returned error: %s", result["error"])
             return JSONResponse(content={"error": result["error"]}, status_code=500)
+        logger.error("Unexpected handler response: %s", result)
         return JSONResponse(content={"error": "unexpected handler response"}, status_code=500)
     except Exception as e:
+        logger.exception("Exception in detect_layout")
         return JSONResponse(content={"error": str(e)}, status_code=500)
 
 
 ⸻
 
-3) test_scripts.py (replace existing)
+3) handler.py — robust logging + tracebacks (synchronous wrapper for clarity)
+
+# handler.py
+import os
+import json
+import traceback
+import logging
+from typing import Dict
+from pdf_utils import download_pdf_from_blob, convert_pdf_first_page_to_image
+from llm_client import analyze_layout_with_gpt4o
+from service import _require_env
+
+logger = logging.getLogger("layout_app.handler")
+logging.basicConfig(level=logging.INFO)
+
+async def process_pdf_layout(blob_url: str) -> Dict:
+    """
+    Flow:
+    1. Validate env
+    2. Download PDF to input/
+    3. Convert first page to image
+    4. Send to GPT-4o for classification -> must return 'structured' or 'unstructured'
+    5. Return {"result": "<word>"}
+    """
+    try:
+        logger.info("Starting process_pdf_layout for: %s", blob_url)
+        _require_env()
+    except Exception as e:
+        logger.exception("Environment validation failed")
+        return {"error": f"Env error: {str(e)}"}
+
+    try:
+        pdf_path = await download_pdf_from_blob(blob_url)
+        logger.info("Downloaded PDF to: %s", pdf_path)
+    except Exception as e:
+        tb = traceback.format_exc()
+        logger.error("Failed to download PDF: %s\n%s", e, tb)
+        return {"error": f"Failed to download PDF: {e}"}
+
+    try:
+        image_path = convert_pdf_first_page_to_image(pdf_path)
+        logger.info("Converted first page to image: %s", image_path)
+    except Exception as e:
+        tb = traceback.format_exc()
+        logger.error("Failed to convert PDF to image: %s\n%s", e, tb)
+        return {"error": f"Failed to convert PDF to image: {e}"}
+
+    try:
+        layout_label = analyze_layout_with_gpt4o(image_path)
+        layout_label = layout_label.strip().lower()
+        if layout_label not in ("structured", "unstructured"):
+            logger.warning("LLM returned unexpected label: %s; defaulting to 'unstructured'", layout_label)
+            layout_label = "unstructured"
+        logger.info("LLM classification: %s", layout_label)
+        return {"result": layout_label}
+    except Exception as e:
+        tb = traceback.format_exc()
+        logger.error("LLM classification failed: %s\n%s", e, tb)
+        return {"error": f"LLM classification failed: {e}"}
+
+
+⸻
+
+4) llm_client.py — safe, simple implementation (no image_url trick if deployment rejects it)
+
+Replace your llm_client with this version which attempts the REST call but will clearly raise an error with response body if Azure rejects payload format.
+
+# llm_client.py
+import os
+import base64
+import json
+import requests
+from dotenv import load_dotenv
+
+load_dotenv()
+
+AZURE_KEY = os.getenv("AZURE_OPENAI_API_KEY")
+AZURE_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
+AZURE_VERSION = os.getenv("AZURE_OPENAI_API_VERSION")
+DEPLOYMENT = os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT")
+
+def analyze_layout_with_gpt4o(image_path: str) -> str:
+    if not (AZURE_KEY and AZURE_ENDPOINT and AZURE_VERSION and DEPLOYMENT):
+        raise RuntimeError("Missing Azure OpenAI environment variables (AZURE_OPENAI_API_KEY / ENDPOINT / API_VERSION / DEPLOYMENT).")
+
+    with open(image_path, "rb") as f:
+        img_b64 = base64.b64encode(f.read()).decode("utf-8")
+
+    # Prompt enforces one-word response
+    prompt_text = (
+        "You are a strict document layout classifier. You will be given an image (first page of a PDF). "
+        "Classify the document as either 'structured' (templated forms, invoices, tables, quotes) "
+        "or 'unstructured' (letters, paragraphs, free text). "
+        "Respond with exactly one lowercase word and nothing else: 'structured' or 'unstructured'."
+    )
+
+    # Many Azure deployments accept a messages array. We include the image as a data URL in the user content.
+    # If your deployment doesn't accept images this will return an error — the server logs will show it.
+    url = f"{AZURE_ENDPOINT.rstrip('/')}/openai/deployments/{DEPLOYMENT}/chat/completions?api-version={AZURE_VERSION}"
+
+    headers = {
+        "Content-Type": "application/json",
+        "api-key": AZURE_KEY
+    }
+
+    # We include the image as a data URL appended to the user message content.
+    # Some vision-enabled deployments accept data URLs inline. If yours does not, you'll see a clear error.
+    user_content = prompt_text + "\n\nIMAGE_AS_BASE64:\n" + img_b64
+
+    payload = {
+        "messages": [
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": user_content}
+        ],
+        "max_tokens": 10,
+        "temperature": 0.0
+    }
+
+    resp = requests.post(url, headers=headers, json=payload, timeout=120)
+    try:
+        resp.raise_for_status()
+    except Exception as e:
+        # surface response text for debugging
+        raise RuntimeError(f"Azure OpenAI error: {e}; status={resp.status_code}; body={resp.text}")
+
+    data = resp.json()
+    # typical structure: data["choices"][0]["message"]["content"]
+    choices = data.get("choices", [])
+    if not choices:
+        raise RuntimeError("No choices returned from deployment: " + json.dumps(data))
+    content = choices[0].get("message", {}).get("content", "").strip().lower()
+    return content
+
+
+⸻
+
+5) Updated test_scripts.py — checks health, routes, then calls endpoint
 
 # test_scripts.py
 import requests
 import json
 
-BASE_URL = "http://localhost:8601/api/v1/layout_agent/layout_detection_mcp"
+BASE = "http://localhost:8601"
 
-def run_test():
-    payload = {
-        "blob_url": "https://youraccount.blob.core.windows.net/yourcontainer/sample.pdf"
-    }
-
+def check_health():
     try:
-        resp = requests.post(BASE_URL, json=payload, timeout=120)
-        print("HTTP Status:", resp.status_code)
-        try:
-            print(json.dumps(resp.json(), indent=4))
-        except Exception:
-            print("Non-JSON response:", resp.text)
+        r = requests.get(BASE + "/health", timeout=5)
+        print("/health", r.status_code, r.text)
     except Exception as e:
-        print("Request error:", str(e))
+        print("Health check failed:", e)
+
+def list_routes():
+    try:
+        r = requests.get(BASE + "/routes", timeout=5)
+        print("/routes", r.status_code)
+        try:
+            print(json.dumps(r.json(), indent=2))
+        except:
+            print(r.text)
+    except Exception as e:
+        print("Routes check failed:", e)
+
+def call_layout(blob_url):
+    url = BASE + "/api/v1/layout_agent/layout_detection_mcp"
+    payload = {"blob_url": blob_url}
+    try:
+        r = requests.post(url, json=payload, timeout=120)
+        print("CALL", r.status_code)
+        try:
+            print(json.dumps(r.json(), indent=2))
+        except:
+            print(r.text)
+    except Exception as e:
+        print("Call failed:", e)
 
 if __name__ == "__main__":
-    run_test()
+    check_health()
+    list_routes()
+    # replace with your PDF blob URL
+    call_layout("https://youraccount.blob.core.windows.net/yourcontainer/sample.pdf")
 
 
 ⸻
 
-How to run (step-by-step)
-	1.	Open a terminal in the project root.
-	2.	Start the server:
+What to run (step-by-step) — do these now
+	1.	Stop any running server.
+	2.	Save the files above, restart server:
 	•	(venv) PS> python main.py
-	•	You should see uvicorn logs and it should say it’s listening on 0.0.0.0:8601.
-	3.	Verify health endpoint (quick check):
-	•	In another terminal run:
-	•	curl http://localhost:8601/health
-	•	Expect: {"status":"ok"}
-	•	If this returns 404, server is not running or running on different port.
-	4.	Run the test script:
+	3.	Watch server console. You should see Registered routes: followed by many lines that include:
+	•	path: /health, /routes, and /api/v1/layout_agent/layout_detection_mcp (or similar).
+	4.	In a separate terminal, run:
 	•	(venv) PS> python test_scripts.py
-	•	You should now get HTTP Status: 200 and either {"result":"structured"} or {"result":"unstructured"} (or an error if something else failed).
+	5.	Paste back both:
+	•	The server console startup logs (the lines with Registered routes:).
+	•	The output printed by test_scripts.py.
 
 ⸻
 
-Extra troubleshooting tips if you still get 404
-	•	Make sure you restarted the server after changing main.py. (Stop the previous process and start python main.py.)
-	•	Confirm port 8601 is not in use by another process.
-	•	Confirm file_router.py is in the same folder and that the import from handler import process_pdf_layout succeeds (no import errors on startup).
-	•	If imports fail, uvicorn will show stacktrace and the server may not have registered routes.
-	•	Check the server console where you started python main.py — if there was an import error, you’ll see a traceback there. Fix that before calling the test script.
-	•	If you previously used FastApiMCP and left it in code, remove/replace as above — FastApiMCP can change the exposed path.
+Most likely reasons you were getting 404 — and how this will reveal them
+	•	Import error at startup (e.g., handler or llm_client raised an exception) → FastAPI didn’t register routes. You would see a traceback in the server console. The new handler logs will show that.
+	•	Wrong prefix or route mismatch — /routes will show all active paths so you can confirm exact path.
+	•	Server not actually running on port 8601 — /health will fail if server’s not up.
+	•	Firewall/WSL/Windows network mapping — less likely, but /health test will reveal it.
 
 ⸻
 
-Why I removed FastApiMCP for now
-
-You previously used the FastApiMCP(file_app, include_operations=[...]).mount_http() approach. That can create a different path mapping depending on that library’s internals. Removing it gives deterministic, straightforward routing and eliminates the source of the 404.
-
-If you prefer FastApiMCP (for MCP discovery), I can put it back once everything is working. For now this simplified approach will let you test the download → convert → GPT-4o call flow reliably.
-
-⸻
-
-If you want, I will:
-	•	Provide a minimal logging wrapper so you can see each step (download succeeded, image saved, LLM response) in the server console.
-	•	Or, if you prefer to keep FastApiMCP, I can show the exact FastApiMCP mounting that will register /api/v1/eligibility_agent/mcp or whatever path you require — but first let’s confirm this simple flow works for you.
-
-Tell me to proceed with logs or to keep the FastApiMCP version — otherwise run the steps above and paste any server console error you see and I’ll fix it immediately.
+Paste the two outputs (server console with Registered routes; and test_scripts output). I’ll diagnose immediately and provide a one-line fix.
