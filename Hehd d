@@ -1,189 +1,28 @@
-✅ Exactly right — you don’t need Poppler at all.
-fitz (the PyMuPDF library) can do everything we used pdf2image + Poppler for — and it’s pure Python, no system installation, works perfectly on Windows client machines.
+filerouter.py
+# file_router.py
+from fastapi import APIRouter
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
+from handler import classify_blob_pdf_layout
 
-Let’s fix your project to:
-	•	remove pdf2image and Poppler completely,
-	•	use fitz (PyMuPDF) to render the first page of the PDF into an image (PNG),
-	•	save that PNG to your input/ folder,
-	•	feed that image directly to the LLM to classify it as structured or unstructured.
+router = APIRouter()
 
-⸻
-
-🧩 Full updated code (no Poppler anywhere)
-
-You can safely replace the following files with these versions.
-
-⸻
-
-✅ requirements.txt
-
-fastapi
-uvicorn[standard]
-python-dotenv
-azure-storage-blob>=12.14.1
-pymupdf
-Pillow
-openai
-requests
-aiofiles
-
-(notice — no pdf2image, no poppler-utils)
-
-⸻
-
-✅ pdf_utils.py (now using fitz)
-
-# pdf_utils.py
-import fitz  # PyMuPDF
-import os
-import io
-from PIL import Image
-import base64
-from typing import Tuple
-
-def convert_first_page_to_png_file(pdf_path: str, output_image_path: str = None, dpi: int = 150, max_width: int = 800) -> Tuple[str, bytes]:
+class LayoutDetectRequest(BaseModel):
     """
-    Converts the first page of a PDF to a PNG using PyMuPDF (fitz).
-    Saves the image to output_image_path if provided.
-    Returns (local_image_path, image_bytes).
+    Payload:
+    {
+      "attachment_url": "https://<account>.blob.core.windows.net/<container>/<path>/file.pdf"
+    }
     """
-    if not os.path.exists(pdf_path):
-        raise FileNotFoundError(f"PDF not found: {pdf_path}")
+    attachment_url: str = Field(..., description="Full Azure Blob URL to the PDF attachment.")
 
-    doc = fitz.open(pdf_path)
-    if doc.page_count < 1:
-        raise ValueError("PDF has no pages")
-
-    page = doc.load_page(0)
-    zoom = dpi / 72
-    mat = fitz.Matrix(zoom, zoom)
-    pix = page.get_pixmap(matrix=mat, alpha=False)
-
-    img = Image.open(io.BytesIO(pix.tobytes("png")))
-
-    # downscale to avoid large payloads
-    w, h = img.size
-    if w > max_width:
-        new_h = int(h * (max_width / w))
-        img = img.resize((max_width, new_h), Image.LANCZOS)
-
-    buffer = io.BytesIO()
-    img.save(buffer, format="PNG")
-    image_bytes = buffer.getvalue()
-
-    local_image_path = None
-    if output_image_path:
-        os.makedirs(os.path.dirname(output_image_path), exist_ok=True)
-        with open(output_image_path, "wb") as f:
-            f.write(image_bytes)
-        local_image_path = output_image_path
-
-    return local_image_path, image_bytes
-
-def image_bytes_to_data_uri(image_bytes: bytes, mime: str = "image/png") -> str:
-    b64 = base64.b64encode(image_bytes).decode("utf-8")
-    return f"data:{mime};base64,{b64}"
-
-
-⸻
-
-✅ handler.py (no changes needed except pdf_utils import)
-
-# handler.py
-import os
-import json
-from typing import Dict, Any
-from service import _require_env
-from storage_utils import download_blob_to_input_folder
-from pdf_utils import convert_first_page_to_png_file
-from llm_client import classify_layout_from_image_bytes
-
-INPUT_FOLDER = "input"
-OUTPUT_FOLDER = "output"
-TMP_IMAGE_FOLDER = os.path.join(INPUT_FOLDER, "rendered_images")
-
-async def classify_blob_pdf_layout(blob_url: str) -> Dict[str, Any]:
-    """
-    - download pdf into input/
-    - render first page to png (fitz, no poppler)
-    - call LLM with image bytes
-    - return minimal verdict
-    """
+@router.post("/layout_detection_mcp", operation_id="layout_detection_mcp",
+             summary="Download PDF from blob, render first page to image and ask LLM to classify layout")
+async def detect_layout(request: LayoutDetectRequest):
     try:
-        _require_env()
+        result = await classify_blob_pdf_layout(request.attachment_url)
+        return JSONResponse(content={"jsonrpc": "2.0", "id": 1, "result": result}, status_code=200)
     except Exception as e:
-        return {"status": False, "error": f"Environment misconfigured: {e}"}
+        return JSONResponse(content={"jsonrpc": "2.0", "id": 1,
+                                     "result": {"status": False, "error": str(e)}}, status_code=200)
 
-    # 1) download pdf
-    try:
-        local_pdf = await download_blob_to_input_folder(blob_url, input_folder=INPUT_FOLDER)
-    except Exception as e:
-        return {"status": False, "error": f"Failed to download blob: {e}"}
-
-    # 2) render first page to PNG and save locally
-    try:
-        os.makedirs(TMP_IMAGE_FOLDER, exist_ok=True)
-        base_name = os.path.splitext(os.path.basename(local_pdf))[0]
-        local_png = os.path.join(TMP_IMAGE_FOLDER, f"{base_name}.png")
-        _, image_bytes = convert_first_page_to_png_file(local_pdf, output_image_path=local_png, dpi=150, max_width=800)
-    except Exception as e:
-        return {"status": False, "error": f"Failed converting PDF to image: {e}"}
-
-    # 3) call LLM with image bytes
-    try:
-        llm_result = classify_layout_from_image_bytes(image_bytes)
-    except Exception as e:
-        return {"status": False, "error": f"LLM classification failed: {e}"}
-
-    layout_type = llm_result.get("layout_type")
-    llm_raw = llm_result.get("raw", "")
-
-    result = {"status": True, "layout_type": layout_type, "llm_raw": llm_raw}
-
-    # 4) Save minimal output to ./output
-    try:
-        os.makedirs(OUTPUT_FOLDER, exist_ok=True)
-        out_path = os.path.join(OUTPUT_FOLDER, "layout_classification_result.json")
-        with open(out_path, "w", encoding="utf-8") as f:
-            json.dump(result, f, indent=2, ensure_ascii=False)
-    except Exception as e:
-        result["save_error"] = str(e)
-
-    return result
-
-
-⸻
-
-✅ llm_client.py (same as before, works fine)
-
-Keep the one using:
-
-from openai import OpenAI
-
-If you still get "ImportError: cannot import name 'OpenAI'",
-then just upgrade your OpenAI library:
-
-pip install --upgrade "openai>=1.12.0"
-
-
-⸻
-
-✅ Summary — what happens now
-
-Flow:
-	1.	Blob URL → PDF downloaded to /input/
-	2.	PyMuPDF (fitz) → converts first page to /input/rendered_images/<file>.png
-	3.	PNG sent to your Azure OpenAI model (via small base64, compressed)
-	4.	LLM returns either "structured" or "unstructured"
-	5.	Result saved to /output/layout_classification_result.json
-
-Advantages:
-	•	🧠 No Poppler required (works fully offline)
-	•	🪶 No heavy dependencies
-	•	⚡ Faster
-	•	🪟 Works natively on Windows client laptop
-
-⸻
-
-Would you like me to update llm_client.py to handle both old (openai==0.28) and new (openai>=1.0) clients automatically?
-That way you don’t have to worry which version your client laptop has — it’ll auto-detect and use the right API.
