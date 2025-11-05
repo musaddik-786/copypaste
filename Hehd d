@@ -1,68 +1,50 @@
-Got it — you want the complete code for every file, structured exactly like the reference project you gave me (same file names / patterns) and with a proper test script that uses a concrete example blob URL just like your reference. Below I give you the full set of files, using the same structure, names, and behavior as the reference code you shared earlier — but adapted for the Risk Data Capture logic (it will download the provided blob URL, save to input/, extract mailing address, geocode and check earthquake risk, save results to output/, and return a JSON-RPC response). I kept docstrings and comments clear and matched the reference style.
+Great — understood. I removed OCR, kept only the files you explicitly asked for, and implemented a clean pipeline that:
+	•	downloads the PDF from the provided Azure Blob URL to input/
+	•	renders the first page of the PDF to a PNG
+	•	encodes the PNG as base64 and embeds it in the LLM prompt (you said you want the image passed via prompt)
+	•	sends the prompt + image to your Azure OpenAI deployment (vision-capable model assumed) and asks for a strict JSON: { layout, confidence, evidence, notes }
+	•	writes a trace file into output/ and returns the JSON result via the FastAPI endpoint
 
-Files included (paste each into your project):
-	•	router.py (endpoint + Pydantic model)
-	•	handler.py (main async handler flow)
-	•	service.py (env checks, blob parsing & async download, helpers)
-	•	main.py (FastAPI app and FastApiMCP mount)
-	•	testscripts.py (concrete blob URL — taken from your reference)
-	•	test_client.py (MCP client example — adapted from reference)
-	•	requirements.txt and .env.example (for quick setup)
+Files included (exact names you asked for):
+	•	file_router.py
+	•	handler.py
+	•	main.py
+	•	service.py
+	•	test_scripts.py
+	•	test_client.py
 
-Note: this is the same architecture & URL-parsing / download approach used in your reference code. I used the concrete blob URL that appeared in the reference testscript you provided earlier (so you can run the test as-is if that blob exists / is accessible to your connection string). If you prefer a different blob URL, replace it in testscripts.py.
+Make sure you have these system deps installed: poppler (for pdf2image). Python deps: fastapi uvicorn python-dotenv azure-storage-blob pdf2image pillow openai requests langchain_mcp_adapters (install as needed).
+
+Put credentials in .env:
+
+AZURE_STORAGE_CONNECTION_STRING=...
+AZURE_OPENAI_API_KEY=...
+AZURE_OPENAI_ENDPOINT=https://<your-resource>.openai.azure.com/
+AZURE_OPENAI_DEPLOYMENT_NAME=<your-deployment-name>
+
 
 ⸻
 
-router.py
+file_router.py
 
-# router.py
+# file_router.py
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
-from handler import process_risk_blob
+from handler import process_blob_for_layout
 
 router = APIRouter()
 
+class LayoutDetectRequest(BaseModel):
+    blob_url: str = Field(..., description="Full Azure Blob URL to the PDF file")
 
-class BlobRequest(BaseModel):
-    """
-    Payload:
-    {
-      "blob_url": "https://<account>.blob.core.windows.net/<container>/<path>/file.json"
-    }
-    The service will download that JSON and compute the risk profile.
-    """
-    blob_url: str = Field(..., description="Full Azure Blob URL to the JSON file.")
-
-
-@router.post(
-    "/Risk_Data_Capture_MCP",
-    operation_id="Risk_Data_Capture_MCP",
-    summary="Download JSON from blob URL, extract mailing address, geocode, and compute risk fields."
-)
-async def risk_data_capture_endpoint(body: BlobRequest):
-    """
-    Receives blob_url, calls handler, and returns JSON-RPC envelope.
-    """
+@router.post("/layout_detect", summary="Detect document layout (structured/unstructured)")
+async def layout_detect(req: LayoutDetectRequest):
     try:
-        result = await process_risk_blob(blob_url=body.blob_url)
-        return JSONResponse(
-            content={
-                "jsonrpc": "2.0",
-                "id": 1,
-                "result": result
-            },
-            status_code=200
-        )
+        out = await process_blob_for_layout(req.blob_url)
+        return JSONResponse(status_code=200, content=out)
     except Exception as e:
-        return JSONResponse(
-            content={
-                "jsonrpc": "2.0",
-                "id": 1,
-                "result": {"status": False, "error": f"Unexpected server error: {str(e)}"}
-            },
-            status_code=200
-        )
+        return JSONResponse(status_code=500, content={"status": False, "error": str(e)})
 
 
 ⸻
@@ -72,141 +54,153 @@ handler.py
 # handler.py
 import os
 import json
-import logging
-from typing import Dict, Any, Optional
+import base64
+import asyncio
+from typing import Dict, Any
 from dotenv import load_dotenv
+from azure.storage.blob.aio import BlobServiceClient
+from azure.core.exceptions import ResourceNotFoundError
+from pdf2image import convert_from_path
+from PIL import Image
+import openai
 
-from service import (
-    require_env,
-    parse_blob_url,
-    download_json_blob_to_input,
-    read_local_json,
-    extract_address,
-    get_coordinates_from_openweather,
-    check_earthquake_risk,
-    LOCAL_INPUT_DIR,
-    LOCAL_OUTPUT_DIR,
-)
+from service import _require_env, _parse_blob_url, AZURE_STORAGE_CONNECTION_STRING, AZURE_OPENAI_API_KEY, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_DEPLOYMENT_NAME
 
 load_dotenv()
 
-logger = logging.getLogger("risk_capture")
-if not logger.handlers:
-    logging.basicConfig(level=logging.INFO)
+# directories
+BASE_DIR = os.getcwd()
+INPUT_DIR = os.path.join(BASE_DIR, "input")
+OUTPUT_DIR = os.path.join(BASE_DIR, "output")
+os.makedirs(INPUT_DIR, exist_ok=True)
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 
+# configure openai for azure (synchronous)
+openai.api_type = "azure"
+openai.api_base = AZURE_OPENAI_ENDPOINT
+# set api_version if needed; you can set openai.api_version = "2024-10-01" etc in .env if required
+openai.api_key = AZURE_OPENAI_API_KEY
 
-async def process_risk_blob(blob_url: str) -> Dict[str, Any]:
-    """
-    Process a blob URL: download JSON into input/, extract mailing address,
-    geocode, check earthquake risk, save results into output/ and return dict.
-
-    Returns structure:
-    {
-      "status": True/False,
-      "coordinates": {...} or error,
-      "earthquake_count": int or message,
-      "construction_type": ...,
-      "distance_to_fire_hydrant": ...,
-      "distance_to_fire_station": ...,
-      "year_built": ...,
-      "error": "..."  # if status False
-    }
-    """
-    try:
-        require_env()
-    except Exception as e:
-        return {"status": False, "error": str(e)}
-
-    # Validate blob URL
-    try:
-        _container, _blob_path = parse_blob_url(blob_url)
-    except Exception as e:
-        return {"status": False, "error": f"Invalid blob_url: {e}"}
-
-    # Download to input/
-    try:
-        local_file = await download_json_blob_to_input(blob_url=blob_url)
-    except Exception as e:
-        return {"status": False, "error": f"Failed to download blob: {e}"}
-
-    # Read JSON
-    try:
-        data = read_local_json(local_file)
-    except Exception as e:
-        return {"status": False, "error": f"Failed to read downloaded JSON: {e}"}
-
-    # Extract mailing address
-    fields = data.get("extracted_fields", [])
-    mailing_address_value: Optional[str] = None
-    if isinstance(fields, list):
-        for item in fields:
-            if isinstance(item, dict):
-                field_name = item.get("Field", "")
-                if isinstance(field_name, str) and "MAILING ADDRESS" in field_name.upper():
-                    mailing_address_value = item.get("Value", "").strip()
-                    if mailing_address_value:
-                        break
-
-    if not mailing_address_value:
-        return {"status": False, "error": "No mailing address found in extracted_fields."}
-
-    # Normalize/extract address
-    address = extract_address(mailing_address_value)
-
-    # Geocode
-    coords = get_coordinates_from_openweather(address)
-    if not isinstance(coords, dict) or "latitude" not in coords or "longitude" not in coords:
-        result_payload = {
-            "status": True,
-            "coordinates": coords,
-            "earthquake_count": "Unknown (geocoding failed)",
-            "construction_type": "Cement",
-            "distance_to_fire_hydrant": "20 FT",
-            "distance_to_fire_station": "3 MI",
-            "year_built": 2018
-        }
-        # save output
+# helper: async download blob
+async def _download_blob_to_local(container: str, blob_path: str, dest_path: str) -> None:
+    async with BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING) as blob_service:
+        container_client = blob_service.get_container_client(container)
+        blob_client = container_client.get_blob_client(blob_path)
         try:
-            os.makedirs(LOCAL_OUTPUT_DIR, exist_ok=True)
-            out_path = os.path.join(LOCAL_OUTPUT_DIR, f"risk_result_{os.path.basename(local_file)}")
-            with open(out_path, "w", encoding="utf-8") as f:
-                json.dump(result_payload, f, indent=4, ensure_ascii=False)
-        except Exception:
-            logger.exception("Failed to save result to output folder.")
-        logger.info("Result: %s", json.dumps(result_payload, ensure_ascii=False))
-        return result_payload
+            await blob_client.get_blob_properties()
+        except ResourceNotFoundError:
+            raise FileNotFoundError(f"Blob not found: container={container}, blob={blob_path}")
 
-    lat = coords["latitude"]
-    lon = coords["longitude"]
+        stream = await blob_client.download_blob()
+        data = await stream.readall()
+        with open(dest_path, "wb") as f:
+            f.write(data)
 
-    # Earthquake risk
+def _render_first_page_to_png(pdf_path: str, png_out: str, dpi: int = 300) -> str:
+    pages = convert_from_path(pdf_path, dpi=dpi, first_page=1, last_page=1)
+    if not pages:
+        raise RuntimeError("Failed to render the first page of PDF.")
+    pages[0].save(png_out, format="PNG")
+    return png_out
+
+def _build_prompt_with_image(image_b64: str) -> str:
+    # prompt instructs model to return strict JSON only
+    return f"""
+You are a document layout classifier. You will be given IMAGE_BASE64 containing the first page of a document.
+Do NOT ask for anything else. DO NOT return any explanation. Return STRICT JSON only with these keys:
+{{"layout": "structured"|"unstructured", "confidence": 0.00, "evidence": ["key1","key2"], "notes": ""}}
+
+Use the image to decide if the document is structured (templated form, labeled fields, tables, repeated layout — e.g., ACORD, invoice, form) or unstructured (free-form quote, letter, narrative).
+Return "confidence" as a float 0.0-1.0. "evidence" should be up to 3 short words/phrases found visually that support your decision.
+
+IMAGE_BASE64:
+{image_b64}
+""".strip()
+
+def _call_llm_with_image(image_b64: str, timeout: int = 30) -> Dict[str, Any]:
+    """
+    Synchronous call to Azure OpenAI ChatCompletion. This implementation
+    embeds the base64 image inside the user message (as you requested).
+    Replace this with your SDK's native image attachment mechanism if available.
+    """
+    prompt = _build_prompt_with_image(image_b64)
+
+    # Use your Azure deployment name as 'engine' for openai.ChatCompletion.create
     try:
-        quakes = check_earthquake_risk(lat, lon)
+        response = openai.ChatCompletion.create(
+            engine=AZURE_OPENAI_DEPLOYMENT_NAME,
+            messages=[
+                {"role": "system", "content": "You are a strict JSON-producing assistant for layout classification."},
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.0,
+            max_tokens=256
+        )
     except Exception as e:
-        quakes = f"USGS query failed: {str(e)}"
+        return {"layout": "unknown", "confidence": 0.0, "evidence": [], "notes": f"LLM request failed: {e}"}
 
-    results = {
+    try:
+        assistant_text = response["choices"][0]["message"]["content"]
+    except Exception:
+        return {"layout": "unknown", "confidence": 0.0, "evidence": [], "notes": "No assistant content returned"}
+
+    # parse strict JSON from model output
+    try:
+        parsed = json.loads(assistant_text)
+        # normalize fields
+        layout = parsed.get("layout", "unknown")
+        confidence = float(parsed.get("confidence", 0.0))
+        evidence = parsed.get("evidence", [])
+        notes = parsed.get("notes", "")
+        return {"layout": layout, "confidence": confidence, "evidence": evidence, "notes": notes, "raw": assistant_text}
+    except Exception:
+        return {"layout": "unknown", "confidence": 0.0, "evidence": [], "notes": "Failed to parse LLM JSON", "raw": assistant_text}
+
+async def process_blob_for_layout(blob_url: str) -> Dict[str, Any]:
+    """
+    Main flow:
+      - parse blob url
+      - download pdf to input/
+      - render first page to PNG
+      - base64-encode PNG and send to LLM with prompt (no OCR)
+      - return LLM JSON and save trace
+    """
+    _require_env()
+    container, blob_path = _parse_blob_url(blob_url)
+
+    filename = os.path.basename(blob_path)
+    local_pdf = os.path.join(INPUT_DIR, filename)
+    png_name = f"{os.path.splitext(filename)[0]}_page1.png"
+    local_png = os.path.join(INPUT_DIR, png_name)
+
+    # download blob async
+    await _download_blob_to_local(container, blob_path, local_pdf)
+
+    # render to png
+    _render_first_page_to_png(local_pdf, local_png, dpi=300)
+
+    # base64 encode image
+    with open(local_png, "rb") as f:
+        img_b64 = base64.b64encode(f.read()).decode("utf-8")
+
+    # call LLM (sync)
+    llm_result = _call_llm_with_image(img_b64)
+
+    # assemble output
+    out = {
         "status": True,
-        "coordinates": coords,
-        "earthquake_count": quakes,
-        "construction_type": "Cement",
-        "distance_to_fire_hydrant": "20 FT",
-        "distance_to_fire_station": "3 MI",
-        "year_built": 2018
+        "source_blob": blob_url,
+        "local_pdf": local_pdf,
+        "local_png": local_png,
+        "llm_result": llm_result
     }
 
-    # Save results
-    try:
-        os.makedirs(LOCAL_OUTPUT_DIR, exist_ok=True)
-        out_path = os.path.join(LOCAL_OUTPUT_DIR, f"risk_result_{os.path.basename(local_file)}")
-        with open(out_path, "w", encoding="utf-8") as f:
-            json.dump(results, f, indent=4, ensure_ascii=False)
-    except Exception as e:
-        results["save_warning"] = f"Failed to save output: {e}"
-        logger.exception("Failed to save output file: %s", e)
+    # save trace
+    out_file = os.path.join(OUTPUT_DIR, f"layout_result_{os.path.splitext(filename)[0]}.json")
+    with open(out_file, "w", encoding="utf-8") as wf:
+        json.dump(out, wf, indent=2)
 
-    logger.info("Result: %s", json.dumps(results, ensure_ascii=False))
-    return results
+    return out
 
 
 ⸻
@@ -215,147 +209,40 @@ service.py
 
 # service.py
 import os
-import json
 from urllib.parse import urlparse, unquote
 from dotenv import load_dotenv
-from azure.storage.blob.aio import BlobServiceClient
-from azure.core.exceptions import ResourceNotFoundError
-import requests
-import re
-from datetime import datetime, timedelta
 
 load_dotenv()
 
 AZURE_STORAGE_CONNECTION_STRING = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "")
-OPENWEATHER_API_KEY = os.environ.get("OPENWEATHER_API_KEY", "")
-USGS_EARTHQUAKE_API = os.environ.get("USGS_EARTHQUAKE_API", "https://earthquake.usgs.gov/fdsnws/event/1/query")
+AZURE_OPENAI_API_KEY = os.environ.get("AZURE_OPENAI_API_KEY", "")
+AZURE_OPENAI_ENDPOINT = os.environ.get("AZURE_OPENAI_ENDPOINT", "")
+AZURE_OPENAI_DEPLOYMENT_NAME = os.environ.get("AZURE_OPENAI_DEPLOYMENT_NAME", "")
 
-LOCAL_INPUT_DIR = os.path.join("input")
-LOCAL_OUTPUT_DIR = os.path.join("output")
-
-
-def require_env() -> None:
-    """
-    Ensure required environment variables exist.
-    """
+def _require_env() -> None:
+    missing = []
     if not AZURE_STORAGE_CONNECTION_STRING:
-        raise RuntimeError("Missing AZURE_STORAGE_CONNECTION_STRING in .env")
+        missing.append("AZURE_STORAGE_CONNECTION_STRING")
+    if not AZURE_OPENAI_API_KEY:
+        missing.append("AZURE_OPENAI_API_KEY")
+    if not AZURE_OPENAI_ENDPOINT:
+        missing.append("AZURE_OPENAI_ENDPOINT")
+    if not AZURE_OPENAI_DEPLOYMENT_NAME:
+        missing.append("AZURE_OPENAI_DEPLOYMENT_NAME")
+    if missing:
+        raise RuntimeError(f"Missing environment vars: {', '.join(missing)}")
 
-
-def parse_blob_url(url: str) -> tuple[str, str]:
-    """
-    Parse an Azure Blob URL and return (container_name, blob_path).
-    Example:
-      https://account.blob.core.windows.net/container/path/file.json
-    """
+def _parse_blob_url(url: str) -> tuple[str, str]:
     parsed = urlparse(url)
     if not parsed.scheme.startswith("http"):
-        raise ValueError("blob_url must be a valid http(s) URL.")
+        raise ValueError("blob_url must be a valid http(s) URL to Azure Blob Storage.")
     path = parsed.path.lstrip("/")
     if "/" not in path:
-        raise ValueError("blob_url must contain container and blob path.")
+        raise ValueError("blob_url must include both container and blob path.")
     parts = path.split("/", 1)
     container = parts[0]
     blob_path = parts[1]
     return unquote(container), unquote(blob_path)
-
-
-async def download_json_blob_to_input(blob_url: str) -> str:
-    """
-    Download the JSON blob specified by blob_url and save to ./input/<basename>.
-    Returns the local path to the saved file.
-    """
-    if not AZURE_STORAGE_CONNECTION_STRING:
-        raise RuntimeError("Missing AZURE_STORAGE_CONNECTION_STRING")
-
-    container_name, blob_path = parse_blob_url(blob_url)
-
-    os.makedirs(LOCAL_INPUT_DIR, exist_ok=True)
-    local_basename = os.path.basename(blob_path) or f"downloaded_{int(datetime.utcnow().timestamp())}.json"
-    local_path = os.path.join(LOCAL_INPUT_DIR, local_basename)
-
-    async with BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING) as blob_service:
-        container_client = blob_service.get_container_client(container_name)
-        blob_client = container_client.get_blob_client(blob_path)
-        try:
-            await blob_client.get_blob_properties()
-        except ResourceNotFoundError:
-            raise FileNotFoundError(f"JSON blob not found: container='{container_name}', blob='{blob_path}'")
-        stream = await blob_client.download_blob()
-        raw_bytes = await stream.readall()
-
-    with open(local_path, "wb") as f:
-        f.write(raw_bytes)
-
-    return local_path
-
-
-def read_local_json(filepath: str) -> dict:
-    """
-    Read JSON file from local filesystem and return dict.
-    """
-    if not os.path.exists(filepath):
-        raise FileNotFoundError(f"Local file not found: {filepath}")
-    with open(filepath, "r", encoding="utf-8") as f:
-        return json.load(f)
-
-
-def extract_address(value: str) -> str:
-    """
-    Extract compact address from the value using heuristic regex (keeps original approach).
-    """
-    pattern = r"\b(?:Street|Road|Lane|Avenue|Boulevard|Drive|Way|Circle|Court|Place|Terrace|Ln|St)\b,?\s*(.*)"
-    match = re.search(pattern, value, re.IGNORECASE)
-    if match:
-        return match.group(1).strip()
-    return value.strip()
-
-
-def get_coordinates_from_openweather(address: str) -> dict:
-    """
-    Query OpenWeather geocoding API (sync). Returns {"latitude": ..., "longitude": ...} on success
-    or {"error": "..."} on failure.
-    """
-    if not OPENWEATHER_API_KEY:
-        return {"error": "OPENWEATHER_API_KEY not configured."}
-    url = "http://api.openweathermap.org/geo/1.0/direct"
-    params = {"q": address, "limit": 1, "appid": OPENWEATHER_API_KEY}
-    resp = requests.get(url, params=params, timeout=20)
-    if resp.status_code == 404:
-        return {"error": f"Location not found for '{address}'."}
-    resp.raise_for_status()
-    data = resp.json()
-    if not data:
-        return {"error": f"No location found for '{address}'."}
-    loc = data[0]
-    return {"latitude": loc.get("lat"), "longitude": loc.get("lon")}
-
-
-def check_earthquake_risk(lat: float, lon: float, radius_km: int = 100, years: int = 5) -> int:
-    """
-    Query USGS and return count of earthquakes within radius_km for the past `years` years.
-    """
-    end = datetime.utcnow()
-    start = end - timedelta(days=365 * years)
-    params = {
-        "format": "geojson",
-        "latitude": lat,
-        "longitude": lon,
-        "maxradiuskm": radius_km,
-        "starttime": start.strftime("%Y-%m-%d"),
-        "endtime": end.strftime("%Y-%m-%d")
-    }
-    resp = requests.get(USGS_EARTHQUAKE_API, params=params, timeout=30)
-    resp.raise_for_status()
-    data = resp.json()
-    if isinstance(data, dict):
-        if "metadata" in data and isinstance(data["metadata"], dict) and "count" in data["metadata"]:
-            return int(data["metadata"]["count"])
-        if "features" in data and isinstance(data["features"], list):
-            return len(data["features"])
-        if "count" in data:
-            return int(data["count"])
-    return 0
 
 
 ⸻
@@ -365,11 +252,9 @@ main.py
 # main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi_mcp import FastApiMCP
 import uvicorn
 
-from router import router as file_router
-
+from file_router import router as file_router
 
 def apply_cors(app: FastAPI):
     app.add_middleware(
@@ -379,66 +264,37 @@ def apply_cors(app: FastAPI):
         allow_headers=["*"],
     )
 
-
-def create_sub_app(title: str, description: str, version: str = "0.1.0") -> FastAPI:
-    sub = FastAPI(title=title, description=description, version=version)
-    apply_cors(sub)
-    return sub
-
-
-app = FastAPI()
+app = FastAPI(title="Layout Detection MCP")
 apply_cors(app)
 
-file_app = create_sub_app(
-    title="Risk Data Capture MCP",
-    description="Receives JSON blob URL from Data Extraction Agent and returns risk profile."
-)
-file_app.include_router(file_router)
-
-# Expose ONLY this operation id via MCP HTTP (client will use transport='http')
-FastApiMCP(file_app, include_operations=["Risk_Data_Capture_MCP"]).mount_http()
-
-# Mount the sub-app under this prefix
-app.mount("/api/v1/risk_agent", file_app)
-
+app.include_router(file_router, prefix="/api/v1/layout", tags=["layout"])
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8601)
+    uvicorn.run("main:app", host="0.0.0.0", port=8602, reload=True)
 
 
 ⸻
 
-testscripts.py
+test_scripts.py
 
-# testscripts.py
-"""
-Simple test script to POST a blob URL to the MCP endpoint.
-This uses the concrete example blob URL that was present in your reference tests.
-Replace with your own blob URL if needed.
-"""
+# test_scripts.py
 import requests
 import json
 
-BASE_URL = "http://localhost:8601/api/v1/risk_agent/Risk_Data_Capture_MCP"
+BASE = "http://localhost:8602/api/v1/layout/layout_detect"
 
 def run_test():
     payload = {
-        # concrete example from your reference (update if you have a different blob)
-        "blob_url": "https://agenticai1.blob.core.windows.net/output-results/20251027_101657_8b635bd693b247899be4f0295a02807c_extracted_20251027_101657.json"
+        "blob_url": "https://<account>.blob.core.windows.net/<container>/<path>/sample.pdf"
     }
+    resp = requests.post(BASE, json=payload, timeout=180)
+    print("Status:", resp.status_code)
     try:
-        resp = requests.post(BASE_URL, json=payload, timeout=60)
-        print("HTTP Status:", resp.status_code)
-        try:
-            data = resp.json()
-            print(json.dumps(data, indent=4))
-        except json.JSONDecodeError:
-            print("Response not JSON:", resp.text)
-    except Exception as e:
-        print("Error calling API:", str(e))
+        print(json.dumps(resp.json(), indent=2))
+    except Exception:
+        print(resp.text)
 
 if __name__ == "__main__":
-    print("Testing /Risk_Data_Capture_MCP ...")
     run_test()
 
 
@@ -454,12 +310,13 @@ async def get_tool_list(config_mcp_server):
     client = MultiServerMCPClient(config_mcp_server)
     tools_list = await client.get_tools()
     print("Tools fetched from MCP:", [tool.name for tool in tools_list])
+    await client.aclose()
     return tools_list
 
 async def main():
     config_mcp_server = {
-        "risk_capture_mcp": {
-            "url": "http://localhost:8601/api/v1/risk_agent/mcp",
+        "sanction_checker_mcp": {
+            "url": "http://localhost:8602/api/v1/layout/mcp",
             "transport":"streamable_http",
         }
     }
@@ -472,35 +329,19 @@ if __name__ == "__main__":
 
 ⸻
 
-requirements.txt
-
-fastapi
-uvicorn[standard]
-python-dotenv
-azure-storage-blob
-azure-core
-requests
-fastapi-mcp
-langchain-mcp-adapters
-
+Notes, constraints & recommended follow-ups
+	1.	The code intentionally does not run OCR — it sends the image only (embedded as base64 in the prompt) to the model as you requested. If your deployment supports native image attachments via the SDK (better), replace _call_llm_with_image with the native method — embedding base64 in the prompt can be heavy for large images.
+	2.	The ChatCompletion call uses the openai Python package configured for Azure. If your environment or SDK differs (azure-ai-openai), let me know and I’ll adapt the call.
+	3.	For testing locally: install poppler (apt install poppler-utils on Debian/Ubuntu) and pdf2image + Pillow.
+	4.	If you want the shorter flow (no async blob client), I can convert the blob download to synchronous azure.storage.blob.BlobServiceClient — but async is non-blocking and recommended in production.
+	5.	If the LLM returns malformed JSON, the endpoint will return the parsing error inside "llm_result.notes". You can add more strictness (e.g., function calling or JSON-schema validation) later.
+	6.	I left out the embedding snippet you posted (the AzureOpenAIEmbeddings init) because it’s not needed for layout detection; if you need embeddings elsewhere, tell me where and I’ll add it.
 
 ⸻
 
-.env.example
+If you want, I can now:
+	•	adapt _call_llm_with_image to use the Azure OpenAI REST / azure-ai-openai SDK native image handling (recommended), or
+	•	change the blob download to synchronous code (if you prefer not to run async), or
+	•	add a simple threshold check (e.g., if confidence >= 0.75 then route to your extractor — I can wire that into handler.process_blob_for_layout directly.
 
-AZURE_STORAGE_CONNECTION_STRING="DefaultEndpointsProtocol=...;AccountName=...;AccountKey=...;EndpointSuffix=core.windows.net"
-OPENWEATHER_API_KEY="your_openweather_key"
-USGS_EARTHQUAKE_API="https://earthquake.usgs.gov/fdsnws/event/1/query"
-
-
-⸻
-
-Quick checklist to run
-	1.	Put .env in project root (use .env.example as template).
-	2.	pip install -r requirements.txt
-	3.	uvicorn main:app --host 0.0.0.0 --port 8601
-	4.	In another terminal: python testscripts.py (this will call the concrete example blob URL present in the reference test).
-
-⸻
-
-If anything still differs from what you expect in the reference code, tell me exactly which file name and which block should match the reference, and I will modify that file to match byte-for-byte with the reference style you provided. I won’t change anything else.
+Which one should I do next?
