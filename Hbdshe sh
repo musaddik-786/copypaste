@@ -1,328 +1,247 @@
-this is the requirement that i have been told to work on 
+Nice — this is a great question. Short answer first: the LLM only “sees” whatever you send it in the prompt. It does not inspect the PDF directly — your Form Recognizer output (text, tables, metadata) is what you provide as input, and the model decides structured vs unstructured based on that prompt content.
 
-Layout detection MCP input ->attachment blob url path
-using that url path it will download attachment from blob storage
-it will dowbload pdf/quote in input folder
-and feed that pdf image of first page to llm , (if gpt 4 is vision capable)?
-and prompt it to understand the layout of document (temp, untemp) ie (structured or unstructured)
+Below I’ll:
+	1.	Explain what your current pipeline is already sending to the model.
+	2.	Show why the model gave structured for ACORD and unstructured for the quote PDF.
+	3.	Give a concrete, minimal code change that prints the features (what the LLM is being given) to the terminal and also sends richer metadata to the model so you can see exactly what influences the decision.
+	4.	Offer a simple rule-based fallback you can use (recommended) so you don’t entirely rely on the LLM for this single binary decision.
 
-and based on the output of llm if it is structured than it will call the custom model extraction
+⸻
 
-below is the structure you should refer to write the code and give me complete code for all the files 
+1) What the model actually receives now
 
+In your classifier.classify_document you build a prompt using:
+	•	text = document_content["text"] — the document text (you pass first 2000 chars in prompt).
+	•	tables = document_content["tables"] — either a list of table cell text or "No tables detected".
 
-file_router.py
- 
-from fastapi import APIRouter
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
-from handler import compare_name_with_sanctions
- 
-router = APIRouter()
- 
- 
-class CompareRequest(BaseModel):
-    """
-    This endpoint is invoked by the Data Extraction Agent.
-    It passes the FULL Azure Blob URL of the extracted JSON in 'jsonfilepath'.
- 
-    Example payload:
-    {
-      "jsonfilepath": "https://<account>.blob.core.windows.net/<container>/<path>/file.json"
-    }
- 
-    The service will:
-    - Download that JSON from Azure Blob using AZURE_STORAGE_CONNECTION_STRING,
-    - Extract the name from Owner/Insured/Contact/NAMED INSURED(S),
-    - Compare it against local 'input/sanctions.csv',
-    - Return the comparison result in a JSON-RPC envelope (consistent with your duplicate attachment checker).
-    """
-    jsonfilepath: str = Field(..., description="Full Azure Blob URL to the extracted JSON.")
- 
- 
-@router.post(
-    "/Licensing_&_Sanction_Checker_MCP",
-    operation_id="Licensing_&_Sanction_Checker_MCP",
-    summary="Compare JSON (Owner/Insured/Contact/NAMED INSURED(S)) from blob URL with local sanctions CSV."
-)
-async def compare_files(request: CompareRequest):
-    """
-    Receives the JSON blob URL from the Data Extraction Agent and performs the comparison.
-    Returns a JSON-RPC envelope for consistency with the duplicate attachment checker.
-    """
-    try:
-        result = await compare_name_with_sanctions(json_file_url=request.jsonfilepath)
-        return JSONResponse(
-            content={
-                "jsonrpc": "2.0",
-                "id": 1,
-                "result": result
-            },
-            status_code=200
-        )
-    except Exception as e:
-        return JSONResponse(
-            content={
-                "jsonrpc": "2.0",
-                "id": 1,
-                "result": {"status": False, "error": f"Unexpected server error: {str(e)}"}
-            },
-            status_code=200
-        )
- 
- 
- 
- 
-handler.py
- 
-import os
-import json
-from typing import Optional, Dict
-import pandas as pd
-from azure.storage.blob.aio import BlobServiceClient
-from azure.core.exceptions import ResourceNotFoundError
+So the model’s decision is based only on the textual snippet and the tables content you included. If tables shows table-like structures or you include an ACORD-like text snippet, the model will likely say structured. If the tables value is "No tables detected" and the text is free-flowing, it returns unstructured.
+
+Important: the LLM cannot know about other page/layout signals (page count, words, column consistency, bounding boxes) unless you extract them and include them in the prompt.
+
+⸻
+
+2) Why you saw structured for ACORD and unstructured for the quote
+	•	ACORD forms are typically parsed by Form Recognizer as tables or many small labelled fields. Your load_document extracts tables — if one or more tables were present, tables in the prompt would include them and the LLM sees evidence of structured layout → returns structured.
+	•	The quote PDF likely had no page.tables detected, so you passed "No tables detected" and lots of paragraph text → model returns unstructured.
+
+⸻
+
+3) Code: print features and send richer metadata to the model
+
+Replace / update your document_loader.py and classifier.py with the versions below. The loader now returns metadata (page_count, word_count, lines_count, num_tables, table_summaries). The classifier prints those features to terminal before calling the LLM and includes them in the prompt.
+
+document_loader.py (updated)
+
+# document_loader.py
 from dotenv import load_dotenv
- 
-from service import _require_env, _parse_blob_url
- 
-load_dotenv()
- 
-AZURE_STORAGE_CONNECTION_STRING = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "")
-LOCAL_CSV_PATH = os.path.join("input", "sanctions.csv")
- 
- 
-async def compare_name_with_sanctions(json_file_url: str) -> Dict:
-    """
-    Flow:
-      1) Parse blob URL -> (container, blob_name)
-      2) Download JSON (async)
-      3) Extract FIRST matching field:
-         Owner Name / Insured Name / Contact Name / NAMED INSURED(S)
-      4) Read local CSV input/sanctions.csv
-      5) Case-insensitive exact match against entity_name
-      6) Save outputs to ./output and return structured result (with 'status')
-    """
- 
-    try:
-        _require_env()
-    except Exception as e:
-        return {"status": False, "error": str(e)}
- 
- 
-    try:
-        container_name, blob_name = _parse_blob_url(json_file_url)
-    except Exception as e:
-        return {"status": False, "error": f"Invalid jsonfilepath: {e}"}
- 
-    try:
-        async with BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING) as blob_service:
-            container_client = blob_service.get_container_client(container_name)
-            blob_client = container_client.get_blob_client(blob_name)
-            try:
-                await blob_client.get_blob_properties()
-            except ResourceNotFoundError:
-                return {"status": False, "error": f"JSON blob not found: container='{container_name}', blob='{blob_name}'"}
- 
-            stream = await blob_client.download_blob()
-            raw_bytes = await stream.readall()
-    except Exception as e:
-        return {"status": False, "error": f"Error connecting to Azure Blob Storage: {e}"}
- 
-    #python dict
-    try:
-        data = json.loads(raw_bytes.decode("utf-8"))
-    except Exception as e:
-        return {"status": False, "error": f"Failed to parse JSON: {e}"}
- 
-   
-    target_labels = {"ownername", "insuredname", "contactname", "namedinsured(s)", "applicant/firstnameinsured","insured/applicant","namedinsured","firstnameinsured","applicantname"}
-    extracted_name: Optional[str] = None
-    fields = data.get("extracted_fields", [])
- 
-    if isinstance(fields, list):
-        for item in fields:
-            if isinstance(item, dict):
-                label_raw = item.get("Field", "")
-                if isinstance(label_raw, str):
-                    normalized = label_raw.lower().replace(" ", "").replace(":", "")
-                    if normalized in target_labels:
-                        value = item.get("Value", "").strip()
-                        if value:
-                            extracted_name = value
-                            break
- 
-    if not extracted_name:
-        return {"status": False, "error": "No matching name field found in JSON."}
- 
-    if not os.path.exists(LOCAL_CSV_PATH):
-        return {"status": False, "error": f"Local CSV not found at '{LOCAL_CSV_PATH}'"}
- 
-    try:
-        csv_df = pd.read_csv(LOCAL_CSV_PATH)
-    except Exception as e:
-        return {"status": False, "error": f"Failed to read CSV '{LOCAL_CSV_PATH}': {e}"}
- 
-    if "entity_name" not in csv_df.columns:
-        return {"status": False, "error": "CSV must contain 'entity_name' column"}
-    def norm(s: str) -> str:
-        return s.strip().lower() if isinstance(s, str) else ""
- 
-    entity_set = {norm(x) for x in csv_df["entity_name"].dropna() if isinstance(x, str) and x.strip()}
-    # is_unique = norm(extracted_name) not in entity_set
-    is_unique = norm(extracted_name) in entity_set
- 
-    results = [{"Extracted Name": extracted_name, "is_Sanctioned": is_unique}]
- 
-    try:
-        os.makedirs("./output", exist_ok=True)
-        json_output = "./output/comparison_results.json"
-        with open(json_output, "w", encoding="utf-8") as f:
-            json.dump({"results": results}, f, indent=4, ensure_ascii=False)
-    except Exception as e:
-        return {"status": False, "error": f"Failed saving results: {e}"}
- 
-    return {"status": True, "results": results}
- 
- 
- 
- 
-main.py
- 
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi_mcp import FastApiMCP
-import uvicorn
- 
-from file_router import router as file_router
- 
- 
-def apply_cors(app: FastAPI):
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
- 
- 
-def create_sub_app(title: str, description: str, version: str = "0.1.0") -> FastAPI:
-    sub = FastAPI(title=title, description=description, version=version)
-    apply_cors(sub)
-    return sub
- 
- 
-app = FastAPI()
-apply_cors(app)
- 
-file_app = create_sub_app(
-    title="Licensing & Sanction Checker MCP",
-    description="Receives JSON blob URL from Data Extraction Agent and compares extracted name with local sanctions CSV."
-)
-file_app.include_router(file_router)
- 
-# Expose ONLY this operation id via MCP HTTP (client will use transport='http')
-FastApiMCP(file_app, include_operations=["Licensing_&_Sanction_Checker_MCP"]).mount_http()
- 
-# Mount the sub-app under this prefix (keep as-is per your request)
-app.mount("/api/v1/eligibility_agent", file_app)
- 
- 
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8601)
- 
- 
- 
-service.py
- 
 import os
-from urllib.parse import urlparse, unquote
-from dotenv import load_dotenv
- 
+from azure.ai.formrecognizer import DocumentAnalysisClient
+from azure.core.credentials import AzureKeyCredential
+
 load_dotenv()
- 
-AZURE_STORAGE_CONNECTION_STRING = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "")
- 
- 
-def _require_env() -> None:
-    """Ensure required environment variables exist."""
-    if not AZURE_STORAGE_CONNECTION_STRING:
-        raise RuntimeError("Missing AZURE_STORAGE_CONNECTION_STRING in .env")
- 
- 
-def _parse_blob_url(url: str) -> tuple[str, str]:
+
+endpoint = os.getenv("AZURE_FORMRECOG_ENDPOINT")
+key = os.getenv("AZURE_FORMRECOG_KEY")
+if not endpoint:
+    raise ValueError("AZURE_FORMRECOG_ENDPOINT is not set. Check your .env file.")
+if not key:
+    raise ValueError("AZURE_FORMRECOG_KEY is not set. Check your .env file.")
+
+client = DocumentAnalysisClient(endpoint=endpoint, credential=AzureKeyCredential(key))
+
+def load_document(file_path):
     """
-    Parse an Azure Blob URL and return (container_name, blob_path).
-    Example URL:
-      https://account.blob.core.windows.net/output-results/folder/name.json
-    Returns:
-      ("output-results", "folder/name.json")
+    Extracts text and layout information using Form Recognizer's prebuilt-layout model.
+    Returns both content and metadata so we can inspect what the classifier sees.
     """
-    parsed = urlparse(url)
-    if not parsed.scheme.startswith("http"):
-        raise ValueError("jsonfilepath must be a valid http(s) URL to Azure Blob Storage.")
- 
-    path = parsed.path.lstrip("/")
-    if "/" not in path:
-        raise ValueError("jsonfilepath must include both container and blob path.")
-    parts = path.split("/", 1)
-    container = parts[0]
-    blob_path = parts[1]
-    return unquote(container), unquote(blob_path)
- 
- 
- 
- 
-test_scripts.py
- 
-import requests
-import json
- 
-BASE_URL = "http://localhost:8601/api/v1/eligibility_agent/Licensing_&_Sanction_Checker_MCP"
- 
-def run_test():
-    payload = {
-        "jsonfilepath": "https://agenticai1.blob.core.windows.net/output-results/20251027_101657_8b635bd693b247899be4f0295a02807c_extracted_20251027_101657.json%22
-    }
-    try:
-        resp = requests.post(BASE_URL, json=payload, timeout=60)
-        print("HTTP Status:", resp.status_code)
-        try:
-            data = resp.json()
-            print(json.dumps(data, indent=4))
-        except json.JSONDecodeError:
-            print("Response not JSON:", resp.text)
-    except Exception as e:
-        print("Error calling API:", str(e))
- 
-if __name__ == "__main__":
-    print("Testing /Licensing_&_Sanction_Checker_MCP ...")
-    run_test()
- 
- 
-test_client.py
-import asyncio
-from langchain_mcp_adapters.client import MultiServerMCPClient
- 
- 
-async def get_tool_list(config_mcp_server):
-    client = MultiServerMCPClient(config_mcp_server)
-    tools_list = await client.get_tools()
-    print("Tools fetched from MCP:", [tool.name for tool in tools_list])
-    return tools_list
-     
-    # await client.aclose()
- 
- 
-async def main():
-    config_mcp_server = {
-        "sanction_checker_mcp": {
-            "url": "http://localhost:8601/api/v1/eligibility_agent/mcp",
-             "transport":"streamable_http",
+    with open(file_path, "rb") as f:
+        poller = client.begin_analyze_document("prebuilt-layout", document=f)
+        result = poller.result()
+
+    # Lines and words
+    lines = [line.content for page in result.pages for line in page.lines]
+    words_count = 0
+    for page in result.pages:
+        if hasattr(page, "words"):
+            words_count += len(page.words)
+        else:
+            # fallback: approximate by splitting lines
+            words_count += sum(len(line.content.split()) for line in page.lines)
+
+    # Debugging: Print available attributes in DocumentPage (keeps your old debug)
+    if len(result.pages) > 0:
+        print("Available attributes in DocumentPage:")
+        print(dir(result.pages[0]))
+
+    # Extract table information if available and build summaries
+    tables = []
+    table_summaries = []
+    num_tables = 0
+
+    for p_idx, page in enumerate(result.pages):
+        if hasattr(page, "tables") and page.tables:
+            for t_idx, table in enumerate(page.tables):
+                num_tables += 1
+                # try to get row_count and column_count if SDK provides
+                row_count = getattr(table, "row_count", None)
+                column_count = getattr(table, "column_count", None)
+
+                # fallback: attempt to infer from cell attributes if available
+                cells = getattr(table, "cells", None)
+                if cells:
+                    # approximate counts if explicit not present
+                    try:
+                        max_row = max(getattr(c, "row_index", 0) for c in cells)
+                        max_col = max(getattr(c, "column_index", 0) for c in cells)
+                        inferred_rows = max_row + 1
+                        inferred_cols = max_col + 1
+                    except Exception:
+                        inferred_rows = None
+                        inferred_cols = None
+                else:
+                    inferred_rows = None
+                    inferred_cols = None
+
+                # small preview of table content (first few cells as text)
+                preview = []
+                if cells:
+                    for c in cells[:10]:
+                        preview.append(getattr(c, "content", str(c)))
+                else:
+                    # fallback if table.cells not available
+                    preview = ["(cells not available)"]
+
+                table_info = {
+                    "page": p_idx + 1,
+                    "row_count": row_count or inferred_rows,
+                    "column_count": column_count or inferred_cols,
+                    "num_cells": len(cells) if cells else None,
+                    "preview_cells": preview
+                }
+                table_summaries.append(table_info)
+
+                # also build a simple table representation for the LLM (list of cell texts)
+                table_texts = [getattr(c, "content", str(c)) for c in cells] if cells else []
+                tables.append(table_texts)
+
+    document_content = {
+        "text": "\n".join(lines),
+        "tables": tables if tables else None,
+        "meta": {
+            "page_count": len(result.pages),
+            "line_count": len(lines),
+            "word_count": words_count,
+            "num_tables": num_tables,
+            "table_summaries": table_summaries
         }
     }
-    tools = await get_tool_list(config_mcp_server=config_mcp_server)
-    print(tools)
- 
- 
-if __name__ == "__main__":
-    asyncio.run(main())
+    return document_content
+
+classifier.py (updated)
+
+# classifier.py
+from dotenv import load_dotenv
+import os
+import openai
+load_dotenv()
+
+openai.api_type = "azure"
+openai.api_base = os.getenv("AZURE_OPENAI_ENDPOINT")
+openai.api_version = os.getenv("AZURE_OPENAI_API_VERSION")
+openai.api_key = os.getenv("AZURE_OPENAI_API_KEY")
+deployment_name = os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT")
+
+def classify_document(document_content):
+    """
+    Classifies the document layout as 'structured' or 'unstructured'.
+    Prints the exact features passed to the LLM so you can see what influences the decision.
+    """
+    text = document_content.get("text", "")
+    tables = document_content.get("tables")
+    meta = document_content.get("meta", {})
+
+    # Print features (so you'll see in terminal what LLM is being given)
+    print("\n--- Document features passed to classifier ---")
+    print(f"Pages: {meta.get('page_count')}")
+    print(f"Lines: {meta.get('line_count')}")
+    print(f"Words (approx): {meta.get('word_count')}")
+    print(f"Num tables detected: {meta.get('num_tables')}")
+    if meta.get("table_summaries"):
+        for i, t in enumerate(meta["table_summaries"], start=1):
+            print(f" Table {i}: page={t['page']}, rows={t['row_count']}, cols={t['column_count']}, num_cells={t['num_cells']}")
+            # show a short preview
+            print("  preview cells:", t["preview_cells"][:5])
+    print("--- end features ---\n")
+
+    # Compose richer prompt that includes metadata - gives LLM more context
+    prompt = f"""
+You are an AI assistant. Classify the following document layout as either 'structured' or 'unstructured'.
+
+Hints:
+- Structured documents often contain forms, tables, consistent columns or repeated key:value pairs and consistent field layouts.
+- Unstructured documents are mainly paragraphs, long sentences, and no repeated tabular structure.
+
+Metadata:
+Pages: {meta.get('page_count')}
+Lines: {meta.get('line_count')}
+Words: {meta.get('word_count')}
+Num tables detected: {meta.get('num_tables')}
+Table summaries: {meta.get('table_summaries') if meta.get('table_summaries') else 'No table summaries'}
+
+Document Text (first 2000 chars):
+{text[:2000]}
+
+Tables (first 2000 chars if present):
+{tables if tables else "No tables detected"}
+
+Reply with only one word: structured or unstructured.
+"""
+    # Call the model deterministically
+    response = openai.ChatCompletion.create(
+        engine=deployment_name,
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=4,
+        temperature=0.0
+    )
+    return response['choices'][0]['message']['content'].strip()
+
+main.py note: no changes required beyond what you already have — this loader + classifier will print the features and the model output.
+
+⸻
+
+4) Simple rule-based fallback (recommended)
+
+Because this is a binary structural check, you may prefer a deterministic rule first and only call the LLM if the rule is ambiguous. Example heuristic:
+	•	If num_tables >= 1 → structured.
+	•	Else if avg_words_per_line < 6 and line_count > 20 → likely forms or lists → structured.
+	•	Else if text contains many : separated short key names (like Name:, Address:) repeated → structured.
+	•	Else → unstructured.
+
+You can implement that cheaply before contacting the LLM (faster, cheaper, reproducible).
+
+Example snippet to add into classifier.classify_document before calling LLM:
+
+# simple heuristic before LLM
+if meta.get("num_tables", 0) >= 1:
+    return "structured"
+avg_words_per_line = meta["word_count"] / max(1, meta["line_count"])
+if avg_words_per_line < 6 and meta["line_count"] > 10:
+    return "structured"
+# if uncertain, fall back to LLM for final decision
+
+
+⸻
+
+5) Final notes / debugging tips
+	•	Print the prompt to the terminal if you want to absolutely know what the LLM sees (be careful about very long text). I included printed metadata so you won’t need to dump the whole prompt every time.
+	•	The model’s answer is only as good as the extraction. If Form Recognizer misses tables, the LLM cannot “magically” see the PDF’s layout. Improve the extraction (experiment with other prebuilt models or pass the PDF through multiple detectors) if you get false negatives.
+	•	Keep temperature=0.0 and max_tokens=4 for deterministic single-word classification.
+	•	If you want transparency, add a reason request in the prompt (e.g., “Explain in 1-2 lines why you classified it so”) — but that costs tokens.
+
+⸻
+
+If you want, I can:
+	•	Add the heuristic-first approach into your code (I already showed the snippet).
+	•	Or run through an example output given the metadata you posted and show exactly what prompt would be sent (I can mock it here).
+
+Which would you prefer?
