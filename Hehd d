@@ -1,3 +1,24 @@
+here i am unable to understand what is llm taking as input i mean on what basis it is able to understand if this particular document is strucutred or unstructured
+below is my complete code and current output 
+
+on main.py
+ Document Layout Classifier
+Enter the file path: C:\Users\2000137378\Downloads\Acord_125 (1).pdf  
+Available attributes in DocumentPage:
+['__annotations__', '__class__', '__delattr__', '__dict__', '__dir__', '__doc__', '__eq__', '__format__', '__ge__', '__getattribute__', '__getstate__', '__gt__', '__hash__', '__init__', '__init_subclass__', '__le__', '__lt__', '__module__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__setattr__', '__sizeof__', '__str__', '__subclasshook__', '__weakref__', '_from_generated', 'angle', 'barcodes', 'formulas', 'from_dict', 'height', 'lines', 'page_number', 'selection_marks', 'spans', 'to_dict', 'unit', 'width', 'words']
+
+ Document Layout: structured
+
+(venv) PS C:\Users\2000137378\Desktop\DataSummary> python main.py
+ Document Layout Classifier
+Enter the file path: C:\Users\2000137378\Desktop\DataSummary\untemplate_input\Test Quote 1 1.pdf
+Available attributes in DocumentPage:
+['__annotations__', '__class__', '__delattr__', '__dict__', '__dir__', '__doc__', '__eq__', '__format__', '__ge__', '__getattribute__', '__getstate__', '__gt__', '__hash__', '__init__', '__init_subclass__', '__le__', '__lt__', '__module__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__setattr__', '__sizeof__', '__str__', '__subclasshook__', '__weakref__', '_from_generated', 'angle', 'barcodes', 'formulas', 'from_dict', 'height', 'lines', 'page_number', 'selection_marks', 'spans', 'to_dict', 'unit', 'width', 'words']
+
+ Document Layout: unstructured
+
+so lets print that in the terminal as well so that we understand what is llm considering is it based on tables or is it based on anyother thing
+
 classifier.py
 
 # #Working code
@@ -173,4 +194,26 @@ Provide a structured summary followed by a section called 'Key Insights' listing
     summary, insights = full_text.split("Key Insights:")
     insights = insights.strip().split("\n")
     return summary.strip(), [line.strip("- ").strip() for line in insights if line.strip()]
+ 
+
+utils.py
+import json
+import pandas as pd
+ 
+def save_output(summary, insights, doc_type):
+    with open("summary_output.json", "w") as f:
+        json.dump({
+            "document_type": doc_type,
+            "summary": summary,
+            "key_insights": insights
+        }, f, indent=4)
+ 
+    df = pd.DataFrame({
+        "Summary": [summary],
+        "Document Type": [doc_type],
+        "Key Insights": [", ".join(insights)]
+    })
+    df.to_excel("summary_output.xlsx", index=False)
+ 
+    print("\n Summary saved to summary_output.json and summary_output.xlsx")
  
