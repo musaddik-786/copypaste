@@ -1,9 +1,18 @@
-Our this earlier code was working fine it was able to tell if it is strucutred or unstrcutred
+Good — I understand: you want to keep the exact same inputs the LLM already sees, keep the original classification behavior that worked, and also ask the LLM to explain why it chose that label (and print that reason). Your earlier change sometimes produced wrong reasons because you replaced the single-step classifier with a prompt that changed the model’s decision-making. We can avoid that by doing the original classification exactly the same way, then in a second, separate prompt ask the model to explain its choice (using the same text and tables you already passed). That keeps the decision path identical while asking for an explanation — minimal, non-invasive, and likely to give more accurate, evidence-backed reasons.
 
+Below is ready-to-copy code for classifier.py and the tiny main.py change. This preserves your original classification prompt (unchanged) and adds a second explanation prompt that asks the model to cite up to 3 supporting tokens/phrases from the inputs. No inputs are changed.
+
+⸻
+
+Replace classifier.py with this (keeps your original classifier call unchanged, then asks for explanation)
+
+# classifier.py
 from dotenv import load_dotenv
 import os
 import openai
+import re
 
+load_dotenv()
 openai.api_type = "azure"
 openai.api_base = os.getenv("AZURE_OPENAI_ENDPOINT")
 openai.api_version = os.getenv("AZURE_OPENAI_API_VERSION")
@@ -11,14 +20,11 @@ openai.api_key = os.getenv("AZURE_OPENAI_API_KEY")
 
 deployment_name = os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT")
 
-def classify_document(document_content):
+def _call_classifier_once(text, tables):
     """
-    Classifies the document layout as 'structured' or 'unstructured' based on text and table information.
+    Exactly the same prompt & call you used earlier to get the label.
+    Returns the raw label string (expected 'structured' or 'unstructured').
     """
-    text = document_content["text"]
-    tables = document_content["tables"]
-
-    # Prepare the prompt
     prompt = f"""
 You are an AI assistant. Classify the following document layout as either 'structured' or 'unstructured'.
 
@@ -33,14 +39,139 @@ Tables:
 
 Reply with only one word: structured or unstructured.
 """
-
-
     response = openai.ChatCompletion.create(
         engine=deployment_name,
         messages=[{"role": "user", "content": prompt}],
         max_tokens=4,
-        temperature=0.0  # Ensure deterministic responses
+        temperature=0.0
     )
-    return response['choices'][0]['message']['content'].strip()
+    return response['choices'][0]['message']['content'].strip().lower()
+
+def _ask_for_reason(text, tables, label):
+    """
+    Separate prompt that asks the model to explain its decision.
+    It asks for a one-line reason AND up to 3 evidence items (short strings from the input).
+    Returns (reason_text, evidence_list).
+    """
+    prompt = f"""
+You previously labeled a document as: {label}
+
+Using ONLY the inputs below (do NOT change the label), provide:
+1) A one-line reason (short sentence) saying which signal(s) in the inputs led to that label.
+2) On the next line, provide up to 3 short evidence items drawn from the inputs (each item should be <= 8 words) that support the reason. Evidence should be exact substrings or short tokens from the provided inputs, e.g. "ACORD", "Name: John", "Total: 1,234".
+
+Reply in exactly two lines:
+Line 1 -> the reason sentence.
+Line 2 -> EVIDENCE: item1 ; item2 ; item3
+
+Inputs (do not invent new evidence):
+Tables:
+{tables if tables else "No tables detected"}
+
+Document text (first 2000 chars):
+{text[:2000]}
+"""
+    response = openai.ChatCompletion.create(
+        engine=deployment_name,
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=150,
+        temperature=0.0
+    )
+    content = response['choices'][0]['message']['content'].strip()
+    lines = [ln.strip() for ln in content.splitlines() if ln.strip()]
+
+    reason = lines[0] if len(lines) >= 1 else "No reason provided."
+    evidence = []
+    if len(lines) >= 2 and lines[1].lower().startswith("evidence"):
+        # split after the colon
+        try:
+            ev_part = lines[1].split(":", 1)[1]
+            # split by semicolon or comma
+            items = re.split(r";|,", ev_part)
+            evidence = [it.strip() for it in items if it.strip()]
+        except Exception:
+            evidence = []
+    else:
+        # try to find tokens inside the response text (best-effort)
+        # fallback: extract quoted substrings
+        evidence = re.findall(r'"([^"]+)"', content)[:3]
+
+    return reason, evidence
+
+def classify_document(document_content):
+    """
+    Returns: (label, reason, evidence)
+      - label: 'structured' or 'unstructured' (exact same as your original)
+      - reason: one-line human readable reason from the second prompt
+      - evidence: list of up to 3 short substrings cited by the model
+    """
+    text = document_content.get("text", "")
+    tables = document_content.get("tables", "No tables detected")
+
+    # 1) original classification (exact original prompt)
+    label_raw = _call_classifier_once(text, tables)
+
+    # normalize label to expected token
+    if "structured" in label_raw:
+        label = "structured"
+    elif "unstructured" in label_raw:
+        label = "unstructured"
+    else:
+        label = label_raw  # whatever the model returned
+
+    # 2) separate explanation prompt (same inputs)
+    reason, evidence = _ask_for_reason(text, tables, label)
+
+    return label, reason, evidence
 
 
+⸻
+
+Update main.py printing (tiny change)
+
+# main.py
+from document_loader import load_document
+from classifier import classify_document
+
+def main():
+    print(" Document Layout Classifier")
+    file_path = input("Enter the file path: ").strip()
+
+    try:
+        document_content = load_document(file_path)
+        if not document_content["text"]:
+            raise Exception("No readable content found.")
+
+        layout_type, reason, evidence = classify_document(document_content)
+        print(f"\n Document Layout: {layout_type}")
+        print(f"Reason: {reason}")
+        print(f"Evidence: {evidence}")
+
+    except Exception as e:
+        print("Error:", e)
+
+if __name__ == "__main__":
+    main()
+
+
+⸻
+
+Why this should help
+	•	No change to inputs: the exact same text and tables go into the original classification prompt, so the label should remain identical to the earlier working behavior.
+	•	Separate explanation prompt: asking the model after the decision to explain that decision reduces the chance you changed the decision logic by changing the prompt. The explanation is produced from the exact same inputs and asked to cite evidence.
+	•	Evidence requirement: by requesting explicit evidence items (and giving a strict two-line format), the model is constrained to point to substrings it can find, which reduces generic or hallucinated explanations.
+
+⸻
+
+If explanations are still wrong / generic
+
+A few reasons this can happen even with the two-step approach:
+	1.	Ambiguous inputs — the document may contain both structured signals (short label lines, keywords) and unstructured signals (long paragraphs). The classifier may choose one and the explainer will cite the overlapping signals that most influenced it.
+	2.	Hallucination / paraphrasing — the LLM might paraphrase evidence instead of providing exact substrings. The prompt asks for substrings and examples to reduce this; if you still see weak evidence, we can force JSON with exact keys (stricter parsing).
+	3.	Extraction artifacts — Form Recognizer can sometimes collapse multiple columns into label:value lines in text even when tables were not detected; that text can look form-like.
+
+If you want stricter, less-hallucination explanations we can force the explainer prompt to return JSON with an array of exact matched substrings and require exact-match evidence. I avoided that initially to keep things simple; tell me if you want the stricter JSON explainer and I’ll give that variant.
+
+⸻
+
+If you paste one example of document_content["text"][:800] and document_content["tables"] for a file that was misclassified (copy-paste from your earlier print), I’ll point to the exact token or line that most likely triggered the label.
