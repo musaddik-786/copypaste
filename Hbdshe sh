@@ -1,3 +1,6 @@
+this is the mcp code where it checks the imbox and checks attachments present in it and according to the file name of that attachment it checks whether that file is present in the blob storage or not right?
+so now what i have told is to make small changes here so now there can be multiple atttachments in the mail i have been told that "Accord" this word should be checked if it is present in the attachment names and if it is present for example in attachment whos name for ex is Accord_125 then that Accord_125 attachment file name should be pickud up and only that particular attachment name should be checked against blob storage if it is duplicate or not apart from this everything else remains exactly same and i am told to use regular expressions for this.  
+
 attachment handler.py
 
 import os
