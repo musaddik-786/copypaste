@@ -1,44 +1,16 @@
-Nice — you want a single clear reason the LLM used to pick structured or unstructured, printed to the terminal so you can inspect what it considered. Below I give:
-	1.	A short explanation of what the LLM is actually getting now (and therefore what it can base its decision on).
-	2.	A small, safe code-change that adds an explicit, human-readable reason (and simple features) to the prompt and prints that reason in your terminal.
-	3.	a tiny fix (one \n bug I noticed in load_document) and an example of expected terminal output.
+Yes — absolutely. The simplest safe approach is to ask the LLM (in the same prompt you already send) to also return a short human-readable reason, then print that reason in your terminal. Below I give a minimal, non-invasive change: keep the same text and tables inputs (you said don’t change inputs) but change the prompt so the model returns both a label and a one-line reason. I also include parsing that’s forgiving if the model replies slightly differently.
 
-⸻
+What to change (minimal)
 
-1) What the LLM is currently receiving (and why it decides)
+Only change classifier.py — update classify_document so the prompt asks for the reason and the function returns (label, reason).
 
-Right now your classify_document function sends the LLM two things:
-	•	text — a (string) concatenation of document lines extracted by Form Recognizer (you currently limit the prompt to the first ~2000 chars).
-	•	tables — whatever you extracted and put into document_content["tables"] (or the string "No tables detected").
-
-So the LLM’s decision is based on what you give it. Typical signals it will (implicitly) use:
-	•	Presence of tables (non-empty tables) is a strong signal for structured (forms, spreadsheets, ACORD).
-	•	Table-like content inside text (repeated columns, delimiters) can also push toward structured.
-	•	Consistent short lines / label:value patterns (e.g., Name: John) → structured.
-	•	Long paragraphs / free-flow sentences → unstructured.
-	•	Keywords such as “Invoice”, “Total”, “Policy No”, “ACORD” or “Quote”, “Dear”, “Thank you” etc.
-	•	Layout regularity, e.g., many rows with same number of columns or repeated field names.
-	•	Number of lines / avg words per line — short lines favor structured; long sentences favor unstructured.
-
-However — important — the LLM only sees what you send in the prompt. If you want a robust explanation, it’s best to compute a few simple features locally (presence/number of tables, avg words per line, presence of “form-like” keywords) and include them in the prompt. That both makes the LLM’s output more consistent and lets you print the reason.
-
-⸻
-
-2) Minimal code changes (prints the reason to terminal)
-
-Changes:
-	•	Update classifier.py to compute simple features and ask the LLM to return both the label and a one-line reason (or a JSON).
-	•	Slight fix in document_loader.py to join lines with "\n" (instead of "n").
-
-⸻
-
-Updated classifier.py (replace your function with this)
+Replace your existing classify_document with the code below.
 
 # classifier.py
 from dotenv import load_dotenv
 import os
 import openai
-import json
+import re
 
 load_dotenv()
 openai.api_type = "azure"
@@ -48,48 +20,12 @@ openai.api_key = os.getenv("AZURE_OPENAI_API_KEY")
 
 deployment_name = os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT")
 
-# simple list of form/document keywords you can expand
-FORM_KEYWORDS = [
-    "policy", "policy no", "acord", "invoice", "amount", "claim", "insured",
-    "coverage", "address", "phone", "date of birth", "total", "qty", "item"
-]
-QUOTE_KEYWORDS = ["quote", "proposal", "thanks", "dear", "regards", "sincerely"]
-
-def _compute_features(document_content):
-    text = document_content.get("text", "") or ""
-    tables = document_content.get("tables", [])
-    # feature: whether tables exist
-    tables_exist = bool(tables and tables != "No tables detected")
-    num_tables = len(tables) if isinstance(tables, list) else 0
-
-    # basic text features
-    lines = [l for l in text.splitlines() if l.strip()]
-    num_lines = len(lines)
-    total_words = sum(len(l.split()) for l in lines) if lines else 0
-    avg_words_per_line = (total_words / num_lines) if num_lines else 0
-
-    # keyword checks (lowercase)
-    lower_text = text.lower()
-    form_kw_found = [kw for kw in FORM_KEYWORDS if kw in lower_text]
-    quote_kw_found = [kw for kw in QUOTE_KEYWORDS if kw in lower_text]
-
-    features = {
-        "tables_exist": tables_exist,
-        "num_tables": num_tables,
-        "num_lines": num_lines,
-        "avg_words_per_line": round(avg_words_per_line, 2),
-        "form_keywords_found": form_kw_found,
-        "quote_keywords_found": quote_kw_found
-    }
-    return features
-
 def classify_document(document_content):
     """
-    Returns (label, reason, features) where label is 'structured' or 'unstructured',
-    reason is a short human-readable explanation from the LLM, and features is the local features dict.
+    Returns: (label, reason)
+    label -> 'structured' or 'unstructured'
+    reason -> short one-line explanation of which features in the provided input influenced the decision
     """
-    # compute features locally and include them in the prompt
-    features = _compute_features(document_content)
     text = document_content.get("text", "")
     tables = document_content.get("tables", "No tables detected")
 
@@ -98,69 +34,65 @@ You are an assistant that must classify a document layout as exactly one of:
   - structured
   - unstructured
 
-Use the provided features and the document text to decide. Be concise.
+You will be given two inputs:
+1) Tables extracted (or 'No tables detected').
+2) Document text (first 2000 characters shown).
 
-Local features (computed by code):
-{json.dumps(features, indent=2)}
+Decide which label fits and then provide a **one-line reason** describing the specific signal(s) from the inputs that led to the decision (for example: "Tables detected (num_tables>0)", "Many label:value lines", "Long paragraphs and salutations", "Keyword 'ACORD' present", etc.)
 
-Tables extracted (showing first 1000 chars):
-{str(tables)[:1000]}
+**Reply in plain text with exactly two lines**:
+First line: the label (structured or unstructured)
+Second line: the reason (one short sentence)
+
+Tables:
+{str(tables)[:1200]}
 
 Document text (first 2000 chars):
 {text[:2000]}
-
-Reply in JSON ONLY, with keys:
-{{"label": "<structured|unstructured>", "reason": "<one-sentence reason mentioning which feature(s) influenced the decision>"}}
-Example:
-{{"label":"structured","reason":"Tables detected (num_tables=1) and repeated short label:value lines indicate a form-like layout."}}
 """
 
     response = openai.ChatCompletion.create(
         engine=deployment_name,
         messages=[{"role": "user", "content": prompt}],
-        max_tokens=120,
+        max_tokens=100,
         temperature=0.0
     )
     content = response['choices'][0]['message']['content'].strip()
 
-    # Try to parse JSON; if LLM didn't return JSON, fall back to the raw label
-    try:
-        parsed = json.loads(content)
-        label = parsed.get("label", "").strip()
-        reason = parsed.get("reason", "").strip()
-    except Exception:
-        # best-effort fallback: take last word or the content
-        label = content.splitlines()[0].strip() if content else "unknown"
-        reason = content
+    # Try to parse two-line response robustly
+    lines = [ln.strip() for ln in content.splitlines() if ln.strip()]
+    label = None
+    reason = None
 
-    return label, reason, features
+    if len(lines) >= 1:
+        # first line may contain extra words; extract structured/unstructured token
+        m = re.search(r"\b(structured|unstructured)\b", lines[0].lower())
+        if m:
+            label = m.group(1)
+        else:
+            # fallback: if first token looks like a word 'structured' or 'unstructured'
+            first_word = lines[0].split()[0].lower()
+            if first_word in ("structured", "unstructured"):
+                label = first_word
+            else:
+                # try second line
+                m2 = re.search(r"\b(structured|unstructured)\b", content.lower())
+                label = m2.group(0) if m2 else "unknown"
 
+    if len(lines) >= 2:
+        reason = lines[1]
+    else:
+        # if only one line, try to extract rest after the label
+        rest = content.lower().replace(label or "", "", 1).strip()
+        reason = rest if rest else "No reason provided."
 
-⸻
+    return label, reason
 
-Small fix in document_loader.py (line join bug)
+Print the reason in main.py
 
-Change this:
+Change how you call the classifier so you print both label and reason. Minimal change:
 
-document_content = {
-    "text": "n".join(lines),
-    "tables": tables if tables else "No tables detected"
-}
-
-to:
-
-document_content = {
-    "text": "\n".join(lines),
-    "tables": tables if tables else "No tables detected"
-}
-
-
-⸻
-
-Minimal main.py change to print reason
-
-Replace how you call classify_document:
-
+# main.py (only the printing part)
 from document_loader import load_document
 from classifier import classify_document
 
@@ -173,10 +105,9 @@ def main():
         if not document_content["text"]:
             raise Exception("No readable content found.")
 
-        layout_type, reason, features = classify_document(document_content)
+        layout_type, reason = classify_document(document_content)
         print(f"\n Document Layout: {layout_type}")
         print(f"Reason: {reason}")
-        print(f"Features used: {features}")
 
     except Exception as e:
         print("Error:", e)
@@ -184,38 +115,28 @@ def main():
 if __name__ == "__main__":
     main()
 
+Example of expected terminal output
 
-⸻
-
-3) Example terminal output (what you will now see)
-
-After running the updated code you will get something like:
+After this change you’ll see something like:
 
  Document Layout Classifier
 Enter the file path: C:\...\Acord_125 (1).pdf
 
  Document Layout: structured
-Reason: Tables detected (num_tables=1) and repeated short label:value lines indicate a form-like layout.
-Features used: {'tables_exist': True, 'num_tables': 1, 'num_lines': 42, 'avg_words_per_line': 3.4, 'form_keywords_found': ['acord','policy'], 'quote_keywords_found': []}
+Reason: Tables detected (tables not empty) and keywords 'policy' and 'ACORD' present.
 
-Or for a quote document:
+Or:
+
+ Document Layout Classifier
+Enter the file path: C:\...\Quote.pdf
 
  Document Layout: unstructured
-Reason: No tables found and long paragraph sentences with average words/line=18 indicate free-form text.
-Features used: {'tables_exist': False, 'num_tables': 0, 'num_lines': 12, 'avg_words_per_line': 18.2, 'form_keywords_found': [], 'quote_keywords_found': ['quote']}
+Reason: Long paragraphs, salutations and no tables detected.
 
+Notes & reliability
+	•	This does not change the inputs your LLM sees (text/tables) — only asks the LLM to explain its own decision in a short line.
+	•	Keep temperature=0.0 so the model is deterministic; still the wording may vary slightly, which is why parsing is forgiving.
+	•	If the LLM ever fails to produce exactly two lines, the parser tries to recover and returns something reasonable.
+	•	If you want the reason to be more structured (e.g., explicit mention of “tables” or “label:value”), you can tighten the prompt to force specific tokens — but the change above is the gentlest.
 
-⸻
-
-Notes & suggestions
-	•	I kept the LLM deterministic (temperature=0.0) so the explanation is stable.
-	•	You can add more features (number of short lines, repeated colon : occurrences, bounding box consistency from result.pages if you want spatial signals) and include them in the prompt — that will make the reason even more explicit and robust.
-	•	If you want only a single textual reason (no JSON parsing), you can simplify the prompt to ask for exactly: "<structured|unstructured> — <one-sentence reason>" and parse accordingly. But JSON is safer.
-
-⸻
-
-If you want, I can:
-	•	add num_short_lines, num_label_colon_patterns (counts of \w+:), or
-	•	show how to extract bounding-box-based features from result.pages[*].lines[*].spans to detect consistent column x-coordinates (more reliable for tables/forms).
-
-Want me to add one of those extra features now?
+If you want, I can now give you a one-line ready-to-copy prompt variation that forces JSON output (label + reason) for stricter parsing — but the two-line approach above is simplest and very robust. Want the JSON version?
