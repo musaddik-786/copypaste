@@ -1,79 +1,176 @@
-# llm_client.py  (legacy-simple)
-import os
-import base64
-import openai
-from dotenv import load_dotenv
-from typing import Dict, Any
+classifier.py
 
+# #Working code
+from dotenv import load_dotenv
+import os
+import openai
+
+openai.api_type = "azure"
+openai.api_base = os.getenv("AZURE_OPENAI_ENDPOINT")
+openai.api_version = os.getenv("AZURE_OPENAI_API_VERSION")
+openai.api_key = os.getenv("AZURE_OPENAI_API_KEY")
+
+deployment_name = os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT")
+
+def classify_document(document_content):
+    """
+    Classifies the document layout as 'structured' or 'unstructured' based on text and table information.
+    """
+    text = document_content["text"]
+    tables = document_content["tables"]
+
+    # Prepare the prompt
+    prompt = f"""
+You are an AI assistant. Classify the following document layout as either 'structured' or 'unstructured'.
+
+Structured documents typically contain tables, forms, or consistent layouts (e.g., insurance forms like ACORD). 
+Unstructured documents contain free-form text, paragraphs, or inconsistent layouts (e.g., quote documents).
+
+Document Text:
+{text[:2000]}
+
+Tables:
+{tables if tables else "No tables detected"}
+
+Reply with only one word: structured or unstructured.
+"""
+
+    response = openai.ChatCompletion.create(
+        engine=deployment_name,
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=4,
+        temperature=0.0  # Ensure deterministic responses
+    )
+    return response['choices'][0]['message']['content'].strip()
+
+
+document_loader.py
+# #Working Code
+from dotenv import load_dotenv
+import os
+from azure.ai.formrecognizer import DocumentAnalysisClient
+from azure.core.credentials import AzureKeyCredential
+
+# Load environment variables from .env file
 load_dotenv()
 
-AZURE_OPENAI_API_KEY = os.environ.get("AZURE_OPENAI_API_KEY")
-AZURE_OPENAI_ENDPOINT = os.environ.get("AZURE_OPENAI_ENDPOINT")
-AZURE_OPENAI_API_VERSION = os.environ.get("AZURE_OPENAI_API_VERSION")
-AZURE_OPENAI_CHAT_DEPLOYMENT = os.environ.get("AZURE_OPENAI_CHAT_DEPLOYMENT") or os.environ.get("AZURE_OPENAI_CHAT_DEPLOYMENT_NAME")
+# Fetch variables
+endpoint = os.getenv("AZURE_FORMRECOG_ENDPOINT")
+key = os.getenv("AZURE_FORMRECOG_KEY")
+# Fail fast if missing
+if not endpoint:
+    raise ValueError("AZURE_FORMRECOG_ENDPOINT is not set. Check your .env file.")
+if not key:
+    raise ValueError("AZURE_FORMRECOG_KEY is not set. Check your .env file.")
 
-def _require_env():
-    missing = []
-    if not AZURE_OPENAI_API_KEY: missing.append("AZURE_OPENAI_API_KEY")
-    if not AZURE_OPENAI_ENDPOINT: missing.append("AZURE_OPENAI_ENDPOINT")
-    if not AZURE_OPENAI_API_VERSION: missing.append("AZURE_OPENAI_API_VERSION")
-    if not AZURE_OPENAI_CHAT_DEPLOYMENT: missing.append("AZURE_OPENAI_CHAT_DEPLOYMENT")
-    if missing:
-        raise RuntimeError("Missing env vars: " + ", ".join(missing))
+# Create the client using the key and endpoint
+client = DocumentAnalysisClient(endpoint=endpoint, credential=AzureKeyCredential(key))
 
-# configure azure-style for legacy client
-def _build_legacy_client():
-    _require_env()
-    openai.api_type = "azure"
-    openai.api_key = AZURE_OPENAI_API_KEY
-    openai.api_base = AZURE_OPENAI_ENDPOINT.rstrip("/")
-    openai.api_version = AZURE_OPENAI_API_VERSION
-    return openai
-
-def _data_uri_from_bytes(image_bytes: bytes, mime: str = "image/png") -> str:
-    return f"data:{mime};base64," + base64.b64encode(image_bytes).decode("utf-8")
-
-def classify_layout_from_image_bytes(image_bytes: bytes, extra_context: str = "") -> Dict[str, Any]:
+def load_document(file_path):
     """
-    Simple: embed small image as data URI (image_bytes should be downscaled) into a short prompt.
-    Uses legacy openai.ChatCompletion.create(...) with engine=<deployment>.
-    Returns: {"raw": "<raw text>", "layout_type": "structured"|"unstructured"}
+    Extracts text and layout information using Form Recognizer's prebuilt-layout model.
     """
-    client = _build_legacy_client()
-    data_uri = _data_uri_from_bytes(image_bytes)
+    with open(file_path, "rb") as f:
+        poller = client.begin_analyze_document("prebuilt-layout", document=f)
+        result = poller.result()
 
-    system_text = (
-        "You are a document layout classifier. You will get an image. Respond with EXACTLY one lowercase word only: "
-        "'structured' or 'unstructured'. If unsure, reply 'unstructured'. No extra text."
-    )
+    # Extract lines of text
+    lines = [line.content for page in result.pages for line in page.lines]
 
-    user_text = extra_context + "\n\nImage (data URI):\n" + data_uri + "\n\nReturn exactly one word: structured OR unstructured."
+    # Debugging: Print available attributes in DocumentPage
+    print("Available attributes in DocumentPage:")
+    print(dir(result.pages[0]))
+
+    # Extract table information if available
+    tables = []
+    for page in result.pages:
+        if hasattr(page, "tables"):
+            for table in page.tables:
+                table_data = []
+                for row in table.cells:
+                    table_data.append(row.content)
+                tables.append(table_data)
+
+    # Combine text and table information
+    document_content = {
+        "text": "n".join(lines),
+        "tables": tables if tables else "No tables detected"
+    }
+    return document_content
+
+
+main.py
+
+from document_loader import load_document
+from classifier import classify_document
+
+def main():
+    print(" Document Layout Classifier")
+    file_path = input("Enter the file path: ").strip()
 
     try:
-        resp = client.ChatCompletion.create(
-            engine=AZURE_OPENAI_CHAT_DEPLOYMENT,
-            messages=[
-                {"role": "system", "content": system_text},
-                {"role": "user", "content": user_text}
-            ],
-            max_tokens=4,
-            temperature=0.0,
-        )
+        # Load the document and extract content
+        document_content = load_document(file_path)
+        if not document_content["text"]:
+            raise Exception("No readable content found.")
+
+        # Classify the document layout
+        layout_type = classify_document(document_content)
+        print(f"\n Document Layout: {layout_type}")
+
     except Exception as e:
-        raise RuntimeError(f"LLM request failed: {e}")
+        print("Error:", e)
 
-    # extract text
-    try:
-        llm_text = resp.choices[0].message["content"]
-    except Exception:
-        llm_text = getattr(resp.choices[0], "text", "")
+if __name__ == "__main__":
+    main()
 
-    text_clean = (llm_text or "").strip().lower()
-    if text_clean == "structured":
-        layout = "structured"
-    elif text_clean == "unstructured":
-        layout = "unstructured"
-    else:
-        layout = "unstructured"  # safe default
 
-    return {"raw": llm_text, "layout_type": layout}
+
+summarizer.py
+
+from dotenv import load_dotenv
+import os
+import openai
+ 
+openai.api_type = "azure"
+openai.api_base = os.getenv("AZURE_OPENAI_ENDPOINT")
+openai.api_version = os.getenv("AZURE_OPENAI_API_VERSION")
+openai.api_key = os.getenv("AZURE_OPENAI_API_KEY")
+ 
+deployment_name = os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT")
+ 
+def generate_summary(text, doc_type):
+    prompt = f"""
+You are a helpful insurance assistant AI. Based on the document type, summarize the content accordingly.
+ 
+Document Type: {doc_type}
+ 
+Summary Format:
+For Underwriting:
+- Applicant Details:
+- Risk Factors:
+- Policy Terms:
+- Recommendations:
+ 
+For Claims:
+- Incident Details:
+- Claimant Info:
+- Claim Status:
+- Supporting Evidence:
+ 
+Document:
+{text[:3000]}
+ 
+Provide a structured summary followed by a section called 'Key Insights' listing the most important findings.
+"""
+ 
+    response = openai.ChatCompletion.create(
+        engine=deployment_name,
+        messages=[{"role": "user", "content": prompt}]
+    )
+ 
+    full_text = response['choices'][0]['message']['content'].strip()
+    summary, insights = full_text.split("Key Insights:")
+    insights = insights.strip().split("\n")
+    return summary.strip(), [line.strip("- ").strip() for line in insights if line.strip()]
+ 
