@@ -1,122 +1,27 @@
-Nice — I made the minimal change you asked for: if any attachment filename contains the word “Accord” (checked using a regular expression, case-insensitive) then only those attachments will be checked against Azure Blob Storage; if no filenames match, the code falls back to checking all attachments (original behaviour). I only touched attachment_handler.py and left everything else exactly as you requested.
-
-Below is the updated attachment_handler.py with the small regex-based change.
-
-import os
-import json
-import base64
-import re
-from azure.storage.blob import BlobServiceClient
-from dotenv import load_dotenv
-
-load_dotenv()
-
-STATE_FILE = os.path.join("storage", "history_state.json")
-OUTPUT_DIR = os.path.join("storage", "attachments")
-os.makedirs(OUTPUT_DIR, exist_ok=True)
-os.makedirs(os.path.dirname(STATE_FILE), exist_ok=True)
-
-AZURE_STORAGE_CONNECTION_STRING = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "")
-AZURE_BLOB_CONTAINER = os.environ.get("AZURE_BLOB_CONTAINER", "")
-
-def _get_blob_service_client():
-    if not AZURE_STORAGE_CONNECTION_STRING:
-        raise RuntimeError("Missing AZURE_STORAGE_CONNECTION_STRING")
-    return BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING)
-
-def _ensure_container_exists(blob_service_client):
-    if not AZURE_BLOB_CONTAINER:
-        raise RuntimeError("Missing AZURE_BLOB_CONTAINER")
-    container_client = blob_service_client.get_container_client(AZURE_BLOB_CONTAINER)
-    try:
-        container_client.create_container()
-    except Exception:
-        pass
-    return container_client
-
-def load_state():
-    try:
-        with open(STATE_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        return {}
-
-def save_state(state):
-    with open(STATE_FILE, "w", encoding="utf-8") as f:
-        json.dump(state, f, indent=2, ensure_ascii=False)
-
-def _walk_parts(parts):
-    for p in parts or []:
-        yield p
-        for sub in p.get("parts", []) or []:
-            yield from _walk_parts([sub])
-
-def save_attachments_from_message(service, message):
-    """
-    Extract attachment filenames from Gmail message and compare with Azure Blob Storage.
-    Success: returns {"attachments": [{"filename": "...", "is_duplicate": bool}, ...]}
-    No attachments: returns {"attachments": []}
-    Azure/Gmail errors: raise exception → caller returns status:false + error
-    """
-    filenames = []
-    parts = message.get("payload", {}).get("parts", [])
-    for part in _walk_parts(parts):
-        filename = part.get("filename")
-        _ = part.get("body", {}) or {}
-        if filename:
-            filenames.append(filename)
-
-    if not filenames:
-        try:
-            out_path = os.path.join(OUTPUT_DIR, f"{message.get('id', 'unknown')}_comparison.json")
-            with open(out_path, "w", encoding="utf-8") as f:
-                json.dump({"attachments": []}, f, indent=2, ensure_ascii=False)
-        except Exception as exc:
-            print(f"Failed to write comparison result file: {exc}")
-        return {"attachments": []}
-
-    # --- NEW: use regex to find attachments containing the word "Accord"
-    # If any filenames match, only those will be checked against blob storage.
-    accord_pattern = re.compile(r"accord", re.IGNORECASE)
-    accord_matches = [fn for fn in filenames if accord_pattern.search(fn)]
-
-    if accord_matches:
-        filenames_to_check = accord_matches
-    else:
-        # fallback to original behaviour (check all attachments)
-        filenames_to_check = filenames
-    # --- END NEW
-
-    blob_service_client = _get_blob_service_client()
-    container_client = _ensure_container_exists(blob_service_client)
-
-    attachment_results = []
-    for name in filenames_to_check:
-        blob_client = container_client.get_blob_client(blob=name)
-        try:
-            is_duplicate = bool(blob_client.exists())
-        except Exception as e:
-            # if blob check fails for any reason, report as not duplicate and log the error
-            print(f"Error checking blob existence for '{name}': {e}")
-            is_duplicate = False
-
-        attachment_results.append({
-            "filename": name,
-            "is_duplicate": is_duplicate
-        })
-
-    try:
-        out_path = os.path.join(OUTPUT_DIR, f"{message.get('id', 'unknown')}_comparison.json")
-        with open(out_path, "w", encoding="utf-8") as f:
-            json.dump({"attachments": attachment_results}, f, indent=2, ensure_ascii=False)
-    except Exception as exc:
-        print(f"Failed to write comparison result file: {exc}")
-
-    return {"attachments": attachment_results}
-
-Notes:
-	•	Regex used: simple re.compile(r"accord", re.IGNORECASE) so it matches Accord, accord_125, ACCORD-202 etc. If you want a stricter pattern (e.g., word-boundary + optional separators + digits: r"\bAccord[_\s-]?\d*\b"), I can switch to that — but the above is robust for catching any filename containing the substring “Accord”.
-	•	Only the checked filenames are included in the output JSON (so if some attachments are ignored because they don’t match “Accord”, they won’t appear in the { "attachments": [...] } result).
-	•	I left the rest of the module untouched as requested.
-
-Want me to change the regex to a stricter form (match Accord as a standalone word optionally followed by _ or - and digits), or is this behavior correct for your use case?
+[Tool:attachment_checker_mcp] {
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "status": true,
+    "attachments": [
+      {
+        "filename": "Acord_139.pdf",
+        "is_duplicate": false
+      },
+      {
+        "filename": "Acord_125.pdf",
+        "is_duplicate": true
+      },
+      {
+        "filename": "Screenshot_2025-11-07-12-58-08-97_b783bf344239542886fee7b48fa4b892.jpg",
+        "is_duplicate": false
+      },
+      {
+        "filename": "Andharban_Trek_Receipt_20250906135655.pdf",
+        "is_duplicate": false
+      }
+    ]
+  }
+}
+***********************************************
+[Agent] Continue
