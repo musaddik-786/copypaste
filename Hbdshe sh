@@ -1,27 +1,156 @@
-[Tool:attachment_checker_mcp] {
-  "jsonrpc": "2.0",
-  "id": 1,
-  "result": {
-    "status": true,
-    "attachments": [
-      {
-        "filename": "Acord_139.pdf",
-        "is_duplicate": false
-      },
-      {
-        "filename": "Acord_125.pdf",
-        "is_duplicate": true
-      },
-      {
-        "filename": "Screenshot_2025-11-07-12-58-08-97_b783bf344239542886fee7b48fa4b892.jpg",
-        "is_duplicate": false
-      },
-      {
-        "filename": "Andharban_Trek_Receipt_20250906135655.pdf",
-        "is_duplicate": false
-      }
-    ]
-  }
-}
-***********************************************
-[Agent] Continue
+Nice — understood. I updated only the blob-existence check so it treats any blob named like <referenceid>_attachment_<filename> as a match for the email attachment <filename>. Everything else in your file is left unchanged.
+
+What I changed
+	•	Added a helper _blob_exists_for_attachment(container_client, attachment_name) that:
+	•	first checks for an exact blob with the attachment filename (old behavior),
+	•	then checks for any blob whose name contains _attachment_<attachment_name> (new behavior).
+	•	Replaced the blob_client.exists() check with this helper.
+
+Copy-paste this full file over your existing file (only the helper + call were added/modified):
+
+import os
+import json
+import base64
+import re
+from azure.storage.blob import BlobServiceClient
+from dotenv import load_dotenv
+
+load_dotenv()
+
+STATE_FILE = os.path.join("storage", "history_state.json")
+OUTPUT_DIR = os.path.join("storage", "attachments")
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+os.makedirs(os.path.dirname(STATE_FILE), exist_ok=True)
+
+AZURE_STORAGE_CONNECTION_STRING = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "")
+AZURE_BLOB_CONTAINER = os.environ.get("AZURE_BLOB_CONTAINER", "")
+
+def _get_blob_service_client():
+    if not AZURE_STORAGE_CONNECTION_STRING:
+        raise RuntimeError("Missing AZURE_STORAGE_CONNECTION_STRING")
+    return BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING)
+
+def _ensure_container_exists(blob_service_client):
+    if not AZURE_BLOB_CONTAINER:
+        raise RuntimeError("Missing AZURE_BLOB_CONTAINER")
+    container_client = blob_service_client.get_container_client(AZURE_BLOB_CONTAINER)
+    try:
+        container_client.create_container()
+    except Exception:
+        pass
+    return container_client
+
+def load_state():
+    try:
+        with open(STATE_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+def save_state(state):
+    with open(STATE_FILE, "w", encoding="utf-8") as f:
+        json.dump(state, f, indent=2, ensure_ascii=False)
+
+def _walk_parts(parts):
+    for p in parts or []:
+        yield p
+        for sub in p.get("parts", []) or []:
+            yield from _walk_parts([sub])
+
+def _blob_exists_for_attachment(container_client, attachment_name):
+    """
+    Returns True if any blob corresponds to the given attachment_name.
+    Matching rules:
+      1) Exact blob name == attachment_name (legacy behavior)
+      2) Any blob whose name contains '_attachment_<attachment_name>' or endswith '_attachment_<attachment_name>'
+         (new format: <referenceid>_attachment_<filename>)
+    """
+    # 1) exact match
+    try:
+        blob_client = container_client.get_blob_client(blob=attachment_name)
+        if blob_client.exists():
+            return True
+    except Exception:
+        # ignore and try pattern search
+        pass
+
+    # 2) pattern match: look for any blob that includes the token _attachment_<attachment_name>
+    search_token = f"_attachment_{attachment_name}"
+    try:
+        # list_blobs may be expensive for very large containers; this is a direct approach per your request.
+        for blob in container_client.list_blobs():
+            # match if endswith or contains the token (handles cases where there may be folder prefixes)
+            if blob.name.endswith(search_token) or search_token in blob.name:
+                return True
+    except Exception as e:
+        print(f"Error while listing blobs for pattern search '{search_token}': {e}")
+
+    return False
+
+def save_attachments_from_message(service, message):
+    """
+    Extract attachment filenames from Gmail message and compare with Azure Blob Storage.
+    Success: returns {"attachments": [{"filename": "...", "is_duplicate": bool}, ...]}
+    No attachments: returns {"attachments": []}
+    Azure/Gmail errors: raise exception → caller returns status:false + error
+    """
+    filenames = []
+    parts = message.get("payload", {}).get("parts", [])
+    for part in _walk_parts(parts):
+        filename = part.get("filename")
+        _ = part.get("body", {}) or {}
+        if filename:
+            filenames.append(filename)
+
+    if not filenames:
+        try:
+            out_path = os.path.join(OUTPUT_DIR, f"{message.get('id', 'unknown')}_comparison.json")
+            with open(out_path, "w", encoding="utf-8") as f:
+                json.dump({"attachments": []}, f, indent=2, ensure_ascii=False)
+        except Exception as exc:
+            print(f"Failed to write comparison result file: {exc}")
+        return {"attachments": []}
+
+    # --- NEW: use regex to find attachments containing the word "Accord"
+    # If any filenames match, only those will be checked against blob storage.
+    accord_pattern = re.compile(r"acord", re.IGNORECASE)
+    accord_matches = [fn for fn in filenames if accord_pattern.search(fn)]
+
+    if accord_matches:
+        filenames_to_check = accord_matches
+    else:
+        # fallback to original behaviour (check all attachments)
+        filenames_to_check = filenames
+    # --- END NEW
+
+    blob_service_client = _get_blob_service_client()
+    container_client = _ensure_container_exists(blob_service_client)
+
+    attachment_results = []
+    for name in filenames_to_check:
+        try:
+            is_duplicate = _blob_exists_for_attachment(container_client, name)
+        except Exception as e:
+            # if blob check fails for any reason, report as not duplicate and log the error
+            print(f"Error checking blob existence for '{name}': {e}")
+            is_duplicate = False
+
+        attachment_results.append({
+            "filename": name,
+            "is_duplicate": is_duplicate
+        })
+
+    try:
+        out_path = os.path.join(OUTPUT_DIR, f"{message.get('id', 'unknown')}_comparison.json")
+        with open(out_path, "w", encoding="utf-8") as f:
+            json.dump({"attachments": attachment_results}, f, indent=2, ensure_ascii=False)
+    except Exception as exc:
+        print(f"Failed to write comparison result file: {exc}")
+
+    return {"attachments": attachment_results}
+
+If you’d like, I can:
+	•	change the pattern search to be case-insensitive,
+	•	or optimize listing by using name_starts_with if you have a prefix pattern to narrow down blobs (helpful for very large containers).
+
+Want any of those optimizations?
