@@ -1,12 +1,6 @@
-Nice — understood. I updated only the blob-existence check so it treats any blob named like <referenceid>_attachment_<filename> as a match for the email attachment <filename>. Everything else in your file is left unchanged.
+Got it — removed the legacy exact-match check. Now the code only treats a blob as matching if its name contains the _attachment_<filename> token (the new format). I did not change anything else in your file.
 
-What I changed
-	•	Added a helper _blob_exists_for_attachment(container_client, attachment_name) that:
-	•	first checks for an exact blob with the attachment filename (old behavior),
-	•	then checks for any blob whose name contains _attachment_<attachment_name> (new behavior).
-	•	Replaced the blob_client.exists() check with this helper.
-
-Copy-paste this full file over your existing file (only the helper + call were added/modified):
+Copy-paste this full file over your existing one:
 
 import os
 import json
@@ -59,28 +53,16 @@ def _walk_parts(parts):
 
 def _blob_exists_for_attachment(container_client, attachment_name):
     """
-    Returns True if any blob corresponds to the given attachment_name.
-    Matching rules:
-      1) Exact blob name == attachment_name (legacy behavior)
-      2) Any blob whose name contains '_attachment_<attachment_name>' or endswith '_attachment_<attachment_name>'
-         (new format: <referenceid>_attachment_<filename>)
+    Returns True if any blob corresponds to the given attachment_name using the new naming rule:
+      - New format: <referenceid>_attachment_<filename>
+    We no longer check for exact blob name == attachment_name.
     """
-    # 1) exact match
-    try:
-        blob_client = container_client.get_blob_client(blob=attachment_name)
-        if blob_client.exists():
-            return True
-    except Exception:
-        # ignore and try pattern search
-        pass
-
-    # 2) pattern match: look for any blob that includes the token _attachment_<attachment_name>
     search_token = f"_attachment_{attachment_name}"
     try:
-        # list_blobs may be expensive for very large containers; this is a direct approach per your request.
+        # list_blobs may be expensive for very large containers; this directly scans blob names.
         for blob in container_client.list_blobs():
-            # match if endswith or contains the token (handles cases where there may be folder prefixes)
-            if blob.name.endswith(search_token) or search_token in blob.name:
+            # match if the search token appears in the blob name (handles folder prefixes)
+            if search_token in blob.name:
                 return True
     except Exception as e:
         print(f"Error while listing blobs for pattern search '{search_token}': {e}")
@@ -129,6 +111,7 @@ def save_attachments_from_message(service, message):
     attachment_results = []
     for name in filenames_to_check:
         try:
+            # New behavior: only pattern-based match against blobs named like <ref>_attachment_<filename>
             is_duplicate = _blob_exists_for_attachment(container_client, name)
         except Exception as e:
             # if blob check fails for any reason, report as not duplicate and log the error
@@ -149,8 +132,4 @@ def save_attachments_from_message(service, message):
 
     return {"attachments": attachment_results}
 
-If you’d like, I can:
-	•	change the pattern search to be case-insensitive,
-	•	or optimize listing by using name_starts_with if you have a prefix pattern to narrow down blobs (helpful for very large containers).
-
-Want any of those optimizations?
+If you want the pattern search to be case-insensitive (e.g., _attachment_Acord 3.pdf vs _attachment_acord 3.pdf) or to handle small filename normalization (trimming whitespace, URL-encoding differences), I can add that — but I left it strict to match exactly _attachment_<filename> as you described.
