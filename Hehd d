@@ -1,219 +1,113 @@
-here i am unable to understand what is llm taking as input i mean on what basis it is able to understand if this particular document is strucutred or unstructured
-below is my complete code and current output 
 
-on main.py
- Document Layout Classifier
-Enter the file path: C:\Users\2000137378\Downloads\Acord_125 (1).pdf  
-Available attributes in DocumentPage:
-['__annotations__', '__class__', '__delattr__', '__dict__', '__dir__', '__doc__', '__eq__', '__format__', '__ge__', '__getattribute__', '__getstate__', '__gt__', '__hash__', '__init__', '__init_subclass__', '__le__', '__lt__', '__module__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__setattr__', '__sizeof__', '__str__', '__subclasshook__', '__weakref__', '_from_generated', 'angle', 'barcodes', 'formulas', 'from_dict', 'height', 'lines', 'page_number', 'selection_marks', 'spans', 'to_dict', 'unit', 'width', 'words']
 
- Document Layout: structured
-
-(venv) PS C:\Users\2000137378\Desktop\DataSummary> python main.py
- Document Layout Classifier
-Enter the file path: C:\Users\2000137378\Desktop\DataSummary\untemplate_input\Test Quote 1 1.pdf
-Available attributes in DocumentPage:
-['__annotations__', '__class__', '__delattr__', '__dict__', '__dir__', '__doc__', '__eq__', '__format__', '__ge__', '__getattribute__', '__getstate__', '__gt__', '__hash__', '__init__', '__init_subclass__', '__le__', '__lt__', '__module__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__setattr__', '__sizeof__', '__str__', '__subclasshook__', '__weakref__', '_from_generated', 'angle', 'barcodes', 'formulas', 'from_dict', 'height', 'lines', 'page_number', 'selection_marks', 'spans', 'to_dict', 'unit', 'width', 'words']
-
- Document Layout: unstructured
-
-so lets print that in the terminal as well so that we understand what is llm considering is it based on tables or is it based on anyother thing
-
-classifier.py
-
-# #Working code
-from dotenv import load_dotenv
 import os
-import openai
-
-openai.api_type = "azure"
-openai.api_base = os.getenv("AZURE_OPENAI_ENDPOINT")
-openai.api_version = os.getenv("AZURE_OPENAI_API_VERSION")
-openai.api_key = os.getenv("AZURE_OPENAI_API_KEY")
-
-deployment_name = os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT")
-
-def classify_document(document_content):
-    """
-    Classifies the document layout as 'structured' or 'unstructured' based on text and table information.
-    """
-    text = document_content["text"]
-    tables = document_content["tables"]
-
-    # Prepare the prompt
-    prompt = f"""
-You are an AI assistant. Classify the following document layout as either 'structured' or 'unstructured'.
-
-Structured documents typically contain tables, forms, or consistent layouts (e.g., insurance forms like ACORD). 
-Unstructured documents contain free-form text, paragraphs, or inconsistent layouts (e.g., quote documents).
-
-Document Text:
-{text[:2000]}
-
-Tables:
-{tables if tables else "No tables detected"}
-
-Reply with only one word: structured or unstructured.
-"""
-
-    response = openai.ChatCompletion.create(
-        engine=deployment_name,
-        messages=[{"role": "user", "content": prompt}],
-        max_tokens=4,
-        temperature=0.0  # Ensure deterministic responses
-    )
-    return response['choices'][0]['message']['content'].strip()
-
-
-document_loader.py
-# #Working Code
+import json
+import base64
+import re
+from azure.storage.blob import BlobServiceClient
 from dotenv import load_dotenv
-import os
-from azure.ai.formrecognizer import DocumentAnalysisClient
-from azure.core.credentials import AzureKeyCredential
 
-# Load environment variables from .env file
 load_dotenv()
 
-# Fetch variables
-endpoint = os.getenv("AZURE_FORMRECOG_ENDPOINT")
-key = os.getenv("AZURE_FORMRECOG_KEY")
-# Fail fast if missing
-if not endpoint:
-    raise ValueError("AZURE_FORMRECOG_ENDPOINT is not set. Check your .env file.")
-if not key:
-    raise ValueError("AZURE_FORMRECOG_KEY is not set. Check your .env file.")
+STATE_FILE = os.path.join("storage", "history_state.json")
+OUTPUT_DIR = os.path.join("storage", "attachments")
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+os.makedirs(os.path.dirname(STATE_FILE), exist_ok=True)
 
-# Create the client using the key and endpoint
-client = DocumentAnalysisClient(endpoint=endpoint, credential=AzureKeyCredential(key))
+AZURE_STORAGE_CONNECTION_STRING = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "")
+AZURE_BLOB_CONTAINER = os.environ.get("AZURE_BLOB_CONTAINER", "")
 
-def load_document(file_path):
+def _get_blob_service_client():
+    if not AZURE_STORAGE_CONNECTION_STRING:
+        raise RuntimeError("Missing AZURE_STORAGE_CONNECTION_STRING")
+    return BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING)
+
+def _ensure_container_exists(blob_service_client):
+    if not AZURE_BLOB_CONTAINER:
+        raise RuntimeError("Missing AZURE_BLOB_CONTAINER")
+    container_client = blob_service_client.get_container_client(AZURE_BLOB_CONTAINER)
+    try:
+        container_client.create_container()
+    except Exception:
+        pass
+    return container_client
+
+def load_state():
+    try:
+        with open(STATE_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+def save_state(state):
+    with open(STATE_FILE, "w", encoding="utf-8") as f:
+        json.dump(state, f, indent=2, ensure_ascii=False)
+
+def _walk_parts(parts):
+    for p in parts or []:
+        yield p
+        for sub in p.get("parts", []) or []:
+            yield from _walk_parts([sub])
+
+def save_attachments_from_message(service, message):
     """
-    Extracts text and layout information using Form Recognizer's prebuilt-layout model.
+    Extract attachment filenames from Gmail message and compare with Azure Blob Storage.
+    Success: returns {"attachments": [{"filename": "...", "is_duplicate": bool}, ...]}
+    No attachments: returns {"attachments": []}
+    Azure/Gmail errors: raise exception → caller returns status:false + error
     """
-    with open(file_path, "rb") as f:
-        poller = client.begin_analyze_document("prebuilt-layout", document=f)
-        result = poller.result()
+    filenames = []
+    parts = message.get("payload", {}).get("parts", [])
+    for part in _walk_parts(parts):
+        filename = part.get("filename")
+        _ = part.get("body", {}) or {}
+        if filename:
+            filenames.append(filename)
 
-    # Extract lines of text
-    lines = [line.content for page in result.pages for line in page.lines]
+    if not filenames:
+        try:
+            out_path = os.path.join(OUTPUT_DIR, f"{message.get('id', 'unknown')}_comparison.json")
+            with open(out_path, "w", encoding="utf-8") as f:
+                json.dump({"attachments": []}, f, indent=2, ensure_ascii=False)
+        except Exception as exc:
+            print(f"Failed to write comparison result file: {exc}")
+        return {"attachments": []}
 
-    # Debugging: Print available attributes in DocumentPage
-    print("Available attributes in DocumentPage:")
-    print(dir(result.pages[0]))
+    # --- NEW: use regex to find attachments containing the word "Accord"
+    # If any filenames match, only those will be checked against blob storage.
+    accord_pattern = re.compile(r"acord", re.IGNORECASE)
+    accord_matches = [fn for fn in filenames if accord_pattern.search(fn)]
 
-    # Extract table information if available
-    tables = []
-    for page in result.pages:
-        if hasattr(page, "tables"):
-            for table in page.tables:
-                table_data = []
-                for row in table.cells:
-                    table_data.append(row.content)
-                tables.append(table_data)
+    if accord_matches:
+        filenames_to_check = accord_matches
+    else:
+        # fallback to original behaviour (check all attachments)
+        filenames_to_check = filenames
+    # --- END NEW
 
-    # Combine text and table information
-    document_content = {
-        "text": "n".join(lines),
-        "tables": tables if tables else "No tables detected"
-    }
-    return document_content
+    blob_service_client = _get_blob_service_client()
+    container_client = _ensure_container_exists(blob_service_client)
 
+    attachment_results = []
+    for name in filenames_to_check:
+        blob_client = container_client.get_blob_client(blob=name)
+        try:
+            is_duplicate = bool(blob_client.exists())
+        except Exception as e:
+            # if blob check fails for any reason, report as not duplicate and log the error
+            print(f"Error checking blob existence for '{name}': {e}")
+            is_duplicate = False
 
-main.py
-
-from document_loader import load_document
-from classifier import classify_document
-
-def main():
-    print(" Document Layout Classifier")
-    file_path = input("Enter the file path: ").strip()
+        attachment_results.append({
+            "filename": name,
+            "is_duplicate": is_duplicate
+        })
 
     try:
-        # Load the document and extract content
-        document_content = load_document(file_path)
-        if not document_content["text"]:
-            raise Exception("No readable content found.")
+        out_path = os.path.join(OUTPUT_DIR, f"{message.get('id', 'unknown')}_comparison.json")
+        with open(out_path, "w", encoding="utf-8") as f:
+            json.dump({"attachments": attachment_results}, f, indent=2, ensure_ascii=False)
+    except Exception as exc:
+        print(f"Failed to write comparison result file: {exc}")
 
-        # Classify the document layout
-        layout_type = classify_document(document_content)
-        print(f"\n Document Layout: {layout_type}")
-
-    except Exception as e:
-        print("Error:", e)
-
-if __name__ == "__main__":
-    main()
-
-
-
-summarizer.py
-
-from dotenv import load_dotenv
-import os
-import openai
- 
-openai.api_type = "azure"
-openai.api_base = os.getenv("AZURE_OPENAI_ENDPOINT")
-openai.api_version = os.getenv("AZURE_OPENAI_API_VERSION")
-openai.api_key = os.getenv("AZURE_OPENAI_API_KEY")
- 
-deployment_name = os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT")
- 
-def generate_summary(text, doc_type):
-    prompt = f"""
-You are a helpful insurance assistant AI. Based on the document type, summarize the content accordingly.
- 
-Document Type: {doc_type}
- 
-Summary Format:
-For Underwriting:
-- Applicant Details:
-- Risk Factors:
-- Policy Terms:
-- Recommendations:
- 
-For Claims:
-- Incident Details:
-- Claimant Info:
-- Claim Status:
-- Supporting Evidence:
- 
-Document:
-{text[:3000]}
- 
-Provide a structured summary followed by a section called 'Key Insights' listing the most important findings.
-"""
- 
-    response = openai.ChatCompletion.create(
-        engine=deployment_name,
-        messages=[{"role": "user", "content": prompt}]
-    )
- 
-    full_text = response['choices'][0]['message']['content'].strip()
-    summary, insights = full_text.split("Key Insights:")
-    insights = insights.strip().split("\n")
-    return summary.strip(), [line.strip("- ").strip() for line in insights if line.strip()]
- 
-
-utils.py
-import json
-import pandas as pd
- 
-def save_output(summary, insights, doc_type):
-    with open("summary_output.json", "w") as f:
-        json.dump({
-            "document_type": doc_type,
-            "summary": summary,
-            "key_insights": insights
-        }, f, indent=4)
- 
-    df = pd.DataFrame({
-        "Summary": [summary],
-        "Document Type": [doc_type],
-        "Key Insights": [", ".join(insights)]
-    })
-    df.to_excel("summary_output.xlsx", index=False)
- 
-    print("\n Summary saved to summary_output.json and summary_output.xlsx")
- 
+    return {"attachments": attachment_results}
