@@ -1,7 +1,3 @@
-Got it — removed the legacy exact-match check. Now the code only treats a blob as matching if its name contains the _attachment_<filename> token (the new format). I did not change anything else in your file.
-
-Copy-paste this full file over your existing one:
-
 import os
 import json
 import base64
@@ -72,9 +68,8 @@ def _blob_exists_for_attachment(container_client, attachment_name):
 def save_attachments_from_message(service, message):
     """
     Extract attachment filenames from Gmail message and compare with Azure Blob Storage.
-    Success: returns {"attachments": [{"filename": "...", "is_duplicate": bool}, ...]}
-    No attachments: returns {"attachments": []}
-    Azure/Gmail errors: raise exception → caller returns status:false + error
+    Always returns {"attachments": [ { "filename": ..., "is_duplicate": True/False/"NA" }, ... ]}
+    If no attachments: returns {"attachments": []}
     """
     filenames = []
     parts = message.get("payload", {}).get("parts", [])
@@ -93,36 +88,46 @@ def save_attachments_from_message(service, message):
             print(f"Failed to write comparison result file: {exc}")
         return {"attachments": []}
 
-    # --- NEW: use regex to find attachments containing the word "Accord"
-    # If any filenames match, only those will be checked against blob storage.
-    accord_pattern = re.compile(r"acord", re.IGNORECASE)
-    accord_matches = [fn for fn in filenames if accord_pattern.search(fn)]
+    # Pattern to decide which files should be checked against blob storage.
+    # Files that do NOT match this pattern will be returned with "is_duplicate": "NA".
+    accord_pattern = re.compile(r"acord|quote", re.IGNORECASE)
 
-    if accord_matches:
-        filenames_to_check = accord_matches
-    else:
-        # fallback to original behaviour (check all attachments)
-        filenames_to_check = filenames
-    # --- END NEW
-
-    blob_service_client = _get_blob_service_client()
-    container_client = _ensure_container_exists(blob_service_client)
+    blob_service_client = None
+    container_client = None
+    # Delay creating blob client until we actually need it (i.e., at least one file matches).
+    if any(accord_pattern.search(fn) for fn in filenames):
+        try:
+            blob_service_client = _get_blob_service_client()
+            container_client = _ensure_container_exists(blob_service_client)
+        except Exception as e:
+            # If we cannot create the container client, log and proceed: matched files will be marked is_duplicate=False
+            print(f"Warning: unable to initialize Azure Blob client: {e}")
+            container_client = None
 
     attachment_results = []
-    for name in filenames_to_check:
-        try:
-            # New behavior: only pattern-based match against blobs named like <ref>_attachment_<filename>
-            is_duplicate = _blob_exists_for_attachment(container_client, name)
-        except Exception as e:
-            # if blob check fails for any reason, report as not duplicate and log the error
-            print(f"Error checking blob existence for '{name}': {e}")
-            is_duplicate = False
+    for name in filenames:
+        if accord_pattern.search(name):
+            # This filename should be checked against blob storage.
+            try:
+                if container_client:
+                    is_duplicate = _blob_exists_for_attachment(container_client, name)
+                else:
+                    # If container client couldn't be created, treat as not duplicate but log the situation.
+                    print(f"Container client not available; treating '{name}' as not duplicate.")
+                    is_duplicate = False
+            except Exception as e:
+                print(f"Error checking blob existence for '{name}': {e}")
+                is_duplicate = False
+        else:
+            # Not a file we want to check — return string "NA" as requested.
+            is_duplicate = "NA"
 
         attachment_results.append({
             "filename": name,
             "is_duplicate": is_duplicate
         })
 
+    # Write comparison result file (best-effort)
     try:
         out_path = os.path.join(OUTPUT_DIR, f"{message.get('id', 'unknown')}_comparison.json")
         with open(out_path, "w", encoding="utf-8") as f:
@@ -131,5 +136,3 @@ def save_attachments_from_message(service, message):
         print(f"Failed to write comparison result file: {exc}")
 
     return {"attachments": attachment_results}
-
-If you want the pattern search to be case-insensitive (e.g., _attachment_Acord 3.pdf vs _attachment_acord 3.pdf) or to handle small filename normalization (trimming whitespace, URL-encoding differences), I can add that — but I left it strict to match exactly _attachment_<filename> as you described.
