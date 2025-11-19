@@ -1,43 +1,404 @@
-Great — I refactored Code 1 into the Code 2-style structure and kept the original behavior exactly: Gmail polling + webhook processing + attachment-vs-Azure-blob comparison. Drop these files into a directory named EmailAgent/ (subfolders as shown) and run python main.py — everything will start, and the polling will run as a FastAPI app with MCP-style structure.
+currently this is how my code is running
 
-Below are all files (full code). I kept function names and logic close to your originals so behavior stays identical.
+***********************************************
+[Agent] (tool call issued)
 
-⸻
+   → Tool name: document_extract_mcp
+   → Arguments: {'AgentName': 'DocumentExtractAgent', 'BlobUrl': 'https://agenticai1.blob.core.windows.net/attachment-downloader/19A81973900C46C9_attachment_Acord_125.pdf'}
+***********************************************
+[Tool:document_extract_mcp] {
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "source_file": "19A81973900C46C9_attachment_Acord_125.pdf",
+    "final_output_blob_url": "https://agenticai1.blob.core.windows.net/output-results/20251114_091414_7751308031284a11b0bd4bde8bb5fa88_final_output.json"
+  }
+}
+here 19A81973900C46C9 is reference number,
+Acord_125.pdf is the file, both of these we are getting in argument.
 
-Project structure
+now i want instead of it storing output in this format
+(20251114_091414_7751308031284a11b0bd4bde8bb5fa88_final_output.json)
+it should be in below format
+(*Unique Refrence Number*_attachment_*filename*_extraction*date*_*timestamp*)
+Example: 19A9AA053E32991B_attachment_Acord 125_extraction_20251119_054524.json
 
-EmailAgent/
-├─ main.py
-├─ .env.example
-├─ requirements.txt
-├─ history_state.json        # (optionally pre-create; code will create if missing)
-├─ storage_output/           # output folder (created automatically)
-├─ credentials/              # Put your Google OAuth client_secret.json here (same as original)
-├─ routers/
-│  ├─ gmail_router.py
-│  └─ attachment_router.py
-├─ services/
-│  ├─ gmail_service.py
-│  └─ attachment_service.py
-└─ utils/
-   └─ state_manager.py
+that is now it becomes
 
 
-⸻
+, i want 
+19A9AA053E32991B_attachment_Acord 125_extraction_20251119_054524.json
 
-1) main.py
+below is the complete code
 
-# main.py
+final_processor.py
+
+
+
 import os
+import json
+from dotenv import load_dotenv
+from openai import AzureOpenAI
+
+# ------------------ CONFIG ------------------
+load_dotenv()
+
+client = AzureOpenAI(
+    azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
+    api_key=os.getenv("AZURE_OPENAI_API_KEY"),
+    api_version="2024-05-01-preview"
+)
+
+MODEL = os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT")
+CONFIDENCE_THRESHOLD = 0.5
+MAX_CHARS = 12000
+
+
+def chunk_text(text, max_chars=MAX_CHARS):
+    """Split long text into safe chunks for OpenAI input."""
+    chunks, current, length = [], [], 0
+    for line in text.splitlines():
+        if length + len(line) > max_chars:
+            chunks.append("\n".join(current))
+            current, length = [], 0
+        current.append(line)
+        length += len(line)
+    if current:
+        chunks.append("\n".join(current))
+    return chunks
+
+
+def normalize_value(val):
+    """Join token lists like ['6:00', 'AM'] → '6:00 AM'."""
+    if isinstance(val, list):
+        val = " ".join(str(v) for v in val if v)
+    elif isinstance(val, dict):
+        val = val.get("valueString") or val.get("content") or str(val)
+    return str(val).strip()
+
+
+def simplify_fields(raw_json):
+    """Simplify Azure Doc Intelligence output."""
+    simplified = {}
+    docs = raw_json.get("documents", [])
+    if not docs:
+        return simplified
+
+    for doc in docs:
+        for key, value in doc.get("fields", {}).items():
+            if "valueString" in value:
+                val = normalize_value(value["valueString"])
+            elif "valueBoolean" in value:
+                val = value["valueBoolean"]
+            elif "content" in value:
+                val = normalize_value(value["content"])
+            else:
+                val = None
+
+            conf = value.get("confidence", None)
+            if val in [None, ""]:
+                continue
+
+            entry = {"value": val, "confidence": conf}
+            entry["low_confidence"] = conf is not None and conf < CONFIDENCE_THRESHOLD
+            simplified[key] = entry
+    return simplified
+
+
+def smart_group_fields(fields):
+    """Group related fields (LOB, Policy, Broker, etc.)."""
+    groups = {}
+    for key, info in fields.items():
+        lname = key.lower()
+        if "lob" in lname or "lineofbusiness" in lname:
+            group = "Line of Business"
+        elif "policy" in lname:
+            group = "Policy"
+        elif "insured" in lname:
+            group = "Insured Details"
+        elif "broker" in lname:
+            group = "Broker Details"
+        elif "contact" in lname:
+            group = "Contact Details"
+        elif "address" in lname:
+            group = "Address"
+        else:
+            group = "General"
+        groups.setdefault(group, {})[key] = info
+    return groups
+
+
+def build_prompt(cleaned_data):
+    """Structured prompt for GPT."""
+    return f"""
+You are a JSON data formatter. The following JSON is the output from Azure Document Intelligence for an ACORD insurance form.
+
+Return only a valid JSON (no commentary, no markdown, no explanations).
+
+Requirements:
+1. Extract clean key-value pairs grouped logically (Line of Business, Policy, Broker, etc.).
+2. Each field must show its value and confidence like:
+   "Field Name": "Value, confidence - 0.87"
+   if field is repeated extract both under its relevant umbrella section.
+   Use semantic context, proximity, and field coordinates to determine grouping in the document to assign each field to its most relevant umbrella category.
+3. Combine split tokens like ["6:00", "AM"] → "6:00 AM".
+4. Add "total_confidence" (avg for group).
+5. Add "overall_total_confidence" at end.
+
+Cleaned JSON input:
+{json.dumps(cleaned_data, indent=2)}
+"""
+
+
+def process_chunk(chunk):
+    """Send one chunk to GPT and ensure JSON-only output."""
+    response = client.chat.completions.create(
+        model=MODEL,
+        temperature=0,
+        messages=[
+            {"role": "system", "content": "You are a precise document understanding assistant that outputs only JSON."},
+            {"role": "user", "content": build_prompt(chunk)},
+        ]
+    )
+
+    text = response.choices[0].message.content.strip()
+    try:
+        start = text.find("{")
+        end = text.rfind("}") + 1
+        json_text = text[start:end]
+        return json.loads(json_text)
+    except Exception:
+        print("⚠️ Warning: GPT output not clean JSON. Attempting recovery.")
+        return {"error": "Invalid JSON returned", "raw_output": text}
+
+
+def process_azure_output(json_data):
+    """Process entire Doc Intelligence JSON with chunking + GPT."""
+    simplified = simplify_fields(json_data)
+    grouped = smart_group_fields(simplified)
+    text_data = json.dumps(grouped, indent=2)
+
+    chunks = chunk_text(text_data)
+    final_combined = {}
+
+    for chunk in chunks:
+        result = process_chunk(chunk)
+        if isinstance(result, dict):
+            for k, v in result.items():
+                if k in final_combined and isinstance(v, dict):
+                    final_combined[k].update(v)
+                else:
+                    final_combined[k] = v
+
+    print(f"✅ Final JSON processed successfully.")
+    return final_combined
+
+
+image_processor.py
+
+
+import os
+import json
+import uuid
+from datetime import datetime
+from dotenv import load_dotenv
+
+from azure.core.credentials import AzureKeyCredential
+from azure.ai.documentintelligence import DocumentIntelligenceClient
+from azure.storage.blob.aio import BlobServiceClient
+from azure.core.exceptions import ResourceNotFoundError
+
+from service import _require_env, get_env_values, AZURE_STORAGE_CONNECTION_STRING, _parse_blob_url
+from final_processor import process_azure_output  # Importing the final processor function
+
+load_dotenv()
+
+
+async def analyze_file_async(bloburl: str) -> dict:
+    """
+    Download the PDF from bloburl, analyze it with Azure Document Intelligence,
+    save the JSON locally inside ./output/output.json,
+    read the JSON from the file, process it with final_processor.py,
+    and upload the final JSON to Azure Blob Storage.
+    """
+
+    try:
+        _require_env()
+    except Exception as e:
+        return {"status": False, "error": str(e)}
+
+    endpoint, key, model_id = get_env_values()
+
+    try:
+        src_container, src_blob = _parse_blob_url(bloburl)
+    except Exception as e:
+        return {"status": False, "error": f"Invalid BlobUrl: {e}"}
+
+    source_file_name = os.path.basename(src_blob) if src_blob else "unknown.pdf"
+    source_file_name = os.path.basename(source_file_name)
+
+    if not AZURE_STORAGE_CONNECTION_STRING:
+        return {"status": False, "error": "Missing AZURE_STORAGE_CONNECTION_STRING in .env"}
+
+    try:
+        async with BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING) as blob_service:
+            container_client = blob_service.get_container_client(src_container)
+            blob_client = container_client.get_blob_client(src_blob)
+            try:
+                await blob_client.get_blob_properties()
+            except ResourceNotFoundError:
+                return {"status": False, "error": f"PDF blob not found: container='{src_container}', blob='{src_blob}'"}
+
+            stream = await blob_client.download_blob()
+            pdf_bytes = await stream.readall()
+    except Exception as e:
+        return {"status": False, "error": f"Error downloading PDF from Blob Storage: {e}"}
+
+    input_dir = os.path.join(os.getcwd(), "input")
+    os.makedirs(input_dir, exist_ok=True)
+
+    input_path = os.path.join(input_dir, source_file_name)
+
+    try:
+        with open(input_path, "wb") as wf:
+            wf.write(pdf_bytes)
+    except Exception as e:
+        return {"status": False, "error": f"Failed to write local input file '{input_path}': {e}"}
+
+    print("Connecting to Azure Document Intelligence service...")
+    try:
+        client = DocumentIntelligenceClient(
+            endpoint=endpoint,
+            credential=AzureKeyCredential(key)
+        )
+    except Exception as e:
+        return {"status": False, "error": f"Failed to create DocumentIntelligenceClient: {e}"}
+
+    print(f"Analyzing '{source_file_name}' using model '{model_id}'...")
+    try:
+        with open(input_path, "rb") as f:
+            poller = client.begin_analyze_document(model_id=model_id, body=f)
+            result = poller.result()
+    except Exception as e:
+        return {"status": False, "error": f"Error during document analysis: {e}"}
+
+    output_dir = os.path.join(os.getcwd(), "output")
+    os.makedirs(output_dir, exist_ok=True)
+    output_path = os.path.join(output_dir, "output.json")
+
+    # Save the raw JSON to output.json
+    json_data = result.as_dict()
+    try:
+        with open(output_path, "w", encoding="utf-8") as wf:
+            json.dump(json_data, wf, indent=2, ensure_ascii=False)
+    except Exception as e:
+        return {"status": False, "error": f"Failed to save local output.json: {e}"}
+
+    # Read the JSON from output.json and process it using final_processor.py
+    try:
+        with open(output_path, "r", encoding="utf-8") as rf:
+            raw_json = json.load(rf)  # Load JSON from the file
+        final_output = process_azure_output(raw_json)  # Process the JSON
+        final_output_path = os.path.join(output_dir, "final_output.json")
+        with open(final_output_path, "w", encoding="utf-8") as wf:
+            json.dump(final_output, wf, indent=2, ensure_ascii=False)
+    except Exception as e:
+        return {"status": False, "error": f"Failed to process JSON with final_processor.py: {e}"}
+
+    # Upload the final_output.json to Azure Blob Storage
+    timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    unique = uuid.uuid4().hex
+    output_container = "output-results"
+    target_blob_name = f"{timestamp}_{unique}_final_output.json"
+
+    try:
+        async with BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING) as blob_service:
+            out_container_client = blob_service.get_container_client(output_container)
+            try:
+                await out_container_client.create_container()
+            except Exception:
+                pass  # Container already exists
+
+            out_blob_client = out_container_client.get_blob_client(target_blob_name)
+
+            with open(final_output_path, "rb") as data:
+                await out_blob_client.upload_blob(data, overwrite=True)
+    except Exception as e:
+        return {"status": False, "error": f"Failed to upload final_output.json to output-results: {e}"}
+
+    parsed = bloburl.split("://", 1)[-1]
+    account_and_rest = parsed.split("/", 1)[0]
+    final_output_blob_url = f"https://{account_and_rest}/{output_container}/{target_blob_name}"
+
+    print(f"Final JSON saved locally and uploaded to: {final_output_blob_url}")
+
+    return {
+        "source_file": source_file_name,
+        "final_output_blob_url": final_output_blob_url
+    }
+async def process_input_folder_on_startup() -> None:
+    """Background startup function — checks ./input for any PDFs and logs them."""
+    try:
+        input_dir = os.path.join(os.getcwd(), "input")
+        if not os.path.exists(input_dir):
+            return
+
+        files = [f for f in os.listdir(input_dir) if f.lower().endswith(".pdf")]
+        if not files:
+            return
+
+        for pdf in files:
+            print(f"[startup] Found local PDF in ./input: {pdf} — no automatic processing.")
+    except Exception as e:
+        print(f"[startup] process_input_folder_on_startup error: {e}")
+        return
+
+
+main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi_mcp import FastApiMCP
 import uvicorn
-from routers import gmail_router, attachment_router
-from dotenv import load_dotenv
+from contextlib import asynccontextmanager
+import asyncio
+import os
 
-# Load .env (if present)
-load_dotenv()
+from router import router as document_router
+from image_processor import process_input_folder_on_startup
+
+async def _start_processing_task() -> None:
+    """
+    Create and store a background task that runs the processor once at startup.
+    This returns the created task (already scheduled).
+    """
+    task = asyncio.create_task(process_input_folder_on_startup())
+    return task
+
+async def _stop_processing_task(task: asyncio.Task) -> None:
+    """
+    Cancel and await the background task if it's still running.
+    """
+    if task and not task.done():
+        task.cancel()
+        try:
+            await task
+        except Exception:
+            pass
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    try:
+        app.state.processing_task = await _start_processing_task()
+    except Exception:
+        app.state.processing_task = None
+
+    yield
+
+    task = getattr(app.state, "processing_task", None)
+    if task:
+        await _stop_processing_task(task)
+
+app = FastAPI(lifespan=lifespan)
 
 def apply_cors(app: FastAPI):
     app.add_middleware(
@@ -47,447 +408,168 @@ def apply_cors(app: FastAPI):
         allow_headers=["*"],
     )
 
-# Main app
-app = FastAPI(title="EmailAgent Main App")
+def create_sub_app(title: str, description: str, version: str = "0.1.0") -> FastAPI:
+    sub_app = FastAPI(title=title, description=description, version=version, lifespan=lifespan)
+    apply_cors(sub_app)
+    return sub_app
+
 apply_cors(app)
 
-# Sub-app for Email handling (structured like Code 2 style)
-email_app = FastAPI(title="Email Agent", description="Gmail watcher + attachment comparator")
-apply_cors(email_app)
+document_extractor_app = create_sub_app(
+    title="document_extract_mcp",
+    description="Analyze documents in blob storage using Azure Form Recognizer and return structured results"
+)
 
-# Include routers
-email_app.include_router(gmail_router.router, prefix="", tags=["gmail"])
-email_app.include_router(attachment_router.router, prefix="", tags=["attachments"])
+document_extractor_app.include_router(document_router)
+FastApiMCP(document_extractor_app, include_operations=["document_extract_mcp"]).mount_http()
 
-# Mount FastApiMCP similar to Code 2 usage
-# Include operation ids from routers automatically
-FastApiMCP(email_app, include_operations=["process_notification", "create_watch"]).mount_http()
+app.mount("/api/v1/email_intent_agent", document_extractor_app)
 
-# Mount the sub-app at /api/v1/email
-app.mount("/api/v1/email", email_app)
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8054))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    host = os.getenv("HOST", "0.0.0.0")
+    port = int(os.getenv("PORT", "8102"))
+    uvicorn.run(app, host=host, port=port)
 
 
-⸻
 
-2) routers/gmail_router.py
 
-# routers/gmail_router.py
-from fastapi import APIRouter, BackgroundTasks
-from pydantic import BaseModel
-import asyncio
-import os
-from services.gmail_service import get_gmail_service
-from services.attachment_service import save_attachments_from_message
-from utils.state_manager import load_state, save_state
-from datetime import datetime
+
+
+router.py
+
+
 from dotenv import load_dotenv
-
 load_dotenv()
 
-router = APIRouter()
-
-# Global control flags similar to your original mcp_enail_server.py
-running = True
-last_check_time = None
-
-class EmailNotification(BaseModel):
-    emailAddress: str
-    historyId: int
-
-async def check_new_emails():
-    """Check for new emails and process them (same logic as original)."""
-    global last_check_time
-    service = get_gmail_service()
-
-    try:
-        if not last_check_time:
-            results = service.users().messages().list(userId="me", maxResults=5).execute()
-        else:
-            query = f"after:{int(last_check_time.timestamp())}"
-            results = service.users().messages().list(userId="me", q=query).execute()
-        messages = results.get("messages", [])
-        for message in messages:
-            msg = service.users().messages().get(userId="me", id=message["id"], format="full").execute()
-            print(f"📩 Processing message ID: {message['id']}")
-            comparison_result = save_attachments_from_message(service, msg)
-            print(f"📎 Comparison result: {comparison_result}")
-        last_check_time = datetime.now()
-    except Exception as e:
-        print(f"Error checking emails: {e}")
-
-async def email_polling_loop():
-    """Continuously poll for new emails."""
-    global running
-    while running:
-        try:
-            await check_new_emails()
-        except Exception as e:
-            print("Polling iteration error:", e)
-        await asyncio.sleep(int(os.environ.get("POLL_INTERVAL_SECONDS", 10)))
-
-@router.on_event("startup")
-async def startup_event():
-    """Start polling in background on startup."""
-    global running
-    try:
-        print("📧 Starting email polling (background task)...")
-        # fire-and-forget
-        asyncio.create_task(email_polling_loop())
-    except Exception as e:
-        print("Startup non-fatal error:", e)
-
-@router.on_event("shutdown")
-async def shutdown_event():
-    global running
-    running = False
-    print("📧 Shutting down email polling...")
-
-@router.post("/create_watch", summary="Create Gmail watch (same usage as original script)")
-async def create_watch_endpoint(project_id: str, topic_full_name: str):
-    """Create a Gmail watch for Pub/Sub notifications via simple HTTP call."""
-    try:
-        service = get_gmail_service()
-        body = {
-            "labelIds": ["INBOX"],
-            "topicName": topic_full_name
-        }
-        resp = service.users().watch(userId="me", body=body).execute()
-        print("Watch created:", resp)
-        return {"watch_response": resp}
-    except Exception as e:
-        return {"error": str(e)}
-
-@router.post("/process_notification", summary="Process Gmail push notification")
-async def process_notification(notification: EmailNotification, background_tasks: BackgroundTasks):
-    """
-    Process a Gmail notification and compare attachment filenames with Azure Blob Storage.
-    Keeps same behavior as original mcp_enail_server.process_notification
-    """
-    service = get_gmail_service()
-    email = notification.emailAddress
-    history_id = notification.historyId
-
-    state = load_state()
-    last_hist = state.get(email)
-
-    if not last_hist:
-        state[email] = history_id
-        save_state(state)
-        return {"message": f"Initialized history id {history_id}"}
-
-    processed_messages = []
-    try:
-        resp = service.users().history().list(
-            userId="me",
-            startHistoryId=str(last_hist),
-            historyTypes="messageAdded"
-        ).execute()
-        histories = resp.get("history", [])
-        message_ids = []
-        for h in histories:
-            for ma in h.get("messagesAdded", []):
-                message_ids.append(ma["message"]["id"])
-    except Exception as e:
-        print("History list failed:", e)
-        # Fallback: get recent messages (same as original)
-        res = service.users().messages().list(userId="me", q="newer_than:7d", maxResults=20).execute()
-        message_ids = [m["id"] for m in res.get("messages", [])]
-
-    for mid in message_ids:
-        msg = service.users().messages().get(userId="me", id=mid, format="full").execute()
-        comparison_result = save_attachments_from_message(service, msg)
-        processed_messages.append({
-            "message_id": mid,
-            "comparison_result": comparison_result
-        })
-
-    state[email] = history_id
-    save_state(state)
-
-    return {
-        "message": f"Processed {len(processed_messages)} messages",
-        "processed": processed_messages
-    }
-
-
-⸻
-
-3) routers/attachment_router.py
-
-# routers/attachment_router.py
 from fastapi import APIRouter
-from pydantic import BaseModel
-from services.attachment_service import get_blob_names_from_container, save_attachments_from_message
-from services.gmail_service import get_gmail_service
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field, validator
+
+from image_processor import analyze_file_async
 
 router = APIRouter()
 
-class AttachmentCheckRequest(BaseModel):
-    message_id: str
 
-@router.get("/list_blobs", summary="List blob names in Azure container")
-async def list_blobs():
-    """Return all blob names from the configured container."""
-    try:
-        blobs = get_blob_names_from_container()
-        return {"blobs": blobs}
-    except Exception as e:
-        return {"error": str(e)}
+class DocumentExtractMCP(BaseModel):
+    """Trigger document extraction for a PDF file located in blob storage."""
+    AgentName: str = Field(
+        default="DocumentExtractAgent",
+        description="The unique agent name of the agent that is being called"
+    )
+    BlobUrl: str = Field(
+        ...,
+        description="Required: full blob URL (https://...) or container/blob path (container/path/to/file.pdf) to analyze"
+    )
 
-@router.post("/check_message_attachments", summary="Check attachments for a given message id")
-async def check_message_attachments(req: AttachmentCheckRequest):
+    @validator("BlobUrl")
+    def bloburl_must_not_be_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("BlobUrl must be a non-empty string pointing to the blob (full URL or container/blob path).")
+        return v.strip()
+
+
+@router.post("/document_extract_mcp", operation_id="document_extract_mcp")
+async def document_extract_mcp(p_body: DocumentExtractMCP):
     """
-    Downloads message and compares attachments with blob storage.
-    This is useful for manual trigger/tests.
+    Analyze a PDF from Azure Blob storage using image_processor.analyze_file_async and
+    return the analyzer's structured result.
+
+    Body:
+
+        AgentName (str): Agent name (optional)
+
+        BlobUrl (str): Required full blob URL or container/blob path.
     """
     try:
-        service = get_gmail_service()
-        msg = service.users().messages().get(userId="me", id=req.message_id, format="full").execute()
-        result = save_attachments_from_message(service, msg)
-        return {"result": result}
-    except Exception as e:
-        return {"error": str(e)}
+        result = await analyze_file_async(bloburl=p_body.BlobUrl)
 
-
-⸻
-
-4) services/gmail_service.py
-
-# services/gmail_service.py
-import os
-import pickle
-from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import build
-
-# Scopes (same as original)
-SCOPES = [
-    'https://www.googleapis.com/auth/gmail.readonly'
-]
-
-TOKEN_PATH = "token.pickle"
-CLIENT_SECRET_PATH = os.path.join("credentials", "client_secret.json")
-
-def get_gmail_service():
-    """Authenticate with Gmail API and return the service object."""
-    creds = None
-    token_path = TOKEN_PATH
-
-    if os.path.exists(token_path):
-        with open(token_path, "rb") as f:
-            creds = pickle.load(f)
-
-    if not creds or not creds.valid:
-        if not os.path.exists(CLIENT_SECRET_PATH):
-            raise RuntimeError(f"Missing Gmail client secret at {CLIENT_SECRET_PATH}")
-        flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRET_PATH, SCOPES)
-        creds = flow.run_local_server(port=0)
-        with open(token_path, "wb") as f:
-            pickle.dump(creds, f)
-
-    service = build("gmail", "v1", credentials=creds, cache_discovery=False)
-    return service
-
-
-⸻
-
-5) services/attachment_service.py
-
-# services/attachment_service.py
-import os
-import json
-from azure.storage.blob import BlobServiceClient
-from dotenv import load_dotenv
-
-load_dotenv()  # Load environment variables if present
-
-STATE_FILE = os.environ.get("STATE_FILE", "history_state.json")
-OUTPUT_DIR = os.environ.get("OUTPUT_DIR", "storage_output")
-os.makedirs(OUTPUT_DIR, exist_ok=True)
-
-AZURE_STORAGE_CONNECTION_STRING = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "")
-AZURE_BLOB_CONTAINER = os.environ.get("AZURE_BLOB_CONTAINER", "")
-
-def _get_blob_service_client():
-    if not AZURE_STORAGE_CONNECTION_STRING:
-        raise RuntimeError("Missing AZURE_STORAGE_CONNECTION_STRING")
-    return BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING)
-
-def _ensure_container_exists(blob_service_client):
-    if not AZURE_BLOB_CONTAINER:
-        raise RuntimeError("Missing AZURE_BLOB_CONTAINER")
-    container_client = blob_service_client.get_container_client(AZURE_BLOB_CONTAINER)
-    try:
-        container_client.create_container()
-    except Exception:
-        pass
-    return container_client
-
-def get_blob_names_from_container():
-    """Retrieve all blob names from the Azure Blob Storage container."""
-    blob_names = []
-    try:
-        blob_service_client = _get_blob_service_client()
-        container_client = _ensure_container_exists(blob_service_client)
-        blobs = container_client.list_blobs()
-        blob_names = [blob.name for blob in blobs]
-    except Exception as e:
-        print(f"Error retrieving blob names: {e}")
-    return blob_names
-
-def load_state():
-    try:
-        with open(STATE_FILE, "r") as f:
-            return json.load(f)
-    except Exception:
-        return {}
-
-def save_state(state):
-    with open(STATE_FILE, "w") as f:
-        json.dump(state, f, indent=2)
-
-def _walk_parts(parts):
-    for p in parts or []:
-        yield p
-        for sub in p.get("parts", []) or []:
-            yield from _walk_parts([sub])
-
-def save_attachments_from_message(service, message):
-    """
-    Extract attachment filenames from Gmail message and compare with Azure Blob Storage.
-
-    Returns a dictionary with attachment names and comparison results, including a "is_duplicate" flag.
-    """
-    saved_attachments = []
-    parts = message.get("payload", {}).get("parts", [])
-
-    for part in _walk_parts(parts):
-        filename = part.get("filename")
-        if filename:
-            saved_attachments.append(filename)
-
-    blob_service_client = _get_blob_service_client()
-    container_client = _ensure_container_exists(blob_service_client)
-
-    attachment_results = []
-
-    for filename in saved_attachments:
-        is_duplicate = False
-        try:
-            blob_client = container_client.get_blob_client(blob=filename)
-            if blob_client.exists():
-                is_duplicate = True
-        except Exception as e:
-            print(f"Error checking blob existence for {filename}: {e}")
-
-        attachment_results.append({
-            "filename": filename,
-            "is_duplicate": is_duplicate
+        return JSONResponse(content={
+            "jsonrpc": "2.0",
+            "id": 1,
+            "result": result
         })
 
-    comparison_result = {
-        "attachments": attachment_results
-    }
-
-    try:
-        out_path = os.path.join(OUTPUT_DIR, f"{message.get('id')}_comparison.json")
-        with open(out_path, "w", encoding="utf-8") as f:
-            json.dump(comparison_result, f, indent=2)
-    except Exception as exc:
-        print(f"Failed to write comparison result file: {exc}")
-
-    return comparison_result
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": f"Extraction failed: {e}"})
 
 
-⸻
+service.py
 
-6) utils/state_manager.py
-
-# utils/state_manager.py
-import json
 import os
+from urllib.parse import urlparse, unquote
 from dotenv import load_dotenv
 
 load_dotenv()
 
-STATE_FILE = os.environ.get("STATE_FILE", "history_state.json")
+ENDPOINT = os.getenv("ENDPOINT", "")
+KEY = os.getenv("KEY", "")
+MODEL_ID = os.getenv("MODEL_ID", "")
+AZURE_STORAGE_CONNECTION_STRING = os.getenv("AZURE_STORAGE_CONNECTION_STRING", "")
 
-def load_state():
+
+def _require_env() -> None:
+    """Ensure required environment variables exist."""
+    if not (ENDPOINT and KEY and MODEL_ID):
+        raise RuntimeError("Missing ENDPOINT, KEY, or MODEL_ID in .env file.")
+    if not AZURE_STORAGE_CONNECTION_STRING:
+        raise RuntimeError("Missing AZURE_STORAGE_CONNECTION_STRING in .env file.")
+
+
+def get_env_values():
+    """Return endpoint, key, model_id"""
+    return ENDPOINT, KEY, MODEL_ID
+
+
+def _parse_blob_url(url: str) -> tuple[str, str]:
+    """
+    Parse an Azure Blob URL and return (container_name, blob_path).
+    Example URL:
+      https://account.blob.core.windows.net/output-results/folder/name.json
+    Returns:
+      ("output-results", "folder/name.json")
+    """
+    parsed = urlparse(url)
+    if not parsed.scheme.startswith("http"):
+        raise ValueError("BlobUrl must be a valid http(s) URL to Azure Blob Storage.")
+    path = parsed.path.lstrip("/")
+    if "/" not in path:
+        raise ValueError("BlobUrl must include both container and blob path.")
+    parts = path.split("/", 1)
+    container = parts[0]
+    blob_path = parts[1]
+    return unquote(container), unquote(blob_path)
+
+
+
+test_scripts.py
+
+import requests
+import json
+import os
+
+# Adjust host/port if you changed them in main.py .env
+BASE_URL = os.getenv("DOC_EXTRACT_BASE_URL", "http://localhost:8102")
+ENDPOINT = f"{BASE_URL}/api/v1/email_intent_agent/document_extract_mcp"
+
+def run_test():
+    payload = {
+        "AgentName": "DocumentExtractAgent",
+        # Replace with a real accessible PDF blob URL in your storage account
+        "BlobUrl": "https://agenticai1.blob.core.windows.net/emails-processed/Acord_125_FILLED 2-1-4 1.pdf"
+
+    }
     try:
-        with open(STATE_FILE, "r") as f:
-            return json.load(f)
-    except Exception:
-        return {}
+        resp = requests.post(ENDPOINT, json=payload, timeout=180)
+        print("HTTP Status:", resp.status_code)
+        try:
+            data = resp.json()
+            print(json.dumps(data, indent=4))
+        except json.JSONDecodeError:
+            print("Response not JSON:", resp.text)
+    except Exception as e:
+        print("Error calling API:", str(e))
 
-def save_state(state):
-    with open(STATE_FILE, "w") as f:
-        json.dump(state, f, indent=2)
-
-
-⸻
-
-7) .env.example
-
-# .env.example - copy to .env and fill values
-AZURE_STORAGE_CONNECTION_STRING=
-AZURE_BLOB_CONTAINER=
-STATE_FILE=history_state.json
-OUTPUT_DIR=storage_output
-POLL_INTERVAL_SECONDS=10
-PORT=8054
-
-
-⸻
-
-8) requirements.txt
-
-fastapi>=0.95.0
-uvicorn>=0.22.0
-google-auth-oauthlib>=1.0.0
-google-api-python-client>=2.70.0
-azure-storage-blob>=12.14.1
-python-dotenv>=1.0.0
-fastapi-mcp>=0.1.0
-pydantic>=1.10.0
-
-
-⸻
-
-How to run
-	1.	Place all files exactly as shown (create folders routers, services, utils, credentials).
-	2.	Put your Google OAuth client_secret.json inside credentials/client_secret.json.
-	3.	Copy .env.example → .env and fill:
-	•	AZURE_STORAGE_CONNECTION_STRING
-	•	AZURE_BLOB_CONTAINER
-	•	(optional) POLL_INTERVAL_SECONDS or use default 10
-	4.	Install packages:
-
-pip install -r requirements.txt
-
-	5.	Start the app:
-
-python main.py
-
-	•	The FastAPI app will be available (by default) at http://0.0.0.0:8054/. The Gmail polling background task will start automatically (same behavior as your original mcp_enail_server.py startup event).
-	•	Use /api/v1/email/process_notification to POST Gmail notifications (same signature as original) or /api/v1/email/create_watch to create watch programmatically.
-
-⸻
-
-Notes / design decisions I followed
-	•	Kept the Gmail authentication flow unchanged (still creates token.pickle on first run).
-	•	Kept attachment-comparison logic identical (still writes comparison JSON to storage_output/).
-	•	Polling interval can be controlled with POLL_INTERVAL_SECONDS env var.
-	•	FastApiMCP is mounted in main.py same as Code 2 style.
-	•	I split code into routers, services, and utils to match Code 2 modularity while preserving original flow.
-
-⸻
-
-If you want, I can:
-	•	Add an OpenAPI-friendly operation_id values for FastApiMCP mapping (so MCP shows nicer names).
-	•	Add unit-test stubs or a minimal example Gmail message for local testing without Gmail.
-	•	Convert get_gmail_service() to support service-account or non-interactive flows.
-
-Would you like me to add operation IDs & include_operations for nicer MCP picks now?
+if __name__ == "__main__":
+    print("Testing /document_extract_mcp ...")
+    run_test()
