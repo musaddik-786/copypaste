@@ -1,205 +1,279 @@
-# image_processor.py
-
-import os
-import json
-import uuid
-import re
-from datetime import datetime
-from dotenv import load_dotenv
-
-from azure.core.credentials import AzureKeyCredential
-from azure.ai.documentintelligence import DocumentIntelligenceClient
-from azure.storage.blob.aio import BlobServiceClient
-from azure.core.exceptions import ResourceNotFoundError
-
-from service import _require_env, get_env_values, AZURE_STORAGE_CONNECTION_STRING, _parse_blob_url
-from final_processor import process_azure_output  # Importing the final processor function
-
-load_dotenv()
-
-
-async def analyze_file_async(bloburl: str) -> dict:
-    """
-    Download the PDF from bloburl, analyze it with Azure Document Intelligence,
-    save the JSON locally inside ./output/output.json,
-    read the JSON from the file, process it with final_processor.py,
-    and upload the final JSON to Azure Blob Storage.
-
-    The uploaded final JSON filename will be in this format:
-      <Reference>_attachment_<OriginalFileNameWithoutExtension>_extraction_<YYYYMMDD_HHMMSS>.json
-
-    Example:
-      19A9AA053E32991B_attachment_Acord_125_extraction_20251119_054524.json
-    """
-
-    try:
-        _require_env()
-    except Exception as e:
-        return {"status": False, "error": str(e)}
-
-    endpoint, key, model_id = get_env_values()
-
-    try:
-        src_container, src_blob = _parse_blob_url(bloburl)
-    except Exception as e:
-        return {"status": False, "error": f"Invalid BlobUrl: {e}"}
-
-    source_file_name = os.path.basename(src_blob) if src_blob else "unknown.pdf"
-    source_file_name = os.path.basename(source_file_name)
-
-    if not AZURE_STORAGE_CONNECTION_STRING:
-        return {"status": False, "error": "Missing AZURE_STORAGE_CONNECTION_STRING in .env"}
-
-    try:
-        async with BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING) as blob_service:
-            container_client = blob_service.get_container_client(src_container)
-            blob_client = container_client.get_blob_client(src_blob)
-            try:
-                await blob_client.get_blob_properties()
-            except ResourceNotFoundError:
-                return {"status": False, "error": f"PDF blob not found: container='{src_container}', blob='{src_blob}'"}
-
-            stream = await blob_client.download_blob()
-            pdf_bytes = await stream.readall()
-    except Exception as e:
-        return {"status": False, "error": f"Error downloading PDF from Blob Storage: {e}"}
-
-    input_dir = os.path.join(os.getcwd(), "input")
-    os.makedirs(input_dir, exist_ok=True)
-
-    input_path = os.path.join(input_dir, source_file_name)
-
-    try:
-        with open(input_path, "wb") as wf:
-            wf.write(pdf_bytes)
-    except Exception as e:
-        return {"status": False, "error": f"Failed to write local input file '{input_path}': {e}"}
-
-    print("Connecting to Azure Document Intelligence service...")
-    try:
-        client = DocumentIntelligenceClient(
-            endpoint=endpoint,
-            credential=AzureKeyCredential(key)
-        )
-    except Exception as e:
-        return {"status": False, "error": f"Failed to create DocumentIntelligenceClient: {e}"}
-
-    print(f"Analyzing '{source_file_name}' using model '{model_id}'...")
-    try:
-        with open(input_path, "rb") as f:
-            poller = client.begin_analyze_document(model_id=model_id, body=f)
-            result = poller.result()
-    except Exception as e:
-        return {"status": False, "error": f"Error during document analysis: {e}"}
-
-    output_dir = os.path.join(os.getcwd(), "output")
-    os.makedirs(output_dir, exist_ok=True)
-    output_path = os.path.join(output_dir, "output.json")
-
-    # Save the raw JSON to output.json
-    json_data = result.as_dict()
-    try:
-        with open(output_path, "w", encoding="utf-8") as wf:
-            json.dump(json_data, wf, indent=2, ensure_ascii=False)
-    except Exception as e:
-        return {"status": False, "error": f"Failed to save local output.json: {e}"}
-
-    # Read the JSON from output.json and process it using final_processor.py
-    try:
-        with open(output_path, "r", encoding="utf-8") as rf:
-            raw_json = json.load(rf)  # Load JSON from the file
-        final_output = process_azure_output(raw_json)  # Process the JSON
-        final_output_path = os.path.join(output_dir, "final_output.json")
-        with open(final_output_path, "w", encoding="utf-8") as wf:
-            json.dump(final_output, wf, indent=2, ensure_ascii=False)
-    except Exception as e:
-        return {"status": False, "error": f"Failed to process JSON with final_processor.py: {e}"}
-
-    # ------------------------
-    # Build the target blob name in the desired format:
-    # <Reference>_attachment_<OriginalFileNameNoExt>_extraction_<YYYYMMDD_HHMMSS>.json
-    # ------------------------
-
-    base_name_no_ext = os.path.splitext(source_file_name)[0]  # e.g. "19A81973900C46C9_attachment_Acord_125"
-
-    ref_part = None
-    file_part = None
-
-    # Preferred pattern: "<ref>_attachment_<filename>"
-    if "_attachment_" in base_name_no_ext:
-        try:
-            ref_part, file_part = base_name_no_ext.split("_attachment_", 1)
-            ref_part = (ref_part or "").strip()
-            file_part = (file_part or "").strip()
-        except Exception:
-            ref_part = None
-            file_part = None
-
-    # Fallback: take first token as ref and rest as filename
-    if not ref_part or not file_part:
-        tokens = base_name_no_ext.split("_", 1)
-        if len(tokens) == 2:
-            ref_part, file_part = tokens[0].strip(), tokens[1].strip()
-        else:
-            # last fallback: use a uuid as reference and keep the whole base as filename
-            ref_part = uuid.uuid4().hex[:16]
-            file_part = base_name_no_ext
-
-    # IMPORTANT: Keep underscores in filename exactly as received (Acord_125)
-    # Minimal sanitization: allow only alphanumeric, underscore, and hyphen in both parts
-    ref_part = re.sub(r"[^A-Za-z0-9_-]", "", ref_part)
-    file_part = re.sub(r"[^A-Za-z0-9_-]", "", file_part)
-
-    timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-
-    output_container = "output-results"
-    target_blob_name = f"{ref_part}_attachment_{file_part}_extraction_{timestamp}.json"
-
-    # ------------------------
-    # Upload the final_output.json to Azure Blob Storage with the new name
-    # ------------------------
-    try:
-        async with BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING) as blob_service:
-            out_container_client = blob_service.get_container_client(output_container)
-            try:
-                # create will raise if exists — ignore
-                await out_container_client.create_container()
-            except Exception:
-                pass  # container likely exists; ignore
-
-            out_blob_client = out_container_client.get_blob_client(target_blob_name)
-
-            with open(final_output_path, "rb") as data:
-                await out_blob_client.upload_blob(data, overwrite=True)
-    except Exception as e:
-        return {"status": False, "error": f"Failed to upload final_output.json to output-results: {e}"}
-
-    # Build final URL to return (same style you were using)
-    parsed = bloburl.split("://", 1)[-1]
-    account_and_rest = parsed.split("/", 1)[0]
-    final_output_blob_url = f"https://{account_and_rest}/{output_container}/{target_blob_name}"
-
-    print(f"Final JSON saved locally and uploaded to: {final_output_blob_url}")
-
-    return {
-        "source_file": source_file_name,
-        "final_output_blob_url": final_output_blob_url
-    }
-
-
-async def process_input_folder_on_startup() -> None:
-    """Background startup function — checks ./input for any PDFs and logs them."""
-    try:
-        input_dir = os.path.join(os.getcwd(), "input")
-        if not os.path.exists(input_dir):
-            return
-
-        files = [f for f in os.listdir(input_dir) if f.lower().endswith(".pdf")]
-        if not files:
-            return
-
-        for pdf in files:
-            print(f"[startup] Found local PDF in ./input: {pdf} — no automatic processing.")
-    except Exception as e:
-        print(f"[startup] process_input_folder_on_startup error: {e}")
-        return
+{
+  "Broker": {
+    "Agency Customer ID": "542198, confidence - 0.98",
+    "Agency Name": "Prime Brokers Ltd., confidence - 0.95",
+    "Phone": "+1 202 406 789, confidence - 0.82",
+    "Producer's Signature": "William Grey, confidence - 0.59",
+    "Producer's Name (Print)": "William Grey, confidence - 0.45",
+    "total_confidence": 0.758
+  },
+  "Carrier": {
+    "Carrier Name": "Phoenix Insurers Ltd., confidence - 0.94",
+    "total_confidence": 0.94
+  },
+  "Policy": {
+    "Program Code": "P1, confidence - 0.96",
+    "Proposed Effective Date": "07/15/2025, confidence - 0.97",
+    "Proposed Expiration Date": "07/15/2028, confidence - 0.97",
+    "Billing Plan - Direct": ":unselected:, confidence - 0.68",
+    "Billing Plan - Agency": ":selected:, confidence - 0.96",
+    "Deposit": "$, confidence - 0.61",
+    "Minimum Premium": "$ $ , confidence - 0.45",
+    "Applicant's Initials": "BH, confidence - 0.98",
+    "total_confidence": 0.85,
+    "COMPANY POLICY OR PROGRAM NAME": "Program 1, confidence - 0.97",
+    "STATUS OF TRANSACTION-ISSUE POLICY": ":selected:, confidence - 0.96",
+    "ADDITIONAL INTEREST EVIDENCE POLICY": ":unselected:, confidence - 0.49",
+    "ANY POLICY OR COVERAGE DECLINED, CANCELLED OR NON-RENEWED DURING THE PRIOR THREE YEARS FOR ANY PREMISES OR OPERATIONS?": "N, confidence - 0.98",
+    "REASON FOR POLICY DECLINED IN PRIOR THREE YEARS - NON-PAYMENT": ":unselected:, confidence - 0.97",
+    "REASON FOR POLICY DECLINED IN PRIOR THREE YEARS - NON-RENEWAL": ":unselected:, confidence - 0.72"
+  },
+  "Transaction Status": {
+    "Quote": ":unselected:, confidence - 0.68",
+    "Bound": ":unselected:, confidence - 0.68",
+    "Change": ":unselected:, confidence - 0.68",
+    "Cancel": ":unselected:, confidence - 0.69",
+    "Renew": ":unselected:, confidence - 0.75",
+    "Date": "07/15/2025, confidence - 0.98",
+    "Time": "6:15 PM, confidence - 0.98",
+    "total_confidence": 0.79
+  },
+  "Line of Business Premiums": {
+    "Boiler and Machinery Premium": "$, confidence - 0.85",
+    "Business Auto Premium": "$, confidence - 0.49",
+    "Business Owners Premium": "$, confidence - 0.51",
+    "Commercial General Liability Premium": "$, confidence - 0.60",
+    "Commercial Inland Marine Premium": "$, confidence - 0.55",
+    "Crime Premium": "$, confidence - 0.46",
+    "total_confidence": 0.61
+  },
+  "Attachments": {
+    "Accounts Receivable/Valuable Papers": ":selected:, confidence - 0.98",
+    "Additional Interest Schedule": ":unselected:, confidence - 0.88",
+    "Additional Premises Information Schedule": ":unselected:, confidence - 0.86",
+    "Apartment Building Supplement": ":selected:, confidence - 0.98",
+    "Condo Assn Bylaws": ":unselected:, confidence - 0.88",
+    "Contractors Supplement": ":selected:, confidence - 0.98",
+    "Coverages Schedule": ":unselected:, confidence - 0.84",
+    "Dealers Section": ":unselected:, confidence - 0.76",
+    "Driver Information Schedule": ":unselected:, confidence - 0.76",
+    "Electronic Data Processing Section": ":unselected:, confidence - 0.84",
+    "Glass and Sign Section": ":unselected:, confidence - 0.67",
+    "Hotel/Motel Supplement": ":unselected:, confidence - 0.69",
+    "Installation/Builders Risk Section": ":selected:, confidence - 0.98",
+    "International Liability Exposure Supplement": ":unselected:, confidence - 0.69",
+    "International Property Exposure Supplement": ":unselected:, confidence - 0.67",
+    "Loss Summary": ":unselected:, confidence - 0.67",
+    "Open Cargo Section": ":unselected:, confidence - 0.67",
+    "Premium Payment Supplement": ":unselected:, confidence - 0.67",
+    "Professional Liability Supplement": ":unselected:, confidence - 0.67",
+    "Restaurant/Tavern Supplement": ":unselected:, confidence - 0.67",
+    "Statement/Schedule of Values": ":unselected:, confidence - 0.49",
+    "State Supplement": ":unselected:, confidence - 0.53",
+    "Vacant Building Supplement": ":unselected:, confidence - 0.53",
+    "Vehicle Schedule": ":unselected:, confidence - 0.51",
+    "total_confidence": 0.76
+  },
+  "Applicant Type": {
+    "Corporation": ":selected:, confidence - 0.98",
+    "Corporation 2": ":unselected:, confidence - 0.51",
+    "Individual": ":unselected:, confidence - 0.85",
+    "LLC": ":unselected:, confidence - 0.69",
+    "Not For Profit Org": ":unselected:, confidence - 0.68",
+    "Partnership": ":unselected:, confidence - 0.68",
+    "Subchapter S Corporation": ":unselected:, confidence - 0.69",
+    "Other Corporation": ":unselected:, confidence - 0.37",
+    "total_confidence": 0.69
+  },
+  "Premises Information": {
+    "Premises 1": {
+      "Street": "123 Penny Lane, confidence - 0.94",
+      "City": "Springfield, confidence - 0.98",
+      "State": "Illinois, confidence - 0.82",
+      "Zip": "ZIP:62629, confidence - 0.41",
+      "City Limits Inside": ":selected:, confidence - 0.96",
+      "City Limits Outside": ":unselected:, confidence - 0.64",
+      "City Limits Other": ":unselected:, confidence - 0.34",
+      "Interest Owner": ":selected:, confidence - 0.97",
+      "Interest Tenant": ":unselected:, confidence - 0.69",
+      "Annual Revenues": "$ 725000, confidence - 0.66",
+      "Occupied Area": "17000 SQ FT, confidence - 0.95",
+      "Open to Public Area": "3000 SQ FT, confidence - 0.86",
+      "Total Building Area": "26520 SQ FT, confidence - 0.72",
+      "Any Area Leased to Others?": "Y / N N, confidence - 0.43",
+      "Description of Operations": "IT Services and Operations, confidence - 0.98",
+      "total_confidence": 0.77
+    },
+    "Premises 2": {
+      "City Limits Inside": ":unselected:, confidence - 0.62",
+      "City Limits Outside": ":unselected:, confidence - 0.50",
+      "Interest Owner": ":unselected:, confidence - 0.66",
+      "Interest Tenant": ":unselected:, confidence - 0.68",
+      "Annual Revenues": "$, confidence - 0.35",
+      "Occupied Area": "FT, confidence - 0.22",
+      "Open to Public Area": "SQ FT, confidence - 0.49",
+      "Total Building Area": "SQ FT, confidence - 0.41",
+      "total_confidence": 0.49
+    },
+    "Premises 3": {
+      "City Limits Inside": ":unselected:, confidence - 0.52",
+      "City Limits Outside": ":unselected:, confidence - 0.49",
+      "City Limits Other": ":unselected:, confidence - 0.32",
+      "Interest Owner": ":unselected:, confidence - 0.67",
+      "Interest Tenant": ":unselected:, confidence - 0.66",
+      "Annual Revenues": "$, confidence - 0.31",
+      "Occupied Area": "SQ FT, confidence - 0.84",
+      "Open to Public Area": "SQ FT, confidence - 0.86",
+      "Total Building Area": "SQ FT, confidence - 0.86",
+      "Any Area Leased to Others?": "Y N, confidence - 0.34",
+      "total_confidence": 0.59
+    },
+    "FOUR CITY LIMITS OUTSIDE": ":unselected:, confidence - 0.53",
+    "FOUR CITY LIMITS OTHER": ":unselected:, confidence - 0.40",
+    "FOUR INTEREST OWNER": ":unselected:, confidence - 0.67",
+    "FOUR INTEREST TENANT": ":unselected:, confidence - 0.66",
+    "FOUR INTEREST OTHER": ":unselected:, confidence - 0.29",
+    "FOUR ANNUAL REVENUES": "$, confidence - 0.30",
+    "FOUR OCCUPIED AREA": "SQ FT, confidence - 0.84",
+    "FOUR OPEN TO PUBLIC AREA": "SQ FT, confidence - 0.95",
+    "FOUR TOTAL BUILDING AREA": "SQ FT, confidence - 0.93",
+    "FOUR ANY AREA LEASED TO OTHERS?": "Y, confidence - 0.37",
+    "total_confidence": 0.59
+  },
+  "overall_total_confidence": 0.793,
+  "Nature of Business": {
+    "APARTMENTS": ":unselected:, confidence - 0.69",
+    "CONDOMINIUMS": ":unselected:, confidence - 0.68",
+    "CONTRACTOR": ":unselected:, confidence - 0.67",
+    "INSTITUTIONAL": ":unselected:, confidence - 0.68",
+    "MANUFACTURING": ":unselected:, confidence - 0.53",
+    "OFFICE": ":selected:, confidence - 0.98",
+    "RESTAURANT": ":unselected:, confidence - 0.51",
+    "RETAIL": ":unselected:, confidence - 0.64",
+    "SERVICE": ":unselected:, confidence - 0.51",
+    "WHOLESALE": ":unselected:, confidence - 0.64",
+    "DATE BUSINESS STARTED (MM/DD/YYYY)": "02/12/1964, confidence - 0.97",
+    "total_confidence": 0.67
+  },
+  "Additional Interest": {
+    "EVIDENCE CERTIFICATE": ":unselected:, confidence - 0.41",
+    "EVIDENCE SEND BILL": ":unselected:, confidence - 0.10",
+    "BREACH OF WARRANTY": ":unselected:, confidence - 0.76",
+    "CO-OWNER": ":unselected:, confidence - 0.79",
+    "EMPLOYEE AS LESSOR": ":unselected:, confidence - 0.73",
+    "LEASEBACK OWNER": ":unselected:, confidence - 0.83",
+    "LIENHOLDER": ":unselected:, confidence - 0.83",
+    "LOSS PAYEE": ":unselected:, confidence - 0.75",
+    "MORTGAGEE": ":unselected:, confidence - 0.71",
+    "OWNER": ":unselected:, confidence - 0.75",
+    "REGISTRANT": ":unselected:, confidence - 0.75",
+    "LENDER'S LOSS PAYABLE": ":unselected:, confidence - 0.70",
+    "TRUSTEE": ":unselected:, confidence - 0.76",
+    "total_confidence": 0.66
+  },
+  "Applicant Information": {
+    "SIGNATURE": "PERSONAL INFORMATION ABOUT YOU, INCLUDING INFORMATION FROM A CREDIT OR OTHER INVESTIGATIVE REPORT, MAY BE COLLECTED FROM PERSONS OTHER THAN YOU IN CONNECTION WITH THIS APPLICATION FOR INSURANCE AND SUBSEQUENT AMENDMENTS AND RENEWALS. SUCH INFORMATION AS WELL AS OTHER PERSONAL AND PRIVILEGED INFORMATION COLLECTED BY US OR OUR AGENTS MAY IN CERTAIN CIRCUMSTANCES BE DISCLOSED TO THIRD PARTIES WITHOUT YOUR AUTHORIZATION. CREDIT SCORING INFORMATION MAY BE USED TO HELP DETERMINE EITHER YOUR ELIGIBILITY FOR INSURANCE OR THE PREMIUM YOU WILL BE CHARGED. WE MAY USE A THIRD PARTY IN CONNECTION WITH THE DEVELOPMENT OF YOUR SCORE. YOU MAY HAVE THE RIGHT TO REVIEW YOUR PERSONAL INFORMATION IN OUR FILES AND REQUEST CORRECTION OF ANY INACCURACIES. YOU MAY ALSO HAVE THE RIGHT TO REQUEST IN WRITING THAT WE CONSIDER EXTRAORDINARY LIFE CIRCUMSTANCES IN CONNECTION WITH THE DEVELOPMENT OF YOUR CREDIT SCORE. THESE RIGHTS MAY BE LIMITED IN SOME STATES. PLEASE CONTACT YOUR AGENT OR BROKER TO LEARN HOW THESE RIGHTS MAY APPLY IN YOUR STATE OR FOR INSTRUCTIONS ON HOW TO SUBMIT A REQUEST TO US FOR A MORE DETAILED DESCRIPTION OF YOUR RIGHTS AND OUR PRACTICES REGARDING PERSONAL INFORMATION. (Not applicable in AZ, CA, DE, KS, MA, MN, ND, NY, OR, VA, or WV. Specific ACORD 38s are available for applicants in these states.), confidence - 0.00",
+    "DATE": "07/15/2025, confidence - 0.91",
+    "IS THE APPLICANT A SUBSIDIARY OF ANOTHER ENTITY?": "N, confidence - 0.98",
+    "DOES THE APPLICANT HAVE ANY SUBSIDIARIES?": "N, confidence - 0.98",
+    "HAS BUSINESS BEEN PLACED IN A TRUST?": "N, confidence - 0.95",
+    "total_confidence": 0.76
+  },
+  "Safety Program": {
+    "IS A FORMAL SAFETY PROGRAM IN OPERATION?": "Y, confidence - 0.98",
+    "SAFETY MANUAL": ":selected:, confidence - 0.98",
+    "MONTHLY MEETINGS": ":selected:, confidence - 0.98",
+    "OSHA": ":unselected:, confidence - 0.95",
+    "OTHER": ":unselected:, confidence - 0.88",
+    "ANY EXPOSURE TO FLAMABLES, EXPLOSIVES, CHEMICALS?": "N, confidence - 0.00",
+    "ANY UNCORRECTED FIRE AND/OR SAFETY CODE VIOLATIONS? Y/N": "N, confidence - 0.96",
+    "total_confidence": 0.8
+  },
+  "Loss History": {
+    "LOSS HISTORY": "ENTER ALL CLAIMS OR LOSSES (REGARDLESS OF FAULT AND WHETHER OR NOT INSURED) OR OCCURRENCES THAT MAY GIVE RISE TO CLAIMS FOR THE LAST YEARS, confidence - 0.87",
+    "ANY PAST LOSSES OR CLAIMS RELATING TO SEXUAL ABUSE OR MOLESTATION ALLEGATIONS, DISCRIMINATION OR NEGLIGENT HIRING? Y/N": "N, confidence - 0.50",
+    "HAS APPLICANT HAD A JUDGEMENT OR LIEN DURING THE LAST FIVE YEARS? RESOLVE DATE 1": "N, confidence - 0.06",
+    "total_confidence": 0.48
+  },
+  "Other Insurance and Exposures": {
+    "ANY OTHER INSURANCE WITH THIS COMPANY?": "N, confidence - 0.95",
+    "ANY FOREIGN OPERATIONS, FOREIGN PRODUCTS DISTRIBUTED IN USA, OR US PRODUCTS SOLD/DISTRIBUTED IN FOREIGN COUNTRIES?": "N, confidence - 0.98",
+    "DOES APPLICANT HAVE OTHER BUSINESS VENTURES FOR WHICH COVERAGE IS NOT REQUESTED?": "N, confidence - 0.00",
+    "DOES APPLICANT OWN/LEASE/OPERATE ANY DRONES? Y/N": "N, confidence - 0.68",
+    "DOES APPLICANT HIRE OTHERS TO OPERATE DRONES? Y/N": "N, confidence - 0.70",
+    "total_confidence": 0.66
+  },
+  "Prior Carrier Information": {
+    "YEAR 1": "2024, confidence - 0.82",
+    "AUTOMOBILE PREMIUM 1": "$, confidence - 0.15",
+    "AUTOMOBILE EXPIRATION DATE 1": "05/19/2025, confidence - 0.22",
+    "PROPERTY CARRIER 1": "Travelers Insurance, confidence - 0.51",
+    "PROPERTY PREMIUM 1": "$ 48000, confidence - 0.43",
+    "PROPERTY EFFECTIVE DATE 1": "05/19/2024, confidence - 0.44",
+    "OTHER CARRIER 1": "$, confidence - 0.15",
+    "GENERAL LIABILITY POLICY NUMBER 1": "$, confidence - 0.09",
+    "PROPERTY POLICY NUMBER 1": "TP1987621, confidence - 0.49",
+    "total_confidence": 0.36
+  },
+  "Broker/Producer": {
+    "STATE PRODUCER LICENSE NO": "NA, confidence - 0.49",
+    "APPLICANT'S SIGNATURE 2": "Berkshire Hathaway, confidence - 0.22",
+    "NATIONAL PRODUCER NUMBER 2": "100-002541, confidence - 0.68",
+    "total_confidence": 0.46
+  },
+  "Address": {
+    "emailaddress": "greywilliam@primebrokers.com, confidence - 0.97",
+    "NAME AND MAILING ADDRESS": "Berkshire Hathaway, 123 Penny Lane, Springfield, IL, 62629, USA, confidence - 0.95",
+    "total_confidence": 0.96
+  },
+  "Contact Details": {
+    "CONTACT NAME": "William Grey, confidence - 0.96",
+    "contact type": "Primary, confidence - 0.98",
+    "contact_info_contact_name": "Michael Hill",
+    "total_confidence": 0.97
+  },
+  "Contacts": {
+    "Primary Contact Name": "Michael Hill, confidence - 0.969",
+    "Primary Contact Primary Phone": "+1 987612342, confidence - 0.852",
+    "Primary Contact Primary Phone Home": ":unselected:, confidence - 0.97",
+    "Primary Contact Primary Phone Bus": ":unselected:, confidence - 0.962",
+    "Primary Contact Primary Phone Cell": ":selected:, confidence - 0.658",
+    "Primary Contact Secondary Phone Home": ":unselected:, confidence - 0.956",
+    "Primary Contact Secondary Phone Bus": ":unselected:, confidence - 0.961",
+    "Primary Contact Secondary Phone Cell": ":unselected:, confidence - 0.96",
+    "Primary Contact Primary Email Address": "hillmichael@bhway.com, confidence - 0.948",
+    "Secondary Contact Type": "Secondary, confidence - 0.979",
+    "Secondary Contact Name": "Bill Deeney, confidence - 0.963",
+    "Secondary Contact Primary Phone Home": ":unselected:, confidence - 0.949",
+    "Secondary Contact Primary Phone Bus": ":unselected:, confidence - 0.958",
+    "Secondary Contact Primary Phone Cell": ":unselected:, confidence - 0.945",
+    "Secondary Contact Secondary Phone Home": ":unselected:, confidence - 0.936",
+    "Secondary Contact Secondary Phone Bus": ":unselected:, confidence - 0.961",
+    "Secondary Contact Secondary Phone Cell": ":unselected:, confidence - 0.96",
+    "Secondary Contact Primary Email Address": "deeneybill@bhway.com, confidence - 0.973",
+    "total_confidence": 0.927
+  },
+  "Line of Business": {
+    "BOILER AND MACHINERY": ":unselected:, confidence - 0.757",
+    "BUSINESS AUTO": ":unselected:, confidence - 0.754",
+    "BUSINESS OWNERS": ":unselected:, confidence - 0.7",
+    "COMMERCIAL GENERAL LIABILITY": ":unselected:, confidence - 0.702",
+    "COMMERCIAL INLAND MARINE": ":unselected:, confidence - 0.756",
+    "COMMERCIAL PROPERTY": ":selected:, confidence - 0.976",
+    "CRIME": ":unselected:, confidence - 0.822",
+    "CYBER AND PRIVACY": ":unselected:, confidence - 0.544",
+    "FIDUCIARY LIABILITY": ":unselected:, confidence - 0.58",
+    "GARAGE AND DEALERS": ":unselected:, confidence - 0.634",
+    "LIQUOR LIABILITY": ":unselected:, confidence - 0.548",
+    "MOTOR CARRIER": ":unselected:, confidence - 0.529",
+    "UMBRELLA": ":unselected:, confidence - 0.552",
+    "OTHER LOB 2 PREMIUM": "$ $ , confidence - 0.366",
+    "OTHER LOB 3 PREMIUM": "$ $ , confidence - 0.203",
+    "OTHER LOB 4 PREMIUM": "$, confidence - 0.069",
+    "total_confidence": 0.626
+  },
+  "Insured Details": {
+    "Additional Interest Additional Insured": ":unselected:, confidence - 0.825",
+    "total_confidence": 0.825
+  }
+}
