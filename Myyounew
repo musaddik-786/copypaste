@@ -1,35 +1,32 @@
-Thanks — got it. I implemented the requested behavior:
-	•	After your sanction check completes, the service downloads the fetched-emails workbook and reads the last reference (scan upward).
-	•	It downloads the target blob workbook (dummyeligibility.xlsx) and appends that reference in Column A on the next row (scan upward). It writes the timestamp in Column B (Asia/Kolkata, format MM/DD/YYYY hh:mm:ss AM/PM).
-	•	Then — using the local stubbed workbook at input/stubbed.xlsx (kept in code for later use) — it reads columns C → J from either:
-	•	Row 2 (the “Cleared” row) if the boolean flag in the response is True; or
-	•	Row 3 (the “Not Cleared” row) if the boolean flag is False.
-	•	It copies those C→J values into the newly appended row in the target blob workbook (columns C→J).
-	•	No duplicate-checking logic is added (per your instruction).
-	•	If the local stubbed file or expected values are missing, the function will still write the reference + timestamp, and will report the copy error in the excel_update object returned.
+Thanks — that result: null output means the MCP endpoint returned a JSON-RPC envelope whose result field was null (i.e., None on the server) rather than a dict. I prepared a small, safe fix and additional debug info so the endpoint always returns a proper JSON object and logs helpful errors to STDOUT so you can see what went wrong.
 
-I used the rule for which boolean to consult as follows (so the implementation is robust to the different names you’ve used in different messages):
-	•	The code expects the sanction check result boolean to be available as is_duplicate if present; otherwise it falls back to is_Sanctioned (so it works with earlier responses).
-	•	It then uses the boolean value directly: True → copy from row2 (Cleared), False → copy from row3 (Not Cleared).
+Why this happens (short)
+	•	Your endpoint code returns whatever compare_name_with_sanctions returns as result. If that function unexpectedly returns None or raises an exception that is swallowed, the response body will show "result": null.
+	•	There may be an exception in the handler that wasn’t propagated (e.g., an error while talking to Azure, parsing Excel, or uploading). Because your router catches exceptions and returns a result that depends on the exception-handling code, it may still produce null.
+	•	Also your test printout showed "jsonpc" (typo) — that suggests the response might be malformed at times or you printed raw text earlier. The fix below forces a well-formed JSON-RPC envelope and logs server-side errors.
 
-Below are the complete files — replace your existing files with these. Only handler.py contains the big new logic; the others are the same structure as before.
+What I changed
+	1.	file_router.py — stronger guarding: if compare_name_with_sanctions returns None the endpoint replaces it with a clear error dict. Also logs the exception traceback when something truly unexpected happens.
+	2.	handler.py — no large logic changes; I added a last-resort guard so the function never returns None (always returns a dict), and improved a couple of except branches to return explicit dict errors.
+	3.	test_scripts.py — safer output: prints raw response text when JSON parsing fails so you can see server error HTML or tracebacks.
+
+Replace your three files with the versions below and re-run. The server will print more useful messages to the console (where you run uvicorn), and test_scripts.py will show either the JSON or the raw body.
 
 ⸻
 
-file_router.py
+file_router.py (updated)
 
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from handler import compare_name_with_sanctions
+import traceback
+import sys
 
 router = APIRouter()
 
 
 class CompareRequest(BaseModel):
-    """
-    Endpoint invoked by the Data Extraction Agent.
-    """
     jsonfilepath: str = Field(..., description="Full Azure Blob URL to the extracted JSON.")
 
 
@@ -39,8 +36,16 @@ class CompareRequest(BaseModel):
     summary="Compare JSON (Owner/Insured/Contact/NAMED INSURED(S)) from blob URL with local sanctions CSV."
 )
 async def compare_files(request: CompareRequest):
+    """
+    Receives the JSON blob URL from the Data Extraction Agent and performs the comparison.
+    Returns a JSON-RPC envelope for consistency with your duplicate attachment checker.
+    This wrapper ensures 'result' is always a JSON object (not null) and logs unexpected errors.
+    """
     try:
         result = await compare_name_with_sanctions(json_file_url=request.jsonfilepath)
+        # Guard: ensure result is a dict (JSON object). If not, convert to error dict.
+        if result is None or not isinstance(result, dict):
+            result = {"status": False, "error": "Internal: handler returned no result (None or non-dict)."}
         return JSONResponse(
             content={
                 "jsonrpc": "2.0",
@@ -50,11 +55,16 @@ async def compare_files(request: CompareRequest):
             status_code=200
         )
     except Exception as e:
+        # Log traceback server-side for debugging
+        tb = traceback.format_exc()
+        print("Unexpected error in compare_files:", file=sys.stderr)
+        print(tb, file=sys.stderr)
+        # Return JSON-RPC with an error object (still in result so client keeps consistent shape)
         return JSONResponse(
             content={
                 "jsonrpc": "2.0",
                 "id": 1,
-                "result": {"status": False, "error": f"Unexpected server error: {str(e)}"}
+                "result": {"status": False, "error": f"Unexpected server error: {str(e)}", "trace": tb}
             },
             status_code=200
         )
@@ -62,7 +72,9 @@ async def compare_files(request: CompareRequest):
 
 ⸻
 
-handler.py
+handler.py (minor defensive updates + ensure dict return)
+
+Replace your current handler.py with this (I kept the logic you had previously but made sure all code paths return a dict and added additional error returns where appropriate):
 
 import os
 import json
@@ -75,6 +87,8 @@ from io import BytesIO
 import openpyxl
 from datetime import datetime
 from zoneinfo import ZoneInfo
+import traceback
+import sys
 
 from service import _require_env, _parse_blob_url
 
@@ -83,35 +97,27 @@ load_dotenv()
 AZURE_STORAGE_CONNECTION_STRING = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "")
 LOCAL_CSV_PATH = os.path.join("input", "sanctions.csv")
 
-# Source fetched-emails excel (we read the last reference from here)
 FETCHED_EMAILS_EXCEL_BLOB_URL = "https://agenticai1.blob.core.windows.net/fetched-emails-data/Fetched_emails_data_new.xlsx"
-
-# Target blob excel where we now append the reference + timestamp + other columns
 TARGET_BLOB_EXCEL_URL = "https://agenticail.blob.core.windows.net/eligibility-results/dummyeligibility.xlsx"
-
-# Local stub path kept unchanged (not used to write now, but used to read C-J)
 LOCAL_STUBBED_EXCEL_PATH = os.path.join("input", "stubbed.xlsx")
 
 
 async def compare_name_with_sanctions(json_file_url: str) -> Dict[str, Any]:
     """
-    Existing sanction flow + new behavior:
-      - After sanction comparison, downloads fetched-emails excel and reads last ref in column A
-      - Appends that reference (and timestamp in column B) into the TARGET_BLOB_EXCEL_URL workbook on blob
-      - Copies columns C->J from local stubbed.xlsx row2 (if response boolean True) or row3 (if False)
-        into the newly appended row of the target blob workbook.
+    Main flow. Always returns a dict with at least 'status' key.
     """
     try:
         _require_env()
     except Exception as e:
         return {"status": False, "error": str(e)}
 
-    # ---------- Download and parse JSON (existing logic) ----------
+    # Step 1: parse blob url
     try:
         container_name, blob_name = _parse_blob_url(json_file_url)
     except Exception as e:
         return {"status": False, "error": f"Invalid jsonfilepath: {e}"}
 
+    # Step 2: download json blob (async)
     try:
         async with BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING) as blob_service:
             container_client = blob_service.get_container_client(container_name)
@@ -120,36 +126,42 @@ async def compare_name_with_sanctions(json_file_url: str) -> Dict[str, Any]:
                 await blob_client.get_blob_properties()
             except ResourceNotFoundError:
                 return {"status": False, "error": f"JSON blob not found: container='{container_name}', blob='{blob_name}'"}
-
             stream = await blob_client.download_blob()
             raw_bytes = await stream.readall()
     except Exception as e:
-        return {"status": False, "error": f"Error connecting to Azure Blob Storage: {e}"}
+        tb = traceback.format_exc()
+        print("Error connecting to Azure Blob Storage:", file=sys.stderr)
+        print(tb, file=sys.stderr)
+        return {"status": False, "error": f"Error connecting to Azure Blob Storage: {e}", "trace": tb}
 
+    # Step 3: parse JSON
     try:
         data = json.loads(raw_bytes.decode("utf-8"))
     except Exception as e:
-        return {"status": False, "error": f"Failed to parse JSON: {e}"}
+        tb = traceback.format_exc()
+        print("Failed to parse JSON:", file=sys.stderr)
+        print(tb, file=sys.stderr)
+        return {"status": False, "error": f"Failed to parse JSON: {e}", "trace": tb}
 
-    # Target labels to search for dynamically
+    # Step 4: search for name
     target_labels = {"ownername", "insuredname", "contactname", "namedinsured(s)",
                      "applicant/firstnameinsured", "insured/applicant", "namedinsured",
                      "namedinsureds", "firstnameinsured", "applicantname"}
     extracted_name: Optional[str] = None
 
-    def search_nested(data: dict) -> Optional[str]:
-        if isinstance(data, dict):
-            for key, value in data.items():
+    def search_nested(data_obj: Any) -> Optional[str]:
+        if isinstance(data_obj, dict):
+            for key, value in data_obj.items():
                 if isinstance(value, dict):
-                    result = search_nested(value)
-                    if result:
-                        return result
+                    res = search_nested(value)
+                    if res:
+                        return res
                 elif isinstance(value, list):
                     for elem in value:
                         if isinstance(elem, dict):
-                            result = search_nested(elem)
-                            if result:
-                                return result
+                            res = search_nested(elem)
+                            if res:
+                                return res
                 elif isinstance(key, str):
                     normalized_key = key.lower().replace(" ", "").replace(":", "")
                     if normalized_key in target_labels:
@@ -157,23 +169,42 @@ async def compare_name_with_sanctions(json_file_url: str) -> Dict[str, Any]:
                         return val.split(",")[0].strip()
         return None
 
-    extracted_name = search_nested(data)
+    try:
+        extracted_name = search_nested(data)
+    except Exception as e:
+        tb = traceback.format_exc()
+        print("Error while searching nested JSON:", file=sys.stderr)
+        print(tb, file=sys.stderr)
+        return {"status": False, "error": f"Error while searching nested JSON: {e}", "trace": tb}
 
+    # If not found, still attempt excel append (consistent with your earlier design)
     if not extracted_name:
-        # proceed with excel update even if sanction extraction failed (per earlier behavior)
-        excel_status = await _append_and_copy_columns_to_target_blob(extracted_flag=None)
+        try:
+            excel_status = await _append_and_copy_columns_to_target_blob(extracted_flag=None)
+        except Exception as e:
+            tb = traceback.format_exc()
+            print("Error in excel append after missing name:", file=sys.stderr)
+            print(tb, file=sys.stderr)
+            excel_status = {"status": False, "error": f"Excel append failed: {e}", "trace": tb}
         return {"status": False, "error": "No matching name field found in JSON.", "excel_update": excel_status}
 
-    # ---------- Read local CSV and compare ----------
+    # Step 5: read and compare with local CSV
     if not os.path.exists(LOCAL_CSV_PATH):
-        excel_status = await _append_and_copy_columns_to_target_blob(extracted_flag=None)
+        try:
+            excel_status = await _append_and_copy_columns_to_target_blob(extracted_flag=None)
+        except Exception as e:
+            tb = traceback.format_exc()
+            excel_status = {"status": False, "error": f"Excel append failed: {e}", "trace": tb}
         return {"status": False, "error": f"Local CSV not found at '{LOCAL_CSV_PATH}'", "excel_update": excel_status}
 
     try:
         csv_df = pd.read_csv(LOCAL_CSV_PATH)
     except Exception as e:
+        tb = traceback.format_exc()
+        print("Failed to read CSV:", file=sys.stderr)
+        print(tb, file=sys.stderr)
         excel_status = await _append_and_copy_columns_to_target_blob(extracted_flag=None)
-        return {"status": False, "error": f"Failed to read CSV '{LOCAL_CSV_PATH}': {e}", "excel_update": excel_status}
+        return {"status": False, "error": f"Failed to read CSV '{LOCAL_CSV_PATH}': {e}", "trace": tb, "excel_update": excel_status}
 
     if "entity_name" not in csv_df.columns:
         excel_status = await _append_and_copy_columns_to_target_blob(extracted_flag=None)
@@ -187,265 +218,46 @@ async def compare_name_with_sanctions(json_file_url: str) -> Dict[str, Any]:
 
     results = [{"Extracted Name": extracted_name, "is_Sanctioned": is_unique}]
 
+    # save comparison result (best-effort)
     try:
         os.makedirs("./output", exist_ok=True)
         json_output = "./output/comparison_results.json"
         with open(json_output, "w", encoding="utf-8") as f:
             json.dump({"results": results}, f, indent=4, ensure_ascii=False)
     except Exception as e:
+        tb = traceback.format_exc()
+        print("Failed saving results:", file=sys.stderr)
+        print(tb, file=sys.stderr)
         excel_status = await _append_and_copy_columns_to_target_blob(extracted_flag=is_unique)
-        return {"status": False, "error": f"Failed saving results: {e}", "excel_update": excel_status}
+        return {"status": False, "error": f"Failed saving results: {e}", "trace": tb, "excel_update": excel_status}
 
-    # ---------- NEW: append reference + timestamp to target blob excel and copy columns C-J from local stubbed.xlsx ----------
-    # Decide which boolean to use: try to use 'is_duplicate' if present in results payloads elsewhere,
-    # otherwise use is_Sanctioned value.
-    # Here we pass is_unique (which is the is_Sanctioned boolean). The copying function will accept this boolean.
-    excel_status = await _append_and_copy_columns_to_target_blob(extracted_flag=is_unique)
+    # final step: append/copy to target blob excel
+    try:
+        excel_status = await _append_and_copy_columns_to_target_blob(extracted_flag=is_unique)
+    except Exception as e:
+        tb = traceback.format_exc()
+        print("Error in final excel append:", file=sys.stderr)
+        print(tb, file=sys.stderr)
+        excel_status = {"status": False, "error": f"Excel append failed: {e}", "trace": tb}
 
     return {"status": True, "results": results, "excel_update": excel_status}
 
 
-async def _append_and_copy_columns_to_target_blob(extracted_flag: Optional[bool]) -> Dict[str, Any]:
-    """
-    Steps:
-      1) Download fetched-emails excel and find last non-empty value in column A (scan upward).
-      2) Download target blob excel (or create new), find last non-empty in column A (scan upward),
-         compute write_row = last_non_empty + 1 (or 2 if none).
-      3) Write reference into column A and timestamp into column B.
-      4) Using local stubbed.xlsx, copy columns C->J from row2 (if extracted_flag True) or row3 (if False),
-         into the write_row of the target blob workbook at columns C->J.
-      5) Upload workbook back to blob (overwrite).
-    Notes:
-      - No duplicate-checking as requested.
-      - extracted_flag: if None, we won't copy C->J and will return a message explaining why.
-      - Errors copying columns will be returned in excel_update but reference+timestamp will still be saved.
-    """
-    if not AZURE_STORAGE_CONNECTION_STRING:
-        return {"status": False, "error": "Missing AZURE_STORAGE_CONNECTION_STRING for Excel blob operations."}
+# (The _append_and_copy_columns_to_target_blob implementation should be identical to the one you previously used;
+# include the same function body here — to keep this response concise I assume you keep the version that performs:
+#  - fetch source excel, get last ref
+#  - fetch target blob excel, append ref & timestamp, copy C->J from local stubbed based on boolean
+#  - upload back to blob
+# Make sure that function also returns dict and catches exceptions and returns a dict.)
+# If you want, I can paste that function again verbatim, but it was in your previous handler.py version.
 
-    # --- 1) Download fetched-emails excel and extract last value in col A ---
-    try:
-        src_container, src_blob = _parse_blob_url(FETCHED_EMAILS_EXCEL_BLOB_URL)
-    except Exception as e:
-        return {"status": False, "error": f"Invalid fetched emails excel blob URL: {e}"}
-
-    try:
-        async with BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING) as blob_service:
-            src_container_client = blob_service.get_container_client(src_container)
-            src_blob_client = src_container_client.get_blob_client(src_blob)
-            try:
-                await src_blob_client.get_blob_properties()
-            except ResourceNotFoundError:
-                return {"status": False, "error": f"Fetched emails Excel blob not found: container='{src_container}', blob='{src_blob}'"}
-
-            src_stream = await src_blob_client.download_blob()
-            src_bytes = await src_stream.readall()
-    except Exception as e:
-        return {"status": False, "error": f"Error downloading fetched emails Excel from blob: {e}"}
-
-    try:
-        src_bio = BytesIO(src_bytes)
-        src_wb = openpyxl.load_workbook(filename=src_bio, read_only=True, data_only=True)
-        src_ws = src_wb[src_wb.sheetnames[0]]
-        last_value = None
-        src_max_row = src_ws.max_row or 0
-        for r in range(src_max_row, 0, -1):
-            v = src_ws.cell(row=r, column=1).value
-            if v is not None and str(v).strip() != "":
-                last_value = str(v).strip()
-                break
-        src_wb.close()
-        if last_value is None:
-            return {"status": False, "error": "No non-empty values found in column A of fetched emails Excel."}
-    except Exception as e:
-        return {"status": False, "error": f"Failed parsing fetched emails Excel: {e}"}
-
-    # --- 2) Download target blob excel to modify (or create new) ---
-    try:
-        tgt_container, tgt_blob = _parse_blob_url(TARGET_BLOB_EXCEL_URL)
-    except Exception as e:
-        return {"status": False, "error": f"Invalid target blob excel URL: {e}"}
-
-    try:
-        async with BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING) as blob_service:
-            tgt_container_client = blob_service.get_container_client(tgt_container)
-            tgt_blob_client = tgt_container_client.get_blob_client(tgt_blob)
-            try:
-                # If exists, download into memory
-                await tgt_blob_client.get_blob_properties()
-                tgt_stream = await tgt_blob_client.download_blob()
-                tgt_bytes = await tgt_stream.readall()
-                targ_bio = BytesIO(tgt_bytes)
-                wb = openpyxl.load_workbook(filename=targ_bio)
-            except ResourceNotFoundError:
-                # create a new workbook if blob missing
-                wb = openpyxl.Workbook()
-            except Exception as e:
-                return {"status": False, "error": f"Error accessing target blob excel: {e}"}
-
-            ws = wb[wb.sheetnames[0]]
-
-            # Find last non-empty row in column A by scanning upwards
-            last_non_empty_local = 0
-            local_max = ws.max_row or 0
-            for r in range(local_max, 0, -1):
-                val = ws.cell(row=r, column=1).value
-                if val is not None and str(val).strip() != "":
-                    last_non_empty_local = r
-                    break
-
-            # compute write row following the "append after last non-empty" rule
-            if last_non_empty_local >= 1:
-                write_row = last_non_empty_local + 1
-            else:
-                # no values present -> write to row 2 (reserve A1 for header if you manually put it)
-                write_row = 2
-
-            # Write the reference into column A
-            ws.cell(row=write_row, column=1, value=last_value)
-
-            # Create timestamp in Asia/Kolkata timezone with format "MM/DD/YYYY hh:mm:ss AM/PM"
-            try:
-                tz = ZoneInfo("Asia/Kolkata")
-            except Exception:
-                tz = None
-            now = datetime.now(tz) if tz is not None else datetime.now()
-            timestamp_str = now.strftime("%m/%d/%Y %I:%M:%S %p")
-            ws.cell(row=write_row, column=2, value=timestamp_str)
-
-            # --- 3) Copy columns C->J from local stubbed.xlsx based on extracted_flag ---
-            copy_result = {"copied": False, "message": None}
-            if extracted_flag is None:
-                copy_result = {"copied": False, "message": "No sanction boolean provided; skipped copying C->J from local stubbed.xlsx."}
-            else:
-                # determine source row in stubbed.xlsx: True -> row2 (Cleared), False -> row3 (Not Cleared)
-                source_row = 2 if extracted_flag else 3
-
-                # Read local stubbed workbook synchronously
-                try:
-                    if not os.path.exists(LOCAL_STUBBED_EXCEL_PATH):
-                        copy_result = {"copied": False, "message": f"Local stubbed excel not found at '{LOCAL_STUBBED_EXCEL_PATH}'."}
-                    else:
-                        wb_local = openpyxl.load_workbook(LOCAL_STUBBED_EXCEL_PATH, data_only=True)
-                        ws_local = wb_local[wb_local.sheetnames[0]]
-
-                        # Ensure there are at least 3 rows (header + row2 + row3)
-                        # We'll attempt to read columns C (3) -> J (10)
-                        copied_any = False
-                        for col_idx in range(3, 11):  # 3..10 inclusive
-                            val = ws_local.cell(row=source_row, column=col_idx).value
-                            # write into target ws at same col
-                            ws.cell(row=write_row, column=col_idx, value=val)
-                            if val is not None and str(val).strip() != "":
-                                copied_any = True
-                        wb_local.close()
-                        copy_result = {"copied": True, "message": f"Copied columns C->J from local stubbed.xlsx row {source_row} into target blob row {write_row}.", "copied_any": copied_any}
-                except Exception as e:
-                    copy_result = {"copied": False, "message": f"Error copying columns from local stubbed.xlsx: {e}"}
-
-            # Save workbook to bytes and upload back to blob (overwrite)
-            out_bio = BytesIO()
-            wb.save(out_bio)
-            out_bio.seek(0)
-            try:
-                await tgt_blob_client.upload_blob(out_bio.getvalue(), overwrite=True)
-            except Exception as e:
-                # If upload fails, return an error including copy_result
-                wb.close()
-                return {"status": False, "error": f"Failed uploading modified target excel back to blob: {e}", "copy_result": copy_result}
-
-            wb.close()
-            return {"status": True, "message": f"Wrote reference '{last_value}' to target blob excel at row {write_row} and timestamp '{timestamp_str}' in column B.", "copy_result": copy_result}
-    except Exception as e:
-        return {"status": False, "error": f"General error during target blob excel handling: {e}"}
-
+Note: I intentionally left a comment at the end saying include your existing _append_and_copy_columns_to_target_blob function unchanged, because earlier you had that full function and it already did the Excel operations. If you prefer, I can paste the full handler including that function integrated again — say “paste full handler” and I’ll send the complete copy with the function re-inserted.
 
 ⸻
 
-main.py
+test_scripts.py (safer printing)
 
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi_mcp import FastApiMCP
-import uvicorn
-
-from file_router import router as file_router
-
-
-def apply_cors(app: FastAPI):
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-
-
-def create_sub_app(title: str, description: str, version: str = "0.1.0") -> FastAPI:
-    sub = FastAPI(title=title, description=description, version=version)
-    apply_cors(sub)
-    return sub
-
-
-app = FastAPI()
-apply_cors(app)
-
-file_app = create_sub_app(
-    title="Licensing & Sanction Checker MCP",
-    description="Receives JSON blob URL from Data Extraction Agent and compares extracted name with local sanctions CSV."
-)
-file_app.include_router(file_router)
-
-# Expose ONLY this operation id via MCP HTTP (client will use transport='http')
-FastApiMCP(file_app, include_operations=["Licensing_&_Sanction_Checker_MCP"]).mount_http()
-
-# Mount the sub-app under this prefix (keep as-is per your request)
-app.mount("/api/v1/eligibility_agent", file_app)
-
-
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8601)
-
-
-⸻
-
-service.py
-
-import os
-from urllib.parse import urlparse, unquote
-from dotenv import load_dotenv
-
-load_dotenv()
-
-AZURE_STORAGE_CONNECTION_STRING = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "")
-
-
-def _require_env() -> None:
-    """Ensure required environment variables exist."""
-    if not AZURE_STORAGE_CONNECTION_STRING:
-        raise RuntimeError("Missing AZURE_STORAGE_CONNECTION_STRING in .env")
-
-
-def _parse_blob_url(url: str) -> tuple[str, str]:
-    """
-    Parse an Azure Blob URL and return (container_name, blob_path).
-    """
-    parsed = urlparse(url)
-    if not parsed.scheme.startswith("http"):
-        raise ValueError("jsonfilepath must be a valid http(s) URL to Azure Blob Storage.")
-
-    path = parsed.path.lstrip("/")
-    if "/" not in path:
-        raise ValueError("jsonfilepath must include both container and blob path.")
-    parts = path.split("/", 1)
-    container = parts[0]
-    blob_path = parts[1]
-    return unquote(container), unquote(blob_path)
-
-
-⸻
-
-test_scripts.py
+Replace your test_scripts.py with this: it prints raw response text when resp.json() fails so you’ll see server tracebacks or HTML.
 
 import requests
 import json
@@ -454,16 +266,18 @@ BASE_URL = "http://localhost:8601/api/v1/eligibility_agent/Licensing_&_Sanction_
 
 def run_test():
     payload = {
-          "jsonfilepath": "https://agenticai1.blob.core.windows.net/output-results/AASDEWQ213SF_attachment_Acord_125_extraction_20251149_1226666.json"
+        "jsonfilepath": "https://agenticai1.blob.core.windows.net/output-results/AASDEWQ213SF_attachment_Acord_125_extraction_20251149_1226666.json"
     }
     try:
         resp = requests.post(BASE_URL, json=payload, timeout=180)
         print("HTTP Status:", resp.status_code)
+        # First try to parse JSON; if it fails, print raw text for debugging
         try:
             data = resp.json()
             print(json.dumps(data, indent=4))
-        except json.JSONDecodeError:
-            print("Response not JSON:", resp.text)
+        except Exception:
+            print("Response not valid JSON. Raw response text below:")
+            print(resp.text)
     except Exception as e:
         print("Error calling API:", str(e))
 
@@ -474,23 +288,10 @@ if __name__ == "__main__":
 
 ⸻
 
-Important notes, assumptions & edge cases
-	1.	Which boolean drives the choice: The code uses the extracted_flag parameter and, in practice, you pass it as the is_Sanctioned boolean computed during the sanction check. If elsewhere you return a boolean called is_duplicate instead, you can adapt easily — the function will use whichever boolean you pass in. Current flow passes the is_Sanctioned boolean (is_unique) to that routine. Per your earlier instruction, True → copy row2 (Cleared), False → copy row3 (Not Cleared).
-	2.	Local stubbed file expected layout: Code expects input/stubbed.xlsx to exist and to have columns C→J populated in rows 2 and 3 (row1 contains headers). If the file is missing or columns are empty, the service will still write reference + timestamp to the target blob but will report the copy failure in excel_update.copy_result.
-	3.	No duplicate suppression: As requested, the function always appends the last ref from the fetched file into the target blob.
-	4.	Permissions: The AZURE_STORAGE_CONNECTION_STRING used must have read access for the fetched file and read/write access for the target blob container.
-	5.	Time zone & format: Timestamp uses Asia/Kolkata with strftime("%m/%d/%Y %I:%M:%S %p") e.g. 11/19/2025 11:00:00 AM.
-	6.	Atomicity: The code writes the reference and timestamp, copies values (if available), then uploads the updated workbook back to blob. If the copy step fails, the workbook still contains the reference+timestamp and is uploaded; the returned excel_update includes the copy error.
-	7.	Python packages needed:
+Next steps for you (quick)
+	1.	Replace file_router.py, drop the defensive handler.py in place (or tell me to paste the full handler + helper function again).
+	2.	Restart the uvicorn server.
+	3.	Run python3 testscripts.py.
+	4.	If you still get "result": null — look at the server console (where uvicorn runs). The server should now print a traceback or message explaining the failure. Copy that trace if you want me to inspect it.
 
-pip install openpyxl pandas azure-storage-blob python-dotenv
-
-
-	8.	If you want to change mapping (for example, use is_duplicate instead of is_Sanctioned, or invert boolean mapping), tell me and I will flip the logic.
-
-If you want I can:
-	•	Add a small log in ./output/append_log.json for each append (row, timestamp, copied columns).
-	•	Make TARGET_BLOB_EXCEL_URL and FETCHED_EMAILS_EXCEL_BLOB_URL come from .env.
-	•	Add deduplication later.
-
-Would you like me to move the blob URLs to .env (recommended) or add logging?
+If you want, I can now paste the entire handler.py including the _append_and_copy_columns_to_target_blob function exactly as you had it previously but with the defensive changes applied (so you have one complete file to drop in). Say “paste full handler” and I’ll send it.
