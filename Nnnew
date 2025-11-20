@@ -1,225 +1,94 @@
-currently this is how my code is running
-
-***********************************************
-[Agent] (tool call issued)
-
-   → Tool name: document_extract_mcp
-   → Arguments: {'AgentName': 'DocumentExtractAgent', 'BlobUrl': 'https://agenticai1.blob.core.windows.net/attachment-downloader/19A81973900C46C9_attachment_Acord_125.pdf'}
-***********************************************
-[Tool:document_extract_mcp] {
-  "jsonrpc": "2.0",
-  "id": 1,
-  "result": {
-    "source_file": "19A81973900C46C9_attachment_Acord_125.pdf",
-    "final_output_blob_url": "https://agenticai1.blob.core.windows.net/output-results/20251114_091414_7751308031284a11b0bd4bde8bb5fa88_final_output.json"
-  }
-}
-here 19A81973900C46C9 is reference number,
-Acord_125.pdf is the file, both of these we are getting in argument.
-
-now i want instead of it storing output in this format
-(20251114_091414_7751308031284a11b0bd4bde8bb5fa88_final_output.json)
-it should be in below format
-(*Unique Refrence Number*_attachment_*filename*_extraction*date*_*timestamp*)
-Example: 19A9AA053E32991B_attachment_Acord 125_extraction_20251119_054524.json
-
-that is now it becomes
+file_router.py
 
 
-, i want 
-19A9AA053E32991B_attachment_Acord 125_extraction_20251119_054524.json
+from fastapi import APIRouter
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
+from handler import compare_name_with_sanctions
 
-below is the complete code
-
-final_processor.py
+router = APIRouter()
 
 
+class CompareRequest(BaseModel):
+    """
+    This endpoint is invoked by the Data Extraction Agent.
+    It passes the FULL Azure Blob URL of the extracted JSON in 'jsonfilepath'.
 
-import os
-import json
-from dotenv import load_dotenv
-from openai import AzureOpenAI
+    Example payload:
+    {
+      "jsonfilepath": "https://<account>.blob.core.windows.net/<container>/<path>/file.json"
+    }
 
-# ------------------ CONFIG ------------------
-load_dotenv()
+    The service will:
+    - Download that JSON from Azure Blob using AZURE_STORAGE_CONNECTION_STRING,
+    - Extract the name from Owner/Insured/Contact/NAMED INSURED(S),
+    - Compare it against local 'input/sanctions.csv',
+    - Return the comparison result in a JSON-RPC envelope (consistent with your duplicate attachment checker).
+    """
+    jsonfilepath: str = Field(..., description="Full Azure Blob URL to the extracted JSON.")
 
-client = AzureOpenAI(
-    azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
-    api_key=os.getenv("AZURE_OPENAI_API_KEY"),
-    api_version="2024-05-01-preview"
+
+@router.post(
+    "/Licensing_&_Sanction_Checker_MCP",
+    operation_id="Licensing_&_Sanction_Checker_MCP",
+    summary="Compare JSON (Owner/Insured/Contact/NAMED INSURED(S)) from blob URL with local sanctions CSV."
 )
-
-MODEL = os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT")
-CONFIDENCE_THRESHOLD = 0.5
-MAX_CHARS = 12000
-
-
-def chunk_text(text, max_chars=MAX_CHARS):
-    """Split long text into safe chunks for OpenAI input."""
-    chunks, current, length = [], [], 0
-    for line in text.splitlines():
-        if length + len(line) > max_chars:
-            chunks.append("\n".join(current))
-            current, length = [], 0
-        current.append(line)
-        length += len(line)
-    if current:
-        chunks.append("\n".join(current))
-    return chunks
-
-
-def normalize_value(val):
-    """Join token lists like ['6:00', 'AM'] → '6:00 AM'."""
-    if isinstance(val, list):
-        val = " ".join(str(v) for v in val if v)
-    elif isinstance(val, dict):
-        val = val.get("valueString") or val.get("content") or str(val)
-    return str(val).strip()
-
-
-def simplify_fields(raw_json):
-    """Simplify Azure Doc Intelligence output."""
-    simplified = {}
-    docs = raw_json.get("documents", [])
-    if not docs:
-        return simplified
-
-    for doc in docs:
-        for key, value in doc.get("fields", {}).items():
-            if "valueString" in value:
-                val = normalize_value(value["valueString"])
-            elif "valueBoolean" in value:
-                val = value["valueBoolean"]
-            elif "content" in value:
-                val = normalize_value(value["content"])
-            else:
-                val = None
-
-            conf = value.get("confidence", None)
-            if val in [None, ""]:
-                continue
-
-            entry = {"value": val, "confidence": conf}
-            entry["low_confidence"] = conf is not None and conf < CONFIDENCE_THRESHOLD
-            simplified[key] = entry
-    return simplified
-
-
-def smart_group_fields(fields):
-    """Group related fields (LOB, Policy, Broker, etc.)."""
-    groups = {}
-    for key, info in fields.items():
-        lname = key.lower()
-        if "lob" in lname or "lineofbusiness" in lname:
-            group = "Line of Business"
-        elif "policy" in lname:
-            group = "Policy"
-        elif "insured" in lname:
-            group = "Insured Details"
-        elif "broker" in lname:
-            group = "Broker Details"
-        elif "contact" in lname:
-            group = "Contact Details"
-        elif "address" in lname:
-            group = "Address"
-        else:
-            group = "General"
-        groups.setdefault(group, {})[key] = info
-    return groups
-
-
-def build_prompt(cleaned_data):
-    """Structured prompt for GPT."""
-    return f"""
-You are a JSON data formatter. The following JSON is the output from Azure Document Intelligence for an ACORD insurance form.
-
-Return only a valid JSON (no commentary, no markdown, no explanations).
-
-Requirements:
-1. Extract clean key-value pairs grouped logically (Line of Business, Policy, Broker, etc.).
-2. Each field must show its value and confidence like:
-   "Field Name": "Value, confidence - 0.87"
-   if field is repeated extract both under its relevant umbrella section.
-   Use semantic context, proximity, and field coordinates to determine grouping in the document to assign each field to its most relevant umbrella category.
-3. Combine split tokens like ["6:00", "AM"] → "6:00 AM".
-4. Add "total_confidence" (avg for group).
-5. Add "overall_total_confidence" at end.
-
-Cleaned JSON input:
-{json.dumps(cleaned_data, indent=2)}
-"""
-
-
-def process_chunk(chunk):
-    """Send one chunk to GPT and ensure JSON-only output."""
-    response = client.chat.completions.create(
-        model=MODEL,
-        temperature=0,
-        messages=[
-            {"role": "system", "content": "You are a precise document understanding assistant that outputs only JSON."},
-            {"role": "user", "content": build_prompt(chunk)},
-        ]
-    )
-
-    text = response.choices[0].message.content.strip()
+async def compare_files(request: CompareRequest):
+    """
+    Receives the JSON blob URL from the Data Extraction Agent and performs the comparison.
+    Returns a JSON-RPC envelope for consistency with the duplicate attachment checker.
+    """
     try:
-        start = text.find("{")
-        end = text.rfind("}") + 1
-        json_text = text[start:end]
-        return json.loads(json_text)
-    except Exception:
-        print("⚠️ Warning: GPT output not clean JSON. Attempting recovery.")
-        return {"error": "Invalid JSON returned", "raw_output": text}
+        result = await compare_name_with_sanctions(json_file_url=request.jsonfilepath)
+        return JSONResponse(
+            content={
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": result
+            },
+            status_code=200
+        )
+    except Exception as e:
+        return JSONResponse(
+            content={
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": {"status": False, "error": f"Unexpected server error: {str(e)}"}
+            },
+            status_code=200
+        )
 
 
-def process_azure_output(json_data):
-    """Process entire Doc Intelligence JSON with chunking + GPT."""
-    simplified = simplify_fields(json_data)
-    grouped = smart_group_fields(simplified)
-    text_data = json.dumps(grouped, indent=2)
-
-    chunks = chunk_text(text_data)
-    final_combined = {}
-
-    for chunk in chunks:
-        result = process_chunk(chunk)
-        if isinstance(result, dict):
-            for k, v in result.items():
-                if k in final_combined and isinstance(v, dict):
-                    final_combined[k].update(v)
-                else:
-                    final_combined[k] = v
-
-    print(f"✅ Final JSON processed successfully.")
-    return final_combined
 
 
-image_processor.py
 
+handler.py
 
 import os
 import json
-import uuid
-from datetime import datetime
-from dotenv import load_dotenv
-
-from azure.core.credentials import AzureKeyCredential
-from azure.ai.documentintelligence import DocumentIntelligenceClient
+from typing import Optional, Dict
+import pandas as pd
 from azure.storage.blob.aio import BlobServiceClient
 from azure.core.exceptions import ResourceNotFoundError
+from dotenv import load_dotenv
 
-from service import _require_env, get_env_values, AZURE_STORAGE_CONNECTION_STRING, _parse_blob_url
-from final_processor import process_azure_output  # Importing the final processor function
+from service import _require_env, _parse_blob_url
 
 load_dotenv()
 
+AZURE_STORAGE_CONNECTION_STRING = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "")
+LOCAL_CSV_PATH = os.path.join("input", "sanctions.csv")
 
-async def analyze_file_async(bloburl: str) -> dict:
+
+async def compare_name_with_sanctions(json_file_url: str) -> Dict:
     """
-    Download the PDF from bloburl, analyze it with Azure Document Intelligence,
-    save the JSON locally inside ./output/output.json,
-    read the JSON from the file, process it with final_processor.py,
-    and upload the final JSON to Azure Blob Storage.
+    Flow:
+      1) Parse blob URL -> (container, blob_name)
+      2) Download JSON (async)
+      3) Dynamically search for target labels in any nested structure
+      4) Read local CSV input/sanctions.csv
+      5) Case-insensitive exact match against entity_name
+      6) Save outputs to ./output and return structured result (with 'status')
     """
 
     try:
@@ -227,178 +96,97 @@ async def analyze_file_async(bloburl: str) -> dict:
     except Exception as e:
         return {"status": False, "error": str(e)}
 
-    endpoint, key, model_id = get_env_values()
-
     try:
-        src_container, src_blob = _parse_blob_url(bloburl)
+        container_name, blob_name = _parse_blob_url(json_file_url)
     except Exception as e:
-        return {"status": False, "error": f"Invalid BlobUrl: {e}"}
-
-    source_file_name = os.path.basename(src_blob) if src_blob else "unknown.pdf"
-    source_file_name = os.path.basename(source_file_name)
-
-    if not AZURE_STORAGE_CONNECTION_STRING:
-        return {"status": False, "error": "Missing AZURE_STORAGE_CONNECTION_STRING in .env"}
+        return {"status": False, "error": f"Invalid jsonfilepath: {e}"}
 
     try:
         async with BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING) as blob_service:
-            container_client = blob_service.get_container_client(src_container)
-            blob_client = container_client.get_blob_client(src_blob)
+            container_client = blob_service.get_container_client(container_name)
+            blob_client = container_client.get_blob_client(blob_name)
             try:
                 await blob_client.get_blob_properties()
             except ResourceNotFoundError:
-                return {"status": False, "error": f"PDF blob not found: container='{src_container}', blob='{src_blob}'"}
+                return {"status": False, "error": f"JSON blob not found: container='{container_name}', blob='{blob_name}'"}
 
             stream = await blob_client.download_blob()
-            pdf_bytes = await stream.readall()
+            raw_bytes = await stream.readall()
     except Exception as e:
-        return {"status": False, "error": f"Error downloading PDF from Blob Storage: {e}"}
+        return {"status": False, "error": f"Error connecting to Azure Blob Storage: {e}"}
 
-    input_dir = os.path.join(os.getcwd(), "input")
-    os.makedirs(input_dir, exist_ok=True)
+    # Python dict
+    try:
+        data = json.loads(raw_bytes.decode("utf-8"))
+    except Exception as e:
+        return {"status": False, "error": f"Failed to parse JSON: {e}"}
 
-    input_path = os.path.join(input_dir, source_file_name)
+    # Target labels to search for dynamically
+    target_labels = {"ownername", "insuredname", "contactname", "namedinsured(s)", 
+                     "applicant/firstnameinsured", "insured/applicant", "namedinsured", 
+                     "namedinsureds", "firstnameinsured", "applicantname"}
+    extracted_name: Optional[str] = None
+
+    def search_nested(data: dict) -> Optional[str]:
+        """
+        Recursively search for any field matching target labels in nested dictionaries.
+        """
+        for key, value in data.items():
+            if isinstance(value, dict):  # If the value is a nested dictionary, recurse
+                result = search_nested(value)
+                if result:
+                    return result
+            elif isinstance(key, str):
+                normalized_key = key.lower().replace(" ", "").replace(":", "")
+                if normalized_key in target_labels:
+                    return value.split(",")[0].strip()  # Extract name before confidence value
+        return None
+
+    extracted_name = search_nested(data)
+
+    if not extracted_name:
+        return {"status": False, "error": "No matching name field found in JSON."}
+
+    if not os.path.exists(LOCAL_CSV_PATH):
+        return {"status": False, "error": f"Local CSV not found at '{LOCAL_CSV_PATH}'"}
 
     try:
-        with open(input_path, "wb") as wf:
-            wf.write(pdf_bytes)
+        csv_df = pd.read_csv(LOCAL_CSV_PATH)
     except Exception as e:
-        return {"status": False, "error": f"Failed to write local input file '{input_path}': {e}"}
+        return {"status": False, "error": f"Failed to read CSV '{LOCAL_CSV_PATH}': {e}"}
 
-    print("Connecting to Azure Document Intelligence service...")
-    try:
-        client = DocumentIntelligenceClient(
-            endpoint=endpoint,
-            credential=AzureKeyCredential(key)
-        )
-    except Exception as e:
-        return {"status": False, "error": f"Failed to create DocumentIntelligenceClient: {e}"}
+    if "entity_name" not in csv_df.columns:
+        return {"status": False, "error": "CSV must contain 'entity_name' column"}
 
-    print(f"Analyzing '{source_file_name}' using model '{model_id}'...")
-    try:
-        with open(input_path, "rb") as f:
-            poller = client.begin_analyze_document(model_id=model_id, body=f)
-            result = poller.result()
-    except Exception as e:
-        return {"status": False, "error": f"Error during document analysis: {e}"}
+    def norm(s: str) -> str:
+        return s.strip().lower() if isinstance(s, str) else ""
 
-    output_dir = os.path.join(os.getcwd(), "output")
-    os.makedirs(output_dir, exist_ok=True)
-    output_path = os.path.join(output_dir, "output.json")
+    entity_set = {norm(x) for x in csv_df["entity_name"].dropna() if isinstance(x, str) and x.strip()}
+    is_unique = norm(extracted_name) in entity_set
 
-    # Save the raw JSON to output.json
-    json_data = result.as_dict()
-    try:
-        with open(output_path, "w", encoding="utf-8") as wf:
-            json.dump(json_data, wf, indent=2, ensure_ascii=False)
-    except Exception as e:
-        return {"status": False, "error": f"Failed to save local output.json: {e}"}
-
-    # Read the JSON from output.json and process it using final_processor.py
-    try:
-        with open(output_path, "r", encoding="utf-8") as rf:
-            raw_json = json.load(rf)  # Load JSON from the file
-        final_output = process_azure_output(raw_json)  # Process the JSON
-        final_output_path = os.path.join(output_dir, "final_output.json")
-        with open(final_output_path, "w", encoding="utf-8") as wf:
-            json.dump(final_output, wf, indent=2, ensure_ascii=False)
-    except Exception as e:
-        return {"status": False, "error": f"Failed to process JSON with final_processor.py: {e}"}
-
-    # Upload the final_output.json to Azure Blob Storage
-    timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-    unique = uuid.uuid4().hex
-    output_container = "output-results"
-    target_blob_name = f"{timestamp}_{unique}_final_output.json"
+    results = [{"Extracted Name": extracted_name, "is_Sanctioned": is_unique}]
 
     try:
-        async with BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING) as blob_service:
-            out_container_client = blob_service.get_container_client(output_container)
-            try:
-                await out_container_client.create_container()
-            except Exception:
-                pass  # Container already exists
-
-            out_blob_client = out_container_client.get_blob_client(target_blob_name)
-
-            with open(final_output_path, "rb") as data:
-                await out_blob_client.upload_blob(data, overwrite=True)
+        os.makedirs("./output", exist_ok=True)
+        json_output = "./output/comparison_results.json"
+        with open(json_output, "w", encoding="utf-8") as f:
+            json.dump({"results": results}, f, indent=4, ensure_ascii=False)
     except Exception as e:
-        return {"status": False, "error": f"Failed to upload final_output.json to output-results: {e}"}
+        return {"status": False, "error": f"Failed saving results: {e}"}
 
-    parsed = bloburl.split("://", 1)[-1]
-    account_and_rest = parsed.split("/", 1)[0]
-    final_output_blob_url = f"https://{account_and_rest}/{output_container}/{target_blob_name}"
+    return {"status": True, "results": results}
 
-    print(f"Final JSON saved locally and uploaded to: {final_output_blob_url}")
-
-    return {
-        "source_file": source_file_name,
-        "final_output_blob_url": final_output_blob_url
-    }
-async def process_input_folder_on_startup() -> None:
-    """Background startup function — checks ./input for any PDFs and logs them."""
-    try:
-        input_dir = os.path.join(os.getcwd(), "input")
-        if not os.path.exists(input_dir):
-            return
-
-        files = [f for f in os.listdir(input_dir) if f.lower().endswith(".pdf")]
-        if not files:
-            return
-
-        for pdf in files:
-            print(f"[startup] Found local PDF in ./input: {pdf} — no automatic processing.")
-    except Exception as e:
-        print(f"[startup] process_input_folder_on_startup error: {e}")
-        return
 
 
 main.py
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi_mcp import FastApiMCP
 import uvicorn
-from contextlib import asynccontextmanager
-import asyncio
-import os
 
-from router import router as document_router
-from image_processor import process_input_folder_on_startup
+from file_router import router as file_router
 
-async def _start_processing_task() -> None:
-    """
-    Create and store a background task that runs the processor once at startup.
-    This returns the created task (already scheduled).
-    """
-    task = asyncio.create_task(process_input_folder_on_startup())
-    return task
-
-async def _stop_processing_task(task: asyncio.Task) -> None:
-    """
-    Cancel and await the background task if it's still running.
-    """
-    if task and not task.done():
-        task.cancel()
-        try:
-            await task
-        except Exception:
-            pass
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    try:
-        app.state.processing_task = await _start_processing_task()
-    except Exception:
-        app.state.processing_task = None
-
-    yield
-
-    task = getattr(app.state, "processing_task", None)
-    if task:
-        await _stop_processing_task(task)
-
-app = FastAPI(lifespan=lifespan)
 
 def apply_cors(app: FastAPI):
     app.add_middleware(
@@ -408,90 +196,31 @@ def apply_cors(app: FastAPI):
         allow_headers=["*"],
     )
 
-def create_sub_app(title: str, description: str, version: str = "0.1.0") -> FastAPI:
-    sub_app = FastAPI(title=title, description=description, version=version, lifespan=lifespan)
-    apply_cors(sub_app)
-    return sub_app
 
+def create_sub_app(title: str, description: str, version: str = "0.1.0") -> FastAPI:
+    sub = FastAPI(title=title, description=description, version=version)
+    apply_cors(sub)
+    return sub
+
+
+app = FastAPI()
 apply_cors(app)
 
-document_extractor_app = create_sub_app(
-    title="document_extract_mcp",
-    description="Analyze documents in blob storage using Azure Form Recognizer and return structured results"
+file_app = create_sub_app(
+    title="Licensing & Sanction Checker MCP",
+    description="Receives JSON blob URL from Data Extraction Agent and compares extracted name with local sanctions CSV."
 )
+file_app.include_router(file_router)
 
-document_extractor_app.include_router(document_router)
-FastApiMCP(document_extractor_app, include_operations=["document_extract_mcp"]).mount_http()
+# Expose ONLY this operation id via MCP HTTP (client will use transport='http')
+FastApiMCP(file_app, include_operations=["Licensing_&_Sanction_Checker_MCP"]).mount_http()
 
-app.mount("/api/v1/email_intent_agent", document_extractor_app)
+# Mount the sub-app under this prefix (keep as-is per your request)
+app.mount("/api/v1/eligibility_agent", file_app)
 
 
 if __name__ == "__main__":
-    host = os.getenv("HOST", "0.0.0.0")
-    port = int(os.getenv("PORT", "8102"))
-    uvicorn.run(app, host=host, port=port)
-
-
-
-
-
-
-router.py
-
-
-from dotenv import load_dotenv
-load_dotenv()
-
-from fastapi import APIRouter
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field, validator
-
-from image_processor import analyze_file_async
-
-router = APIRouter()
-
-
-class DocumentExtractMCP(BaseModel):
-    """Trigger document extraction for a PDF file located in blob storage."""
-    AgentName: str = Field(
-        default="DocumentExtractAgent",
-        description="The unique agent name of the agent that is being called"
-    )
-    BlobUrl: str = Field(
-        ...,
-        description="Required: full blob URL (https://...) or container/blob path (container/path/to/file.pdf) to analyze"
-    )
-
-    @validator("BlobUrl")
-    def bloburl_must_not_be_empty(cls, v: str) -> str:
-        if not v or not v.strip():
-            raise ValueError("BlobUrl must be a non-empty string pointing to the blob (full URL or container/blob path).")
-        return v.strip()
-
-
-@router.post("/document_extract_mcp", operation_id="document_extract_mcp")
-async def document_extract_mcp(p_body: DocumentExtractMCP):
-    """
-    Analyze a PDF from Azure Blob storage using image_processor.analyze_file_async and
-    return the analyzer's structured result.
-
-    Body:
-
-        AgentName (str): Agent name (optional)
-
-        BlobUrl (str): Required full blob URL or container/blob path.
-    """
-    try:
-        result = await analyze_file_async(bloburl=p_body.BlobUrl)
-
-        return JSONResponse(content={
-            "jsonrpc": "2.0",
-            "id": 1,
-            "result": result
-        })
-
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"error": f"Extraction failed: {e}"})
+    uvicorn.run(app, host="0.0.0.0", port=8601)
 
 
 service.py
@@ -502,23 +231,13 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-ENDPOINT = os.getenv("ENDPOINT", "")
-KEY = os.getenv("KEY", "")
-MODEL_ID = os.getenv("MODEL_ID", "")
-AZURE_STORAGE_CONNECTION_STRING = os.getenv("AZURE_STORAGE_CONNECTION_STRING", "")
+AZURE_STORAGE_CONNECTION_STRING = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "")
 
 
 def _require_env() -> None:
     """Ensure required environment variables exist."""
-    if not (ENDPOINT and KEY and MODEL_ID):
-        raise RuntimeError("Missing ENDPOINT, KEY, or MODEL_ID in .env file.")
     if not AZURE_STORAGE_CONNECTION_STRING:
-        raise RuntimeError("Missing AZURE_STORAGE_CONNECTION_STRING in .env file.")
-
-
-def get_env_values():
-    """Return endpoint, key, model_id"""
-    return ENDPOINT, KEY, MODEL_ID
+        raise RuntimeError("Missing AZURE_STORAGE_CONNECTION_STRING in .env")
 
 
 def _parse_blob_url(url: str) -> tuple[str, str]:
@@ -531,10 +250,11 @@ def _parse_blob_url(url: str) -> tuple[str, str]:
     """
     parsed = urlparse(url)
     if not parsed.scheme.startswith("http"):
-        raise ValueError("BlobUrl must be a valid http(s) URL to Azure Blob Storage.")
+        raise ValueError("jsonfilepath must be a valid http(s) URL to Azure Blob Storage.")
+
     path = parsed.path.lstrip("/")
     if "/" not in path:
-        raise ValueError("BlobUrl must include both container and blob path.")
+        raise ValueError("jsonfilepath must include both container and blob path.")
     parts = path.split("/", 1)
     container = parts[0]
     blob_path = parts[1]
@@ -543,24 +263,23 @@ def _parse_blob_url(url: str) -> tuple[str, str]:
 
 
 test_scripts.py
-
 import requests
 import json
-import os
 
-# Adjust host/port if you changed them in main.py .env
-BASE_URL = os.getenv("DOC_EXTRACT_BASE_URL", "http://localhost:8102")
-ENDPOINT = f"{BASE_URL}/api/v1/email_intent_agent/document_extract_mcp"
+BASE_URL = "http://localhost:8601/api/v1/eligibility_agent/Licensing_&_Sanction_Checker_MCP"
 
 def run_test():
     payload = {
-        "AgentName": "DocumentExtractAgent",
-        # Replace with a real accessible PDF blob URL in your storage account
-        "BlobUrl": "https://agenticai1.blob.core.windows.net/emails-processed/Acord_125_FILLED 2-1-4 1.pdf"
+        # "jsonfilepath": "https://agenticai1.blob.core.windows.net/output-results/19A9C4BED1156706_attachment_Acord_125_extraction_20251120_075045.json"
+        # "jsonfilepath": "https://agenticai1.blob.core.windows.net/output-results/AASDEWQ213SF_attachment_Acord_139_extraction_20251149_122777.json"
+        
+        # "jsonfilepath": "https://agenticai1.blob.core.windows.net/output-results/123123asdasdd_attachment_Acord_140_extraction_2341412.json"
+          "jsonfilepath": "https://agenticai1.blob.core.windows.net/output-results/AASDEWQ213SF_attachment_Acord_125_extraction_20251149_1226666.json"
+
 
     }
     try:
-        resp = requests.post(ENDPOINT, json=payload, timeout=180)
+        resp = requests.post(BASE_URL, json=payload, timeout=60)
         print("HTTP Status:", resp.status_code)
         try:
             data = resp.json()
@@ -571,5 +290,7 @@ def run_test():
         print("Error calling API:", str(e))
 
 if __name__ == "__main__":
-    print("Testing /document_extract_mcp ...")
+    print("Testing /Licensing_&_Sanction_Checker_MCP ...")
     run_test()
+
+
