@@ -1,10 +1,7 @@
-Nice — below are the complete, copy-paste ready files updated so that when a reference number from the remote blob Excel is appended into the local stub Excel (input/reference_stub.xlsx) its timestamp (IST) is written in Column B next to the reference in Column A.
+Got it — I updated everything so the stub Excel (input/reference_stub.xlsx) receives the timestamp in the exact format you specified:
+MM/DD/YYYY hh:mm:ss AM/PM (example: 11/19/2025 11:05:00 AM) — using India Standard Time (UTC+5:30) as before.
 
-I changed only what’s necessary (main flow unchanged). Key points:
-	•	Timestamp uses India Standard Time (UTC+5:30) and is stored in ISO 8601 format (e.g. 2025-11-20T16:35:12+05:30).
-	•	The stub file header is now: ["Reference Number", "Timestamp"].
-	•	If the local stub already contains the same last reference, it will not append again (so no duplicate).
-	•	If appending, the timestamp written is the current IST time at append moment.
+Below are the complete, copy-paste files. Replace your current files with these.
 
 ⸻
 
@@ -228,7 +225,8 @@ async def fetch_and_update_reference_number() -> Dict:
     Steps:
     1. Download Excel from Blob (BLOB_EXCEL_URL)
     2. Read last non-empty value in Column A
-    3. Append that value and current IST timestamp to local stub Excel in input/reference_stub.xlsx
+    3. Append that value and current IST timestamp (formatted as MM/DD/YYYY hh:mm:ss AM/PM)
+       to local stub Excel in input/reference_stub.xlsx
     """
 
     try:
@@ -302,12 +300,13 @@ async def fetch_and_update_reference_number() -> Dict:
                 last_local = str(v).strip()
                 break
 
-        # current IST timestamp
+        # current IST timestamp in required format: MM/DD/YYYY hh:mm:ss AM/PM
         IST = timezone(timedelta(hours=5, minutes=30))
-        now_ist = datetime.now(IST).isoformat()
+        now_ist = datetime.now(IST)
+        now_ist_formatted = now_ist.strftime("%m/%d/%Y %I:%M:%S %p")
 
         if last_local != last_reference_number:
-            ws_stub.append([last_reference_number, now_ist])
+            ws_stub.append([last_reference_number, now_ist_formatted])
             wb_stub.save(LOCAL_STUB_EXCEL)
             appended = True
         else:
@@ -319,7 +318,7 @@ async def fetch_and_update_reference_number() -> Dict:
         "status": True,
         "last_reference_number": last_reference_number,
         "appended": appended,
-        "timestamp": now_ist,
+        "timestamp": now_ist_formatted,
         "message": f"Reference processed. appended={appended}. local_file={LOCAL_STUB_EXCEL}"
     }
 
@@ -458,7 +457,7 @@ def run_reference_test():
 
 
 if __name__ == "__main__":
-    print("Testing /Licensing_&_Sanction_Checker_MCP ...")
+    print("Testing /Licensing_&_Sanction_CHECKER_MCP ...")
     run_compare_test()
     print("\nTesting /Fetch_And_Update_Reference ...")
     run_reference_test()
@@ -488,15 +487,18 @@ requests
 
 ⸻
 
-Quick validations / tips
-	1.	Ensure input/ folder is writable by the process. The code creates it if missing.
-	2.	When you first run /Fetch_And_Update_Reference, it will create input/reference_stub.xlsx with header Reference Number | Timestamp and append the first found reference with timestamp.
-	3.	Timestamp format example: 2025-11-20T16:35:12+05:30.
-	4.	If you want the endpoint to accept a custom blob URL (instead of hard-coded BLOB_EXCEL_URL), tell me and I’ll modify file_router.py + handler.py accordingly.
+Quick checklist before running
+	1.	Put your Azure connection string into .env.
+	2.	Ensure the process user can write to ./input/.
+	3.	Run the app:
 
-If you want, I can also:
-	•	add logging,
-	•	add an endpoint variant that returns the updated stub file for download,
-	•	or implement a safety check to allow only certain containers.
+uvicorn main:app --host 0.0.0.0 --port 8601
 
-Which would you like next?
+
+	4.	Call the endpoint (test script or via curl/postman):
+	•	POST http://localhost:8601/api/v1/eligibility_agent/Fetch_And_Update_Reference
+	5.	After successful run, check input/reference_stub.xlsx. Column A will have the reference; Column B will have IST timestamp in MM/DD/YYYY hh:mm:ss AM/PM format.
+
+⸻
+
+If you want the endpoint to accept a custom blob URL (so you don’t hard-code BLOB_EXCEL_URL), I can modify the endpoint and handler to accept { "blob_url": "..." }. Want that change now?
