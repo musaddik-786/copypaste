@@ -1,4 +1,6 @@
-# image_processor.py
+image_processor.py
+
+
 
 import os
 import json
@@ -12,8 +14,8 @@ from azure.ai.documentintelligence import DocumentIntelligenceClient
 from azure.storage.blob.aio import BlobServiceClient
 from azure.core.exceptions import ResourceNotFoundError
 
-from service import _require_env, get_env_values, AZURE_STORAGE_CONNECTION_STRING, _parse_blob_url
-from final_processor import process_azure_output  # Importing the final processor function
+from .service import _require_env, get_env_values, AZURE_STORAGE_CONNECTION_STRING, _parse_blob_url
+from .final_processor import process_azure_output  # Importing the final processor function
 
 load_dotenv()
 
@@ -246,3 +248,385 @@ async def process_input_folder_on_startup() -> None:
     except Exception as e:
         print(f"[startup] process_input_folder_on_startup error: {e}")
         return
+
+
+
+
+final_processor.py
+
+
+import os
+import json
+from dotenv import load_dotenv
+from openai import AzureOpenAI
+
+# ------------------ CONFIG ------------------
+load_dotenv()
+
+client = AzureOpenAI(
+    azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
+    api_key=os.getenv("AZURE_OPENAI_API_KEY"),
+    api_version="2024-05-01-preview"
+)
+
+MODEL = os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT")
+CONFIDENCE_THRESHOLD = 0.5
+MAX_CHARS = 12000
+
+
+def chunk_text(text, max_chars=MAX_CHARS):
+    """Split long text into safe chunks for OpenAI input."""
+    chunks, current, length = [], [], 0
+    for line in text.splitlines():
+        if length + len(line) > max_chars:
+            chunks.append("\n".join(current))
+            current, length = [], 0
+        current.append(line)
+        length += len(line)
+    if current:
+        chunks.append("\n".join(current))
+    return chunks
+
+
+def normalize_value(val):
+    """Join token lists like ['6:00', 'AM'] → '6:00 AM'."""
+    if isinstance(val, list):
+        val = " ".join(str(v) for v in val if v)
+    elif isinstance(val, dict):
+        val = val.get("valueString") or val.get("content") or str(val)
+    return str(val).strip()
+
+
+def simplify_fields(raw_json):
+    """Simplify Azure Doc Intelligence output."""
+    simplified = {}
+    docs = raw_json.get("documents", [])
+    if not docs:
+        return simplified
+
+    for doc in docs:
+        for key, value in doc.get("fields", {}).items():
+            if "valueString" in value:
+                val = normalize_value(value["valueString"])
+            elif "valueBoolean" in value:
+                val = value["valueBoolean"]
+            elif "content" in value:
+                val = normalize_value(value["content"])
+            else:
+                val = None
+
+            conf = value.get("confidence", None)
+            if val in [None, ""]:
+                continue
+
+            entry = {"value": val, "confidence": conf}
+            entry["low_confidence"] = conf is not None and conf < CONFIDENCE_THRESHOLD
+            simplified[key] = entry
+    return simplified
+
+
+def smart_group_fields(fields):
+    """Group related fields (LOB, Policy, Broker, etc.)."""
+    groups = {}
+    for key, info in fields.items():
+        lname = key.lower()
+        if "lob" in lname or "lineofbusiness" in lname:
+            group = "Line of Business"
+        elif "policy" in lname:
+            group = "Policy"
+        elif "insured" in lname:
+            group = "Insured Details"
+        elif "broker" in lname:
+            group = "Broker Details"
+        elif "contact" in lname:
+            group = "Contact Details"
+        elif "address" in lname:
+            group = "Address"
+        else:
+            group = "General"
+        groups.setdefault(group, {})[key] = info
+    return groups
+
+
+def build_prompt(cleaned_data):
+    """Structured prompt for GPT."""
+    return f"""
+You are a JSON data formatter. The following JSON is the output from Azure Document Intelligence for an ACORD insurance form.
+
+Return only a valid JSON (no commentary, no markdown, no explanations).
+
+Requirements:
+1. Extract clean key-value pairs grouped logically (Line of Business, Policy, Broker, etc.).
+2. Each field must show its value and confidence like:
+   "Field Name": "Value, confidence - 0.87"
+   if field is repeated extract both under its relevant umbrella section.
+   Use semantic context, proximity, and field coordinates to determine grouping in the document to assign each field to its most relevant umbrella category.
+3. Combine split tokens like ["6:00", "AM"] → "6:00 AM".
+4. Add "total_confidence" (avg for group).
+5. Add "overall_total_confidence" at end.
+
+Cleaned JSON input:
+{json.dumps(cleaned_data, indent=2)}
+"""
+
+
+def process_chunk(chunk):
+    """Send one chunk to GPT and ensure JSON-only output."""
+    response = client.chat.completions.create(
+        model=MODEL,
+        temperature=0,
+        messages=[
+            {"role": "system", "content": "You are a precise document understanding assistant that outputs only JSON."},
+            {"role": "user", "content": build_prompt(chunk)},
+        ]
+    )
+
+    text = response.choices[0].message.content.strip()
+    try:
+        start = text.find("{")
+        end = text.rfind("}") + 1
+        json_text = text[start:end]
+        return json.loads(json_text)
+    except Exception:
+        print("⚠️ Warning: GPT output not clean JSON. Attempting recovery.")
+        return {"error": "Invalid JSON returned", "raw_output": text}
+
+
+def process_azure_output(json_data):
+    """Process entire Doc Intelligence JSON with chunking + GPT."""
+    simplified = simplify_fields(json_data)
+    grouped = smart_group_fields(simplified)
+    text_data = json.dumps(grouped, indent=2)
+
+    chunks = chunk_text(text_data)
+    final_combined = {}
+
+    for chunk in chunks:
+        result = process_chunk(chunk)
+        if isinstance(result, dict):
+            for k, v in result.items():
+                if k in final_combined and isinstance(v, dict):
+                    final_combined[k].update(v)
+                else:
+                    final_combined[k] = v
+
+    print(f"✅ Final JSON processed successfully.")
+    return final_combined
+
+
+
+service.py
+
+
+
+import os
+from urllib.parse import urlparse, unquote
+from dotenv import load_dotenv
+
+load_dotenv()
+
+ENDPOINT = os.getenv("ENDPOINT", "")
+KEY = os.getenv("KEY", "")
+MODEL_ID = os.getenv("MODEL_ID", "")
+AZURE_STORAGE_CONNECTION_STRING = os.getenv("AZURE_STORAGE_CONNECTION_STRING", "")
+
+
+def _require_env() -> None:
+    """Ensure required environment variables exist."""
+    if not (ENDPOINT and KEY and MODEL_ID):
+        raise RuntimeError("Missing ENDPOINT, KEY, or MODEL_ID in .env file.")
+    if not AZURE_STORAGE_CONNECTION_STRING:
+        raise RuntimeError("Missing AZURE_STORAGE_CONNECTION_STRING in .env file.")
+
+
+def get_env_values():
+    """Return endpoint, key, model_id"""
+    return ENDPOINT, KEY, MODEL_ID
+
+
+def _parse_blob_url(url: str) -> tuple[str, str]:
+    """
+    Parse an Azure Blob URL and return (container_name, blob_path).
+    Example URL:
+      https://account.blob.core.windows.net/output-results/folder/name.json
+    Returns:
+      ("output-results", "folder/name.json")
+    """
+    parsed = urlparse(url)
+    if not parsed.scheme.startswith("http"):
+        raise ValueError("BlobUrl must be a valid http(s) URL to Azure Blob Storage.")
+    path = parsed.path.lstrip("/")
+    if "/" not in path:
+        raise ValueError("BlobUrl must include both container and blob path.")
+    parts = path.split("/", 1)
+    container = parts[0]
+    blob_path = parts[1]
+    return unquote(container), unquote(blob_path)
+
+
+
+test_email_router.py
+
+#custom_model_dataextractor_mcp
+class DocumentExtractMCP(BaseModel):
+    """Trigger document extraction for a PDF file located in blob storage."""
+    AgentName: str = Field(
+        default="DocumentExtractAgent",
+        description="The unique agent name of the agent that is being called"
+    )
+    BlobUrl: str = Field(
+        ...,
+        description="Required: full blob URL (https://...) or container/blob path (container/path/to/file.pdf) to analyze"
+    )
+
+    @validator("BlobUrl")
+    def bloburl_must_not_be_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("BlobUrl must be a non-empty string pointing to the blob (full URL or container/blob path).")
+        return v.strip()
+
+
+@router.post("/document_extract_mcp", operation_id="document_extract_mcp")
+async def document_extract_mcp(p_body: DocumentExtractMCP):
+    """
+    Analyze a PDF from Azure Blob storage using image_processor.analyze_file_async and
+    return the analyzer's structured result.
+
+    Body:
+
+        AgentName (str): Agent name (optional)
+
+        BlobUrl (str): Required full blob URL or container/blob path.
+    """
+    try:
+        result = await analyze_file_async(bloburl=p_body.BlobUrl)
+
+        return JSONResponse(content={
+            "jsonrpc": "2.0",
+            "id": 1,
+            "result": result
+        })
+
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": f"Extraction failed: {e}"})
+
+
+
+test_main.py
+
+
+
+
+
+from fastapi import FastAPI
+
+from fastapi.middleware.cors import CORSMiddleware
+
+from fastapi_mcp import FastApiMCP
+
+import uvicorn
+ 
+from test_email_router import router as email_router
+
+from MCP.email_reader_mcp.email_handler import get_latest_email, start_email_polling, stop_email_polling
+
+from contextlib import asynccontextmanager
+
+from MCP.attachment_downloader_mcp.attachment_handler import get_latest_email_attachment_downloader, start_email_polling, stop_email_polling
+
+# from data_extractor_mcp.image_processor import process_input_folder_on_startup
+
+import asyncio
+
+# from email_output_saver_mcp.email_output_saver import start_output_saver_polling, stop_output_saver_polling
+
+#custom_model_dataextractor
+from MCP.custom_model_dataextractor_mcp.image_processor import process_input_folder_on_startup
+
+# risk type checker mcp
+
+
+# Risk score Calculator MCP 
+# from risk_score_calculator_mcp.risk_calculator import RuleBasedRiskCalculator 
+
+
+
+
+async def _start_processing_task() -> None:
+    """
+    Create and store a background task that runs the processor.
+    This returns immediately after scheduling the task.
+    """
+    # schedule background processing
+    task = asyncio.create_task(process_input_folder_on_startup())
+    # stash on the running app (will be attached in lifespan)
+    return task
+
+async def _stop_processing_task(task: asyncio.Task) -> None:
+    """
+    Cancel and await the background task if it's still running.
+    """
+    if task and not task.done():
+        task.cancel()
+        try:
+            await task
+        except Exception:
+            # swallow exceptions on shutdown
+            pass
+
+
+# @asynccontextmanager
+# async def lifespan(app: FastAPI):
+#     # Startup
+#     await start_email_polling()
+#     yield
+#     # Shutdown
+#     await stop_email_polling()
+#     # Startup: schedule the processing task and attach to app.state
+#     try:
+#         app.state.processing_task = await _start_processing_task()
+#     except Exception:
+#         app.state.processing_task = None
+
+#     yield
+
+#     # Shutdown: cancel the task if running
+#     task = getattr(app.state, "processing_task", None)
+#     if task:
+#         await _stop_processing_task(task)
+
+#     # Startup: perform a single upload pass
+#     await start_output_saver_polling()
+#     yield
+#     # Shutdown: no-op
+#     await stop_output_saver_polling()
+
+
+app = FastAPI()
+
+# app = FastAPI(lifespan=lifespan)
+
+def apply_cors(app: FastAPI):
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+def create_sub_app(title: str, description: str, version: str = "0.1.0") -> FastAPI:
+    app = FastAPI(title=title, description=description, version=version)
+    #app = FastAPI(title=title, description=description, version=version, lifespan=lifespan)
+    apply_cors(app)
+    return app
+
+apply_cors(app)
+
+email_intent_agent_app = create_sub_app(title="email_intent_agent_mcps", description="role is to handle the initial stage of the underwriting workflow — focused solely on understanding the incoming emails")
+email_intent_agent_app.include_router(email_router)
+FastApiMCP(email_intent_agent_app, include_operations=["email_reader_mcp","attachment_checker_mcp","email_attachment_mcp","layout_detection_mcp","document_extract_mcp","excel_loader_mcp", "pdf_vectorizer_mcp", "retriever_mcp"]).mount_http()
+#app.mount("/mcp",email_reader_app)
+app.mount("/api/v1/email_intent_agent",email_intent_agent_app)
+
+if __name__=="__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8466)
