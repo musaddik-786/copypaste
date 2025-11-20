@@ -1,22 +1,10 @@
-Nice — below are the complete files you asked for. I followed the exact structure and style of your licensing & sanctions app so you can drop these in and run them the same way.
+Nice — below are the complete, copy-paste ready files updated so that when a reference number from the remote blob Excel is appended into the local stub Excel (input/reference_stub.xlsx) its timestamp (IST) is written in Column B next to the reference in Column A.
 
-Behavior summary (matches your request)
-	•	Router accepts a PDF blob URL (Azure blob URL) in pdfurl.
-	•	Handler downloads that PDF into ./input.pdf (same place your original script expected).
-	•	Runs the exact Document Intelligence analysis logic you already had (no changes to analysis).
-	•	Saves the analysis JSON locally as output.json (temporary) and then uploads that JSON to the output-results container in the same storage account; returns the uploaded JSON blob URL.
-	•	Files split into file_router.py, handler.py, service.py, main.py.
-	•	Tests follow the same format as your licensing/sanctions tests:
-	•	test_client.py using MultiServerMCPClient
-	•	test_scripts.py using requests to call the router endpoint
-
-Make sure your .env contains:
-
-ENDPOINT=<your Document Intelligence endpoint>
-KEY=<your DocInt key>
-MODEL_ID=<your model id>
-AZURE_STORAGE_CONNECTION_STRING=<your blob connection string>
-
+I changed only what’s necessary (main flow unchanged). Key points:
+	•	Timestamp uses India Standard Time (UTC+5:30) and is stored in ISO 8601 format (e.g. 2025-11-20T16:35:12+05:30).
+	•	The stub file header is now: ["Reference Number", "Timestamp"].
+	•	If the local stub already contains the same last reference, it will not append again (so no duplicate).
+	•	If appending, the timestamp written is the current IST time at append moment.
 
 ⸻
 
@@ -26,33 +14,62 @@ from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-from handler import analyze_blob_document
+from handler import compare_name_with_sanctions, fetch_and_update_reference_number
 
 router = APIRouter()
 
 
-class AnalyzeRequest(BaseModel):
+class CompareRequest(BaseModel):
     """
-    Example payload:
-    {
-      "pdfurl": "https://<account>.blob.core.windows.net/attachment-downloader/Acord_125_FullForm_Filled%201.pdf"
-    }
+    This endpoint is invoked by the Data Extraction Agent.
+    It passes the FULL Azure Blob URL of the extracted JSON in 'jsonfilepath'.
     """
-    pdfurl: str = Field(..., description="Full Azure Blob URL to the PDF to analyze.")
+    jsonfilepath: str = Field(..., description="Full Azure Blob URL to the extracted JSON.")
 
 
 @router.post(
-    "/Document_Analyzer_MCP",
-    operation_id="Document_Analyzer_MCP",
-    summary="Analyze a PDF from an Azure Blob URL and upload extracted JSON to output-results container."
+    "/Licensing_&_Sanction_Checker_MCP",
+    operation_id="Licensing_&_Sanction_Checker_MCP",
+    summary="Compare JSON (Owner/Insured/Contact/NAMED INSURED(S)) from blob URL with local sanctions CSV."
 )
-async def analyze_blob(request: AnalyzeRequest):
+async def compare_files(request: CompareRequest):
     """
-    Receives pdfurl, downloads it into ./input.pdf, runs the same analysis,
-    uploads JSON to output-results container, and returns JSON-RPC envelope.
+    Receives the JSON blob URL from the Data Extraction Agent and performs the comparison.
+    Returns a JSON-RPC envelope for consistency with the duplicate attachment checker.
     """
     try:
-        result = await analyze_blob_document(pdf_url=request.pdfurl)
+        result = await compare_name_with_sanctions(json_file_url=request.jsonfilepath)
+        return JSONResponse(
+            content={
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": result
+            },
+            status_code=200
+        )
+    except Exception as e:
+        return JSONResponse(
+            content={
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": {"status": False, "error": f"Unexpected server error: {str(e)}"}
+            },
+            status_code=200
+        )
+
+
+@router.post(
+    "/Fetch_And_Update_Reference",
+    operation_id="Fetch_And_Update_Reference",
+    summary="Fetch last reference number from Blob Excel and append to local stub Excel"
+)
+async def fetch_and_update_reference():
+    """
+    Download the Excel from blob, read last non-empty value in Column A,
+    append that value and current IST timestamp to the local input/reference_stub.xlsx.
+    """
+    try:
+        result = await fetch_and_update_reference_number()
         return JSONResponse(
             content={
                 "jsonrpc": "2.0",
@@ -78,125 +95,233 @@ handler.py
 
 import os
 import json
-import uuid
-from datetime import datetime
-from dotenv import load_dotenv
-from azure.core.credentials import AzureKeyCredential
-from azure.ai.documentintelligence.aio import DocumentIntelligenceClient
+from typing import Optional, Dict
+import pandas as pd
 from azure.storage.blob.aio import BlobServiceClient
 from azure.core.exceptions import ResourceNotFoundError
+from dotenv import load_dotenv
+from io import BytesIO
+import openpyxl
+from datetime import datetime, timezone, timedelta
 
-from service import _require_env, get_env_values, AZURE_STORAGE_CONNECTION_STRING, _parse_blob_url
+from service import _require_env, _parse_blob_url
 
 load_dotenv()
 
-# Keep local filenames exactly as your original script expected
-LOCAL_INPUT_FILENAME = "input.pdf"
-LOCAL_OUTPUT_FILENAME = "output.json"  # temporary local file before upload
+AZURE_STORAGE_CONNECTION_STRING = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "")
+LOCAL_CSV_PATH = os.path.join("input", "sanctions.csv")
+
+# URL of the remote Excel file on blob
+BLOB_EXCEL_URL = "https://agenticai1.blob.core.windows.net/fetched-emails-data/Fetched_emails_data_new.xlsx"
+# Local stub excel path (inside your project)
+LOCAL_STUB_EXCEL = os.path.join("input", "reference_stub.xlsx")
 
 
-async def analyze_blob_document(pdf_url: str) -> dict:
+async def compare_name_with_sanctions(json_file_url: str) -> Dict:
     """
     Flow:
-      1) Validate env (ENDPOINT, KEY, MODEL_ID, AZURE_STORAGE_CONNECTION_STRING)
-      2) Parse pdf_url -> container, blob
-      3) Download PDF to ./input.pdf
-      4) Run Document Intelligence analyze (identical logic)
-      5) Save JSON locally (./output.json) then upload to output-results container
-      6) Return {"status": True, "output_blob_url": "<blob url>"} on success
+      1) Parse blob URL -> (container, blob_name)
+      2) Download JSON (async)
+      3) Dynamically search for target labels in any nested structure
+      4) Read local CSV input/sanctions.csv
+      5) Case-insensitive exact match against entity_name
+      6) Save outputs to ./output and return structured result (with 'status')
     """
-    # 1) env
+
     try:
         _require_env()
     except Exception as e:
         return {"status": False, "error": str(e)}
 
-    endpoint, key, model_id = get_env_values()
-
-    # 2) parse incoming pdf URL
     try:
-        src_container, src_blob = _parse_blob_url(pdf_url)
+        container_name, blob_name = _parse_blob_url(json_file_url)
     except Exception as e:
-        return {"status": False, "error": f"Invalid pdfurl: {e}"}
-
-    # 3) download PDF bytes from Azure Blob
-    if not AZURE_STORAGE_CONNECTION_STRING:
-        return {"status": False, "error": "Missing AZURE_STORAGE_CONNECTION_STRING in .env"}
+        return {"status": False, "error": f"Invalid jsonfilepath: {e}"}
 
     try:
         async with BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING) as blob_service:
-            container_client = blob_service.get_container_client(src_container)
-            blob_client = container_client.get_blob_client(src_blob)
+            container_client = blob_service.get_container_client(container_name)
+            blob_client = container_client.get_blob_client(blob_name)
             try:
                 await blob_client.get_blob_properties()
             except ResourceNotFoundError:
-                return {"status": False, "error": f"PDF blob not found: container='{src_container}', blob='{src_blob}'"}
+                return {"status": False, "error": f"JSON blob not found: container='{container_name}', blob='{blob_name}'"}
 
             stream = await blob_client.download_blob()
-            pdf_bytes = await stream.readall()
+            raw_bytes = await stream.readall()
     except Exception as e:
-        return {"status": False, "error": f"Error downloading PDF from Blob Storage: {e}"}
+        return {"status": False, "error": f"Error connecting to Azure Blob Storage: {e}"}
 
-    # write to local input.pdf (same as original script)
-    input_path = os.path.join(os.getcwd(), LOCAL_INPUT_FILENAME)
+    # Python dict
     try:
-        with open(input_path, "wb") as wf:
-            wf.write(pdf_bytes)
+        data = json.loads(raw_bytes.decode("utf-8"))
     except Exception as e:
-        return {"status": False, "error": f"Failed to write local input file '{input_path}': {e}"}
+        return {"status": False, "error": f"Failed to parse JSON: {e}"}
 
-    # 4) Analyze using Azure Document Intelligence async client (keeps logic identical)
-    print("Connecting to Azure Document Intelligence service...")
-    client = DocumentIntelligenceClient(endpoint=endpoint, credential=AzureKeyCredential(key))
+    # Target labels to search for dynamically
+    target_labels = {"ownername", "insuredname", "contactname", "namedinsured(s)",
+                     "applicant/firstnameinsured", "insured/applicant", "namedinsured",
+                     "namedinsureds", "firstnameinsured", "applicantname"}
+    extracted_name: Optional[str] = None
 
-    print(f"Analyzing '{input_path}' using model '{model_id}'...")
+    def search_nested(data: dict) -> Optional[str]:
+        """
+        Recursively search for any field matching target labels in nested dictionaries or lists.
+        """
+        if isinstance(data, dict):
+            for key, value in data.items():
+                if isinstance(value, dict) or isinstance(value, list):
+                    result = search_nested(value)
+                    if result:
+                        return result
+                elif isinstance(key, str):
+                    normalized_key = key.lower().replace(" ", "").replace(":", "")
+                    if normalized_key in target_labels:
+                        if isinstance(value, str):
+                            return value.split(",")[0].strip()
+                        else:
+                            return str(value)
+        elif isinstance(data, list):
+            for item in data:
+                result = search_nested(item)
+                if result:
+                    return result
+        return None
+
+    extracted_name = search_nested(data)
+
+    if not extracted_name:
+        return {"status": False, "error": "No matching name field found in JSON."}
+
+    if not os.path.exists(LOCAL_CSV_PATH):
+        return {"status": False, "error": f"Local CSV not found at '{LOCAL_CSV_PATH}'"}
+
     try:
-        async with client:
-            with open(input_path, "rb") as f:
-                poller = await client.begin_analyze_document(model_id=model_id, body=f)
-                result = await poller.result()
+        csv_df = pd.read_csv(LOCAL_CSV_PATH)
     except Exception as e:
-        return {"status": False, "error": f"Error during document analysis: {e}"}
+        return {"status": False, "error": f"Failed to read CSV '{LOCAL_CSV_PATH}': {e}"}
 
-    # 5) Save JSON locally (same name as before) and upload to output-results container
-    output_path = os.path.join(os.getcwd(), LOCAL_OUTPUT_FILENAME)
-    json_data = result.as_dict()
+    if "entity_name" not in csv_df.columns:
+        return {"status": False, "error": "CSV must contain 'entity_name' column"}
+
+    def norm(s: str) -> str:
+        return s.strip().lower() if isinstance(s, str) else ""
+
+    entity_set = {norm(x) for x in csv_df["entity_name"].dropna() if isinstance(x, str) and x.strip()}
+    is_sanctioned = norm(extracted_name) in entity_set
+
+    results = [{"Extracted Name": extracted_name, "is_Sanctioned": is_sanctioned}]
+
     try:
-        with open(output_path, "w", encoding="utf-8") as wf:
-            json.dump(json_data, wf, indent=2, ensure_ascii=False)
+        os.makedirs("./output", exist_ok=True)
+        json_output = "./output/comparison_results.json"
+        with open(json_output, "w", encoding="utf-8") as f:
+            json.dump({"results": results}, f, indent=4, ensure_ascii=False)
     except Exception as e:
-        return {"status": False, "error": f"Failed to save local output.json: {e}"}
+        return {"status": False, "error": f"Failed saving results: {e}"}
 
-    # Prepare target blob name and upload to 'output-results' container
-    timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-    unique = uuid.uuid4().hex
-    target_blob_name = f"{timestamp}_{unique}_extracted_{timestamp}.json"
-    output_container = "output-results"
+    return {"status": True, "results": results}
+
+
+async def fetch_and_update_reference_number() -> Dict:
+    """
+    Steps:
+    1. Download Excel from Blob (BLOB_EXCEL_URL)
+    2. Read last non-empty value in Column A
+    3. Append that value and current IST timestamp to local stub Excel in input/reference_stub.xlsx
+    """
 
     try:
-        async with BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING) as blob_service:
-            out_container_client = blob_service.get_container_client(output_container)
-            # Try creating container if missing (best-effort)
+        _require_env()
+    except Exception as e:
+        return {"status": False, "error": str(e)}
+
+    # --- 1. Parse Blob URL ---
+    try:
+        container_name, blob_name = _parse_blob_url(BLOB_EXCEL_URL)
+    except Exception as e:
+        return {"status": False, "error": f"Invalid Blob Excel URL: {e}"}
+
+    # --- 2. Download Excel ---
+    try:
+        async with BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING) as svc:
+            container_client = svc.get_container_client(container_name)
+            blob_client = container_client.get_blob_client(blob_name)
+
             try:
-                await out_container_client.create_container()
-            except Exception:
-                pass
+                await blob_client.get_blob_properties()
+            except ResourceNotFoundError:
+                return {"status": False, "error": "Blob Excel not found."}
 
-            out_blob_client = out_container_client.get_blob_client(target_blob_name)
-            json_bytes = json.dumps(json_data, indent=2, ensure_ascii=False).encode("utf-8")
-            await out_blob_client.upload_blob(json_bytes, overwrite=True)
+            stream = await blob_client.download_blob()
+            file_bytes = await stream.readall()
+
     except Exception as e:
-        return {"status": False, "error": f"Failed to upload JSON to output-results: {e}"}
+        return {"status": False, "error": f"Failed to download Excel: {e}"}
 
-    # Build output blob URL using same account hostname as incoming pdf_url
-    parsed = pdf_url.split("://", 1)[-1]  # e.g., account.blob.core.windows.net/...
-    account_and_rest = parsed.split("/", 1)[0]  # account.blob.core.windows.net
-    output_blob_url = f"https://{account_and_rest}/{output_container}/{target_blob_name}"
+    # --- 3. Load Excel from Bytes ---
+    try:
+        wb = openpyxl.load_workbook(filename=BytesIO(file_bytes), read_only=False, data_only=True)
+        sheet = wb.active
+    except Exception as e:
+        return {"status": False, "error": f"Failed to read Excel from Blob: {e}"}
 
-    print(f"Input file (downloaded from): {pdf_url}")
-    print(f"Output blob (uploaded to): {output_blob_url}")
+    # --- 4. Read last non-empty cell in Column A ---
+    last_reference_number = None
+    for row in range(sheet.max_row, 0, -1):
+        cell_value = sheet.cell(row=row, column=1).value
+        if cell_value not in (None, "", " "):
+            last_reference_number = str(cell_value).strip()
+            break
 
-    return {"status": True, "output_blob_url": output_blob_url}
+    if not last_reference_number:
+        return {"status": False, "error": "Column A contains no valid values."}
+
+    # --- 5. Ensure input directory and stub Excel exists ---
+    try:
+        os.makedirs("input", exist_ok=True)
+        if not os.path.exists(LOCAL_STUB_EXCEL):
+            wb_stub = openpyxl.Workbook()
+            ws_stub = wb_stub.active
+            # create a header for columns A and B.
+            ws_stub.append(["Reference Number", "Timestamp"])
+            wb_stub.save(LOCAL_STUB_EXCEL)
+    except Exception as e:
+        return {"status": False, "error": f"Failed to create stub excel: {e}"}
+
+    # --- 6. Append last reference number and timestamp to stub Excel ---
+    try:
+        wb_stub = openpyxl.load_workbook(LOCAL_STUB_EXCEL)
+        ws_stub = wb_stub.active
+
+        # find last existing populated cell in column A
+        last_local = None
+        for row in range(ws_stub.max_row, 0, -1):
+            v = ws_stub.cell(row=row, column=1).value
+            if v not in (None, "", " "):
+                last_local = str(v).strip()
+                break
+
+        # current IST timestamp
+        IST = timezone(timedelta(hours=5, minutes=30))
+        now_ist = datetime.now(IST).isoformat()
+
+        if last_local != last_reference_number:
+            ws_stub.append([last_reference_number, now_ist])
+            wb_stub.save(LOCAL_STUB_EXCEL)
+            appended = True
+        else:
+            appended = False
+    except Exception as e:
+        return {"status": False, "error": f"Failed to update stub excel: {e}"}
+
+    return {
+        "status": True,
+        "last_reference_number": last_reference_number,
+        "appended": appended,
+        "timestamp": now_ist,
+        "message": f"Reference processed. appended={appended}. local_file={LOCAL_STUB_EXCEL}"
+    }
 
 
 ⸻
@@ -209,23 +334,13 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-ENDPOINT = os.getenv("ENDPOINT", "")
-KEY = os.getenv("KEY", "")
-MODEL_ID = os.getenv("MODEL_ID", "")
-AZURE_STORAGE_CONNECTION_STRING = os.getenv("AZURE_STORAGE_CONNECTION_STRING", "")
+AZURE_STORAGE_CONNECTION_STRING = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "")
 
 
 def _require_env() -> None:
     """Ensure required environment variables exist."""
-    if not (ENDPOINT and KEY and MODEL_ID):
-        raise RuntimeError("Missing ENDPOINT, KEY, or MODEL_ID in .env file.")
     if not AZURE_STORAGE_CONNECTION_STRING:
-        raise RuntimeError("Missing AZURE_STORAGE_CONNECTION_STRING in .env file.")
-
-
-def get_env_values():
-    """Return endpoint, key, model_id"""
-    return ENDPOINT, KEY, MODEL_ID
+        raise RuntimeError("Missing AZURE_STORAGE_CONNECTION_STRING in .env")
 
 
 def _parse_blob_url(url: str) -> tuple[str, str]:
@@ -238,10 +353,11 @@ def _parse_blob_url(url: str) -> tuple[str, str]:
     """
     parsed = urlparse(url)
     if not parsed.scheme.startswith("http"):
-        raise ValueError("URL must be a valid http(s) Azure Blob URL.")
+        raise ValueError("jsonfilepath must be a valid http(s) URL to Azure Blob Storage.")
+
     path = parsed.path.lstrip("/")
     if "/" not in path:
-        raise ValueError("URL must include both container and blob path.")
+        raise ValueError("jsonfilepath must include both container and blob path.")
     parts = path.split("/", 1)
     container = parts[0]
     blob_path = parts[1]
@@ -279,48 +395,26 @@ app = FastAPI()
 apply_cors(app)
 
 file_app = create_sub_app(
-    title="Document Analyzer MCP",
-    description="Receives a PDF blob URL, downloads it, analyzes with Azure Document Intelligence and uploads JSON to output-results.",
+    title="Licensing & Sanction Checker MCP",
+    description="Receives JSON blob URL from Data Extraction Agent and compares extracted name with local sanctions CSV."
 )
 file_app.include_router(file_router)
 
-# Expose ONLY this operation id via MCP HTTP (client will use transport='http')
-FastApiMCP(file_app, include_operations=["Document_Analyzer_MCP"]).mount_http()
+# Expose these operation ids via MCP HTTP
+FastApiMCP(
+    file_app,
+    include_operations=[
+        "Licensing_&_Sanction_Checker_MCP",
+        "Fetch_And_Update_Reference"
+    ]
+).mount_http()
 
-# Mount the sub-app under this prefix (kept similar to your licensing service)
-app.mount("/api/v1/document_agent", file_app)
+# Mount the sub-app under this prefix
+app.mount("/api/v1/eligibility_agent", file_app)
 
-
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8602)
-
-
-⸻
-
-test_client.py
-
-import asyncio
-from langchain_mcp_adapters.client import MultiServerMCPClient
-
-async def get_tool_list(config_mcp_server):
-    client = MultiServerMCPClient(config_mcp_server)
-    tools_list = await client.get_tools()
-    print("Tools fetched from MCP:", [tool.name for tool in tools_list])
-    await client.aclose()
-    return tools_list
-
-async def main():
-    config_mcp_server = {
-        "document_analyzer_mcp": {
-            "url": "http://localhost:8602/api/v1/document_agent/mcp",
-            "transport": "streamable_http",
-        }
-    }
-    tools = await get_tool_list(config_mcp_server=config_mcp_server)
-    print("Total tools:", len(tools))
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    uvicorn.run(app, host="0.0.0.0", port=8601)
 
 
 ⸻
@@ -330,55 +424,79 @@ test_scripts.py
 import requests
 import json
 
-# Endpoint mirrors your licensing tests but points to the Document Analyzer MCP we mounted on port 8602
-BASE_URL = "http://localhost:8602/api/v1/document_agent/Document_Analyzer_MCP"
+BASE_COMPARE_URL = "http://localhost:8601/api/v1/eligibility_agent/Licensing_&_Sanction_Checker_MCP"
+BASE_REF_URL = "http://localhost:8601/api/v1/eligibility_agent/Fetch_And_Update_Reference"
 
-def run_test():
+
+def run_compare_test():
     payload = {
-        # Replace with an accessible PDF blob URL in your storage account
-        "pdfurl": "https://agenticai1.blob.core.windows.net/attachment-downloader/Acord_125_FullForm_Filled%201.pdf"
+        "jsonfilepath": "https://agenticai1.blob.core.windows.net/output-results/AASDEWQ213SF_attachment_Acord_125_extraction_20251149_1226666.json"
     }
     try:
-        resp = requests.post(BASE_URL, json=payload, timeout=120)
-        print("HTTP Status:", resp.status_code)
+        resp = requests.post(BASE_COMPARE_URL, json=payload, timeout=60)
+        print("Compare HTTP Status:", resp.status_code)
         try:
             data = resp.json()
             print(json.dumps(data, indent=4))
         except json.JSONDecodeError:
             print("Response not JSON:", resp.text)
     except Exception as e:
-        print("Error calling API:", str(e))
+        print("Error calling Compare API:", str(e))
+
+
+def run_reference_test():
+    try:
+        resp = requests.post(BASE_REF_URL, timeout=60)
+        print("Reference HTTP Status:", resp.status_code)
+        try:
+            data = resp.json()
+            print(json.dumps(data, indent=4))
+        except json.JSONDecodeError:
+            print("Response not JSON:", resp.text)
+    except Exception as e:
+        print("Error calling Reference API:", str(e))
+
 
 if __name__ == "__main__":
-    print("Testing /Document_Analyzer_MCP ...")
-    run_test()
+    print("Testing /Licensing_&_Sanction_Checker_MCP ...")
+    run_compare_test()
+    print("\nTesting /Fetch_And_Update_Reference ...")
+    run_reference_test()
 
 
 ⸻
 
-Quick run checklist
-	1.	Install required packages (adjust versions as needed):
+.env (example)
 
-pip install fastapi uvicorn python-dotenv azure-ai-documentintelligence azure-storage-blob langchain-mcp-adapters requests
-
-	2.	Add .env with ENDPOINT, KEY, MODEL_ID, AZURE_STORAGE_CONNECTION_STRING.
-	3.	Start service:
-
-python main.py
-# or
-uvicorn main:app --reload --port 8602
-
-	4.	Run tests:
-
-python test_client.py         # lists MCP tools
-python test_scripts.py        # posts a pdfurl and prints envelope result
+AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=...your-connection-string...
 
 
 ⸻
 
-If you want next:
-	•	I can change local file I/O to aiofiles for non-blocking file writes/reads (recommended for large PDFs).
-	•	Add an extra test that downloads the returned output JSON blob and asserts it contains extracted_fields.
-	•	Add optional SAS generation if your blobs are private and you want to return accessible URLs.
+requirements.txt (recommended)
 
-Which would you like?
+fastapi
+uvicorn
+fastapi-mcp
+python-dotenv
+pandas
+openpyxl
+azure-storage-blob==12.24.0
+azure-core
+requests
+
+
+⸻
+
+Quick validations / tips
+	1.	Ensure input/ folder is writable by the process. The code creates it if missing.
+	2.	When you first run /Fetch_And_Update_Reference, it will create input/reference_stub.xlsx with header Reference Number | Timestamp and append the first found reference with timestamp.
+	3.	Timestamp format example: 2025-11-20T16:35:12+05:30.
+	4.	If you want the endpoint to accept a custom blob URL (instead of hard-coded BLOB_EXCEL_URL), tell me and I’ll modify file_router.py + handler.py accordingly.
+
+If you want, I can also:
+	•	add logging,
+	•	add an endpoint variant that returns the updated stub file for download,
+	•	or implement a safety check to allow only certain containers.
+
+Which would you like next?
