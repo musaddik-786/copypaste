@@ -1,138 +1,58 @@
-import os
-import json
-import base64
-import re
-from azure.storage.blob import BlobServiceClient
-from dotenv import load_dotenv
+# Import necessary libraries
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import mean_absolute_error, mean_absolute_percentage_error, mean_squared_error
+import pickle
 
-load_dotenv()
+# Load the dataset
+df = pd.read_csv('/Users/nageshjadhav/Desktop/auto-mpg.csv')
 
-STATE_FILE = os.path.join("storage", "history_state.json")
-OUTPUT_DIR = os.path.join("storage", "attachments")
-os.makedirs(OUTPUT_DIR, exist_ok=True)
-os.makedirs(os.path.dirname(STATE_FILE), exist_ok=True)
+# Drop irrelevant column
+df = df.drop('car name', axis=1)
 
-AZURE_STORAGE_CONNECTION_STRING = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "")
-AZURE_BLOB_CONTAINER = os.environ.get("AZURE_BLOB_CONTAINER", "")
+# Replace '?' with NaN and handle missing values
+df = df.replace('?', np.nan)
+df['horsepower'] = df['horsepower'].astype(float)  # Ensure horsepower is numeric
+df['horsepower'].fillna(df['horsepower'].mean(), inplace=True)
 
-def _get_blob_service_client():
-    if not AZURE_STORAGE_CONNECTION_STRING:
-        raise RuntimeError("Missing AZURE_STORAGE_CONNECTION_STRING")
-    return BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING)
+# Define target variable (y) and features (X)
+y = df['mpg']
+X = df.drop('mpg', axis=1)
 
-def _ensure_container_exists(blob_service_client):
-    if not AZURE_BLOB_CONTAINER:
-        raise RuntimeError("Missing AZURE_BLOB_CONTAINER")
-    container_client = blob_service_client.get_container_client(AZURE_BLOB_CONTAINER)
-    try:
-        container_client.create_container()
-    except Exception:
-        pass
-    return container_client
+# Split data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, shuffle=True)
 
-def load_state():
-    try:
-        with open(STATE_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        return {}
+# Scale features
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
 
-def save_state(state):
-    with open(STATE_FILE, "w", encoding="utf-8") as f:
-        json.dump(state, f, indent=2, ensure_ascii=False)
+# Train the linear regression model
+lr = LinearRegression()
+lr.fit(X_train_scaled, y_train)
 
-def _walk_parts(parts):
-    for p in parts or []:
-        yield p
-        for sub in p.get("parts", []) or []:
-            yield from _walk_parts([sub])
+# Evaluate the model
+y_pred = lr.predict(X_test_scaled)
+mae = mean_absolute_error(y_test, y_pred)
+mape = mean_absolute_percentage_error(y_test, y_pred)
+mse = mean_squared_error(y_test, y_pred)
 
-def _blob_exists_for_attachment(container_client, attachment_name):
-    """
-    Returns True if any blob corresponds to the given attachment_name using the new naming rule:
-      - New format: <referenceid>_attachment_<filename>
-    We no longer check for exact blob name == attachment_name.
-    """
-    search_token = f"_attachment_{attachment_name}"
-    try:
-        # list_blobs may be expensive for very large containers; this directly scans blob names.
-        for blob in container_client.list_blobs():
-            # match if the search token appears in the blob name (handles folder prefixes)
-            if search_token in blob.name:
-                return True
-    except Exception as e:
-        print(f"Error while listing blobs for pattern search '{search_token}': {e}")
+# Print evaluation metrics
+print(f"Mean Absolute Error: {mae}")
+print(f"Mean Absolute Percentage Error: {mape}")
+print(f"Mean Squared Error: {mse}")
+print(f"R² Score (Train): {lr.score(X_train_scaled, y_train)}")
+print(f"R² Score (Test): {lr.score(X_test_scaled, y_test)}")
 
-    return False
+# Save the model using pickle
+with open('/Users/nageshjadhav/Desktop/autompg_lr.pkl', 'wb') as f:
+    pickle.dump(lr, f)
 
-def save_attachments_from_message(service, message):
-    """
-    Extract attachment filenames from Gmail message and compare with Azure Blob Storage.
-    Always returns {"attachments": [ { "filename": ..., "is_duplicate": True/False/"NA" }, ... ]}
-    If no attachments: returns {"attachments": []}
-    """
-    filenames = []
-    parts = message.get("payload", {}).get("parts", [])
-    for part in _walk_parts(parts):
-        filename = part.get("filename")
-        _ = part.get("body", {}) or {}
-        if filename:
-            filenames.append(filename)
-
-    if not filenames:
-        try:
-            out_path = os.path.join(OUTPUT_DIR, f"{message.get('id', 'unknown')}_comparison.json")
-            with open(out_path, "w", encoding="utf-8") as f:
-                json.dump({"attachments": []}, f, indent=2, ensure_ascii=False)
-        except Exception as exc:
-            print(f"Failed to write comparison result file: {exc}")
-        return {"attachments": []}
-
-    # Pattern to decide which files should be checked against blob storage.
-    # Files that do NOT match this pattern will be returned with "is_duplicate": "NA".
-    accord_pattern = re.compile(r"acord|quote", re.IGNORECASE)
-
-    blob_service_client = None
-    container_client = None
-    # Delay creating blob client until we actually need it (i.e., at least one file matches).
-    if any(accord_pattern.search(fn) for fn in filenames):
-        try:
-            blob_service_client = _get_blob_service_client()
-            container_client = _ensure_container_exists(blob_service_client)
-        except Exception as e:
-            # If we cannot create the container client, log and proceed: matched files will be marked is_duplicate=False
-            print(f"Warning: unable to initialize Azure Blob client: {e}")
-            container_client = None
-
-    attachment_results = []
-    for name in filenames:
-        if accord_pattern.search(name):
-            # This filename should be checked against blob storage.
-            try:
-                if container_client:
-                    is_duplicate = _blob_exists_for_attachment(container_client, name)
-                else:
-                    # If container client couldn't be created, treat as not duplicate but log the situation.
-                    print(f"Container client not available; treating '{name}' as not duplicate.")
-                    is_duplicate = False
-            except Exception as e:
-                print(f"Error checking blob existence for '{name}': {e}")
-                is_duplicate = False
-        else:
-            # Not a file we want to check — return string "NA" as requested.
-            is_duplicate = "NA"
-
-        attachment_results.append({
-            "filename": name,
-            "is_duplicate": is_duplicate
-        })
-
-    # Write comparison result file (best-effort)
-    try:
-        out_path = os.path.join(OUTPUT_DIR, f"{message.get('id', 'unknown')}_comparison.json")
-        with open(out_path, "w", encoding="utf-8") as f:
-            json.dump({"attachments": attachment_results}, f, indent=2, ensure_ascii=False)
-    except Exception as exc:
-        print(f"Failed to write comparison result file: {exc}")
-
-    return {"attachments": attachment_results}
+# Predict a sample
+sample = np.array([8, 305.0, 130.0, 3840, 15.4, 79, 1]).reshape(1, -1)
+sample_scaled = scaler.transform(sample)
+sample_prediction = lr.predict(sample_scaled)
+print(f"Sample Prediction: {sample_prediction}")
