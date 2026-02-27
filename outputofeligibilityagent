@@ -1,31 +1,5 @@
-You are EligibilityAgent in an insurance underwriting system.
-
-You MUST follow this workflow strictly and sequentially.
-
-STEP 1
-Call risk_type_checker_MCP.
-After receiving the result:
-	•	If line_of_business is NOT “Commercial Property” → respond End
-	•	If line_of_business is “Commercial Property” → respond Continue
-
-STEP 2
-Only if previous step responded Continue, call renewal_checker_mcp.
-After receiving the result:
-	•	Always respond Continue
-
-STEP 3
-Only if previous step responded Continue, call Licensing_and_Sanction_Checker_MCP.
-After receiving the result:
-	•	If is_Sanctioned is True → respond End
-	•	If is_Sanctioned is False → respond Continue
-
-STEP 4
-Only if previous step responded Continue, call Json_Reader_Read.
-After receiving the result:
-	•	Respond End
-
-IMPORTANT RULES:
-	•	You MUST call the appropriate tool before responding Continue or End.
-	•	Never respond Continue or End without calling the required tool first.
-	•	Do NOT explain.
-	•	Respond with only Continue or End.
+(venv) Jarvis@JarvisPhase2:~/Musaddique/project_root/eligibility_agent$ python3 langgraph_client.py 
+{'agent': {'messages': [AIMessage(content='Continue', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 3, 'prompt_tokens': 249, 'total_tokens': 252, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 0}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_7a7fd0eb44', 'id': 'chatcmpl-DDqctqmTACRTSO5m4wNcXj3HB0rrz', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'jailbreak': {'filtered': False, 'detected': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}], 'finish_reason': 'stop', 'logprobs': None, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'protected_material_code': {'filtered': False, 'detected': False}, 'protected_material_text': {'filtered': False, 'detected': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}, id='lc_run--019c9eee-1d8d-72b0-8e78-60ca6918347f-0', tool_calls=[], invalid_tool_calls=[], usage_metadata={'input_tokens': 249, 'output_tokens': 3, 'total_tokens': 252, 'input_token_details': {'audio': 0, 'cache_read': 0}, 'output_token_details': {'audio': 0, 'reasoning': 0}})]}}
+{'agent': {'messages': [AIMessage(content='Continue', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 3, 'prompt_tokens': 254, 'total_tokens': 257, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 0}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_7a7fd0eb44', 'id': 'chatcmpl-DDqctVHMdTahiAK6rBMHfLmRm60gf', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'jailbreak': {'filtered': False, 'detected': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}], 'finish_reason': 'stop', 'logprobs': None, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'protected_material_code': {'filtered': False, 'detected': False}, 'protected_material_text': {'filtered': False, 'detected': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}, id='lc_run--019c9eee-1f0b-7f83-afd5-afcc6be968c4-0', tool_calls=[], invalid_tool_calls=[], usage_metadata={'input_tokens': 254, 'output_tokens': 3, 'total_tokens': 257, 'input_token_details': {'audio': 0, 'cache_read': 0}, 'output_token_details': {'audio': 0, 'reasoning': 0}})]}}
+{'agent': {'messages': [AIMessage(content='End', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 3, 'prompt_tokens': 259, 'total_tokens': 262, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 0}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_7a7fd0eb44', 'id': 'chatcmpl-DDqcu27Uu1vvDbxT2tkcYCNxOzoSC', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'jailbreak': {'filtered': False, 'detected': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}], 'finish_reason': 'stop', 'logprobs': None, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'protected_material_code': {'filtered': False, 'detected': False}, 'protected_material_text': {'filtered': False, 'detected': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}, id='lc_run--019c9eee-207f-7643-b1b1-44522d9cd197-0', tool_calls=[], invalid_tool_calls=[], usage_metadata={'input_tokens': 259, 'output_tokens': 3, 'total_tokens': 262, 'input_token_details': {'audio': 0, 'cache_read': 0}, 'output_token_details': {'audio': 0, 'reasoning': 0}})]}}
+(venv) Jarvis@JarvisPhase2:~/Musaddique/project_root/eligibility_agent$ 
