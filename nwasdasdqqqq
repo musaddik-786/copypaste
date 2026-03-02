@@ -1,0 +1,236 @@
+
+eligibility agents langgraph_vlient.py
+
+import asyncio
+from typing import TypedDict, Annotated
+
+from langgraph.graph import StateGraph, START, END
+from langgraph.graph.message import add_messages
+from langgraph.prebuilt import ToolNode
+from langchain_core.messages import AIMessage, SystemMessage
+
+from langchain_mcp_adapters.client import MultiServerMCPClient
+from langchain_openai.chat_models import AzureChatOpenAI
+
+
+class State(TypedDict):
+    messages: Annotated[list, add_messages]
+
+
+def router(state: State):
+    last = state["messages"][-1]
+
+    if isinstance(last, AIMessage) and last.tool_calls:
+        return "tools"
+
+    if isinstance(last, AIMessage) and last.content:
+        content = last.content.strip()
+        if content == "Continue":
+            return "agent"
+        if content == "End":
+            return "end"
+
+    return "end"
+
+
+def load_prompt():
+    with open("prompt_eligibility.txt", "r", encoding="utf-8") as f:
+        return f.read()
+
+
+async def build_eligibility_graph():
+
+    mcp_client = MultiServerMCPClient({
+        "dummy_mcp": {
+            "url": "http://localhost:3420/mcp",
+            "transport": "streamable_http",
+        }
+    })
+
+    # 🔥 NO TOOL FILTERING
+    # all_tools = await mcp_client.get_tools()
+    all_tools = await mcp_client.get_tools()
+    eligibility_tool_names = [
+   "risk_type_checker_MCP",
+   "renewal_checker_mcp",
+   "Licensing_and_Sanction_Checker_MCP",
+   "Json_Reader_Read",
+    ]
+    filtered_tools = [
+    tool for tool in all_tools
+    if tool.name in eligibility_tool_names
+    ]
+
+
+
+    model = AzureChatOpenAI(
+    api_key="uA",
+    api_version="2",
+    azure_deployment="gs",
+    azure_endpoint="m/"
+   )
+
+    llm = model.bind_tools(all_tools)
+    # llm = model.bind_tools(filtered_tools)
+    prompt = load_prompt()
+
+    async def agent_node(state: State):
+        system = SystemMessage(content=prompt)
+        response = await llm.ainvoke([system] + state["messages"])
+        return {"messages": [response]}
+
+    graph = StateGraph(State)
+
+    graph.add_node("agent", agent_node)
+    graph.add_node("tools", ToolNode(all_tools))
+    # graph.add_node("tools", ToolNode(filtered_tools))
+
+
+    graph.add_edge(START, "agent")
+
+    graph.add_conditional_edges(
+        "agent",
+        router,
+        {
+            "tools": "tools",
+            "agent": "agent",
+            "end": END,
+        },
+    )
+
+    graph.add_edge("tools", "agent")
+
+    return graph.compile()
+
+
+async def main():
+    graph = await build_eligibility_graph()
+
+    async for step in graph.astream(
+        {"messages": ["Start eligibility workflow"]},
+        config={"recursion_limit": 40},
+    ):
+        print(step)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+
+
+
+emailintentagents langgraphclient.py
+
+import asyncio
+from typing import TypedDict, Annotated
+
+from langgraph.graph import StateGraph, START, END
+from langgraph.graph.message import add_messages
+from langgraph.prebuilt import ToolNode
+from langchain_core.messages import AIMessage, SystemMessage
+
+from langchain_mcp_adapters.client import MultiServerMCPClient
+from langchain_openai.chat_models import AzureChatOpenAI
+
+
+# -------------------------
+# STATE
+# -------------------------
+class State(TypedDict):
+    messages: Annotated[list, add_messages]
+
+
+# -------------------------
+# ROUTER
+# -------------------------
+def router(state: State):
+    last = state["messages"][-1]
+
+    if isinstance(last, AIMessage) and last.tool_calls:
+        return "tools"
+
+    if isinstance(last, AIMessage) and last.content:
+        content = last.content.strip()
+        if content == "Continue":
+            return "agent"
+        if content == "End":
+            return "end"
+
+    return "end"
+
+
+# -------------------------
+# PROMPT LOADER
+# -------------------------
+def load_prompt():
+    with open("prompt_email.txt", "r", encoding="utf-8") as f:
+        return f.read()
+
+
+# -------------------------
+# BUILD GRAPH
+# -------------------------
+async def build_email_intent_graph():
+
+    mcp_client = MultiServerMCPClient({
+        "dummy_mcp": {
+            "url": "http://localhost:3420/mcp",
+            "transport": "streamable_http",
+        }
+    })
+
+    # 🔥 NO TOOL FILTERING
+    all_tools = await mcp_client.get_tools()
+
+    model = AzureChatOpenAI(
+    api_key="uA",
+    api_version="2",
+    azure_deployment="gs",
+    azure_endpoint="m/"
+    )
+
+    llm = model.bind_tools(all_tools)
+    prompt = load_prompt()
+
+    async def agent_node(state: State):
+        system = SystemMessage(content=prompt)
+        response = await llm.ainvoke([system] + state["messages"])
+        return {"messages": [response]}
+
+    graph = StateGraph(State)
+
+    graph.add_node("agent", agent_node)
+    graph.add_node("tools", ToolNode(all_tools))
+
+    graph.add_edge(START, "agent")
+
+    graph.add_conditional_edges(
+        "agent",
+        router,
+        {
+            "tools": "tools",
+            "agent": "agent",
+            "end": END,
+        },
+    )
+
+    graph.add_edge("tools", "agent")
+
+    return graph.compile()
+
+
+# -------------------------
+# RUN
+# -------------------------
+async def main():
+    graph = await build_email_intent_graph()
+
+    async for step in graph.astream(
+        {"messages": ["Start email workflow"]},
+        config={"recursion_limit": 40},
+    ):
+        print(step)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+
