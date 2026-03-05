@@ -1,11 +1,254 @@
-(venv) Jarvis@JarvisPhase2:~/Musaddique/project_root/risk_assesment_agent$ python3 langgraph_client.py 
-{'agent': {'messages': [AIMessage(content='', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 15, 'prompt_tokens': 685, 'total_tokens': 700, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 0}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_63d8723934', 'id': 'chatcmpl-DFxMAziN7J1hv1OkSTQxj43P82iD0', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'jailbreak': {'detected': False, 'filtered': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}], 'finish_reason': 'tool_calls', 'logprobs': None, 'content_filter_results': {}}, id='lc_run--019cbce2-136a-7fa2-99f5-98475aff20b5-0', tool_calls=[{'name': 'risk_data_capture_mcp', 'args': {}, 'id': 'call_1yi69h2jGca6sn8riuzkngrx', 'type': 'tool_call'}], invalid_tool_calls=[], usage_metadata={'input_tokens': 685, 'output_tokens': 15, 'total_tokens': 700, 'input_token_details': {'audio': 0, 'cache_read': 0}, 'output_token_details': {'audio': 0, 'reasoning': 0}})]}}
-{'tools': {'messages': [ToolMessage(content=[{'type': 'text', 'text': '{\n  "jsonrpc": "2.0",\n  "id": 1,\n  "result": {\n    "earthquake_count": 1,\n    "flood_zone": false,\n    "construction_type": "Concrete",\n    "distance_to_fire_hydrant": "120m",\n    "distance_to_fire_station": "2km",\n    "year_built": 2005\n  }\n}', 'id': 'lc_5633a41f-1fcd-4e21-845c-b221c86ec3b1'}], name='risk_data_capture_mcp', id='800e7941-1cd8-419a-8fec-f792140b1b66', tool_call_id='call_1yi69h2jGca6sn8riuzkngrx')]}}
-{'agent': {'messages': [AIMessage(content='Continue', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 3, 'prompt_tokens': 795, 'total_tokens': 798, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 0}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_63d8723934', 'id': 'chatcmpl-DFxMBPuTi7wZugoQmOqRMuaXRddGR', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {}}], 'finish_reason': 'stop', 'logprobs': None, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'protected_material_code': {'detected': False, 'filtered': False}, 'protected_material_text': {'detected': False, 'filtered': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}, id='lc_run--019cbce2-15bf-7521-826f-754e520cee12-0', tool_calls=[], invalid_tool_calls=[], usage_metadata={'input_tokens': 795, 'output_tokens': 3, 'total_tokens': 798, 'input_token_details': {'audio': 0, 'cache_read': 0}, 'output_token_details': {'audio': 0, 'reasoning': 0}})]}}
-{'agent': {'messages': [AIMessage(content='', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 16, 'prompt_tokens': 800, 'total_tokens': 816, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 0}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_63d8723934', 'id': 'chatcmpl-DFxMBcdS4vUj7ZSCF0E6d2HoI4TwO', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {}}], 'finish_reason': 'tool_calls', 'logprobs': None, 'content_filter_results': {}}, id='lc_run--019cbce2-1780-71f1-ba94-a79f5e31976c-0', tool_calls=[{'name': 'risk_score_calculator_mcp', 'args': {}, 'id': 'call_TZsq61b87k39yKACn6nFVPdh', 'type': 'tool_call'}], invalid_tool_calls=[], usage_metadata={'input_tokens': 800, 'output_tokens': 16, 'total_tokens': 816, 'input_token_details': {'audio': 0, 'cache_read': 0}, 'output_token_details': {'audio': 0, 'reasoning': 0}})]}}
-{'tools': {'messages': [ToolMessage(content=[{'type': 'text', 'text': '{\n  "jsonrpc": "2.0",\n  "id": 1,\n  "result": {\n    "risk_score": 42\n  }\n}', 'id': 'lc_f20011ea-c4b5-4d78-ac83-4cd86de40c60'}], name='risk_score_calculator_mcp', id='bd6f76a3-a543-4dd6-873c-bef139c9d787', tool_call_id='call_TZsq61b87k39yKACn6nFVPdh')]}}
-{'agent': {'messages': [AIMessage(content='Continue', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 3, 'prompt_tokens': 861, 'total_tokens': 864, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 0}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_63d8723934', 'id': 'chatcmpl-DFxMCvfgCd8VMWgk1Z7YGKDSblVPL', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {}}], 'finish_reason': 'stop', 'logprobs': None, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'protected_material_code': {'detected': False, 'filtered': False}, 'protected_material_text': {'detected': False, 'filtered': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}, id='lc_run--019cbce2-19bd-7e80-bac5-29f8b699be25-0', tool_calls=[], invalid_tool_calls=[], usage_metadata={'input_tokens': 861, 'output_tokens': 3, 'total_tokens': 864, 'input_token_details': {'audio': 0, 'cache_read': 0}, 'output_token_details': {'audio': 0, 'reasoning': 0}})]}}
-{'agent': {'messages': [AIMessage(content='', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 18, 'prompt_tokens': 866, 'total_tokens': 884, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 0}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_63d8723934', 'id': 'chatcmpl-DFxMChGjpI5dzPKEMWJvaYpEkfJYT', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {}}], 'finish_reason': 'tool_calls', 'logprobs': None, 'content_filter_results': {}}, id='lc_run--019cbce2-1bdb-76e0-96ee-8a23c9423ca8-0', tool_calls=[{'name': 'accept_reject_risk_functionality_mcp', 'args': {}, 'id': 'call_55qJnopLR2V0PMhIcdMVdVW4', 'type': 'tool_call'}], invalid_tool_calls=[], usage_metadata={'input_tokens': 866, 'output_tokens': 18, 'total_tokens': 884, 'input_token_details': {'audio': 0, 'cache_read': 0}, 'output_token_details': {'audio': 0, 'reasoning': 0}})]}}
-{'tools': {'messages': [ToolMessage(content=[{'type': 'text', 'text': '{\n  "jsonrpc": "2.0",\n  "id": 1,\n  "result": {\n    "decision": "ACCEPT"\n  }\n}', 'id': 'lc_8aa95cfe-934c-49a8-8c98-20d833263dcb'}], name='accept_reject_risk_functionality_mcp', id='00283ad8-a9d5-4545-a02d-184d68c25b2c', tool_call_id='call_55qJnopLR2V0PMhIcdMVdVW4')]}}
-{'agent': {'messages': [AIMessage(content='End', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 3, 'prompt_tokens': 932, 'total_tokens': 935, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 0}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_63d8723934', 'id': 'chatcmpl-DFxMDqkMnuXE49qzW5LJDRsnJbUDh', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {}}], 'finish_reason': 'stop', 'logprobs': None, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'protected_material_code': {'detected': False, 'filtered': False}, 'protected_material_text': {'detected': False, 'filtered': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}, id='lc_run--019cbce2-1e0a-78c2-ba18-4111dcf00306-0', tool_calls=[], invalid_tool_calls=[], usage_metadata={'input_tokens': 932, 'output_tokens': 3, 'total_tokens': 935, 'input_token_details': {'audio': 0, 'cache_read': 0}, 'output_token_details': {'audio': 0, 'reasoning': 0}})]}}
-(venv) Jarvis@JarvisPhase2:~/Musaddique/project_root/risk_assesment_agent$ 
+Good — now we will build the MegaGraph properly using Method 2 (subgraph as node) exactly like the second pattern you showed earlier.
+No hacks, no manual .invoke() calls.
+
+Your agents will become nodes of the MegaGraph.
+
+⸻
+
+1️⃣ Final Architecture
+
+Your system will look like this:
+
+                MEGA GRAPH
+                ──────────
+
+START
+  │
+  ▼
+EmailIntentAgent (subgraph)
+  │
+  ▼
+EligibilityAgent (subgraph)
+  │
+  ▼
+RiskAssessmentAgent (subgraph)
+  │
+  ▼
+END
+
+Each node is one compiled LangGraph.
+
+Example:
+
+EmailIntentAgent
+   ↓
+agent
+   ↓
+tools
+   ↓
+agent
+
+
+⸻
+
+2️⃣ Project Structure
+
+Your project should look like this now:
+
+project_root
+│
+├── main.py
+├── router.py
+│
+├── email_intent_agent
+│   ├── langgraph_client.py
+│   └── prompt_email.txt
+│
+├── eligibility_agent
+│   ├── langgraph_client.py
+│   └── prompt_eligibility.txt
+│
+├── risk_assesment_agent
+│   ├── langgraph_client.py
+│   └── prompt_risk.txt
+│
+└── mega_graph
+    └── megagraph_client.py
+
+Create folder:
+
+mega_graph
+
+
+⸻
+
+3️⃣ MegaGraph Code
+
+Create file:
+
+mega_graph/megagraph_client.py
+
+Complete code:
+
+import asyncio
+from typing import TypedDict, Annotated
+
+from langgraph.graph import StateGraph, START, END
+from langgraph.graph.message import add_messages
+
+# IMPORT SUBGRAPHS
+from email_intent_agent.langgraph_client import build_email_intent_graph
+from eligibility_agent.langgraph_client import build_eligibility_graph
+from risk_assesment_agent.langgraph_client import build_risk_graph
+
+
+class State(TypedDict):
+    messages: Annotated[list, add_messages]
+
+
+async def build_megagraph():
+
+    # build all subgraphs
+    email_graph = await build_email_intent_graph()
+    eligibility_graph = await build_eligibility_graph()
+    risk_graph = await build_risk_graph()
+
+    builder = StateGraph(State)
+
+    # Add subgraphs as nodes
+    builder.add_node("EmailIntentAgent", email_graph)
+    builder.add_node("EligibilityAgent", eligibility_graph)
+    builder.add_node("RiskAssessmentAgent", risk_graph)
+
+    # Graph Flow
+    builder.add_edge(START, "EmailIntentAgent")
+
+    builder.add_edge("EmailIntentAgent", "EligibilityAgent")
+
+    builder.add_edge("EligibilityAgent", "RiskAssessmentAgent")
+
+    builder.add_edge("RiskAssessmentAgent", END)
+
+    return builder.compile()
+
+
+async def main():
+
+    graph = await build_megagraph()
+
+    async for step in graph.astream(
+        {"messages": ["Start underwriting workflow"]},
+        config={"recursion_limit": 200},
+    ):
+        print(step)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+
+
+⸻
+
+4️⃣ Execution Flow
+
+When you run:
+
+python mega_graph/megagraph_client.py
+
+The system will run like this:
+
+START
+  ↓
+EmailIntentAgent
+      ↓
+      email_reader_mcp
+      ↓
+      write_email_to_excel
+      ↓
+      email_attachment_mcp
+  ↓
+EligibilityAgent
+      ↓
+      risk_type_checker_MCP
+      ↓
+      renewal_checker_mcp
+      ↓
+      Licensing_and_Sanction_Checker_MCP
+  ↓
+RiskAssessmentAgent
+      ↓
+      risk_data_capture_mcp
+      ↓
+      risk_score_calculator_mcp
+      ↓
+      accept_reject_risk_functionality_mcp
+  ↓
+END
+
+
+⸻
+
+5️⃣ What Happens to State
+
+Your shared state is:
+
+class State(TypedDict):
+    messages: Annotated[list, add_messages]
+
+So state evolves like this:
+
+User: Start underwriting workflow
+
+↓ EmailIntentAgent
+messages += email results
+
+↓ EligibilityAgent
+messages += eligibility results
+
+↓ RiskAgent
+messages += risk decision
+
+The same state flows across all agents.
+
+This is exactly how LangGraph multi-agent orchestration works in production systems.
+
+⸻
+
+6️⃣ Example Real Output (Simplified)
+
+You will see logs like:
+
+EmailIntentAgent → email_reader_mcp
+EmailIntentAgent → write_email_to_excel
+EmailIntentAgent → email_attachment_mcp
+
+EligibilityAgent → risk_type_checker_MCP
+EligibilityAgent → renewal_checker_mcp
+EligibilityAgent → Licensing_and_Sanction_Checker_MCP
+
+RiskAssessmentAgent → risk_data_capture_mcp
+RiskAssessmentAgent → risk_score_calculator_mcp
+RiskAssessmentAgent → accept_reject_risk_functionality_mcp
+
+
+⸻
+
+7️⃣ One Small Recommendation
+
+Increase recursion limit slightly:
+
+config={"recursion_limit": 200}
+
+Because now three agents will run sequentially.
+
+⸻
+
+8️⃣ Your System Is Now Complete
+
+You now have a full multi-agent pipeline:
+
+Email Intent Agent
+        ↓
+Eligibility Agent
+        ↓
+Risk Assessment Agent
+
+Running inside a MegaGraph orchestrator.
+
+This is the exact architecture used in large AI agent systems.
+
+⸻
+
+If you want, I can also show you something very powerful for debugging:
+
+How to generate a visual diagram of your MegaGraph and all subgraphs so you can literally see the agent execution flow.
