@@ -1,335 +1,104 @@
-Prompt
+no not manual filtering of tools see below is eligibility one we did not had manual filtering as you can see
+import asyncio
+from typing import TypedDict, Annotated
 
-12.  Risk Data Capturing Phase
- 
-    Call the 'risk_data_capture_mcp' ONLY RESPOND WITH "Continue" and then call 'risk_score_calculator_mcp'.
-    Do not add punctuation, explanations, or any other text. If you output anything else, the system will fail.
-    
- 
-13. Risk Score Calculation Phase
- 
-    Call the 'risk_score_calculator_mcp' get the risk score based upon the extracted data. Once the tool does its task, only respond with "Continue".
-	Do not add punctuation, explanations, or any other text. If you output anything else, the system will fail.
- 
- 
-14. Accept - Reject Phase
- 
-    Call the 'accept_reject_risk_functionality_mcp'. Once the tool does its task, only respond with "Continue".
+from langgraph.graph import StateGraph, START, END
+from langgraph.graph.message import add_messages
+from langgraph.prebuilt import ToolNode
+from langchain_core.messages import AIMessage, SystemMessage
 
-      
+from langchain_mcp_adapters.client import MultiServerMCPClient
+from langchain_openai.chat_models import AzureChatOpenAI
 
 
-this is just for your reference we do not want it to be this big you can refer the current main and rouer.py we just want the dummy for this
-# risk data capture
-class RiskDataCaptureRequest(BaseModel):
-    """
-    This endpoint is used to retrieve the relevant risk data associated with a given address.
-    It will:
-    - Read the JSON file from Azure Blob,
-    - Parse the extracted fields to identify the address,
-    - Call an external geocoding API to derive latitude and longitude from the address,
-    - Call an external earthquake API to calculate the earthquake count based on the derived latitude/longitude,
-    - Stub additional risk-related values using randomized functions:
-        • Flood zone
-        • Construction type
-        • Distance to fire hydrant
-        • Distance to fire station
-        • Year built
-    - Return the risk profile in a JSON format.    
-    """
-    AgentName: str = Field(default="RiskAssesmentAgent", description=("The unique agent name of the agent that is being called"))
-    UserId: str = Field(default="markRuffalo", description=("The unique user id of a specific user (default: 'markRuffalo')."))
-    file_path: str = Field(..., description="Full blob URL or plain filename for the JSON file.")
- 
-@router.post("/risk_data_capture_mcp", operation_id="risk_data_capture_mcp") 
-async def get_risk_data(p_body: RiskDataCaptureRequest):
-    """
-    Accepts the JSON blob URL from the Data Extraction Agent, processes the file contents to retrieve relevant risk data.
-    
-    Args:
-        AgentName (str): The unique agent name of the agent that is being called.
-        UserId (str): The unique user id of a specific user (default: 'markRuffalo').
-        file_path (str): Full blob URL or plain filename for the JSON file.
-    """
-    try:
-        result = await capture_risk_data(p_body.file_path)
-        return JSONResponse(
-            content={
-                "jsonrpc": "2.0",
-                "id": 1,
-                "result": result
-            },
-            status_code=200
-        )
-    except Exception as e:
-        return JSONResponse(
-            content={
-                "jsonrpc": "2.0",
-                "id": 1,
-                "error": str(e)
-            },
-            status_code=500
-        )
-
-          
-
-@router.post("/risk_score", operation_id="risk_score_calculator_mcp")
-async def risk_score(p_body: RiskScoreRequest):
-    """
-    Compute risk score from JSON in Azure Blob storage using RuleBasedRiskCalculator
-    and return the structured result with stubbed Excel row + blob URLs.
-
-    Body:
-
-        AgentName (str): Agent name (optional)
-
-        BlobUrl (str): Required full blob URL or container/blob path.
-    """
-    try:
-        # Call the helper method you added in riskcalculator.py
-        result = calculator.process_blob(p_body.BlobUrl)
-
-        return JSONResponse(content={
-            "jsonrpc": "2.0",
-            "id": 1,
-            "result": result
-        })
-
-    except Exception as e:
-        return JSONResponse(status_code=500, content={"error": f"Risk score computation failed: {e}"})
-
-    
+class State(TypedDict):
+    messages: Annotated[list, add_messages]
 
 
-class ProcessRiskRequest(BaseModel):
-    """
-    Accept/Reject Risk Functionality MCP
-    Input (fixed):
-      - Container: risk-score-output
-      - The latest blob (by last_modified) will be selected automatically.
-    Output (timestamped per run):
-      - Container: accept-reject-riskfunctionality-output
-      - Blob: accept-reject-riskfunctionality-output_<UTC timestamp>.json
-    """
-    input_blob_url: str = Field(..., description="Azure Blob URL pointing to the risk-score-output container (any blob path within it is acceptable).")
-    acceptance_threshold: float = Field(40.0, description="Optional acceptance threshold (default 75.0).")
-    rejection_threshold: float = Field(75.0, description="Optional rejection threshold (default 40.0).")
-    earthquake_count: int = Field(description="earthquake count provided by risk_data_capture_mcp.")
-    flood_zone: bool = Field(description="flood zone provided by risk_data_capture_mcp.")
-    construction_type: str = Field(description="construction type provided by risk_data_capture_mcp.")
-    distance_to_fire_hydrant: str = Field(description="distance to fire hydrant provided by risk_data_capture_mcp.")
-    distance_to_fire_station: str = Field(description="distance to fire station provided by risk_data_capture_mcp.")
-    year_built: int = Field(description="year built provided by risk_data_capture_mcp.")
+def router(state: State):
+    last = state["messages"][-1]
 
-@router.post(
-    "/Accept_Reject_Risk_Functionality_MCP",
-    operation_id="accept_reject_risk_functionality_mcp",
-    summary="Process latest risk submissions from risk-score-output and write timestamped results to accept-reject-riskfunctionality-output"
-)
-async def accept_reject_risk_mcp(request: ProcessRiskRequest):
-    """
-    Evaluates accept/reject decisions, saves local output/results.json,
-    and uploads to accept-reject-riskfunctionality-output/<timestamp>.json.
-    Returns a JSON-RPC envelope.
-    """
-    thresholds = RiskThresholds(
-        acceptance_threshold=request.acceptance_threshold,
-        rejection_threshold=request.rejection_threshold,
+    if isinstance(last, AIMessage) and last.tool_calls:
+        return "tools"
+
+    if isinstance(last, AIMessage) and last.content:
+        content = last.content.strip()
+        if content == "Continue":
+            return "agent"
+        if content == "End":
+            return "end"
+
+    return "end"
+
+
+def load_prompt():
+    with open("prompt_eligibility.txt", "r", encoding="utf-8") as f:
+        return f.read()
+
+
+async def build_eligibility_graph():
+
+    mcp_client = MultiServerMCPClient({
+        "dummy_mcp": {
+            "url": "http://localhost:3420/mcp",
+            "transport": "streamable_http",
+        }
+    })
+
+    # all_tools = await mcp_client.get_tools()
+    all_tools = await mcp_client.get_tools()
+
+
+
+    model = AzureChatOpenAI(
+    api_key="AA",
+    api_version="2",
+    azure_deployment="g",
+    azure_endpoint="/"
+   )
+
+    llm = model.bind_tools(all_tools)
+    # llm = model.bind_tools(filtered_tools)
+    prompt = load_prompt()
+
+    async def agent_node(state: State):
+        system = SystemMessage(content=prompt)
+        response = await llm.ainvoke([system] + state["messages"])
+        return {"messages": [response]}
+
+    graph = StateGraph(State)
+
+    graph.add_node("agent", agent_node)
+    graph.add_node("tools", ToolNode(all_tools))
+    # graph.add_node("tools", ToolNode(filtered_tools))
+
+
+    graph.add_edge(START, "agent")
+
+    graph.add_conditional_edges(
+        "agent",
+        router,
+        {
+            "tools": "tools",
+            "agent": "agent",
+            "end": END,
+        },
     )
- 
 
-    result = await process_risk_from_blob(
-        input_blob_url=request.input_blob_url,
-        construction_type=request.construction_type,
-        thresholds=thresholds,
-        earthquake_count=request.earthquake_count,
-        flood_zone=request.flood_zone,
-        distance_to_fire_hydrant=request.distance_to_fire_hydrant,
-        distance_to_fire_station=request.distance_to_fire_station,
-        year_built=request.year_built,
-    )
-    return JSONResponse(
-        content={"jsonrpc": "2.0", "id": 1, "result": result},
-        status_code=200
-    )
- 
+    graph.add_edge("tools", "agent")
+
+    return graph.compile()
 
 
+async def main():
+    graph = await build_eligibility_graph()
 
+    async for step in graph.astream(
+        {"messages": ["Start eligibility workflow"]},
+        config={"recursion_limit": 40},
+    ):
+        print(step)
 
-Below is our current router.py
-      from fastapi import APIRouter
-from fastapi.responses import JSONResponse
-
-router = APIRouter()
-
-
-@router.post("/email_reader_mcp", operation_id="email_reader_mcp")
-async def email_reader_mcp():
-    return JSONResponse({
-        "jsonrpc": "2.0",
-        "id": 1,
-        "result": {
-            "subject": "Insurance Quote Request",
-            "body": "This email is related to insurance"
-        }
-    })
-
-
-@router.post("/write_email_to_excel", operation_id="write_email_to_excel")
-async def write_email_to_excel():
-    return JSONResponse({
-        "jsonrpc": "2.0",
-        "id": 1,
-        "result": {"status": "written"}
-    })
-
-
-@router.post("/email_attachment_mcp", operation_id="email_attachment_mcp")
-async def email_attachment_mcp():
-    return JSONResponse({
-        "jsonrpc": "2.0",
-        "id": 1,
-        "result": {
-            "attachments": [
-                {"blob_url": "accord_policy_1.pdf"},
-                {"blob_url": "quote_details_1.pdf"}
-            ]
-        }
-    })
-
-
-@router.post("/layout_detection_mcp", operation_id="layout_detection_mcp")
-async def layout_detection_mcp():
-    return JSONResponse({
-        "jsonrpc": "2.0",
-        "id": 1,
-        "result": {"layout": "ACORD"}
-    })
-
-
-@router.post("/document_extract_mcp", operation_id="document_extract_mcp")
-async def document_extract_mcp():
-    return JSONResponse({
-        "jsonrpc": "2.0",
-        "id": 1,
-        "result": {
-            "Document_Confidence_Score": 0.95
-        }
-    })
-
-
-@router.post("/query_pdf_vectorizer_mcp", operation_id="query_pdf_vectorizer_mcp")
-async def query_pdf_vectorizer_mcp():
-    return JSONResponse({
-        "jsonrpc": "2.0",
-        "id": 1,
-        "result": {"embedded": True}
-    })
-
-
-@router.post("/attachment_summary_mcp", operation_id="attachment_summary_mcp")
-async def attachment_summary_mcp():
-    return JSONResponse({
-        "jsonrpc": "2.0",
-        "id": 1,
-        "result": {
-            "summary": "All attachments summarized"
-        }
-    })
-
-
-
-
-# -----------------------------
-# ELIGIBILITY AGENT TOOLS
-# -----------------------------
-@router.post("/risk_type_checker_MCP", operation_id="risk_type_checker_MCP")
-async def risk_type_checker():
-   return JSONResponse({
-       "jsonrpc": "2.0",
-       "id": 1,
-       "result": {
-           "line_of_business": "Commercial Property"
-       }
-   })
-
-
-
-
-
-@router.post("/renewal_checker_mcp", operation_id="renewal_checker_mcp")
-async def renewal_checker():
-   return JSONResponse({
-       "jsonrpc": "2.0",
-       "id": 1,
-       "result": {
-           "is_renewal": False
-       }
-   })
-
-@router.post("/Licensing_and_Sanction_Checker_MCP",
-            operation_id="Licensing_and_Sanction_Checker_MCP")
-async def sanction_checker():
-   return JSONResponse({
-       "jsonrpc": "2.0",
-       "id": 1,
-       "result": {
-           "is_Sanctioned": False
-       }
-   })
-
-@router.post("/Json_Reader_Read", operation_id="Json_Reader_Read")
-async def json_reader():
-   return JSONResponse({
-       "jsonrpc": "2.0",
-       "id": 1,
-       "result": {
-           "policy_number": "POL123",
-           "insured_name": "ABC Corp"
-       }
-   })
-
-
-
-
-     below is our current main.py
-     
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi_mcp import FastApiMCP
-
-from router import router
-
-app = FastAPI(title="Dummy MCP Server")
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-app.include_router(router)
-
-# Expose all routes as MCP tools
-FastApiMCP(
-    app,
-    include_operations=[
-        "email_reader_mcp",
-        "write_email_to_excel",
-        "email_attachment_mcp",
-        "layout_detection_mcp",
-        "document_extract_mcp",
-        "query_pdf_vectorizer_mcp",
-        "attachment_summary_mcp",
-        "risk_type_checker_MCP",
-        "renewal_checker_mcp",
-        "Licensing_and_Sanction_Checker_MCP",
-        "Json_Reader_Read"
-    ]
-).mount_http()
 
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=3420)
+    asyncio.run(main())
