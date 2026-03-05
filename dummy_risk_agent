@@ -1,3 +1,51 @@
+# -----------------------------
+# RISK AGENT TOOLS
+# -----------------------------
+
+@router.post("/risk_data_capture_mcp", operation_id="risk_data_capture_mcp")
+async def risk_data_capture():
+    return JSONResponse({
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {
+            "earthquake_count": 1,
+            "flood_zone": False,
+            "construction_type": "Concrete",
+            "distance_to_fire_hydrant": "120m",
+            "distance_to_fire_station": "2km",
+            "year_built": 2005
+        }
+    })
+
+
+@router.post("/risk_score_calculator_mcp", operation_id="risk_score_calculator_mcp")
+async def risk_score():
+    return JSONResponse({
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {
+            "risk_score": 42
+        }
+    })
+
+
+@router.post("/accept_reject_risk_functionality_mcp",
+            operation_id="accept_reject_risk_functionality_mcp")
+async def accept_reject():
+    return JSONResponse({
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {
+            "decision": "ACCEPT"
+        }
+    })
+
+
+
+
+
+
+
 Good — now I understand exactly what you want 👍
 
 You do NOT want tool filtering in code.
