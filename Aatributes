@@ -1,0 +1,269 @@
+Great. I carefully compared all 100 attributes across the 3 documents and grouped the ones that represent the same underwriting concept.
+
+I used this notation:
+	•	(1) → Document 1 — Building Inspection Report
+	•	(2) → Document 2 — Underwriting Submission
+	•	(3) → Document 3 — Insurance Valuation Form
+
+Grouped attributes appear inside [ ].
+Unique attributes remain single entries.
+
+⸻
+
+Final Consolidated Attribute List
+
+Identity / Parties
+	1.	[Inspector Name (1), Broker Name (2), Valuer Name and Company (3)]
+	2.	[Policyholder Name (2), Client Name (3)]
+	3.	Contact Number (2)
+	4.	Email Address (2)
+
+⸻
+
+Property Location
+	5.	[Insured Property Address (2), Asset Address (3)]
+	6.	Current Address (2)
+	7.	City / Region (2)
+
+⸻
+
+Property Identification & Description
+	8.	[Construction Type (2), Asset Description (3)]
+	9.	[Property Use / Occupation (2), Property Use or Occupation (3)]
+	10.	Other Known Characteristics (3)
+
+⸻
+
+Property Age & Timeline
+	11.	[Year Built (2), Property Age (3)]
+	12.	Renovation Years (2)
+	13.	Inspection Date (1)
+	14.	Valuation Date (3)
+
+⸻
+
+Property Size & Layout
+	15.	Floor Area (2)
+	16.	Land Area (2)
+	17.	Number of Storeys (2)
+
+⸻
+
+Occupancy
+	18.	Occupancy Type (2)
+	19.	Number of Occupants (2)
+
+⸻
+
+Structural Components
+	20.	[Roof Material (1), Roof Material (2)]
+	21.	Roof Type (1)
+	22.	[Roof Condition (1), Roof Condition (2)]
+	23.	Roof Damage Indicators (1)
+
+⸻
+
+Drainage / Exterior
+	24.	[Gutter & Downpipe Material (1)]
+	25.	[Gutter Condition (1)]
+
+⸻
+
+Walls / Cladding
+	26.	[Exterior Wall Material / Cladding (1), Cladding Type (2)]
+	27.	[Exterior Wall Condition (1), Cladding Condition (2)]
+
+⸻
+
+Foundation & Ground Conditions
+	28.	[Foundation Type (1), Foundation Type (2)]
+	29.	Foundation Condition (1)
+	30.	[Land Contour (3)]
+	31.	[Subsoil Type (3)]
+
+⸻
+
+Structural Stability
+	32.	Floor Level Compliance (1)
+
+⸻
+
+Moisture & Environmental Conditions
+	33.	Moisture Reading Status (1)
+
+⸻
+
+Roof Cavity / Insulation
+	34.	Ceiling Cavity Structure Condition (1)
+	35.	Ceiling Insulation Type & Condition (1)
+
+⸻
+
+Interior Condition
+	36.	Property Interior Condition (1)
+	37.	Floor Type (1)
+	38.	Floor Condition (1)
+	39.	Wall Type (1)
+	40.	Wall Condition (1)
+	41.	Ceiling Type (1)
+
+⸻
+
+Hazardous Materials
+	42.	Asbestos Risk in Ceiling (1)
+
+⸻
+
+Garage
+	43.	Garage Condition (1)
+	44.	Garage Door Operation (1)
+
+⸻
+
+Doors & Windows
+	45.	Door Condition (1)
+	46.	Window Material (1)
+	47.	Window Glazing Type (1)
+
+⸻
+
+Interior Fixtures
+	48.	Kitchen Cabinetry Condition (1)
+
+⸻
+
+Water System
+	49.	Water Supply Source (1)
+	50.	Water Pressure (1)
+
+⸻
+
+Heating & Utilities
+	51.	[Heating System Type (1), Heating Type (2)]
+
+⸻
+
+Water Heating
+	52.	[Water Heater Type (1)]
+	53.	[Water Heater Condition (1)]
+
+⸻
+
+Plumbing
+	54.	[Plumbing Condition / Upgrade Year (2)]
+
+⸻
+
+Electrical
+	55.	[Electrical Switchboard Condition (1), Electrical Condition / Rewire Year (2)]
+
+⸻
+
+Bathroom / Water Damage
+	56.	Shower Leak Status (1)
+
+⸻
+
+Insurance Coverage
+	57.	[Rebuild Sum Insured (2)]
+	58.	[Sum Insured Basis (2)]
+
+⸻
+
+Additional Structures
+	59.	Other Structures Included (2)
+
+⸻
+
+Special Risks
+	60.	[Special / Non-Standard Risk (2)]
+
+⸻
+
+Natural Hazard Exposure
+	61.	Earthquake Risk Information (2)
+	62.	Flood Risk Information (2)
+
+⸻
+
+Claims
+	63.	Claims History (Past 5 Years) (2)
+
+⸻
+
+Property Improvements
+	64.	Upgrade Requirements (3)
+
+⸻
+
+Insurance Valuation — Reinstatement
+	65.	Reinstatement Cost Estimate (3)
+	66.	Reinstatement Inflationary Provision (3)
+	67.	Reinstatement Section Presence (3)
+	68.	Reinstatement Cost Basis (3)
+	69.	Reinstatement Assumption Notes (3)
+
+⸻
+
+Insurance Valuation — Indemnity
+	70.	Indemnity Value Estimate (3)
+	71.	Market Related Estimate (3)
+	72.	Depreciated Replacement Cost (3)
+	73.	Indemnity Inflationary Provision (3)
+	74.	Indemnity Valuation Method (3)
+
+⸻
+
+Insurance Valuation — Functional Replacement
+	75.	Functional Replacement Cost (3)
+	76.	Functional Replacement Inflationary Provision (3)
+	77.	Functional Design Reference (3)
+	78.	Functional Replacement Method (3)
+	79.	Functional Replacement Notes (3)
+
+⸻
+
+Demolition
+	80.	Demolition Estimate (3)
+
+⸻
+
+Valuer Credentials
+	81.	Valuer Signature (3)
+	82.	Valuer Qualifications (3)
+
+⸻
+
+Insurance Standards
+	83.	Insurance Valuation Standard Reference (3)
+
+⸻
+
+📊 Result
+
+Original attributes: 100
+
+After grouping repeated attributes → 83 final attributes
+
+⸻
+
+⚠️ Important Observation (for your AI extraction system)
+
+The major overlaps occur in these areas:
+	•	Person / Entity identity
+	•	Property address
+	•	Roof
+	•	Cladding
+	•	Foundation
+	•	Electrical
+	•	Heating
+
+These are core underwriting attributes, which explains why they appear in multiple documents.
+
+⸻
+
+✅ If you want, I can also show you something extremely useful for your data extraction AI agent:
+
+The 25–30 “core underwriting attributes” that appear across almost all insurance documents.
+
+These are the most important attributes your extraction system should prioritize.
