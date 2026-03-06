@@ -1,408 +1,52 @@
-megagraph
-import asyncio
-from typing import TypedDict, Annotated
-
+from typing_extensions import TypedDict
 from langgraph.graph import StateGraph, START, END
-from langgraph.graph.message import add_messages
+from langchain_openai import ChatOpenAI
+from dotenv import load_dotenv
+load_dotenv()
+class ParentState(TypedDict):
 
-# IMPORT SUBGRAPHS
-from email_intent_agent.langgraph_client import build_email_intent_graph
-from eligibility_agent.langgraph_client import build_eligibility_graph
-from risk_assesment_agent.langgraph_client import build_risk_graph
+    question: str
+    answer_eng: str
+    answer_hin: str
 
+parent_llm = ChatOpenAI(model='gpt-4o-mini')
+subgraph_llm = ChatOpenAI(model='gpt-4o')
+def translate_text(state: ParentState):
 
-class State(TypedDict):
-    messages: Annotated[list, add_messages]
+    prompt = f"""
+Translate the following text to Hindi.
+Keep it natural and clear. Do not add extra content.
 
+Text:
+{state["answer_eng"]}
+""".strip()
+    
+    translated_text = subgraph_llm.invoke(prompt).content
 
-async def build_megagraph():
+    return {'answer_hin': translated_text}
+subgraph_builder = StateGraph(ParentState)
 
-    # build all subgraphs
-    email_graph = await build_email_intent_graph()
-    eligibility_graph = await build_eligibility_graph()
-    risk_graph = await build_risk_graph()
+subgraph_builder.add_node('translate_text', translate_text)
 
-    builder = StateGraph(State)
+subgraph_builder.add_edge(START, 'translate_text')
+subgraph_builder.add_edge('translate_text', END)
 
-    # Add subgraphs as nodes
-    builder.add_node("EmailIntentAgent", email_graph)
-    builder.add_node("EligibilityAgent", eligibility_graph)
-    builder.add_node("RiskAssessmentAgent", risk_graph)
+subgraph = subgraph_builder.compile()
 
-    # Graph Flow
-    builder.add_edge(START, "EmailIntentAgent")
+def generate_answer(state: ParentState):
 
-    builder.add_edge("EmailIntentAgent", "EligibilityAgent")
+    answer = parent_llm.invoke(f"You are a helpful assistant. Answer clearly.\n\nQuestion: {state['question']}").content
+    return {'answer_eng': answer}
 
-    builder.add_edge("EligibilityAgent", "RiskAssessmentAgent")
+parent_builder = StateGraph(ParentState)
 
-    builder.add_edge("RiskAssessmentAgent", END)
+parent_builder.add_node("answer", generate_answer)
+parent_builder.add_node("translate", subgraph)
 
-    return builder.compile()
+parent_builder.add_edge(START, 'answer')
+parent_builder.add_edge('answer', 'translate')
+parent_builder.add_edge('translate', END)
+graph = parent_builder.compile()
 
-
-async def main():
-
-    graph = await build_megagraph()
-
-    async for step in graph.astream(
-        {"messages": ["Start underwriting workflow"]},
-        config={"recursion_limit": 200},
-    ):
-        print(step)
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
-
-
-
-
-import os
-import asyncio
-from typing import TypedDict, Annotated
-
-from langgraph.graph import StateGraph, START, END
-from langgraph.graph.message import add_messages
-from langgraph.prebuilt import ToolNode
-from langchain_core.messages import AIMessage, SystemMessage
-
-from langchain_mcp_adapters.client import MultiServerMCPClient
-from langchain_openai.chat_models import AzureChatOpenAI
-
-
-class State(TypedDict):
-    messages: Annotated[list, add_messages]
-
-
-def router(state: State):
-    last = state["messages"][-1]
-
-    if isinstance(last, AIMessage) and last.tool_calls:
-        return "tools"
-
-    if isinstance(last, AIMessage) and last.content:
-        content = last.content.strip()
-        if content == "Continue":
-            return "agent"
-        if content == "End":
-            return "end"
-
-    return "end"
-
-
-def load_prompt():
-   base_path = os.path.dirname(__file__)
-   prompt_path = os.path.join(base_path, "prompt_eligibility.txt")
-   with open(prompt_path, "r", encoding="utf-8") as f:
-       return f.read()
-
-
-async def build_eligibility_graph():
-
-    mcp_client = MultiServerMCPClient({
-        "dummy_mcp": {
-            "url": "http://localhost:3420/mcp",
-            "transport": "streamable_http",
-        }
-    })
-
-    # all_tools = await mcp_client.get_tools()
-    all_tools = await mcp_client.get_tools()
-
-
-
-    model = AzureChatOpenAI(
-    api_key="A",
-    api_version="2",
-    azure_deployment="g",
-    azure_endpoint="/"
-   )
-
-    llm = model.bind_tools(all_tools)
-    # llm = model.bind_tools(filtered_tools)
-    prompt = load_prompt()
-
-    async def agent_node(state: State):
-        system = SystemMessage(content=prompt)
-        response = await llm.ainvoke([system] + state["messages"])
-        return {"messages": [response]}
-
-    graph = StateGraph(State)
-
-    graph.add_node("agent", agent_node)
-    graph.add_node("tools", ToolNode(all_tools))
-    # graph.add_node("tools", ToolNode(filtered_tools))
-
-
-    graph.add_edge(START, "agent")
-
-    graph.add_conditional_edges(
-        "agent",
-        router,
-        {
-            "tools": "tools",
-            "agent": "agent",
-            "end": END,
-        },
-    )
-
-    graph.add_edge("tools", "agent")
-
-    return graph.compile()
-
-
-async def main():
-    graph = await build_eligibility_graph()
-
-    async for step in graph.astream(
-        {"messages": ["Start eligibility workflow"]},
-        config={"recursion_limit": 40},
-    ):
-        print(step)
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
-
-
-
-import os
-import asyncio
-from typing import TypedDict, Annotated
-
-from langgraph.graph import StateGraph, START, END
-from langgraph.graph.message import add_messages
-from langgraph.prebuilt import ToolNode
-from langchain_core.messages import AIMessage, SystemMessage
-
-from langchain_mcp_adapters.client import MultiServerMCPClient
-from langchain_openai.chat_models import AzureChatOpenAI
-
-
-# -------------------------
-# STATE
-# -------------------------
-class State(TypedDict):
-    messages: Annotated[list, add_messages]
-
-
-# -------------------------
-# ROUTER
-# -------------------------
-def router(state: State):
-    last = state["messages"][-1]
-
-    if isinstance(last, AIMessage) and last.tool_calls:
-        return "tools"
-
-    if isinstance(last, AIMessage) and last.content:
-        content = last.content.strip()
-        if content == "Continue":
-            return "agent"
-        if content == "End":
-            return "end"
-
-    return "end"
-
-
-# -------------------------
-# PROMPT LOADER
-# -------------------------
-
-def load_prompt():
-   base_path = os.path.dirname(__file__)
-   prompt_path = os.path.join(base_path, "prompt_email.txt")
-   with open(prompt_path, "r", encoding="utf-8") as f:
-       return f.read()
-
-
-# -------------------------
-# BUILD GRAPH
-# -------------------------
-async def build_email_intent_graph():
-
-    mcp_client = MultiServerMCPClient({
-        "dummy_mcp": {
-            "url": "http://localhost:3420/mcp",
-            "transport": "streamable_http",
-        }
-    })
-
-    # 🔥 NO TOOL FILTERING
-    all_tools = await mcp_client.get_tools()
-
-    model = AzureChatOpenAI(
-    api_key="A",
-    api_version="2",
-    azure_deployment="g",
-    azure_endpoint="/"
-    )
-
-    llm = model.bind_tools(all_tools)
-    prompt = load_prompt()
-
-    async def agent_node(state: State):
-        system = SystemMessage(content=prompt)
-        response = await llm.ainvoke([system] + state["messages"])
-        return {"messages": [response]}
-
-
-    graph = StateGraph(State)
-
-    graph.add_node("agent", agent_node)
-    graph.add_node("tools", ToolNode(all_tools))
-
-    graph.add_edge(START, "agent")
-
-    graph.add_conditional_edges(
-        "agent",
-        router,
-        {
-            "tools": "tools",
-            "agent": "agent",
-            "end": END,
-        },
-    )
-
-    graph.add_edge("tools", "agent")
-
-    return graph.compile()
-
-
-# -------------------------
-# RUN
-# -------------------------
-async def main():
-    graph = await build_email_intent_graph()
-
-    async for step in graph.astream(
-        {"messages": ["Start email workflow"]},
-        config={"recursion_limit": 40},
-    ):
-        print(step)
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
-
-
-
-
-
-
-import asyncio
-from typing import TypedDict, Annotated
-import os
-from langgraph.graph import StateGraph, START, END
-from langgraph.graph.message import add_messages
-from langgraph.prebuilt import ToolNode
-from langchain_core.messages import AIMessage, SystemMessage
-
-from langchain_mcp_adapters.client import MultiServerMCPClient
-from langchain_openai.chat_models import AzureChatOpenAI
-
-
-class State(TypedDict):
-    messages: Annotated[list, add_messages]
-
-
-def router(state: State):
-
-    last = state["messages"][-1]
-
-    if isinstance(last, AIMessage) and last.tool_calls:
-        return "tools"
-
-    if isinstance(last, AIMessage) and last.content:
-
-        content = last.content.strip()
-
-        if content == "Continue":
-            return "agent"
-
-        if content == "End":
-            return "end"
-
-    return "end"
-
-
-
-def load_prompt():
-   base_path = os.path.dirname(__file__)
-   prompt_path = os.path.join(base_path, "prompt_risk_agent.txt")
-   with open(prompt_path, "r", encoding="utf-8") as f:
-       return f.read()
-
-
-async def build_risk_graph():
-
-    mcp_client = MultiServerMCPClient({
-        "dummy_mcp": {
-            "url": "http://localhost:3420/mcp",
-            "transport": "streamable_http",
-        }
-    })
-
-    # 🔹 NO TOOL FILTERING
-    all_tools = await mcp_client.get_tools()
-
-    model = AzureChatOpenAI(
-    api_key="A",
-    api_version="2",
-    azure_deployment="g",
-    azure_endpoint="/"
-    )
-
-    llm = model.bind_tools(all_tools)
-
-    prompt = load_prompt()
-
-    async def agent_node(state: State):
-
-        system = SystemMessage(content=prompt)
-
-        response = await llm.ainvoke(
-            [system] + state["messages"]
-        )
-
-        return {"messages": [response]}
-
-
-    graph = StateGraph(State)
-
-    graph.add_node("agent", agent_node)
-
-    graph.add_node("tools", ToolNode(all_tools))
-
-    graph.add_edge(START, "agent")
-
-    graph.add_conditional_edges(
-        "agent",
-        router,
-        {
-            "tools": "tools",
-            "agent": "agent",
-            "end": END,
-        },
-    )
-
-    graph.add_edge("tools", "agent")
-
-    return graph.compile()
-
-
-async def main():
-
-    graph = await build_risk_graph()
-
-    async for step in graph.astream(
-        {"messages": ["Start risk workflow"]},
-        config={"recursion_limit": 40},
-    ):
-        print(step)
-
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
+graph
+graph.invoke({'question': 'What is quantum physics'})
