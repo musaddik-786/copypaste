@@ -1,1 +1,20 @@
-as
+Now in total there are 100 attributes combining all three documents, 
+now there can be repeated attributes so i want you to combine those repeated attributes in a list with a generalized name of the attribute group
+for eg: if there are below attributes
+1. Client name from document 1
+2. Customer Name from document 2
+3. Shop name from document 3
+4. Cricketer name from document 2
+
+now you have to group the attributes if they are repeated 
+for eg you grouped like:[attribute_name(document number),attribute_name(document number)]
+[Client name(1), Customer name(2)]
+
+also now at the end you will give the final attribute list, now as we grouped few attributes those you consider as one entity so our final attribute list will be like:
+
+1. [Client name(1), Customer name(2)]
+2. Shop name from document 3
+3. Cricketer name from document 2
+
+
+
