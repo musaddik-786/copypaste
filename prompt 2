@@ -1,1 +1,7 @@
-Now 
+Now in total we are left with 83 attributes combining all three documents, 
+now i want you to conider top 30 attributes accross all of these attribute list of 83, as you know we are developing a data extraction tool for Home Insurance LOB 
+and we need to provide the list of attributes to the data extraction tool so that those particular attributes are extracted
+follow the same naming convention
+1. [Client name(1), Customer name(2)]
+2. Shop name from document 3
+3. Cricketer name from document 2
