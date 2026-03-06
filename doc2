@@ -1,1 +1,206 @@
-as
+Below is document 2 (Home Insurance Underwriting Submission Report)
+
+================================================================================
+PAGE 1
+================================================================================
+Home Insurance Underwriting Submission Report
+Tailored for Tower Insurance (New Zealand)
+Submission Date: 06 Mar 2026
+This submission provides property, risk and documentation details to support underwriting assessment for a
+residential home in New Zealand. Information is structured to align with Tower Insurance's risk-based approach and
+policy responsibilities.
+1. Policyholder Details
+Field
+Details
+Name
+Alex and Jordan Taylor
+Contact Number
++64 21 555 0198
+Email
+alex.taylor@example.co.nz
+Current Address
+Unit 12, 15 Market Road, Epsom, Auckland 1051
+Insured Property Address
+28 Seaview Terrace, Sumner, Christchurch 8081
+2. Property Overview
+Field
+Details
+Year Built
+1998 (renovations 2019, 2023)
+Construction Type
+Timber frame with monolithic (EIFS) cladding; timber weatherboard to rear
+extension
+Roof Material
+Colorsteel longrun (re-roofed 2019)
+Foundations
+Concrete slab with perimeter footings
+Storeys
+2
+Floor Area
+185 m2 (per 2019 council records)
+Land Area
+612 m2
+3. Occupancy & Use
+Field
+Details
+Occupancy Type
+Owner-occupied
+Use
+Residential; small home office (administrative; no clients on-site)
+Number of Occupants
+2 adults, 1 child
+4. Sum Insured Information
+Field
+Details
+Rebuild Sum Insured
+$895,000
+Basis
+Quantity Surveyor (QS) rebuild estimate dated 12 Feb 2026; includes demolition
+and professional fees
+Other Structures
+Detached single garage (24 m2), timber decks (30 m2), retaining walls (approx. 25
+m cumulative length)
+================================================================================
+
+================================================================================
+PAGE 2
+================================================================================
+5. Construction & Condition Notes
+Field
+Details
+Roof Condition
+Excellent; full re-roof 2019, compliance certificates attached
+Cladding Condition
+Monolithic cladding professionally recoated and detailed in 2023; routine
+maintenance log attached
+Electrical
+Partial rewire 2019; Electrical Safety Certificate (C.o.C.) attached
+Plumbing
+PEX manifold system upgraded 2020; no known leaks
+Heating
+2x heat pumps (serviced 2025), compliant wood burner (installed 2018; producer
+statement attached)
+Deferred Maintenance
+None noted; gutters and downpipes serviced Nov 2025
+6. Special Features or NonStandard Elements
+Field
+Details
+Non-standard Risk
+Monolithic (EIFS) cladding to main elevations
+Reports
+2023 Weathertightness Report (moisture readings within acceptable thresholds);
+2020 Engineering report for retaining walls
+Alterations
+2019 kitchen and bathroom renovations (building consent and CCC attached);
+2023 deck extension (record of work, no structural changes)
+7. Recent Renovations or Upgrades
+Field
+Details
+2019
+Re-roof (Colorsteel), partial rewire, kitchen & bathroom refurbishment; CCC issued
+20 Nov 2019
+2020
+Plumbing system upgrade (PEX)
+2023
+Deck extension; cladding recoating and flashings upgrade; maintenance
+programme established
+8. Hazard & Risk Information
+Field
+Details
+Earthquake
+Christchurch location; property constructed post-1990s; QS confirms standard
+foundation; no known EQ damage
+Flood/Overland Flow
+Property elevated above street level; council flood maps indicate low risk; LIM
+excerpt attached
+Coastal/Storm Surge
+Approx. 600 m from coast; wind-driven rain exposure considered in cladding
+maintenance
+Land Slip/Erosion
+No known slip history; 2020 geotechnical note for retaining walls attached
+9. Security Features
+Field
+Details
+Alarm
+Monitored alarm; perimeter sensors
+Locks
+Deadbolts to exterior doors; keyed window stays on ground floor
+================================================================================
+
+================================================================================
+PAGE 3
+================================================================================
+2 exterior cameras covering driveway and rear yard
+CCTV
+10. Claims History (Past 5 Years)
+Date
+Type of Loss
+Amount Paid
+Status
+14 Jun 2022
+Water damage (burst flexi hose)
+$2,480
+Settled
+--
+--
+--
+11. Supporting Documents (Attached/Available)
+· 2026 QS rebuild estimate (includes demolition, professional fees, inflationary provisions)
+· 2023 Weathertightness report and moisture readings
+· 2020 Engineer's letter and calculations for retaining walls
+· Electrical Compliance Certificate (2019) and producer statement for wood burner (2018)
+· LIM report excerpts (flood and coastal hazard maps)
+· Photo pack: elevations, roof, decks, joinery, site drainage
+· Maintenance log (2019-2026)
+12. Additional Notes for Underwriter
+The property's monolithic cladding has been proactively maintained with professional recoating and updated
+flashings. Moisture readings in 2023 fell within acceptable thresholds. The owners are committed to ongoing
+maintenance and have scheduled annual inspections. No known unconsented works. All renovations listed have
+supporting documentation.
+13. Broker / Advisor (If Applicable)
+Field
+Details
+Broker Name
+Casey Morgan
+Company
+Harbour Risk Advisory Ltd
+Contact
++64 9 555 0100 | casey.morgan@harbourrisk.co.nz
+Submission Notes
+Seeking Tower House Plus cover with standard excess; open to reasonable special
+terms for cladding if required.
+This document is prepared for underwriting assessment purposes only and does not confer cover. All cover is subject to Tower Insurance
+underwriting criteria, policy terms, limits and exclusions.
+================================================================================
+
+These are the top 30 attributes that I extracted it may contain repeated attributes as well 
+1. Policyholder Name
+2. Contact Number
+3. Email Address
+4. Current Address
+5. Insured Property Address
+6. City / Region (derived from address if needed)
+7. Year Built
+8. Renovation Years
+9. Construction Type
+10. Cladding Type
+11. Roof Material
+12. Foundation Type
+13. Number of Storeys
+14. Floor Area
+15. Land Area
+16. Occupancy Type (Owner occupied / rental etc.)
+17. Property Use (Residential, business use etc.)
+18. Number of Occupants
+19. Rebuild Sum Insured
+20. Sum Insured Basis (QS estimate etc.)
+21. Other Structures Included
+22. Roof Condition
+23. Cladding Condition
+24. Electrical Condition / Rewire Year
+25. Plumbing Condition / Upgrade Year
+26. Heating Type
+27. Special / Non-Standard Risk (e.g., Monolithic cladding)
+28. Earthquake Risk Information
+29. Flood Risk Information
+30. Claims History (Past 5 Years)
