@@ -1,3 +1,157 @@
+(mcp_venv) Jarvis@JarvisPhase2:~/Musaddique/project_root/MCP$ python3 test_main.py 
+📍 Token storage path: /home/Jarvis/Musaddique/JarvisAgent/Jarvis/MCP/token/token.pickle
+
+======================================================================
+🚀 GMAIL_WATCH INITIALIZED - AUTO-STARTING SCHEDULER
+======================================================================
+📍 Token found at: /home/Jarvis/Musaddique/JarvisAgent/Jarvis/MCP/token/token.pickle
+⏱️  Scheduler will refresh token every 72 hours
+======================================================================
+
+✅ Token refresh scheduler STARTED (runs every 72 hours)
+   Next refresh: 2026-03-12 05:46:16
+📍 Token storage path: /home/Jarvis/Musaddique/JarvisAgent/Jarvis/MCP/token/token.pickle
+
+======================================================================
+🚀 GMAIL_WATCH INITIALIZED - AUTO-STARTING SCHEDULER
+======================================================================
+📍 Token found at: /home/Jarvis/Musaddique/JarvisAgent/Jarvis/MCP/token/token.pickle
+⏱️  Scheduler will refresh token every 72 hours
+======================================================================
+
+✅ Token refresh scheduler STARTED (runs every 72 hours)
+   Next refresh: 2026-03-12 05:46:19
+📍 Token storage path: /home/Jarvis/Musaddique/JarvisAgent/Jarvis/MCP/token/token.pickle
+
+======================================================================
+🚀 GMAIL_WATCH INITIALIZED - AUTO-STARTING SCHEDULER
+======================================================================
+📍 Token found at: /home/Jarvis/Musaddique/JarvisAgent/Jarvis/MCP/token/token.pickle
+⏱️  Scheduler will refresh token every 72 hours
+======================================================================
+
+✅ Token refresh scheduler STARTED (runs every 72 hours)
+   Next refresh: 2026-03-12 05:46:19
+📍 Token storage path: /home/Jarvis/Musaddique/JarvisAgent/Jarvis/MCP/token/token.pickle
+
+======================================================================
+🚀 GMAIL_WATCH INITIALIZED - AUTO-STARTING SCHEDULER
+======================================================================
+📍 Token found at: /home/Jarvis/Musaddique/JarvisAgent/Jarvis/MCP/token/token.pickle
+⏱️  Scheduler will refresh token every 72 hours
+======================================================================
+
+INFO:apscheduler.scheduler:Adding job tentatively -- it will be properly scheduled when the scheduler starts
+INFO:apscheduler.scheduler:Added job "Gmail Token Refresh (72-hour cycle)" to job store "default"
+INFO:apscheduler.scheduler:Scheduler started
+✅ Token refresh scheduler STARTED (runs every 72 hours)
+   Next refresh: 2026-03-12 05:46:24
+INFO:fastapi_mcp.server:No auth config provided, skipping auth setup
+INFO:fastapi_mcp.server:MCP HTTP server listening at /mcp
+INFO:     Started server process [5092]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:3420 (Press CTRL+C to quit)
+INFO:mcp.server.streamable_http_manager:StreamableHTTP session manager started
+INFO:fastapi_mcp.transport.http:StreamableHTTP session manager is running
+INFO:mcp.server.streamable_http_manager:Created new transport with session ID: 513c9fdde78d48fe8ee772bca1cc7ce2
+INFO:     127.0.0.1:50802 - "POST /api/v1/email_intent_agent/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50802 - "POST /api/v1/email_intent_agent/mcp HTTP/1.1" 202 Accepted
+INFO:mcp.server.lowlevel.server:Processing request of type ListToolsRequest
+INFO:     127.0.0.1:50818 - "POST /api/v1/email_intent_agent/mcp HTTP/1.1" 200 OK
+INFO:mcp.server.streamable_http:Terminating session: 513c9fdde78d48fe8ee772bca1cc7ce2
+INFO:     127.0.0.1:50818 - "DELETE /api/v1/email_intent_agent/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50812 - "GET /api/v1/email_intent_agent/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50820 - "POST /mcp HTTP/1.1" 404 Not Found
+INFO:mcp.server.streamable_http_manager:Created new transport with session ID: b001b18736f44519b908d841f8e31394
+INFO:     127.0.0.1:37700 - "POST /api/v1/email_intent_agent/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37700 - "POST /api/v1/email_intent_agent/mcp HTTP/1.1" 202 Accepted
+INFO:mcp.server.lowlevel.server:Processing request of type ListToolsRequest
+INFO:     127.0.0.1:37720 - "POST /api/v1/email_intent_agent/mcp HTTP/1.1" 200 OK
+INFO:mcp.server.streamable_http:Terminating session: b001b18736f44519b908d841f8e31394
+INFO:     127.0.0.1:37720 - "DELETE /api/v1/email_intent_agent/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37706 - "GET /api/v1/email_intent_agent/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:37722 - "POST /mcp HTTP/1.1" 404 Not Found
+
+
+
+venv) Jarvis@JarvisPhase2:~/Musaddique/project_root$ python3 -m mega_graph.megagraph_client
+  + Exception Group Traceback (most recent call last):
+  |   File "<frozen runpy>", line 198, in _run_module_as_main
+  |   File "<frozen runpy>", line 88, in _run_code
+  |   File "/home/Jarvis/Musaddique/project_root/mega_graph/megagraph_client.py", line 55, in <module>
+  |     asyncio.run(main())
+  |   File "/usr/lib/python3.11/asyncio/runners.py", line 190, in run
+  |     return runner.run(main)
+  |            ^^^^^^^^^^^^^^^^
+  |   File "/usr/lib/python3.11/asyncio/runners.py", line 118, in run
+  |     return self._loop.run_until_complete(task)
+  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/usr/lib/python3.11/asyncio/base_events.py", line 653, in run_until_complete
+  |     return future.result()
+  |            ^^^^^^^^^^^^^^^
+  |   File "/home/Jarvis/Musaddique/project_root/mega_graph/megagraph_client.py", line 45, in main
+  |     graph = await build_megagraph()
+  |             ^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/home/Jarvis/Musaddique/project_root/mega_graph/megagraph_client.py", line 21, in build_megagraph
+  |     eligibility_graph = await build_eligibility_graph()
+  |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/home/Jarvis/Musaddique/project_root/eligibility_agent/langgraph_client.py", line 259, in build_eligibility_graph
+  |     all_tools = await mcp_client.get_tools()
+  |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/home/Jarvis/Musaddique/project_root/venv/lib/python3.11/site-packages/langchain_mcp_adapters/client.py", line 197, in get_tools
+  |     tools_list = await asyncio.gather(*load_mcp_tool_tasks)
+  |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/home/Jarvis/Musaddique/project_root/venv/lib/python3.11/site-packages/langchain_mcp_adapters/tools.py", line 478, in load_mcp_tools
+  |     async with create_session(
+  |   File "/usr/lib/python3.11/contextlib.py", line 222, in __aexit__
+  |     await self.gen.athrow(typ, value, traceback)
+  |   File "/home/Jarvis/Musaddique/project_root/venv/lib/python3.11/site-packages/langchain_mcp_adapters/sessions.py", line 410, in create_session
+  |     async with _create_streamable_http_session(**params) as session:
+  |   File "/usr/lib/python3.11/contextlib.py", line 222, in __aexit__
+  |     await self.gen.athrow(typ, value, traceback)
+  |   File "/home/Jarvis/Musaddique/project_root/venv/lib/python3.11/site-packages/langchain_mcp_adapters/sessions.py", line 310, in _create_streamable_http_session
+  |     async with (
+  |   File "/usr/lib/python3.11/contextlib.py", line 222, in __aexit__
+  |     await self.gen.athrow(typ, value, traceback)
+  |   File "/home/Jarvis/Musaddique/project_root/venv/lib/python3.11/site-packages/mcp/client/streamable_http.py", line 717, in streamablehttp_client
+  |     async with streamable_http_client(
+  |   File "/usr/lib/python3.11/contextlib.py", line 222, in __aexit__
+  |     await self.gen.athrow(typ, value, traceback)
+  |   File "/home/Jarvis/Musaddique/project_root/venv/lib/python3.11/site-packages/mcp/client/streamable_http.py", line 647, in streamable_http_client
+  |     async with anyio.create_task_group() as tg:
+  |   File "/home/Jarvis/Musaddique/project_root/venv/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 783, in __aexit__
+  |     raise BaseExceptionGroup(
+  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+  +-+---------------- 1 ----------------
+    | Exception Group Traceback (most recent call last):
+    |   File "/home/Jarvis/Musaddique/project_root/venv/lib/python3.11/site-packages/mcp/client/streamable_http.py", line 670, in streamable_http_client
+    |     yield (
+    |   File "/home/Jarvis/Musaddique/project_root/venv/lib/python3.11/site-packages/mcp/client/streamable_http.py", line 722, in streamablehttp_client
+    |     yield streams
+    |   File "/home/Jarvis/Musaddique/project_root/venv/lib/python3.11/site-packages/langchain_mcp_adapters/sessions.py", line 310, in _create_streamable_http_session
+    |     async with (
+    |   File "/home/Jarvis/Musaddique/project_root/venv/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 783, in __aexit__
+    |     raise BaseExceptionGroup(
+    | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+    +-+---------------- 1 ----------------
+      | Traceback (most recent call last):
+      |   File "/home/Jarvis/Musaddique/project_root/venv/lib/python3.11/site-packages/langchain_mcp_adapters/sessions.py", line 322, in _create_streamable_http_session
+      |     yield session
+      |   File "/home/Jarvis/Musaddique/project_root/venv/lib/python3.11/site-packages/langchain_mcp_adapters/sessions.py", line 411, in create_session
+      |     yield session
+      |   File "/home/Jarvis/Musaddique/project_root/venv/lib/python3.11/site-packages/langchain_mcp_adapters/tools.py", line 481, in load_mcp_tools
+      |     await tool_session.initialize()
+      |   File "/home/Jarvis/Musaddique/project_root/venv/lib/python3.11/site-packages/mcp/client/session.py", line 171, in initialize
+      |     result = await self.send_request(
+      |              ^^^^^^^^^^^^^^^^^^^^^^^^
+      |   File "/home/Jarvis/Musaddique/project_root/venv/lib/python3.11/site-packages/mcp/shared/session.py", line 306, in send_request
+      |     raise McpError(response_or_error.error)
+      | mcp.shared.exceptions.McpError: Session terminated
+      +------------------------------------
+(venv) Jarvis@JarvisPhase2:~/Musaddique/project_root$ 
+
+
 megagraph_client.py
 
 import asyncio
