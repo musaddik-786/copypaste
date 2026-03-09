@@ -1,254 +1,31 @@
-this was my friends code he is running the MCP and the below one is server.py so he i think is exposing all the thing to chat endpoint and there he is able to see the output response we need to create something similar to our Megagraph
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
-import os
-from dotenv import load_dotenv
-from langchain_openai.chat_models import AzureChatOpenAI
-from langgraph.graph.message import add_messages
-from langchain_core.messages import AIMessage, ToolMessage, SystemMessage
-from langgraph.graph import StateGraph, START, END
-from langgraph.prebuilt import ToolNode
-from typing import TypedDict, Annotated
-from langchain_mcp_adapters.client import MultiServerMCPClient
-from openinference.instrumentation.langchain import LangChainInstrumentor
-from phoenix.otel import register
-from phoenix.client import Client  # for phoenix prompt
-import logging
-logging.getLogger("opentelemetry.context").setLevel(logging.CRITICAL)
-
-app = FastAPI()
-
-load_dotenv()
-
-PHOENIX_API_KEY = os.getenv("PHOENIX_API_KEY")
-phoenix_endpoint = os.getenv("PHOENIX_ENDPOINT")
-
-os.environ["PHOENIX_COLLECTOR_ENDPOINT"] = phoenix_endpoint
-os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = phoenix_endpoint
-os.environ["PHOENIX_API_KEY"] = PHOENIX_API_KEY
-
-tracer_provider = register(project_name="jarvis_deployed", auto_instrument=True)
-
-LangChainInstrumentor(tracer_provider=tracer_provider).instrument(skip_dep_check=True)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-config_mcp_server = {
-    "email_reader_mcp": {
-        "url": os.getenv("MCP_URL"),
-        "transport": "streamable_http",
-    }
-}
-
-class State(TypedDict):
-    messages: Annotated[list, add_messages]
-
-def router(state: State):
-    last_message = state["messages"][-1]
-    if isinstance(last_message, AIMessage) and getattr(last_message, 'tool_calls', None):
-        return "tools"
-    if isinstance(last_message, AIMessage) and last_message.content:
-        content = last_message.content
-        if 'Continue' in content:
-            return "tools"
-        elif "End" in content:
-            return "End"
-    return "End"
-
-# for phoenix prompt
-def load_prompt() -> str:
-    client = Client(base_url=phoenix_endpoint, api_key=PHOENIX_API_KEY)
-    prompt = client.prompts.get(prompt_version_id="UHJvbXB0VmVyc2lvbjo2")
-
-    prompt_set = prompt._template["messages"]
-    prompt_msg = next(
-            (item["content"][0]["text"] for item in prompt_set if item.get("role") == "system"),
-            None
-        )
-    if prompt_msg and isinstance(prompt_msg, str) and len(prompt_msg) > 0:
-            system_msg = prompt_msg
-    else:
-            raise ValueError(f"Error: 'prompt_msg' is empty or improperly structured:{prompt_msg}, {agent_name}")
-    return system_msg
-
-def create_custom_graph(model, tools, prompt, checkpointer=None):
-    graph_builder = StateGraph(State)
-    llm_with_tools = model.bind_tools(tools)
-
-    async def agent_node(state: State):
-        messages = state["messages"]
-        system_prompt = SystemMessage(content=prompt)
-        all_messages = [system_prompt] + messages
-        message = await llm_with_tools.ainvoke(all_messages)
-        return {"messages": [message]}
-
-    graph_builder.add_node("agent", agent_node)
-    graph_builder.add_node("tools", ToolNode(tools=tools))
-    graph_builder.add_edge(START, "agent")
-    graph_builder.add_conditional_edges(
-        "agent",
-        router,
-        {
-            "tools": "tools",
-            "End": END
-        }
-    )
-    graph_builder.add_edge("tools", "agent")
-
-    return graph_builder.compile(checkpointer=checkpointer) if checkpointer else graph_builder.compile()
-
-async def get_tool_list(config_mcp_server):
-    client = MultiServerMCPClient(config_mcp_server)
-    tools_list = await client.get_tools()
-    print("Tools fetched from MCP:", [tool.name for tool in tools_list])
-    return tools_list
-
-@app.post("/chat")
-async def chat_stream():
-    # Load environment variables
-    load_dotenv()
-
-    # Fetch tools
-    tools = await get_tool_list(config_mcp_server=config_mcp_server)
-
-    # Setup Azure OpenAI model
-    endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
-    credential = os.getenv("AZURE_OPENAI_API_KEY")
-    deployment_name = os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT")
-    api_version = os.getenv("AZURE_OPENAI_API_VERSION")
-
-    model = AzureChatOpenAI(
-        api_key=credential,
-        api_version=api_version,  # fill if needed
-        azure_deployment=deployment_name,
-        azure_endpoint=endpoint
-    )
-
-    # Load system prompt
-    SYSTEM_INSTRUCTION = load_prompt()   # used for fetching prompt from phoenix
-
-    # Create the graph
-    graph = create_custom_graph(model=model, tools=tools, prompt=SYSTEM_INSTRUCTION)
-
-    async def stream():
-        async for chunk in graph.astream({"messages": ["Start your task"]}, config={"recursion_limit": 100}):
-            if "agent" in chunk:
-                messages = chunk["agent"]["messages"]
-                for msg in messages:
-                    if hasattr(msg, "content") and msg.content:
-                        # Yield SSE formatted string
-                        yield f"data: {msg.content}\n\n"
-            if "tools" in chunk:
-                messages = chunk["tools"]["messages"]
-                for msg in messages:
-                    if hasattr(msg, "content") and msg.content:
-                        yield f"data: [Tool:{msg.name}] {msg.content}\n\n"
-
-    return StreamingResponse(stream(), media_type="text/event-stream")
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=7841)
-
-
-so currently this is my code and below is the output that i got which i am unable to understand
-
-
-
-import asyncio
-from typing import TypedDict, Annotated
-
-from langgraph.graph import StateGraph, START, END
-from langgraph.graph.message import add_messages
-
-# IMPORT SUBGRAPHS
-from email_intent_agent.langgraph_client import build_email_intent_graph
-from eligibility_agent.langgraph_client import build_eligibility_graph
-from risk_assesment_agent.langgraph_client import build_risk_graph
-
-
-class State(TypedDict):
-    messages: Annotated[list, add_messages]
-
-
-async def build_megagraph():
-
-    # build all subgraphs
-    email_graph = await build_email_intent_graph()
-    eligibility_graph = await build_eligibility_graph()
-    risk_graph = await build_risk_graph()
-
-    builder = StateGraph(State)
-
-    # Add subgraphs as nodes
-    builder.add_node("EmailIntentAgent", email_graph)
-    builder.add_node("EligibilityAgent", eligibility_graph)
-    builder.add_node("RiskAssessmentAgent", risk_graph)
-
-    # Graph Flow
-    builder.add_edge(START, "EmailIntentAgent")
-
-    builder.add_edge("EmailIntentAgent", "EligibilityAgent")
-
-    builder.add_edge("EligibilityAgent", "RiskAssessmentAgent")
-
-    builder.add_edge("RiskAssessmentAgent", END)
-
-    return builder.compile()
-
-
-async def main():
-
-    graph = await build_megagraph()
-
-    async for step in graph.astream(
-        {"messages": ["Start underwriting workflow"]},
-        config={"recursion_limit": 200},
-    ):
-        print(step)
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+(mcp_venv) Jarvis@JarvisPhase2:~/Musaddique/project_root$ python3 -m mega_graph.megagraph_client
+INFO:     Will watch for changes in these directories: ['/home/Jarvis/Musaddique/project_root']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [13885] using WatchFiles
+INFO:     Started server process [13897]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     127.0.0.1:46850 - "GET / HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:46850 - "GET /favicon.ico HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:46850 - "GET /docs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46850 - "GET /openapi.json HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46850 - "POST /underwrite HTTP/1.1" 200 OK
+
+----- EMAIL AGENT RUNNING -----
+
+EMAIL AGENT → calling tool: email_reader_mcp
+
+----- EMAIL AGENT RUNNING -----
+
+EMAIL AGENT → calling tool: write_email_to_excel
 
 ----- EMAIL AGENT RUNNING -----
 
 EMAIL AGENT → calling tool: email_attachment_mcp
 
 ----- EMAIL AGENT RUNNING -----
-EMAIL AGENT RESPONSE: Continue
-
------ EMAIL AGENT RUNNING -----
 
 EMAIL AGENT → calling tool: layout_detection_mcp
-
------ EMAIL AGENT RUNNING -----
-EMAIL AGENT RESPONSE: Continue
 
 ----- EMAIL AGENT RUNNING -----
 
@@ -266,18 +43,302 @@ EMAIL AGENT → calling tool: attachment_summary_mcp
 EMAIL AGENT RESPONSE: Continue
 
 ----- EMAIL AGENT RUNNING -----
-EMAIL AGENT RESPONSE: End
-{'EmailIntentAgent': {'messages': [HumanMessage(content='Start underwriting workflow', additional_kwargs={}, response_metadata={}, id='9add0d21-d015-486f-8c9f-90834125cfbd'), AIMessage(content='', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 13, 'prompt_tokens': 5231, 'total_tokens': 5244, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 5120}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_7a7fd0eb44', 'id': 'chatcmpl-DHOhI1bkoghnwaw83H7fWCsXY8tKQ', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'jailbreak': {'detected': False, 'filtered': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}], 'finish_reason': 'tool_calls', 'logprobs': None, 'content_filter_results': {}}, id='lc_run--019cd15a-53aa-7450-a1bd-de89e05a2382-0', tool_calls=[{'name': 'email_reader_mcp', 'args': {}, 'id': 'call_naP6N00ZcHY65MYbnrRxl9mH', 'type': 'tool_call'}], invalid_tool_calls=[], usage_metadata={'input_tokens': 5231, 'output_tokens': 13, 'total_tokens': 5244, 'input_token_details': {'audio': 0, 'cache_read': 5120}, 'output_token_details': {'audio': 0, 'reasoning': 0}}), ToolMessage(content=[{'type': 'text', 'text': '{\n  "jsonrpc": "2.0",\n  "id": 1,\n  "result": [\n    {\n      "is_body_extracted": true,\n      "body": "Dear Underwriting Team,\\r\\n\\r\\n\\r\\n\\r\\nPlease find the attached Property Detail Report in support of this Business\\r\\nInterruption and Contingent Business Interruption submission for Sunflower\\r\\nHotel Group LLC (dba Cruise Resort).\\r\\n\\r\\n\\r\\n\\r\\nKey details\\r\\n\\r\\n- Named insured: Sunflower Hotel Group LLC (dba Cruise Resort)\\r\\n\\r\\n- Location: Cruise Resort, 100 Harbor View Drive, Seabreeze, FL 33101\\r\\n\\r\\n- Line requested: Business Interruption & Contingent Business Interruption\\r\\n(including Extra Expense / Civil Authority where available)\\r\\n\\r\\n- Requested effective date: 2026-01-01\\r\\n\\r\\n- Limit requested: $40,000,000 with 24 months indemnity (open to insurer\\r\\npresentation)\\r\\n\\r\\n- Annual gross revenue: $40,000,000\\r\\n\\r\\n- Annual payroll: $6,500,000\\r\\n\\r\\n\\r\\n\\r\\nRequested feedback\\r\\n\\r\\n- Please confirm appetite and capacity for BI with Contingent BI for this\\r\\naccount.\\r\\n\\r\\n- Advise preferred indemnity basis (Gross Revenue vs. Gross Profit),\\r\\ntypical waiting period options, and any immediate underwriting\\r\\nrequirements.\\r\\n\\r\\n- Confirm preferred secure channel for any additional documentation\\r\\n(monthly revenue schedules, P&L, payroll breakdown, loss runs, BCP/IT DR)\\r\\nand I will forward the files promptly.\\r\\n\\r\\n\\r\\n\\r\\nAttachments\\r\\n\\r\\n- Property Detail Report\\r\\n\\r\\n\\r\\n\\r\\nBroker contact\\r\\n\\r\\nOlivia Park\\r\\n\\r\\nSenior Hospitality Broker, Meridian Shoreline Insurance Partners\\r\\n\\r\\nolivia.park@meridianship.com\\r\\n\\r\\n+1 (555) 214-7802\\r\\n\\r\\n\\r\\n\\r\\nThank you, I look forward to your confirmation and any initial guidance.",\n      "body_bloburl": "https://agenticai1.blob.core.windows.net/attachment-downloader/body_19CD12FC8D93EA6A.txt",\n      "error": null,\n      "reference_id": "19CD12FC8D93EA6A",\n      "subject": "Submission - Business Interruption & Contingent BI - Cruise Report (Sunflower Hotel Group)",\n      "sender": "commercialinsurancebrokers <commercialinsurancebrokers57@gmail.com>",\n      "received_date": "Mon, 9 Mar 2026 11:31:21 +0530",\n      "has_attachments": true,\n      "attachments": [\n        {\n          "filename": "Property_Detailed_Report.pdf",\n          "type": "PDF Document"\n        },\n        {\n          "filename": "SunflowerHotels_Submission_Document.pdf",\n          "type": "PDF Document"\n        }\n      ],\n      "property_details": {\n        "property_name": "Cruise Resort",\n        "property_address": "100 Harbor View Drive, Seabreeze, FL 33101",\n        "property_type": "hospitality (hotel/resort)",\n        "broker_name": "Olivia Park",\n        "customer_name": "Sunflower Hotel Group LLC (dba Cruise Resort)"\n      }\n    }\n  ]\n}', 'id': 'lc_07c459e0-51f0-496e-adb5-da1d5202e9a8'}], name='email_reader_mcp', id='12036acb-8089-4315-9c60-87b915ad2dd7', tool_call_id='call_naP6N00ZcHY65MYbnrRxl9mH'), AIMessage(content='Continue', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 3, 'prompt_tokens': 5983, 'total_tokens': 5986, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 5120}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_7a7fd0eb44', 'id': 'chatcmpl-DHOhktjUg0jKRZ2MXVtLr3cweupaE', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {}}], 'finish_reason': 'stop', 'logprobs': None, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'protected_material_code': {'detected': False, 'filtered': False}, 'protected_material_text': {'detected': False, 'filtered': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}, id='lc_run--019cd15a-c11c-7780-9986-28fe9dbaf9ca-0', tool_calls=[], invalid_tool_calls=[], usage_metadata={'input_tokens': 5983, 'output_tokens': 3, 'total_tokens': 5986, 'input_token_details': {'audio': 0, 'cache_read': 5120}, 'output_token_details': {'audio': 0, 'reasoning': 0}}), AIMessage(content='', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 218, 'prompt_tokens': 5988, 'total_tokens': 6206, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 5888}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_7a7fd0eb44', 'id': 'chatcmpl-DHOhkZzGkSXjICkdCtgIaofeixsJR', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {}}], 'finish_reason': 'tool_calls', 'logprobs': None, 'content_filter_results': {}}, id='lc_run--019cd15a-c36d-7d11-ac78-8eed9d0d7fa2-0', tool_calls=[{'name': 'write_email_to_excel', 'args': {'reference_id': '19CD12FC8D93EA6A', 'subject': 'Submission - Business Interruption & Contingent BI - Cruise Report (Sunflower Hotel Group)', 'body_bloburl': 'https://agenticai1.blob.core.windows.net/attachment-downloader/body_19CD12FC8D93EA6A.txt', 'sender': 'commercialinsurancebrokers <commercialinsurancebrokers57@gmail.com>', 'received_date': 'Mon, 9 Mar 2026 11:31:21 +0530', 'has_attachments': True, 'attachments': [{'filename': 'Property_Detailed_Report.pdf', 'type': 'PDF Document'}, {'filename': 'SunflowerHotels_Submission_Document.pdf', 'type': 'PDF Document'}], 'property_details': {'property_name': 'Cruise Resort', 'property_address': '100 Harbor View Drive, Seabreeze, FL 33101', 'property_type': 'hospitality (hotel/resort)', 'broker_name': 'Olivia Park', 'customer_name': 'Sunflower Hotel Group LLC (dba Cruise Resort)'}}, 'id': 'call_NaKdadhJGNGj9ZsxIrPQk5hU', 'type': 'tool_call'}], invalid_tool_calls=[], usage_metadata={'input_tokens': 5988, 'output_tokens': 218, 'total_tokens': 6206, 'input_token_details': {'audio': 0, 'cache_read': 5888}, 'output_token_details': {'audio': 0, 'reasoning': 0}}), ToolMessage(content=[{'type': 'text', 'text': '{\n  "jsonrpc": "2.0",\n  "id": 1,\n  "result": {\n    "is_written": true,\n    "error": null,\n    "excel_file": "Fetched_emails_data_new.xlsx",\n    "rows_count": 37,\n    "reference_id": "19CD12FC8D93EA6A"\n  }\n}', 'id': 'lc_7b2b07a9-425d-432f-83c5-f2fed4324887'}], name='write_email_to_excel', id='995c1e6c-d276-4a1d-bb5a-44a9adbe58d2', tool_call_id='call_NaKdadhJGNGj9ZsxIrPQk5hU'), AIMessage(content='Continue', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 3, 'prompt_tokens': 6292, 'total_tokens': 6295, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 6144}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_7a7fd0eb44', 'id': 'chatcmpl-DHOhmZ3O3rjKbnD2BTlCoMbdpVz7V', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {}}], 'finish_reason': 'stop', 'logprobs': None, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'protected_material_code': {'detected': False, 'filtered': False}, 'protected_material_text': {'detected': False, 'filtered': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}, id='lc_run--019cd15a-c9f9-7a41-9e0e-7ba1f5a4f59f-0', tool_calls=[], invalid_tool_calls=[], usage_metadata={'input_tokens': 6292, 'output_tokens': 3, 'total_tokens': 6295, 'input_token_details': {'audio': 0, 'cache_read': 6144}, 'output_token_details': {'audio': 0, 'reasoning': 0}}), AIMessage(content='', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 42, 'prompt_tokens': 6297, 'total_tokens': 6339, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 6272}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_7a7fd0eb44', 'id': 'chatcmpl-DHOhnkFoQr90b0JVkU2QhOEjZ7iuS', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {}}], 'finish_reason': 'tool_calls', 'logprobs': None, 'content_filter_results': {}}, id='lc_run--019cd15a-cd52-7451-8f16-8e0c9e64c7bf-0', tool_calls=[{'name': 'email_attachment_mcp', 'args': {'AgentName': 'EmailIntentAgent', 'UserId': 'markRuffalo', 'ref_id': '19CD12FC8D93EA6A'}, 'id': 'call_Ub0Sj9np3GPouv8kBE1SVStS', 'type': 'tool_call'}], invalid_tool_calls=[], usage_metadata={'input_tokens': 6297, 'output_tokens': 42, 'total_tokens': 6339, 'input_token_details': {'audio': 0, 'cache_read': 6272}, 'output_token_details': {'audio': 0, 'reasoning': 0}}), ToolMessage(content=[{'type': 'text', 'text': '{\n  "jsonrpc": "2.0",\n  "id": 1,\n  "result": {\n    "message_id": "19cd1341e2a56f0e",\n    "attachments": [\n      {\n        "filename": "19CD12FC8D93EA6A_quote_document_20260309_060611.pdf",\n        "Attachment_saved": true,\n        "reference_id": "19CD12FC8D93EA6A",\n        "error": null,\n        "blob_url": "https://agenticai1.blob.core.windows.net/attachment-downloader/19CD12FC8D93EA6A_attachment_19CD12FC8D93EA6A_quote_document_20260309_060611.pdf"\n      }\n    ],\n    "error": null\n  }\n}', 'id': 'lc_6573ac95-927b-4bbd-bb99-3d38dc8a446b'}], name='email_attachment_mcp', id='85344011-0af6-4b0d-bad2-7f5a7207c2da', tool_call_id='call_Ub0Sj9np3GPouv8kBE1SVStS'), AIMessage(content='Continue', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 3, 'prompt_tokens': 6520, 'total_tokens': 6523, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 6272}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_7a7fd0eb44', 'id': 'chatcmpl-DHOho3t1mIRuurXM5nlxkhKFs6uEv', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {}}], 'finish_reason': 'stop', 'logprobs': None, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'protected_material_code': {'detected': False, 'filtered': False}, 'protected_material_text': {'detected': False, 'filtered': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}, id='lc_run--019cd15a-d248-79d1-b8d1-cd53c5e746db-0', tool_calls=[], invalid_tool_calls=[], usage_metadata={'input_tokens': 6520, 'output_tokens': 3, 'total_tokens': 6523, 'input_token_details': {'audio': 0, 'cache_read': 6272}, 'output_token_details': {'audio': 0, 'reasoning': 0}}), AIMessage(content='', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 65, 'prompt_tokens': 6525, 'total_tokens': 6590, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 6400}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_7a7fd0eb44', 'id': 'chatcmpl-DHOhoNiDwsf17H6VDSBxGpPGVzXtN', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {}}], 'finish_reason': 'tool_calls', 'logprobs': None, 'content_filter_results': {}}, id='lc_run--019cd15a-d410-75e3-a70b-41718053c872-0', tool_calls=[{'name': 'layout_detection_mcp', 'args': {'attachment_url': 'https://agenticai1.blob.core.windows.net/attachment-downloader/19CD12FC8D93EA6A_attachment_19CD12FC8D93EA6A_quote_document_20260309_060611.pdf'}, 'id': 'call_Q5ut2hGak7AcCob1iJf8e6LP', 'type': 'tool_call'}], invalid_tool_calls=[], usage_metadata={'input_tokens': 6525, 'output_tokens': 65, 'total_tokens': 6590, 'input_token_details': {'audio': 0, 'cache_read': 6400}, 'output_token_details': {'audio': 0, 'reasoning': 0}}), ToolMessage(content=[{'type': 'text', 'text': '{\n  "jsonrpc": "2.0",\n  "id": 1,\n  "result": {\n    "status": true,\n    "layout_type": "Property_Detailed_Report",\n    "URL": "https://agenticai1.blob.core.windows.net/attachment-downloader/19CD12FC8D93EA6A_attachment_19CD12FC8D93EA6A_quote_document_20260309_060611.pdf"\n  }\n}', 'id': 'lc_4a51b775-b91e-4f43-a2ae-81397b0f6ef4'}], name='layout_detection_mcp', id='d486bed4-dffa-4c1c-ad94-c75a995abf7f', tool_call_id='call_Q5ut2hGak7AcCob1iJf8e6LP'), AIMessage(content='Continue', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 3, 'prompt_tokens': 6696, 'total_tokens': 6699, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 6528}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_7a7fd0eb44', 'id': 'chatcmpl-DHOhvelJwXfTFHXYtb9m2TIyZkTAY', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {}}], 'finish_reason': 'stop', 'logprobs': None, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'protected_material_code': {'detected': False, 'filtered': False}, 'protected_material_text': {'detected': False, 'filtered': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}, id='lc_run--019cd15a-ebc8-7891-9dc1-45c02cd54f7d-0', tool_calls=[], invalid_tool_calls=[], usage_metadata={'input_tokens': 6696, 'output_tokens': 3, 'total_tokens': 6699, 'input_token_details': {'audio': 0, 'cache_read': 6528}, 'output_token_details': {'audio': 0, 'reasoning': 0}}), AIMessage(content='', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 84, 'prompt_tokens': 6701, 'total_tokens': 6785, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 6656}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_7a7fd0eb44', 'id': 'chatcmpl-DHOhv8gOWB1ZAs3PMs7V5JLb4W9ta', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {}}], 'finish_reason': 'tool_calls', 'logprobs': None, 'content_filter_results': {}}, id='lc_run--019cd15a-ee9a-7112-a0f7-e749acf2eb83-0', tool_calls=[{'name': 'query_pdf_vectorizer_mcp', 'args': {'AgentName': 'PdfVectorizerAgent', 'UserId': 'markRuffalo', 'attachment_urls': ['https://agenticai1.blob.core.windows.net/attachment-downloader/19CD12FC8D93EA6A_attachment_19CD12FC8D93EA6A_quote_document_20260309_060611.pdf']}, 'id': 'call_UZbHT9M6fIPSkUVcYl6URmXt', 'type': 'tool_call'}], invalid_tool_calls=[], usage_metadata={'input_tokens': 6701, 'output_tokens': 84, 'total_tokens': 6785, 'input_token_details': {'audio': 0, 'cache_read': 6656}, 'output_token_details': {'audio': 0, 'reasoning': 0}}), ToolMessage(content=[{'type': 'text', 'text': '{\n  "jsonrpc": "2.0",\n  "id": 1,\n  "result": {\n    "is_vectorised": true,\n    "metadata": {\n      "is_embedded": true,\n      "is_error": false,\n      "error_message": null,\n      "files_processed": [\n        {\n          "file_name": "19CD12FC8D93EA6A_attachment_19CD12FC8D93EA6A_quote_document_20260309_060611",\n          "reference_id": "19CD12FC8D93EA6A",\n          "is_embedded": true,\n          "error": null\n        }\n      ],\n      "files_skipped": [],\n      "vector_db_path": "/home/Jarvis/Musaddique/JarvisAgent/Jarvis/MCP/Document_Query_MCP/data/vec_db/19CD12FC8D93EA6A",\n      "reference_ids": [\n        "19CD12FC8D93EA6A"\n      ],\n      "total_files": 1,\n      "processed_count": 1,\n      "skipped_count": 0\n    }\n  }\n}', 'id': 'lc_837c5971-465c-4477-8d01-c4268f114296'}], name='query_pdf_vectorizer_mcp', id='74145380-4a37-47b2-9d4a-619ca104ab56', tool_call_id='call_UZbHT9M6fIPSkUVcYl6URmXt'), AIMessage(content='', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 79, 'prompt_tokens': 7038, 'total_tokens': 7117, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 6656}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_7a7fd0eb44', 'id': 'chatcmpl-DHOi6WwD8qEvDCasOh9X8oHSiZOKv', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {}}], 'finish_reason': 'tool_calls', 'logprobs': None, 'content_filter_results': {}}, id='lc_run--019cd15b-18c6-7ee3-a536-861a6b1d96f2-0', tool_calls=[{'name': 'retriever_mcp', 'args': {'AgentName': 'RetrieverAgent', 'UserId': 'markRuffalo', 'VectorDbPath': '/home/Jarvis/Musaddique/JarvisAgent/Jarvis/MCP/Document_Query_MCP/data/vec_db/19CD12FC8D93EA6A', 'DocumentType': 'Property_Detailed_Report'}, 'id': 'call_dz5rQz4TtE4pN9PVXC7TOwl7', 'type': 'tool_call'}], invalid_tool_calls=[], usage_metadata={'input_tokens': 7038, 'output_tokens': 79, 'total_tokens': 7117, 'input_token_details': {'audio': 0, 'cache_read': 6656}, 'output_token_details': {'audio': 0, 'reasoning': 0}}), ToolMessage(content=[{'type': 'text', 'text': '{\n  "jsonrpc": "2.0",\n  "id": 1,\n  "result": {\n    "is_extracted": true,\n    "metadata": {\n      "is_extracted": true,\n      "is_error": false,\n      "error_message": null,\n      "output_blob_url": "https://agenticai1.blob.core.windows.net/output-results/19CD12FC8D93EA6A_Property_Detailed_Report_extraction_20260309_064916.json",\n      "source_pdf": "19CD12FC8D93EA6A",\n      "local_output_path": "/home/Jarvis/Musaddique/JarvisAgent/Jarvis/MCP/Document_Query_MCP/data/vec_db/extraction_outputs/19CD12FC8D93EA6A_Property_Detailed_Report_extraction_20260309_064916.json",\n      "vector_db_path": "/home/Jarvis/Musaddique/JarvisAgent/Jarvis/MCP/Document_Query_MCP/data/vec_db/19CD12FC8D93EA6A"\n    }\n  }\n}', 'id': 'lc_5d94c77c-97e2-44fb-9858-18b3bf06d2d3'}], name='retriever_mcp', id='7548c6c2-7474-4a62-98ed-c929eef679bc', tool_call_id='call_dz5rQz4TtE4pN9PVXC7TOwl7'), AIMessage(content='Continue', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 70, 'prompt_tokens': 7359, 'total_tokens': 7429, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 7040}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_7a7fd0eb44', 'id': 'chatcmpl-DHOiSz8mklDmyVo8kMCPW55XIxBez', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {}}], 'finish_reason': 'tool_calls', 'logprobs': None, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'protected_material_code': {'detected': False, 'filtered': False}, 'protected_material_text': {'detected': False, 'filtered': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}, id='lc_run--019cd15b-7033-7652-849d-f4e9ee8e3bd3-0', tool_calls=[{'name': 'attachment_summary_mcp', 'args': {'attachment_urls': ['https://agenticai1.blob.core.windows.net/attachment-downloader/19CD12FC8D93EA6A_attachment_19CD12FC8D93EA6A_quote_document_20260309_060611.pdf']}, 'id': 'call_nHw6Y2PpoeRoFAqvP4fiB8he', 'type': 'tool_call'}], invalid_tool_calls=[], usage_metadata={'input_tokens': 7359, 'output_tokens': 70, 'total_tokens': 7429, 'input_token_details': {'audio': 0, 'cache_read': 7040}, 'output_token_details': {'audio': 0, 'reasoning': 0}}), ToolMessage(content=[{'type': 'text', 'text': '{\n  "jsonrpc": "2.0",\n  "id": 1,\n  "result": {\n    "combined_summary": "SUBMISSION SUMMARY\\nClient: Sunflower Hotel Group LLC\\nDate: March 9, 2026\\n\\n1. SUBMISSION COVER LETTER / NARRATIVE\\nExposure Description:\\n- The business operates as a hotel group.\\n- Main operations involve hotel management and hospitality services at a single location.\\n- The property is located at 100 Harbor View Drive, Daytona Beach, FL. No further construction, age, or protection details are provided.\\n\\nPlacement Strategy:\\n- Seeking commercial property coverage on a Fire & Allied Perils basis.\\n- The submission is being handled by a broker and is subject to underwriting review, possible survey, and may change if risk details are updated.\\n\\nRenewal Highlights:\\n- No notable changes or updates are mentioned.\\n\\nChanges YOY:\\n- No changes in exposure, values, operations, or loss experience are indicated.\\n\\nAdditional Overview Details:\\n- Effective Date: January 1, 2026\\n- Submission Type: Not specified (renewal/new business not stated)\\n- Current Situation: Submission is for quoting and subject to further underwriting and possible information requests.\\n\\n2. LOSS HISTORY PACKAGE\\n5â\x80\x9310 Year Loss Runs:\\n- No loss history information is provided.\\n\\nLarge Loss Details:\\n- No significant claims are referenced.\\n\\nTrends Analysis:\\n- No patterns or frequency/severity information is available.\\n\\nSummary of Loss History:\\n- Status: Not stated\\n- Summary: No loss history information included.\\n- Major Incidents: None referenced.\\n\\n3. EXPOSURE DATA\\nCOPE Information (Construction, Occupancy, Protection, Exposure):\\n- The property is a hotel located at 100 Harbor View Drive, Daytona Beach, FL. No further details on construction, protection, or exposures are provided.\\n\\nStatement of Values (SOV):\\n- Total Insurable Value (TIV): $6,750,000\\n- Building Limit: Not specified\\n- Contents/BPP Limit: Not specified\\n- Business Income: Not specified\\n\\nFinancials:\\n- No financial information is mentioned.\\n\\nCAT Worksheets:\\n- No catastrophe/hazard information is provided.\\n\\nSpecialty Schedules:\\n- None referenced.\\n\\nAdditional Exposure Details:\\n- Total Locations: 1\\n- Main Operations: Hotel/hospitality\\n- Property Details: No additional details provided\\n- Deductible Requested: Not specified",\n    "individualized_summary": [\n      {\n        "file_name": "19CD12FC8D93EA6A_attachment_19CD12FC8D93EA6A_quote_document_20260309_060611.pdf",\n        "summary": "The insured is Sunflower Hotel Group LLC, located at 100 Harbor View Drive, Daytona Beach, FL, with a total sum insured of $6,750,000 for commercial property coverage on a Fire & Allied Perils basis. The policy period is from January 1, 2026, to January 1, 2027, and the quoted total premium is $1,696.13, with no taxes applied. The broker handling the account is Olivia Park from Armstrong and Company. The quote is valid for 30 days and is subject to underwriting review, possible survey, and may change if risk details are updated. Coverage is contingent upon policy issuance and premium payment, and the insurer may request further information as needed for risk assessment.",\n        "document_type": "ACORD",\n        "processed_summary": "SUBMISSION SUMMARY\\nClient: Sunflower Hotel Group LLC\\nDate: 09/03/26\\n\\n1. SUBMISSION COVER LETTER / NARRATIVE\\nExposure Description:\\n- Sunflower Hotel Group LLC operates a hotel business.\\n- Main operations involve hospitality services at the risk location.\\n- The insured property is located at 100 Harbor View Drive, Seabreeze, Daytona Beach, Volusia, FL 32118, FL.\\n- Property details such as construction type, age, protection features, and sprinklers are not specified.\\n- The total sum insured for the property is $6,750,000.\\n\\nPlacement Strategy:\\n- The submission seeks coverage for Fire & Allied Perils under a Commercial Property policy.\\n- The approach appears to be direct placement for property risk, with terms subject to underwriting review and possible survey.\\n\\nRenewal Highlights:\\n- No notable changes or updates are mentioned.\\n\\nChanges YOY:\\n- No information provided regarding changes in exposure, values, operations, or loss experience.\\n\\nAdditional Overview Details:\\n- Effective Date: 01/01/2026\\n- Submission Type: New Business (inferred from absence of renewal reference)\\n- Current Situation: Submission is for quotation purposes; final terms pending underwriting review and possible survey."\n      }\n    ]\n  }\n}', 'id': 'lc_019abb8f-e403-433e-a847-338736a95961'}], name='attachment_summary_mcp', id='eaa63692-8eca-4b9b-8c82-148ff771c396', tool_call_id='call_nHw6Y2PpoeRoFAqvP4fiB8he'), AIMessage(content='Continue', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 3, 'prompt_tokens': 8470, 'total_tokens': 8473, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 7424}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_7a7fd0eb44', 'id': 'chatcmpl-DHOilWdKHopXLQie1iWmdQ8Gzseqp', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {}}], 'finish_reason': 'stop', 'logprobs': None, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'protected_material_code': {'detected': False, 'filtered': False}, 'protected_material_text': {'detected': False, 'filtered': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}, id='lc_run--019cd15b-b836-73d1-96bf-3fc2ffcfdce6-0', tool_calls=[], invalid_tool_calls=[], usage_metadata={'input_tokens': 8470, 'output_tokens': 3, 'total_tokens': 8473, 'input_token_details': {'audio': 0, 'cache_read': 7424}, 'output_token_details': {'audio': 0, 'reasoning': 0}}), AIMessage(content='End', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 3, 'prompt_tokens': 8475, 'total_tokens': 8478, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 8448}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_7a7fd0eb44', 'id': 'chatcmpl-DHOilLkyJ4rr9NY8oT6NdJ0dZ00AN', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {}}], 'finish_reason': 'stop', 'logprobs': None, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'protected_material_code': {'detected': False, 'filtered': False}, 'protected_material_text': {'detected': False, 'filtered': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}, id='lc_run--019cd15b-ba60-7770-8957-601c9e789789-0', tool_calls=[], invalid_tool_calls=[], usage_metadata={'input_tokens': 8475, 'output_tokens': 3, 'total_tokens': 8478, 'input_token_details': {'audio': 0, 'cache_read': 8448}, 'output_token_details': {'audio': 0, 'reasoning': 0}})]}}
+EMAIL AGENT RESPONSE: The underwriting workflow is completed
 
 ----- ELIGIBILITY AGENT RUNNING -----
-ELIGIBILITY AGENT RESPONSE: End
-{'EligibilityAgent': {'messages': [HumanMessage(content='Start underwriting workflow', additional_kwargs={}, response_metadata={}, id='9add0d21-d015-486f-8c9f-90834125cfbd'), AIMessage(content='', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 13, 'prompt_tokens': 5231, 'total_tokens': 5244, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 5120}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_7a7fd0eb44', 'id': 'chatcmpl-DHOhI1bkoghnwaw83H7fWCsXY8tKQ', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'jailbreak': {'detected': False, 'filtered': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}], 'finish_reason': 'tool_calls', 'logprobs': None, 'content_filter_results': {}}, id='lc_run--019cd15a-53aa-7450-a1bd-de89e05a2382-0', tool_calls=[{'name': 'email_reader_mcp', 'args': {}, 'id': 'call_naP6N00ZcHY65MYbnrRxl9mH', 'type': 'tool_call'}], invalid_tool_calls=[], usage_metadata={'input_tokens': 5231, 'output_tokens': 13, 'total_tokens': 5244, 'input_token_details': {'audio': 0, 'cache_read': 5120}, 'output_token_details': {'audio': 0, 'reasoning': 0}}), ToolMessage(content=[{'type': 'text', 'text': '{\n  "jsonrpc": "2.0",\n  "id": 1,\n  "result": [\n    {\n      "is_body_extracted": true,\n      "body": "Dear Underwriting Team,\\r\\n\\r\\n\\r\\n\\r\\nPlease find the attached Property Detail Report in support of this Business\\r\\nInterruption and Contingent Business Interruption submission for Sunflower\\r\\nHotel Group LLC (dba Cruise Resort).\\r\\n\\r\\n\\r\\n\\r\\nKey details\\r\\n\\r\\n- Named insured: Sunflower Hotel Group LLC (dba Cruise Resort)\\r\\n\\r\\n- Location: Cruise Resort, 100 Harbor View Drive, Seabreeze, FL 33101\\r\\n\\r\\n- Line requested: Business Interruption & Contingent Business Interruption\\r\\n(including Extra Expense / Civil Authority where available)\\r\\n\\r\\n- Requested effective date: 2026-01-01\\r\\n\\r\\n- Limit requested: $40,000,000 with 24 months indemnity (open to insurer\\r\\npresentation)\\r\\n\\r\\n- Annual gross revenue: $40,000,000\\r\\n\\r\\n- Annual payroll: $6,500,000\\r\\n\\r\\n\\r\\n\\r\\nRequested feedback\\r\\n\\r\\n- Please confirm appetite and capacity for BI with Contingent BI for this\\r\\naccount.\\r\\n\\r\\n- Advise preferred indemnity basis (Gross Revenue vs. Gross Profit),\\r\\ntypical waiting period options, and any immediate underwriting\\r\\nrequirements.\\r\\n\\r\\n- Confirm preferred secure channel for any additional documentation\\r\\n(monthly revenue schedules, P&L, payroll breakdown, loss runs, BCP/IT DR)\\r\\nand I will forward the files promptly.\\r\\n\\r\\n\\r\\n\\r\\nAttachments\\r\\n\\r\\n- Property Detail Report\\r\\n\\r\\n\\r\\n\\r\\nBroker contact\\r\\n\\r\\nOlivia Park\\r\\n\\r\\nSenior Hospitality Broker, Meridian Shoreline Insurance Partners\\r\\n\\r\\nolivia.park@meridianship.com\\r\\n\\r\\n+1 (555) 214-7802\\r\\n\\r\\n\\r\\n\\r\\nThank you, I look forward to your confirmation and any initial guidance.",\n      "body_bloburl": "https://agenticai1.blob.core.windows.net/attachment-downloader/body_19CD12FC8D93EA6A.txt",\n      "error": null,\n      "reference_id": "19CD12FC8D93EA6A",\n      "subject": "Submission - Business Interruption & Contingent BI - Cruise Report (Sunflower Hotel Group)",\n      "sender": "commercialinsurancebrokers <commercialinsurancebrokers57@gmail.com>",\n      "received_date": "Mon, 9 Mar 2026 11:31:21 +0530",\n      "has_attachments": true,\n      "attachments": [\n        {\n          "filename": "Property_Detailed_Report.pdf",\n          "type": "PDF Document"\n        },\n        {\n          "filename": "SunflowerHotels_Submission_Document.pdf",\n          "type": "PDF Document"\n        }\n      ],\n      "property_details": {\n        "property_name": "Cruise Resort",\n        "property_address": "100 Harbor View Drive, Seabreeze, FL 33101",\n        "property_type": "hospitality (hotel/resort)",\n        "broker_name": "Olivia Park",\n        "customer_name": "Sunflower Hotel Group LLC (dba Cruise Resort)"\n      }\n    }\n  ]\n}', 'id': 'lc_07c459e0-51f0-496e-adb5-da1d5202e9a8'}], name='email_reader_mcp', id='12036acb-8089-4315-9c60-87b915ad2dd7', tool_call_id='call_naP6N00ZcHY65MYbnrRxl9mH'), AIMessage(content='Continue', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 3, 'prompt_tokens': 5983, 'total_tokens': 5986, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 5120}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_7a7fd0eb44', 'id': 'chatcmpl-DHOhktjUg0jKRZ2MXVtLr3cweupaE', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {}}], 'finish_reason': 'stop', 'logprobs': None, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'protected_material_code': {'detected': False, 'filtered': False}, 'protected_material_text': {'detected': False, 'filtered': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}, id='lc_run--019cd15a-c11c-7780-9986-28fe9dbaf9ca-0', tool_calls=[], invalid_tool_calls=[], usage_metadata={'input_tokens': 5983, 'output_tokens': 3, 'total_tokens': 5986, 'input_token_details': {'audio': 0, 'cache_read': 5120}, 'output_token_details': {'audio': 0, 'reasoning': 0}}), AIMessage(content='', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 218, 'prompt_tokens': 5988, 'total_tokens': 6206, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 5888}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_7a7fd0eb44', 'id': 'chatcmpl-DHOhkZzGkSXjICkdCtgIaofeixsJR', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {}}], 'finish_reason': 'tool_calls', 'logprobs': None, 'content_filter_results': {}}, id='lc_run--019cd15a-c36d-7d11-ac78-8eed9d0d7fa2-0', tool_calls=[{'name': 'write_email_to_excel', 'args': {'reference_id': '19CD12FC8D93EA6A', 'subject': 'Submission - Business Interruption & Contingent BI - Cruise Report (Sunflower Hotel Group)', 'body_bloburl': 'https://agenticai1.blob.core.windows.net/attachment-downloader/body_19CD12FC8D93EA6A.txt', 'sender': 'commercialinsurancebrokers <commercialinsurancebrokers57@gmail.com>', 'received_date': 'Mon, 9 Mar 2026 11:31:21 +0530', 'has_attachments': True, 'attachments': [{'filename': 'Property_Detailed_Report.pdf', 'type': 'PDF Document'}, {'filename': 'SunflowerHotels_Submission_Document.pdf', 'type': 'PDF Document'}], 'property_details': {'property_name': 'Cruise Resort', 'property_address': '100 Harbor View Drive, Seabreeze, FL 33101', 'property_type': 'hospitality (hotel/resort)', 'broker_name': 'Olivia Park', 'customer_name': 'Sunflower Hotel Group LLC (dba Cruise Resort)'}}, 'id': 'call_NaKdadhJGNGj9ZsxIrPQk5hU', 'type': 'tool_call'}], invalid_tool_calls=[], usage_metadata={'input_tokens': 5988, 'output_tokens': 218, 'total_tokens': 6206, 'input_token_details': {'audio': 0, 'cache_read': 5888}, 'output_token_details': {'audio': 0, 'reasoning': 0}}), ToolMessage(content=[{'type': 'text', 'text': '{\n  "jsonrpc": "2.0",\n  "id": 1,\n  "result": {\n    "is_written": true,\n    "error": null,\n    "excel_file": "Fetched_emails_data_new.xlsx",\n    "rows_count": 37,\n    "reference_id": "19CD12FC8D93EA6A"\n  }\n}', 'id': 'lc_7b2b07a9-425d-432f-83c5-f2fed4324887'}], name='write_email_to_excel', id='995c1e6c-d276-4a1d-bb5a-44a9adbe58d2', tool_call_id='call_NaKdadhJGNGj9ZsxIrPQk5hU'), AIMessage(content='Continue', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 3, 'prompt_tokens': 6292, 'total_tokens': 6295, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 6144}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_7a7fd0eb44', 'id': 'chatcmpl-DHOhmZ3O3rjKbnD2BTlCoMbdpVz7V', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {}}], 'finish_reason': 'stop', 'logprobs': None, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'protected_material_code': {'detected': False, 'filtered': False}, 'protected_material_text': {'detected': False, 'filtered': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}, id='lc_run--019cd15a-c9f9-7a41-9e0e-7ba1f5a4f59f-0', tool_calls=[], invalid_tool_calls=[], usage_metadata={'input_tokens': 6292, 'output_tokens': 3, 'total_tokens': 6295, 'input_token_details': {'audio': 0, 'cache_read': 6144}, 'output_token_details': {'audio': 0, 'reasoning': 0}}), AIMessage(content='', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 42, 'prompt_tokens': 6297, 'total_tokens': 6339, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 6272}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_7a7fd0eb44', 'id': 'chatcmpl-DHOhnkFoQr90b0JVkU2QhOEjZ7iuS', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {}}], 'finish_reason': 'tool_calls', 'logprobs': None, 'content_filter_results': {}}, id='lc_run--019cd15a-cd52-7451-8f16-8e0c9e64c7bf-0', tool_calls=[{'name': 'email_attachment_mcp', 'args': {'AgentName': 'EmailIntentAgent', 'UserId': 'markRuffalo', 'ref_id': '19CD12FC8D93EA6A'}, 'id': 'call_Ub0Sj9np3GPouv8kBE1SVStS', 'type': 'tool_call'}], invalid_tool_calls=[], usage_metadata={'input_tokens': 6297, 'output_tokens': 42, 'total_tokens': 6339, 'input_token_details': {'audio': 0, 'cache_read': 6272}, 'output_token_details': {'audio': 0, 'reasoning': 0}}), ToolMessage(content=[{'type': 'text', 'text': '{\n  "jsonrpc": "2.0",\n  "id": 1,\n  "result": {\n    "message_id": "19cd1341e2a56f0e",\n    "attachments": [\n      {\n        "filename": "19CD12FC8D93EA6A_quote_document_20260309_060611.pdf",\n        "Attachment_saved": true,\n        "reference_id": "19CD12FC8D93EA6A",\n        "error": null,\n        "blob_url": "https://agenticai1.blob.core.windows.net/attachment-downloader/19CD12FC8D93EA6A_attachment_19CD12FC8D93EA6A_quote_document_20260309_060611.pdf"\n      }\n    ],\n    "error": null\n  }\n}', 'id': 'lc_6573ac95-927b-4bbd-bb99-3d38dc8a446b'}], name='email_attachment_mcp', id='85344011-0af6-4b0d-bad2-7f5a7207c2da', tool_call_id='call_Ub0Sj9np3GPouv8kBE1SVStS'), AIMessage(content='Continue', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 3, 'prompt_tokens': 6520, 'total_tokens': 6523, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 6272}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_7a7fd0eb44', 'id': 'chatcmpl-DHOho3t1mIRuurXM5nlxkhKFs6uEv', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {}}], 'finish_reason': 'stop', 'logprobs': None, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'protected_material_code': {'detected': False, 'filtered': False}, 'protected_material_text': {'detected': False, 'filtered': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}, id='lc_run--019cd15a-d248-79d1-b8d1-cd53c5e746db-0', tool_calls=[], invalid_tool_calls=[], usage_metadata={'input_tokens': 6520, 'output_tokens': 3, 'total_tokens': 6523, 'input_token_details': {'audio': 0, 'cache_read': 6272}, 'output_token_details': {'audio': 0, 'reasoning': 0}}), AIMessage(content='', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 65, 'prompt_tokens': 6525, 'total_tokens': 6590, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 6400}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_7a7fd0eb44', 'id': 'chatcmpl-DHOhoNiDwsf17H6VDSBxGpPGVzXtN', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {}}], 'finish_reason': 'tool_calls', 'logprobs': None, 'content_filter_results': {}}, id='lc_run--019cd15a-d410-75e3-a70b-41718053c872-0', tool_calls=[{'name': 'layout_detection_mcp', 'args': {'attachment_url': 'https://agenticai1.blob.core.windows.net/attachment-downloader/19CD12FC8D93EA6A_attachment_19CD12FC8D93EA6A_quote_document_20260309_060611.pdf'}, 'id': 'call_Q5ut2hGak7AcCob1iJf8e6LP', 'type': 'tool_call'}], invalid_tool_calls=[], usage_metadata={'input_tokens': 6525, 'output_tokens': 65, 'total_tokens': 6590, 'input_token_details': {'audio': 0, 'cache_read': 6400}, 'output_token_details': {'audio': 0, 'reasoning': 0}}), ToolMessage(content=[{'type': 'text', 'text': '{\n  "jsonrpc": "2.0",\n  "id": 1,\n  "result": {\n    "status": true,\n    "layout_type": "Property_Detailed_Report",\n    "URL": "https://agenticai1.blob.core.windows.net/attachment-downloader/19CD12FC8D93EA6A_attachment_19CD12FC8D93EA6A_quote_document_20260309_060611.pdf"\n  }\n}', 'id': 'lc_4a51b775-b91e-4f43-a2ae-81397b0f6ef4'}], name='layout_detection_mcp', id='d486bed4-dffa-4c1c-ad94-c75a995abf7f', tool_call_id='call_Q5ut2hGak7AcCob1iJf8e6LP'), AIMessage(content='Continue', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 3, 'prompt_tokens': 6696, 'total_tokens': 6699, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 6528}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_7a7fd0eb44', 'id': 'chatcmpl-DHOhvelJwXfTFHXYtb9m2TIyZkTAY', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {}}], 'finish_reason': 'stop', 'logprobs': None, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'protected_material_code': {'detected': False, 'filtered': False}, 'protected_material_text': {'detected': False, 'filtered': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}, id='lc_run--019cd15a-ebc8-7891-9dc1-45c02cd54f7d-0', tool_calls=[], invalid_tool_calls=[], usage_metadata={'input_tokens': 6696, 'output_tokens': 3, 'total_tokens': 6699, 'input_token_details': {'audio': 0, 'cache_read': 6528}, 'output_token_details': {'audio': 0, 'reasoning': 0}}), AIMessage(content='', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 84, 'prompt_tokens': 6701, 'total_tokens': 6785, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 6656}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_7a7fd0eb44', 'id': 'chatcmpl-DHOhv8gOWB1ZAs3PMs7V5JLb4W9ta', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {}}], 'finish_reason': 'tool_calls', 'logprobs': None, 'content_filter_results': {}}, id='lc_run--019cd15a-ee9a-7112-a0f7-e749acf2eb83-0', tool_calls=[{'name': 'query_pdf_vectorizer_mcp', 'args': {'AgentName': 'PdfVectorizerAgent', 'UserId': 'markRuffalo', 'attachment_urls': ['https://agenticai1.blob.core.windows.net/attachment-downloader/19CD12FC8D93EA6A_attachment_19CD12FC8D93EA6A_quote_document_20260309_060611.pdf']}, 'id': 'call_UZbHT9M6fIPSkUVcYl6URmXt', 'type': 'tool_call'}], invalid_tool_calls=[], usage_metadata={'input_tokens': 6701, 'output_tokens': 84, 'total_tokens': 6785, 'input_token_details': {'audio': 0, 'cache_read': 6656}, 'output_token_details': {'audio': 0, 'reasoning': 0}}), ToolMessage(content=[{'type': 'text', 'text': '{\n  "jsonrpc": "2.0",\n  "id": 1,\n  "result": {\n    "is_vectorised": true,\n    "metadata": {\n      "is_embedded": true,\n      "is_error": false,\n      "error_message": null,\n      "files_processed": [\n        {\n          "file_name": "19CD12FC8D93EA6A_attachment_19CD12FC8D93EA6A_quote_document_20260309_060611",\n          "reference_id": "19CD12FC8D93EA6A",\n          "is_embedded": true,\n          "error": null\n        }\n      ],\n      "files_skipped": [],\n      "vector_db_path": "/home/Jarvis/Musaddique/JarvisAgent/Jarvis/MCP/Document_Query_MCP/data/vec_db/19CD12FC8D93EA6A",\n      "reference_ids": [\n        "19CD12FC8D93EA6A"\n      ],\n      "total_files": 1,\n      "processed_count": 1,\n      "skipped_count": 0\n    }\n  }\n}', 'id': 'lc_837c5971-465c-4477-8d01-c4268f114296'}], name='query_pdf_vectorizer_mcp', id='74145380-4a37-47b2-9d4a-619ca104ab56', tool_call_id='call_UZbHT9M6fIPSkUVcYl6URmXt'), AIMessage(content='', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 79, 'prompt_tokens': 7038, 'total_tokens': 7117, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 6656}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_7a7fd0eb44', 'id': 'chatcmpl-DHOi6WwD8qEvDCasOh9X8oHSiZOKv', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {}}], 'finish_reason': 'tool_calls', 'logprobs': None, 'content_filter_results': {}}, id='lc_run--019cd15b-18c6-7ee3-a536-861a6b1d96f2-0', tool_calls=[{'name': 'retriever_mcp', 'args': {'AgentName': 'RetrieverAgent', 'UserId': 'markRuffalo', 'VectorDbPath': '/home/Jarvis/Musaddique/JarvisAgent/Jarvis/MCP/Document_Query_MCP/data/vec_db/19CD12FC8D93EA6A', 'DocumentType': 'Property_Detailed_Report'}, 'id': 'call_dz5rQz4TtE4pN9PVXC7TOwl7', 'type': 'tool_call'}], invalid_tool_calls=[], usage_metadata={'input_tokens': 7038, 'output_tokens': 79, 'total_tokens': 7117, 'input_token_details': {'audio': 0, 'cache_read': 6656}, 'output_token_details': {'audio': 0, 'reasoning': 0}}), ToolMessage(content=[{'type': 'text', 'text': '{\n  "jsonrpc": "2.0",\n  "id": 1,\n  "result": {\n    "is_extracted": true,\n    "metadata": {\n      "is_extracted": true,\n      "is_error": false,\n      "error_message": null,\n      "output_blob_url": "https://agenticai1.blob.core.windows.net/output-results/19CD12FC8D93EA6A_Property_Detailed_Report_extraction_20260309_064916.json",\n      "source_pdf": "19CD12FC8D93EA6A",\n      "local_output_path": "/home/Jarvis/Musaddique/JarvisAgent/Jarvis/MCP/Document_Query_MCP/data/vec_db/extraction_outputs/19CD12FC8D93EA6A_Property_Detailed_Report_extraction_20260309_064916.json",\n      "vector_db_path": "/home/Jarvis/Musaddique/JarvisAgent/Jarvis/MCP/Document_Query_MCP/data/vec_db/19CD12FC8D93EA6A"\n    }\n  }\n}', 'id': 'lc_5d94c77c-97e2-44fb-9858-18b3bf06d2d3'}], name='retriever_mcp', id='7548c6c2-7474-4a62-98ed-c929eef679bc', tool_call_id='call_dz5rQz4TtE4pN9PVXC7TOwl7'), AIMessage(content='Continue', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 70, 'prompt_tokens': 7359, 'total_tokens': 7429, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 7040}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_7a7fd0eb44', 'id': 'chatcmpl-DHOiSz8mklDmyVo8kMCPW55XIxBez', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {}}], 'finish_reason': 'tool_calls', 'logprobs': None, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'protected_material_code': {'detected': False, 'filtered': False}, 'protected_material_text': {'detected': False, 'filtered': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}, id='lc_run--019cd15b-7033-7652-849d-f4e9ee8e3bd3-0', tool_calls=[{'name': 'attachment_summary_mcp', 'args': {'attachment_urls': ['https://agenticai1.blob.core.windows.net/attachment-downloader/19CD12FC8D93EA6A_attachment_19CD12FC8D93EA6A_quote_document_20260309_060611.pdf']}, 'id': 'call_nHw6Y2PpoeRoFAqvP4fiB8he', 'type': 'tool_call'}], invalid_tool_calls=[], usage_metadata={'input_tokens': 7359, 'output_tokens': 70, 'total_tokens': 7429, 'input_token_details': {'audio': 0, 'cache_read': 7040}, 'output_token_details': {'audio': 0, 'reasoning': 0}}), ToolMessage(content=[{'type': 'text', 'text': '{\n  "jsonrpc": "2.0",\n  "id": 1,\n  "result": {\n    "combined_summary": "SUBMISSION SUMMARY\\nClient: Sunflower Hotel Group LLC\\nDate: March 9, 2026\\n\\n1. SUBMISSION COVER LETTER / NARRATIVE\\nExposure Description:\\n- The business operates as a hotel group.\\n- Main operations involve hotel management and hospitality services at a single location.\\n- The property is located at 100 Harbor View Drive, Daytona Beach, FL. No further construction, age, or protection details are provided.\\n\\nPlacement Strategy:\\n- Seeking commercial property coverage on a Fire & Allied Perils basis.\\n- The submission is being handled by a broker and is subject to underwriting review, possible survey, and may change if risk details are updated.\\n\\nRenewal Highlights:\\n- No notable changes or updates are mentioned.\\n\\nChanges YOY:\\n- No changes in exposure, values, operations, or loss experience are indicated.\\n\\nAdditional Overview Details:\\n- Effective Date: January 1, 2026\\n- Submission Type: Not specified (renewal/new business not stated)\\n- Current Situation: Submission is for quoting and subject to further underwriting and possible information requests.\\n\\n2. LOSS HISTORY PACKAGE\\n5â\x80\x9310 Year Loss Runs:\\n- No loss history information is provided.\\n\\nLarge Loss Details:\\n- No significant claims are referenced.\\n\\nTrends Analysis:\\n- No patterns or frequency/severity information is available.\\n\\nSummary of Loss History:\\n- Status: Not stated\\n- Summary: No loss history information included.\\n- Major Incidents: None referenced.\\n\\n3. EXPOSURE DATA\\nCOPE Information (Construction, Occupancy, Protection, Exposure):\\n- The property is a hotel located at 100 Harbor View Drive, Daytona Beach, FL. No further details on construction, protection, or exposures are provided.\\n\\nStatement of Values (SOV):\\n- Total Insurable Value (TIV): $6,750,000\\n- Building Limit: Not specified\\n- Contents/BPP Limit: Not specified\\n- Business Income: Not specified\\n\\nFinancials:\\n- No financial information is mentioned.\\n\\nCAT Worksheets:\\n- No catastrophe/hazard information is provided.\\n\\nSpecialty Schedules:\\n- None referenced.\\n\\nAdditional Exposure Details:\\n- Total Locations: 1\\n- Main Operations: Hotel/hospitality\\n- Property Details: No additional details provided\\n- Deductible Requested: Not specified",\n    "individualized_summary": [\n      {\n        "file_name": "19CD12FC8D93EA6A_attachment_19CD12FC8D93EA6A_quote_document_20260309_060611.pdf",\n        "summary": "The insured is Sunflower Hotel Group LLC, located at 100 Harbor View Drive, Daytona Beach, FL, with a total sum insured of $6,750,000 for commercial property coverage on a Fire & Allied Perils basis. The policy period is from January 1, 2026, to January 1, 2027, and the quoted total premium is $1,696.13, with no taxes applied. The broker handling the account is Olivia Park from Armstrong and Company. The quote is valid for 30 days and is subject to underwriting review, possible survey, and may change if risk details are updated. Coverage is contingent upon policy issuance and premium payment, and the insurer may request further information as needed for risk assessment.",\n        "document_type": "ACORD",\n        "processed_summary": "SUBMISSION SUMMARY\\nClient: Sunflower Hotel Group LLC\\nDate: 09/03/26\\n\\n1. SUBMISSION COVER LETTER / NARRATIVE\\nExposure Description:\\n- Sunflower Hotel Group LLC operates a hotel business.\\n- Main operations involve hospitality services at the risk location.\\n- The insured property is located at 100 Harbor View Drive, Seabreeze, Daytona Beach, Volusia, FL 32118, FL.\\n- Property details such as construction type, age, protection features, and sprinklers are not specified.\\n- The total sum insured for the property is $6,750,000.\\n\\nPlacement Strategy:\\n- The submission seeks coverage for Fire & Allied Perils under a Commercial Property policy.\\n- The approach appears to be direct placement for property risk, with terms subject to underwriting review and possible survey.\\n\\nRenewal Highlights:\\n- No notable changes or updates are mentioned.\\n\\nChanges YOY:\\n- No information provided regarding changes in exposure, values, operations, or loss experience.\\n\\nAdditional Overview Details:\\n- Effective Date: 01/01/2026\\n- Submission Type: New Business (inferred from absence of renewal reference)\\n- Current Situation: Submission is for quotation purposes; final terms pending underwriting review and possible survey."\n      }\n    ]\n  }\n}', 'id': 'lc_019abb8f-e403-433e-a847-338736a95961'}], name='attachment_summary_mcp', id='eaa63692-8eca-4b9b-8c82-148ff771c396', tool_call_id='call_nHw6Y2PpoeRoFAqvP4fiB8he'), AIMessage(content='Continue', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 3, 'prompt_tokens': 8470, 'total_tokens': 8473, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 7424}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_7a7fd0eb44', 'id': 'chatcmpl-DHOilWdKHopXLQie1iWmdQ8Gzseqp', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {}}], 'finish_reason': 'stop', 'logprobs': None, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'protected_material_code': {'detected': False, 'filtered': False}, 'protected_material_text': {'detected': False, 'filtered': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}, id='lc_run--019cd15b-b836-73d1-96bf-3fc2ffcfdce6-0', tool_calls=[], invalid_tool_calls=[], usage_metadata={'input_tokens': 8470, 'output_tokens': 3, 'total_tokens': 8473, 'input_token_details': {'audio': 0, 'cache_read': 7424}, 'output_token_details': {'audio': 0, 'reasoning': 0}}), AIMessage(content='End', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 3, 'prompt_tokens': 8475, 'total_tokens': 8478, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 8448}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_7a7fd0eb44', 'id': 'chatcmpl-DHOilLkyJ4rr9NY8oT6NdJ0dZ00AN', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {}}], 'finish_reason': 'stop', 'logprobs': None, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'protected_material_code': {'detected': False, 'filtered': False}, 'protected_material_text': {'detected': False, 'filtered': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}, id='lc_run--019cd15b-ba60-7770-8957-601c9e789789-0', tool_calls=[], invalid_tool_calls=[], usage_metadata={'input_tokens': 8475, 'output_tokens': 3, 'total_tokens': 8478, 'input_token_details': {'audio': 0, 'cache_read': 8448}, 'output_token_details': {'audio': 0, 'reasoning': 0}}), AIMessage(content='End', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 3, 'prompt_tokens': 8041, 'total_tokens': 8044, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 0}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_7a7fd0eb44', 'id': 'chatcmpl-DHOim8hNei3uEj8qlBxXDirKOSahm', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {}}], 'finish_reason': 'stop', 'logprobs': None, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'protected_material_code': {'detected': False, 'filtered': False}, 'protected_material_text': {'detected': False, 'filtered': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}, id='lc_run--019cd15b-bc9a-7c60-b134-e0b21b973a16-0', tool_calls=[], invalid_tool_calls=[], usage_metadata={'input_tokens': 8041, 'output_tokens': 3, 'total_tokens': 8044, 'input_token_details': {'audio': 0, 'cache_read': 0}, 'output_token_details': {'audio': 0, 'reasoning': 0}})]}}
 
------ RISK AGENT RUNNING -----
-RISK AGENT RESPONSE: End
-{'RiskAssessmentAgent': {'messages': [HumanMessage(content='Start underwriting workflow', additional_kwargs={}, response_metadata={}, id='9add0d21-d015-486f-8c9f-90834125cfbd'), AIMessage(content='', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 13, 'prompt_tokens': 5231, 'total_tokens': 5244, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 5120}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_7a7fd0eb44', 'id': 'chatcmpl-DHOhI1bkoghnwaw83H7fWCsXY8tKQ', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'jailbreak': {'detected': False, 'filtered': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}], 'finish_reason': 'tool_calls', 'logprobs': None, 'content_filter_results': {}}, id='lc_run--019cd15a-53aa-7450-a1bd-de89e05a2382-0', tool_calls=[{'name': 'email_reader_mcp', 'args': {}, 'id': 'call_naP6N00ZcHY65MYbnrRxl9mH', 'type': 'tool_call'}], invalid_tool_calls=[], usage_metadata={'input_tokens': 5231, 'output_tokens': 13, 'total_tokens': 5244, 'input_token_details': {'audio': 0, 'cache_read': 5120}, 'output_token_details': {'audio': 0, 'reasoning': 0}}), ToolMessage(content=[{'type': 'text', 'text': '{\n  "jsonrpc": "2.0",\n  "id": 1,\n  "result": [\n    {\n      "is_body_extracted": true,\n      "body": "Dear Underwriting Team,\\r\\n\\r\\n\\r\\n\\r\\nPlease find the attached Property Detail Report in support of this Business\\r\\nInterruption and Contingent Business Interruption submission for Sunflower\\r\\nHotel Group LLC (dba Cruise Resort).\\r\\n\\r\\n\\r\\n\\r\\nKey details\\r\\n\\r\\n- Named insured: Sunflower Hotel Group LLC (dba Cruise Resort)\\r\\n\\r\\n- Location: Cruise Resort, 100 Harbor View Drive, Seabreeze, FL 33101\\r\\n\\r\\n- Line requested: Business Interruption & Contingent Business Interruption\\r\\n(including Extra Expense / Civil Authority where available)\\r\\n\\r\\n- Requested effective date: 2026-01-01\\r\\n\\r\\n- Limit requested: $40,000,000 with 24 months indemnity (open to insurer\\r\\npresentation)\\r\\n\\r\\n- Annual gross revenue: $40,000,000\\r\\n\\r\\n- Annual payroll: $6,500,000\\r\\n\\r\\n\\r\\n\\r\\nRequested feedback\\r\\n\\r\\n- Please confirm appetite and capacity for BI with Contingent BI for this\\r\\naccount.\\r\\n\\r\\n- Advise preferred indemnity basis (Gross Revenue vs. Gross Profit),\\r\\ntypical waiting period options, and any immediate underwriting\\r\\nrequirements.\\r\\n\\r\\n- Confirm preferred secure channel for any additional documentation\\r\\n(monthly revenue schedules, P&L, payroll breakdown, loss runs, BCP/IT DR)\\r\\nand I will forward the files promptly.\\r\\n\\r\\n\\r\\n\\r\\nAttachments\\r\\n\\r\\n- Property Detail Report\\r\\n\\r\\n\\r\\n\\r\\nBroker contact\\r\\n\\r\\nOlivia Park\\r\\n\\r\\nSenior Hospitality Broker, Meridian Shoreline Insurance Partners\\r\\n\\r\\nolivia.park@meridianship.com\\r\\n\\r\\n+1 (555) 214-7802\\r\\n\\r\\n\\r\\n\\r\\nThank you, I look forward to your confirmation and any initial guidance.",\n      "body_bloburl": "https://agenticai1.blob.core.windows.net/attachment-downloader/body_19CD12FC8D93EA6A.txt",\n      "error": null,\n      "reference_id": "19CD12FC8D93EA6A",\n      "subject": "Submission - Business Interruption & Contingent BI - Cruise Report (Sunflower Hotel Group)",\n      "sender": "commercialinsurancebrokers <commercialinsurancebrokers57@gmail.com>",\n      "received_date": "Mon, 9 Mar 2026 11:31:21 +0530",\n      "has_attachments": true,\n      "attachments": [\n        {\n          "filename": "Property_Detailed_Report.pdf",\n          "type": "PDF Document"\n        },\n        {\n          "filename": "SunflowerHotels_Submission_Document.pdf",\n          "type": "PDF Document"\n        }\n      ],\n      "property_details": {\n        "property_name": "Cruise Resort",\n        "property_address": "100 Harbor View Drive, Seabreeze, FL 33101",\n        "property_type": "hospitality (hotel/resort)",\n        "broker_name": "Olivia Park",\n        "customer_name": "Sunflower Hotel Group LLC (dba Cruise Resort)"\n      }\n    }\n  ]\n}', 'id': 'lc_07c459e0-51f0-496e-adb5-da1d5202e9a8'}], name='email_reader_mcp', id='12036acb-8089-4315-9c60-87b915ad2dd7', tool_call_id='call_naP6N00ZcHY65MYbnrRxl9mH'), AIMessage(content='Continue', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 3, 'prompt_tokens': 5983, 'total_tokens': 5986, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 5120}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_7a7fd0eb44', 'id': 'chatcmpl-DHOhktjUg0jKRZ2MXVtLr3cweupaE', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {}}], 'finish_reason': 'stop', 'logprobs': None, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'protected_material_code': {'detected': False, 'filtered': False}, 'protected_material_text': {'detected': False, 'filtered': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}, id='lc_run--019cd15a-c11c-7780-9986-28fe9dbaf9ca-0', tool_calls=[], invalid_tool_calls=[], usage_metadata={'input_tokens': 5983, 'output_tokens': 3, 'total_tokens': 5986, 'input_token_details': {'audio': 0, 'cache_read': 5120}, 'output_token_details': {'audio': 0, 'reasoning': 0}}), AIMessage(content='', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 218, 'prompt_tokens': 5988, 'total_tokens': 6206, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 5888}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_7a7fd0eb44', 'id': 'chatcmpl-DHOhkZzGkSXjICkdCtgIaofeixsJR', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {}}], 'finish_reason': 'tool_calls', 'logprobs': None, 'content_filter_results': {}}, id='lc_run--019cd15a-c36d-7d11-ac78-8eed9d0d7fa2-0', tool_calls=[{'name': 'write_email_to_excel', 'args': {'reference_id': '19CD12FC8D93EA6A', 'subject': 'Submission - Business Interruption & Contingent BI - Cruise Report (Sunflower Hotel Group)', 'body_bloburl': 'https://agenticai1.blob.core.windows.net/attachment-downloader/body_19CD12FC8D93EA6A.txt', 'sender': 'commercialinsurancebrokers <commercialinsurancebrokers57@gmail.com>', 'received_date': 'Mon, 9 Mar 2026 11:31:21 +0530', 'has_attachments': True, 'attachments': [{'filename': 'Property_Detailed_Report.pdf', 'type': 'PDF Document'}, {'filename': 'SunflowerHotels_Submission_Document.pdf', 'type': 'PDF Document'}], 'property_details': {'property_name': 'Cruise Resort', 'property_address': '100 Harbor View Drive, Seabreeze, FL 33101', 'property_type': 'hospitality (hotel/resort)', 'broker_name': 'Olivia Park', 'customer_name': 'Sunflower Hotel Group LLC (dba Cruise Resort)'}}, 'id': 'call_NaKdadhJGNGj9ZsxIrPQk5hU', 'type': 'tool_call'}], invalid_tool_calls=[], usage_metadata={'input_tokens': 5988, 'output_tokens': 218, 'total_tokens': 6206, 'input_token_details': {'audio': 0, 'cache_read': 5888}, 'output_token_details': {'audio': 0, 'reasoning': 0}}), ToolMessage(content=[{'type': 'text', 'text': '{\n  "jsonrpc": "2.0",\n  "id": 1,\n  "result": {\n    "is_written": true,\n    "error": null,\n    "excel_file": "Fetched_emails_data_new.xlsx",\n    "rows_count": 37,\n    "reference_id": "19CD12FC8D93EA6A"\n  }\n}', 'id': 'lc_7b2b07a9-425d-432f-83c5-f2fed4324887'}], name='write_email_to_excel', id='995c1e6c-d276-4a1d-bb5a-44a9adbe58d2', tool_call_id='call_NaKdadhJGNGj9ZsxIrPQk5hU'), AIMessage(content='Continue', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 3, 'prompt_tokens': 6292, 'total_tokens': 6295, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 6144}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_7a7fd0eb44', 'id': 'chatcmpl-DHOhmZ3O3rjKbnD2BTlCoMbdpVz7V', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {}}], 'finish_reason': 'stop', 'logprobs': None, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'protected_material_code': {'detected': False, 'filtered': False}, 'protected_material_text': {'detected': False, 'filtered': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}, id='lc_run--019cd15a-c9f9-7a41-9e0e-7ba1f5a4f59f-0', tool_calls=[], invalid_tool_calls=[], usage_metadata={'input_tokens': 6292, 'output_tokens': 3, 'total_tokens': 6295, 'input_token_details': {'audio': 0, 'cache_read': 6144}, 'output_token_details': {'audio': 0, 'reasoning': 0}}), AIMessage(content='', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 42, 'prompt_tokens': 6297, 'total_tokens': 6339, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 6272}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_7a7fd0eb44', 'id': 'chatcmpl-DHOhnkFoQr90b0JVkU2QhOEjZ7iuS', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {}}], 'finish_reason': 'tool_calls', 'logprobs': None, 'content_filter_results': {}}, id='lc_run--019cd15a-cd52-7451-8f16-8e0c9e64c7bf-0', tool_calls=[{'name': 'email_attachment_mcp', 'args': {'AgentName': 'EmailIntentAgent', 'UserId': 'markRuffalo', 'ref_id': '19CD12FC8D93EA6A'}, 'id': 'call_Ub0Sj9np3GPouv8kBE1SVStS', 'type': 'tool_call'}], invalid_tool_calls=[], usage_metadata={'input_tokens': 6297, 'output_tokens': 42, 'total_tokens': 6339, 'input_token_details': {'audio': 0, 'cache_read': 6272}, 'output_token_details': {'audio': 0, 'reasoning': 0}}), ToolMessage(content=[{'type': 'text', 'text': '{\n  "jsonrpc": "2.0",\n  "id": 1,\n  "result": {\n    "message_id": "19cd1341e2a56f0e",\n    "attachments": [\n      {\n        "filename": "19CD12FC8D93EA6A_quote_document_20260309_060611.pdf",\n        "Attachment_saved": true,\n        "reference_id": "19CD12FC8D93EA6A",\n        "error": null,\n        "blob_url": "https://agenticai1.blob.core.windows.net/attachment-downloader/19CD12FC8D93EA6A_attachment_19CD12FC8D93EA6A_quote_document_20260309_060611.pdf"\n      }\n    ],\n    "error": null\n  }\n}', 'id': 'lc_6573ac95-927b-4bbd-bb99-3d38dc8a446b'}], name='email_attachment_mcp', id='85344011-0af6-4b0d-bad2-7f5a7207c2da', tool_call_id='call_Ub0Sj9np3GPouv8kBE1SVStS'), AIMessage(content='Continue', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 3, 'prompt_tokens': 6520, 'total_tokens': 6523, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 6272}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_7a7fd0eb44', 'id': 'chatcmpl-DHOho3t1mIRuurXM5nlxkhKFs6uEv', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {}}], 'finish_reason': 'stop', 'logprobs': None, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'protected_material_code': {'detected': False, 'filtered': False}, 'protected_material_text': {'detected': False, 'filtered': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}, id='lc_run--019cd15a-d248-79d1-b8d1-cd53c5e746db-0', tool_calls=[], invalid_tool_calls=[], usage_metadata={'input_tokens': 6520, 'output_tokens': 3, 'total_tokens': 6523, 'input_token_details': {'audio': 0, 'cache_read': 6272}, 'output_token_details': {'audio': 0, 'reasoning': 0}}), AIMessage(content='', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 65, 'prompt_tokens': 6525, 'total_tokens': 6590, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 6400}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_7a7fd0eb44', 'id': 'chatcmpl-DHOhoNiDwsf17H6VDSBxGpPGVzXtN', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {}}], 'finish_reason': 'tool_calls', 'logprobs': None, 'content_filter_results': {}}, id='lc_run--019cd15a-d410-75e3-a70b-41718053c872-0', tool_calls=[{'name': 'layout_detection_mcp', 'args': {'attachment_url': 'https://agenticai1.blob.core.windows.net/attachment-downloader/19CD12FC8D93EA6A_attachment_19CD12FC8D93EA6A_quote_document_20260309_060611.pdf'}, 'id': 'call_Q5ut2hGak7AcCob1iJf8e6LP', 'type': 'tool_call'}], invalid_tool_calls=[], usage_metadata={'input_tokens': 6525, 'output_tokens': 65, 'total_tokens': 6590, 'input_token_details': {'audio': 0, 'cache_read': 6400}, 'output_token_details': {'audio': 0, 'reasoning': 0}}), ToolMessage(content=[{'type': 'text', 'text': '{\n  "jsonrpc": "2.0",\n  "id": 1,\n  "result": {\n    "status": true,\n    "layout_type": "Property_Detailed_Report",\n    "URL": "https://agenticai1.blob.core.windows.net/attachment-downloader/19CD12FC8D93EA6A_attachment_19CD12FC8D93EA6A_quote_document_20260309_060611.pdf"\n  }\n}', 'id': 'lc_4a51b775-b91e-4f43-a2ae-81397b0f6ef4'}], name='layout_detection_mcp', id='d486bed4-dffa-4c1c-ad94-c75a995abf7f', tool_call_id='call_Q5ut2hGak7AcCob1iJf8e6LP'), AIMessage(content='Continue', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 3, 'prompt_tokens': 6696, 'total_tokens': 6699, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 6528}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_7a7fd0eb44', 'id': 'chatcmpl-DHOhvelJwXfTFHXYtb9m2TIyZkTAY', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {}}], 'finish_reason': 'stop', 'logprobs': None, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'protected_material_code': {'detected': False, 'filtered': False}, 'protected_material_text': {'detected': False, 'filtered': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}, id='lc_run--019cd15a-ebc8-7891-9dc1-45c02cd54f7d-0', tool_calls=[], invalid_tool_calls=[], usage_metadata={'input_tokens': 6696, 'output_tokens': 3, 'total_tokens': 6699, 'input_token_details': {'audio': 0, 'cache_read': 6528}, 'output_token_details': {'audio': 0, 'reasoning': 0}}), AIMessage(content='', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 84, 'prompt_tokens': 6701, 'total_tokens': 6785, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 6656}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_7a7fd0eb44', 'id': 'chatcmpl-DHOhv8gOWB1ZAs3PMs7V5JLb4W9ta', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {}}], 'finish_reason': 'tool_calls', 'logprobs': None, 'content_filter_results': {}}, id='lc_run--019cd15a-ee9a-7112-a0f7-e749acf2eb83-0', tool_calls=[{'name': 'query_pdf_vectorizer_mcp', 'args': {'AgentName': 'PdfVectorizerAgent', 'UserId': 'markRuffalo', 'attachment_urls': ['https://agenticai1.blob.core.windows.net/attachment-downloader/19CD12FC8D93EA6A_attachment_19CD12FC8D93EA6A_quote_document_20260309_060611.pdf']}, 'id': 'call_UZbHT9M6fIPSkUVcYl6URmXt', 'type': 'tool_call'}], invalid_tool_calls=[], usage_metadata={'input_tokens': 6701, 'output_tokens': 84, 'total_tokens': 6785, 'input_token_details': {'audio': 0, 'cache_read': 6656}, 'output_token_details': {'audio': 0, 'reasoning': 0}}), ToolMessage(content=[{'type': 'text', 'text': '{\n  "jsonrpc": "2.0",\n  "id": 1,\n  "result": {\n    "is_vectorised": true,\n    "metadata": {\n      "is_embedded": true,\n      "is_error": false,\n      "error_message": null,\n      "files_processed": [\n        {\n          "file_name": "19CD12FC8D93EA6A_attachment_19CD12FC8D93EA6A_quote_document_20260309_060611",\n          "reference_id": "19CD12FC8D93EA6A",\n          "is_embedded": true,\n          "error": null\n        }\n      ],\n      "files_skipped": [],\n      "vector_db_path": "/home/Jarvis/Musaddique/JarvisAgent/Jarvis/MCP/Document_Query_MCP/data/vec_db/19CD12FC8D93EA6A",\n      "reference_ids": [\n        "19CD12FC8D93EA6A"\n      ],\n      "total_files": 1,\n      "processed_count": 1,\n      "skipped_count": 0\n    }\n  }\n}', 'id': 'lc_837c5971-465c-4477-8d01-c4268f114296'}], name='query_pdf_vectorizer_mcp', id='74145380-4a37-47b2-9d4a-619ca104ab56', tool_call_id='call_UZbHT9M6fIPSkUVcYl6URmXt'), AIMessage(content='', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 79, 'prompt_tokens': 7038, 'total_tokens': 7117, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 6656}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_7a7fd0eb44', 'id': 'chatcmpl-DHOi6WwD8qEvDCasOh9X8oHSiZOKv', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {}}], 'finish_reason': 'tool_calls', 'logprobs': None, 'content_filter_results': {}}, id='lc_run--019cd15b-18c6-7ee3-a536-861a6b1d96f2-0', tool_calls=[{'name': 'retriever_mcp', 'args': {'AgentName': 'RetrieverAgent', 'UserId': 'markRuffalo', 'VectorDbPath': '/home/Jarvis/Musaddique/JarvisAgent/Jarvis/MCP/Document_Query_MCP/data/vec_db/19CD12FC8D93EA6A', 'DocumentType': 'Property_Detailed_Report'}, 'id': 'call_dz5rQz4TtE4pN9PVXC7TOwl7', 'type': 'tool_call'}], invalid_tool_calls=[], usage_metadata={'input_tokens': 7038, 'output_tokens': 79, 'total_tokens': 7117, 'input_token_details': {'audio': 0, 'cache_read': 6656}, 'output_token_details': {'audio': 0, 'reasoning': 0}}), ToolMessage(content=[{'type': 'text', 'text': '{\n  "jsonrpc": "2.0",\n  "id": 1,\n  "result": {\n    "is_extracted": true,\n    "metadata": {\n      "is_extracted": true,\n      "is_error": false,\n      "error_message": null,\n      "output_blob_url": "https://agenticai1.blob.core.windows.net/output-results/19CD12FC8D93EA6A_Property_Detailed_Report_extraction_20260309_064916.json",\n      "source_pdf": "19CD12FC8D93EA6A",\n      "local_output_path": "/home/Jarvis/Musaddique/JarvisAgent/Jarvis/MCP/Document_Query_MCP/data/vec_db/extraction_outputs/19CD12FC8D93EA6A_Property_Detailed_Report_extraction_20260309_064916.json",\n      "vector_db_path": "/home/Jarvis/Musaddique/JarvisAgent/Jarvis/MCP/Document_Query_MCP/data/vec_db/19CD12FC8D93EA6A"\n    }\n  }\n}', 'id': 'lc_5d94c77c-97e2-44fb-9858-18b3bf06d2d3'}], name='retriever_mcp', id='7548c6c2-7474-4a62-98ed-c929eef679bc', tool_call_id='call_dz5rQz4TtE4pN9PVXC7TOwl7'), AIMessage(content='Continue', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 70, 'prompt_tokens': 7359, 'total_tokens': 7429, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 7040}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_7a7fd0eb44', 'id': 'chatcmpl-DHOiSz8mklDmyVo8kMCPW55XIxBez', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {}}], 'finish_reason': 'tool_calls', 'logprobs': None, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'protected_material_code': {'detected': False, 'filtered': False}, 'protected_material_text': {'detected': False, 'filtered': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}, id='lc_run--019cd15b-7033-7652-849d-f4e9ee8e3bd3-0', tool_calls=[{'name': 'attachment_summary_mcp', 'args': {'attachment_urls': ['https://agenticai1.blob.core.windows.net/attachment-downloader/19CD12FC8D93EA6A_attachment_19CD12FC8D93EA6A_quote_document_20260309_060611.pdf']}, 'id': 'call_nHw6Y2PpoeRoFAqvP4fiB8he', 'type': 'tool_call'}], invalid_tool_calls=[], usage_metadata={'input_tokens': 7359, 'output_tokens': 70, 'total_tokens': 7429, 'input_token_details': {'audio': 0, 'cache_read': 7040}, 'output_token_details': {'audio': 0, 'reasoning': 0}}), ToolMessage(content=[{'type': 'text', 'text': '{\n  "jsonrpc": "2.0",\n  "id": 1,\n  "result": {\n    "combined_summary": "SUBMISSION SUMMARY\\nClient: Sunflower Hotel Group LLC\\nDate: March 9, 2026\\n\\n1. SUBMISSION COVER LETTER / NARRATIVE\\nExposure Description:\\n- The business operates as a hotel group.\\n- Main operations involve hotel management and hospitality services at a single location.\\n- The property is located at 100 Harbor View Drive, Daytona Beach, FL. No further construction, age, or protection details are provided.\\n\\nPlacement Strategy:\\n- Seeking commercial property coverage on a Fire & Allied Perils basis.\\n- The submission is being handled by a broker and is subject to underwriting review, possible survey, and may change if risk details are updated.\\n\\nRenewal Highlights:\\n- No notable changes or updates are mentioned.\\n\\nChanges YOY:\\n- No changes in exposure, values, operations, or loss experience are indicated.\\n\\nAdditional Overview Details:\\n- Effective Date: January 1, 2026\\n- Submission Type: Not specified (renewal/new business not stated)\\n- Current Situation: Submission is for quoting and subject to further underwriting and possible information requests.\\n\\n2. LOSS HISTORY PACKAGE\\n5â\x80\x9310 Year Loss Runs:\\n- No loss history information is provided.\\n\\nLarge Loss Details:\\n- No significant claims are referenced.\\n\\nTrends Analysis:\\n- No patterns or frequency/severity information is available.\\n\\nSummary of Loss History:\\n- Status: Not stated\\n- Summary: No loss history information included.\\n- Major Incidents: None referenced.\\n\\n3. EXPOSURE DATA\\nCOPE Information (Construction, Occupancy, Protection, Exposure):\\n- The property is a hotel located at 100 Harbor View Drive, Daytona Beach, FL. No further details on construction, protection, or exposures are provided.\\n\\nStatement of Values (SOV):\\n- Total Insurable Value (TIV): $6,750,000\\n- Building Limit: Not specified\\n- Contents/BPP Limit: Not specified\\n- Business Income: Not specified\\n\\nFinancials:\\n- No financial information is mentioned.\\n\\nCAT Worksheets:\\n- No catastrophe/hazard information is provided.\\n\\nSpecialty Schedules:\\n- None referenced.\\n\\nAdditional Exposure Details:\\n- Total Locations: 1\\n- Main Operations: Hotel/hospitality\\n- Property Details: No additional details provided\\n- Deductible Requested: Not specified",\n    "individualized_summary": [\n      {\n        "file_name": "19CD12FC8D93EA6A_attachment_19CD12FC8D93EA6A_quote_document_20260309_060611.pdf",\n        "summary": "The insured is Sunflower Hotel Group LLC, located at 100 Harbor View Drive, Daytona Beach, FL, with a total sum insured of $6,750,000 for commercial property coverage on a Fire & Allied Perils basis. The policy period is from January 1, 2026, to January 1, 2027, and the quoted total premium is $1,696.13, with no taxes applied. The broker handling the account is Olivia Park from Armstrong and Company. The quote is valid for 30 days and is subject to underwriting review, possible survey, and may change if risk details are updated. Coverage is contingent upon policy issuance and premium payment, and the insurer may request further information as needed for risk assessment.",\n        "document_type": "ACORD",\n        "processed_summary": "SUBMISSION SUMMARY\\nClient: Sunflower Hotel Group LLC\\nDate: 09/03/26\\n\\n1. SUBMISSION COVER LETTER / NARRATIVE\\nExposure Description:\\n- Sunflower Hotel Group LLC operates a hotel business.\\n- Main operations involve hospitality services at the risk location.\\n- The insured property is located at 100 Harbor View Drive, Seabreeze, Daytona Beach, Volusia, FL 32118, FL.\\n- Property details such as construction type, age, protection features, and sprinklers are not specified.\\n- The total sum insured for the property is $6,750,000.\\n\\nPlacement Strategy:\\n- The submission seeks coverage for Fire & Allied Perils under a Commercial Property policy.\\n- The approach appears to be direct placement for property risk, with terms subject to underwriting review and possible survey.\\n\\nRenewal Highlights:\\n- No notable changes or updates are mentioned.\\n\\nChanges YOY:\\n- No information provided regarding changes in exposure, values, operations, or loss experience.\\n\\nAdditional Overview Details:\\n- Effective Date: 01/01/2026\\n- Submission Type: New Business (inferred from absence of renewal reference)\\n- Current Situation: Submission is for quotation purposes; final terms pending underwriting review and possible survey."\n      }\n    ]\n  }\n}', 'id': 'lc_019abb8f-e403-433e-a847-338736a95961'}], name='attachment_summary_mcp', id='eaa63692-8eca-4b9b-8c82-148ff771c396', tool_call_id='call_nHw6Y2PpoeRoFAqvP4fiB8he'), AIMessage(content='Continue', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 3, 'prompt_tokens': 8470, 'total_tokens': 8473, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 7424}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_7a7fd0eb44', 'id': 'chatcmpl-DHOilWdKHopXLQie1iWmdQ8Gzseqp', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {}}], 'finish_reason': 'stop', 'logprobs': None, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'protected_material_code': {'detected': False, 'filtered': False}, 'protected_material_text': {'detected': False, 'filtered': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}, id='lc_run--019cd15b-b836-73d1-96bf-3fc2ffcfdce6-0', tool_calls=[], invalid_tool_calls=[], usage_metadata={'input_tokens': 8470, 'output_tokens': 3, 'total_tokens': 8473, 'input_token_details': {'audio': 0, 'cache_read': 7424}, 'output_token_details': {'audio': 0, 'reasoning': 0}}), AIMessage(content='End', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 3, 'prompt_tokens': 8475, 'total_tokens': 8478, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 8448}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_7a7fd0eb44', 'id': 'chatcmpl-DHOilLkyJ4rr9NY8oT6NdJ0dZ00AN', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {}}], 'finish_reason': 'stop', 'logprobs': None, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'protected_material_code': {'detected': False, 'filtered': False}, 'protected_material_text': {'detected': False, 'filtered': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}, id='lc_run--019cd15b-ba60-7770-8957-601c9e789789-0', tool_calls=[], invalid_tool_calls=[], usage_metadata={'input_tokens': 8475, 'output_tokens': 3, 'total_tokens': 8478, 'input_token_details': {'audio': 0, 'cache_read': 8448}, 'output_token_details': {'audio': 0, 'reasoning': 0}}), AIMessage(content='End', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 3, 'prompt_tokens': 8041, 'total_tokens': 8044, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 0}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_7a7fd0eb44', 'id': 'chatcmpl-DHOim8hNei3uEj8qlBxXDirKOSahm', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {}}], 'finish_reason': 'stop', 'logprobs': None, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'protected_material_code': {'detected': False, 'filtered': False}, 'protected_material_text': {'detected': False, 'filtered': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}, id='lc_run--019cd15b-bc9a-7c60-b134-e0b21b973a16-0', tool_calls=[], invalid_tool_calls=[], usage_metadata={'input_tokens': 8041, 'output_tokens': 3, 'total_tokens': 8044, 'input_token_details': {'audio': 0, 'cache_read': 0}, 'output_token_details': {'audio': 0, 'reasoning': 0}}), AIMessage(content='End', additional_kwargs={'refusal': None}, response_metadata={'token_usage': {'completion_tokens': 3, 'prompt_tokens': 7871, 'total_tokens': 7874, 'completion_tokens_details': {'accepted_prediction_tokens': 0, 'audio_tokens': 0, 'reasoning_tokens': 0, 'rejected_prediction_tokens': 0}, 'prompt_tokens_details': {'audio_tokens': 0, 'cached_tokens': 0}}, 'model_provider': 'openai', 'model_name': 'gpt-4.1-2025-04-14', 'system_fingerprint': 'fp_63d8723934', 'id': 'chatcmpl-DHOimCkSJlENwVbXyPsmdDf5KhgQo', 'prompt_filter_results': [{'prompt_index': 0, 'content_filter_results': {}}], 'finish_reason': 'stop', 'logprobs': None, 'content_filter_results': {'hate': {'filtered': False, 'severity': 'safe'}, 'protected_material_code': {'detected': False, 'filtered': False}, 'protected_material_text': {'detected': False, 'filtered': False}, 'self_harm': {'filtered': False, 'severity': 'safe'}, 'sexual': {'filtered': False, 'severity': 'safe'}, 'violence': {'filtered': False, 'severity': 'safe'}}}, id='lc_run--019cd15b-becc-7e32-8e69-f6be05c974be-0', tool_calls=[], invalid_tool_calls=[], usage_metadata={'input_tokens': 7871, 'output_tokens': 3, 'total_tokens': 7874, 'input_token_details': {'audio': 0, 'cache_read': 0}, 'output_token_details': {'audio': 0, 'reasoning': 0}})]}}
-(venv) Jarvis@JarvisPhase2:~/Musaddique/project_root$ 
+ELIGIBILITY AGENT → calling tool: document_extract_mcp
 
+----- ELIGIBILITY AGENT RUNNING -----
 
+ELIGIBILITY AGENT → calling tool: risk_type_checker_MCP
 
+----- ELIGIBILITY AGENT RUNNING -----
 
+ELIGIBILITY AGENT → calling tool: renewal_checker_mcp
+
+----- ELIGIBILITY AGENT RUNNING -----
+
+ELIGIBILITY AGENT → calling tool: Licensing_and_Sanction_Checker_MCP
+
+----- ELIGIBILITY AGENT RUNNING -----
+
+ELIGIBILITY AGENT → calling tool: Json_Reader_Read
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
+ELIGIBILITY AGENT RESPONSE: Continue
+
+----- ELIGIBILITY AGENT RUNNING -----
