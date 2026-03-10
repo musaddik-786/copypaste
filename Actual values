@@ -1,49 +1,164 @@
-document_loader.py
-async def load_document_from_bytes(blob_url: str, file_bytes: bytes):
-poller = client.begin_analyze_document(
-       "prebuilt-read",
-       document=file_bytes
-   )
-   result = poller.result()
-   lines = [line.content for page in result.pages for line in page.lines]
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
+import os
+from dotenv import load_dotenv
+from langchain_openai.chat_models import AzureChatOpenAI
+from langgraph.graph.message import add_messages
+from langchain_core.messages import AIMessage, ToolMessage, SystemMessage
+from langgraph.graph import StateGraph, START, END
+from langgraph.prebuilt import ToolNode
+from typing import TypedDict, Annotated
+from langchain_mcp_adapters.client import MultiServerMCPClient
+from openinference.instrumentation.langchain import LangChainInstrumentor
+from phoenix.otel import register
+from phoenix.client import Client  # for phoenix prompt
+import logging
+logging.getLogger("opentelemetry.context").setLevel(logging.CRITICAL)
 
- return {
-       "text": "\n".join(lines),
-   }
+app = FastAPI()
 
-handler.py
+load_dotenv()
 
-from typing import Dict, Any
-from storage_utils import download_blob_bytes
-from document_loader import load_document_from_bytes
-from classifier import classify_document
+PHOENIX_API_KEY = os.getenv("PHOENIX_API_KEY")
+phoenix_endpoint = os.getenv("PHOENIX_ENDPOINT")
 
-async def classify_blob_pdf_layout(blob_url: str) -> Dict[str, Any]:
-   try:
-       blob_bytes = await download_blob_bytes(blob_url)
-   except Exception as e:
-       return {"status": False, "error": f"Failed to fetch blob: {e}"}
-   try:
-       document_content = await load_document_from_bytes(blob_url, blob_bytes)
-   except Exception as e:
-       return {"status": False, "error": f"Document parsing failed: {e}"}
-   try:
-       layout_type = classify_document(document_content)
-   except Exception as e:
-       return {"status": False, "error": f"Classification failed: {e}"}
-   return {
-       "status": True,
-       "layout_type": layout_type,
-       "URL": blob_url,
-       "details": document_content
+os.environ["PHOENIX_COLLECTOR_ENDPOINT"] = phoenix_endpoint
+os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = phoenix_endpoint
+os.environ["PHOENIX_API_KEY"] = PHOENIX_API_KEY
 
-   }
-def classify_document(document_content):
-    text = document_content.get("text", "")
-    print("this is my text : ", text)
+tracer_provider = register(project_name="jarvis_deployed", auto_instrument=True)
+
+LangChainInstrumentor(tracer_provider=tracer_provider).instrument(skip_dep_check=True)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+config_mcp_server = {
+    "email_reader_mcp": {
+        "url": os.getenv("MCP_URL"),
+        "transport": "streamable_http",
+    }
+}
+
+class State(TypedDict):
+    messages: Annotated[list, add_messages]
+
+def router(state: State):
+    last_message = state["messages"][-1]
+    if isinstance(last_message, AIMessage) and getattr(last_message, 'tool_calls', None):
+        return "tools"
+    if isinstance(last_message, AIMessage) and last_message.content:
+        content = last_message.content
+        if 'Continue' in content:
+            return "tools"
+        elif "End" in content:
+            return "End"
+    return "End"
+
+# for phoenix prompt
+def load_prompt() -> str:
+    client = Client(base_url=phoenix_endpoint, api_key=PHOENIX_API_KEY)
+    prompt = client.prompts.get(prompt_version_id="a")
+
+    prompt_set = prompt._template["messages"]
+    prompt_msg = next(
+            (item["content"][0]["text"] for item in prompt_set if item.get("role") == "system"),
+            None
+        )
+    if prompt_msg and isinstance(prompt_msg, str) and len(prompt_msg) > 0:
+            system_msg = prompt_msg
+    else:
+            raise ValueError(f"Error: 'prompt_msg' is empty or improperly structured:{prompt_msg}, {agent_name}")
+    return system_msg
+
+def create_custom_graph(model, tools, prompt, checkpointer=None):
+    graph_builder = StateGraph(State)
+    llm_with_tools = model.bind_tools(tools)
+
+    async def agent_node(state: State):
+        messages = state["messages"]
+        system_prompt = SystemMessage(content=prompt)
+        all_messages = [system_prompt] + messages
+        message = await llm_with_tools.ainvoke(all_messages)
+        return {"messages": [message]}
+
+    graph_builder.add_node("agent", agent_node)
+    graph_builder.add_node("tools", ToolNode(tools=tools))
+    graph_builder.add_edge(START, "agent")
+    graph_builder.add_conditional_edges(
+        "agent",
+        router,
+        {
+            "tools": "tools",
+            "End": END
+        }
+    )
+    graph_builder.add_edge("tools", "agent")
+
+    return graph_builder.compile(checkpointer=checkpointer) if checkpointer else graph_builder.compile()
+
+async def get_tool_list(config_mcp_server):
+    client = MultiServerMCPClient(config_mcp_server)
+    tools_list = await client.get_tools()
+    print("Tools fetched from MCP:", [tool.name for tool in tools_list])
+    return tools_list
+
+@app.post("/chat")
+async def chat_stream():
+    # Load environment variables
+    load_dotenv()
+
+    # Fetch tools
+    tools = await get_tool_list(config_mcp_server=config_mcp_server)
+
+    # Setup Azure OpenAI model
+    endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+    credential = os.getenv("AZURE_OPENAI_API_KEY")
+    deployment_name = os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT")
+    api_version = os.getenv("AZURE_OPENAI_API_VERSION")
+
+    model = AzureChatOpenAI(
+        api_key=credential,
+        api_version=api_version,  # fill if needed
+        azure_deployment=deployment_name,
+        azure_endpoint=endpoint
+    )
+
+    # Load system prompt
+    SYSTEM_INSTRUCTION = load_prompt()   # used for fetching prompt from phoenix
+
+    # Create the graph
+    graph = create_custom_graph(model=model, tools=tools, prompt=SYSTEM_INSTRUCTION)
+
+    async def stream():
+        async for chunk in graph.astream({"messages": ["Start your task"]}, config={"recursion_limit": 100}):
+            if "agent" in chunk:
+                messages = chunk["agent"]["messages"]
+                for msg in messages:
+                    if hasattr(msg, "content") and msg.content:
+                        # Yield SSE formatted string
+                        yield f"data: {msg.content}\n\n"
+            if "tools" in chunk:
+                messages = chunk["tools"]["messages"]
+                for msg in messages:
+                    if hasattr(msg, "content") and msg.content:
+                        yield f"data: [Tool:{msg.name}] {msg.content}\n\n"
+
+    return StreamingResponse(stream(), media_type="text/event-stream")
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=7841)
 
 
-    prompt = f"""
+
+i want to use the phoenix prompt as i have deployed below prompt in phoenix 
 You are an expert in insurance documentation and intelligent document processing.
 
 Your task is to classify a given insurance-related document into EXACTLY ONE of the following categories:
@@ -201,7 +316,38 @@ Submission_Report
 Valuation_Report
 Return ONLY the enum value. Do not add text, punctuation, or explanation.
 
-"""
+so giv eme code where i can use this prompt deployed into our code 
+
+from dotenv import load_dotenv
+import os
+from openai import AzureOpenAI  #  Correct import for Azure OpenAI
+
+# Load environment variables
+load_dotenv()
+
+AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
+AZURE_OPENAI_API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION")
+AZURE_OPENAI_API_KEY = os.getenv("AZURE_OPENAI_API_KEY")
+AZURE_OPENAI_CHAT_DEPLOYMENT = os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT")
+
+if not (AZURE_OPENAI_ENDPOINT and AZURE_OPENAI_API_VERSION and AZURE_OPENAI_API_KEY and AZURE_OPENAI_CHAT_DEPLOYMENT):
+    raise RuntimeError("Azure OpenAI env vars missing. Please set AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_API_VERSION, AZURE_OPENAI_API_KEY and AZURE_OPENAI_CHAT_DEPLOYMENT")
+
+#  Create Azure OpenAI client
+client = AzureOpenAI(
+    api_key=AZURE_OPENAI_API_KEY,
+    api_version=AZURE_OPENAI_API_VERSION,
+    azure_endpoint=AZURE_OPENAI_ENDPOINT,
+)
+
+os.environ["PHOENIX_COLLECTOR_ENDPOINT"] = phoenix_endpoint
+os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = phoenix_endpoint
+os.environ["PHOENIX_API_KEY"] = PHOENIX_API_KEY
+
+def classify_document(document_content):
+    text = document_content.get("text", "")
+    print("this is my text : ", text)
+
 
     response = client.chat.completions.create(
         model=AZURE_OPENAI_CHAT_DEPLOYMENT,
@@ -214,21 +360,3 @@ Return ONLY the enum value. Do not add text, punctuation, or explanation.
         return response.choices[0].message.content.strip()
     except Exception:
         return getattr(response.choices[0].message, "content", "").strip()
-
-
-(venv) Jarvis@JarvisPhase2:~/Musaddique/Document_Layout_Classification$ python3 test_scripts.py 
-Testing /layout_detection_mcp ...
-HTTP Status: 200
-{
-    "jsonrpc": "2.0",
-    "id": 1,
-    "result": {
-        "status": true,
-        "layout_type": "Property_Detailed_Report",
-        "URL": "https://agenticai1.blob.core.windows.net/quote-extraction-results/123123_attachment_NZ%20Home%20Valuation%20Report_text.docx",
-        "details": {
-            "text": ""
-        }
-    }
-}
-
