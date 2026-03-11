@@ -1,3 +1,249 @@
+storge_utils.py
+
+from azure.storage.blob.aio import BlobServiceClient
+from azure.core.exceptions import ResourceNotFoundError
+from service import AZURE_STORAGE_CONNECTION_STRING, _parse_blob_url
+
+async def download_blob_bytes(blob_url: str):
+   container, blob_path = _parse_blob_url(blob_url)
+   async with BlobServiceClient.from_connection_string(
+       AZURE_STORAGE_CONNECTION_STRING
+   ) as service:
+       container_client = service.get_container_client(container)
+       blob_client = container_client.get_blob_client(blob_path)
+       try:
+           await blob_client.get_blob_properties()
+       except ResourceNotFoundError:
+           raise FileNotFoundError("Blob not found")
+       stream = await blob_client.download_blob()
+       data = await stream.readall()
+   return data
+
+
+# from azure.storage.blob.aio import BlobServiceClient
+from urllib.parse import urlparse
+import os
+from service import AZURE_STORAGE_CONNECTION_STRING
+
+async def upload_text_to_blob(blob_url: str, text: str):
+   parsed = urlparse(blob_url)
+   path = parsed.path.lstrip("/")
+   container, blob_path = path.split("/", 1)
+   filename = os.path.basename(blob_path)
+   base_name = os.path.splitext(filename)[0]
+   new_blob_name = f"{base_name}_extracted_text.txt"
+   blob_service = BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING)
+   container_client = blob_service.get_container_client(container)
+   blob_client = container_client.get_blob_client(new_blob_name)
+   await blob_client.upload_blob(text, overwrite=True)
+   return f"{parsed.scheme}://{parsed.netloc}/{container}/{new_blob_name}"
+
+
+classifier.py
+
+from dotenv import load_dotenv
+import os
+from openai import AzureOpenAI  #  Correct import for Azure OpenAI
+
+# Load environment variables
+load_dotenv()
+
+AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
+AZURE_OPENAI_API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION")
+AZURE_OPENAI_API_KEY = os.getenv("AZURE_OPENAI_API_KEY")
+AZURE_OPENAI_CHAT_DEPLOYMENT = os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT")
+
+if not (AZURE_OPENAI_ENDPOINT and AZURE_OPENAI_API_VERSION and AZURE_OPENAI_API_KEY and AZURE_OPENAI_CHAT_DEPLOYMENT):
+    raise RuntimeError("Azure OpenAI env vars missing. Please set AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_API_VERSION, AZURE_OPENAI_API_KEY and AZURE_OPENAI_CHAT_DEPLOYMENT")
+
+#  Create Azure OpenAI client
+client = AzureOpenAI(
+    api_key=AZURE_OPENAI_API_KEY,
+    api_version=AZURE_OPENAI_API_VERSION,
+    azure_endpoint=AZURE_OPENAI_ENDPOINT,
+)
+
+# os.environ["PHOENIX_COLLECTOR_ENDPOINT"] = phoenix_endpoint
+# os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = phoenix_endpoint
+# os.environ["PHOENIX_API_KEY"] = PHOENIX_API_KEY
+
+def classify_document(document_content):
+    text = document_content.get("text", "")
+    print("this is my text : ", text)
+    print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX:", document_content)
+
+    prompt = f"""
+You are an expert in insurance documentation and intelligent document processing.
+
+Your task is to classify a given insurance-related document into EXACTLY ONE of the following categories:
+
+1. ACORD
+2. SOV
+3. LOSS_RUN
+4. INSPECTION_REPORT
+5. Property_Detailed_Report
+6. SUBMISSION_DOCUMENT
+7. Sample_Report
+8. Submission_Report
+9. Valuation_Report
+
+Definitions:
+
+ACORD:
+A standardized insurance form published by ACORD (Association for Cooperative Operations Research and Development),
+used for applications, certificates, or evidence of insurance.
+These documents usually:
+- Contain structured ACORD layouts and standardized fields
+- Include sections such as Producer, Insured, Certificate Holder, Policy Number
+- Serve as official insurance applications, certificates, or evidence forms
+
+SOV (Schedule / Statement of Values):
+A document that lists insured property values, primarily for property rating and underwriting.
+These documents usually:
+- Are titled “Schedule of Values” or “Statement of Values”
+- Present location-wise or building-wise values in tabular format
+- Include columns such as Location, Building, Description, ACV, RC, 100% Values, Rates
+- May be labeled as ACORD 139
+- Focus on valuation, not narrative underwriting analysis
+
+LOSS_RUN:
+A document that summarizes historical insurance claims experience.
+These documents usually:
+- Are titled “Loss Run Report” or similar
+- Include claim numbers, dates of loss, paid amounts, reserves, and total incurred
+- Cover prior policy periods
+- Focus on loss history rather than current property condition
+
+INSPECTION_REPORT:
+A document created after a physical or on-site property inspection for underwriting or risk evaluation.
+These documents usually:
+- Are titled “Inspection Report” or similar
+- Include inspection dates, report IDs, and inspector or broker details
+- Describe observed property condition, construction, occupancy, protection, and exposure (COPE)
+- Include sections on life safety, fire protection, security, utilities, roof, and operations
+- Provide observations and risk improvement recommendations
+- Focus on observed conditions at the time of inspection
+
+Property_Detailed_Report:
+Any insurance-related document that is NOT an ACORD form, SOV, Loss Run, or Inspection Report.
+This includes:
+- Quote documents
+- Property detail reports
+- Underwriting summaries
+- Exposure analyses
+- Proposals, narratives, internal reports, or supporting documentation
+- Documents that reference ACORD forms but are not themselves ACORD forms
+
+SUBMISSION_DOCUMENT:
+A structured underwriting document used in the Commercial Propoerty (LOB).
+A document assembled to formally present a risk to an insurer for underwriting, quotation, or binding.
+These documents usually:
+- Are explicitly titled or framed as “Underwriting Submission” or similar
+- Include broker details, producer codes, underwriting company information
+- Present requested terms, program structure, limits, valuation, and effective dates
+- Summarize the property, coverage intent, and underwriting rationale
+- May reference or attach other documents such as SOVs, Loss Runs, Inspection Reports, or Property Detailed Reports
+- Function as a submission package rather than a standalone property analysis
+
+Sample_Report:
+This document is related to Home Insurance Line of business 
+A document that provides detailed descriptive information about the physical condition,
+components, and systems of a property or building.
+These documents usually:
+- Organize information by building systems or structural components
+ such as roof, exterior, structure, interior, plumbing, electrical,
+ heating/cooling, ventilation, foundations, or site features
+- Describe observed conditions, deterioration, damage, risks, or maintenance needs
+- Provide commentary or explanations about property elements and how they function
+- Include technical or informational descriptions of building materials,
+ construction elements, or safety considerations
+- Focus on documenting or explaining the condition and characteristics
+ of a property and its building systems
+These documents are informational assessments of property condition
+rather than insurance forms, valuation schedules, claim histories,
+or underwriting submission packages.
+
+
+Submission_Report:
+A structured underwriting report used in the Home Insurance line of business (LOB)
+to present a residential property and its associated risk information to an insurer
+for underwriting evaluation.
+These documents are specifically prepared for Home Insurance underwriting and usually:
+- Provide details about the homeowner or policyholder and the residential property
+ being considered for insurance
+- Describe property characteristics such as year built, construction type,
+ roof material, cladding, foundation, storeys, floor area, and renovations
+- Include insurance-related information relevant to Home Insurance such as
+ rebuild sum insured, occupancy type, property usage, and coverage considerations
+- Present risk information relevant to residential property underwriting including
+ hazards such as earthquake, flood, coastal exposure, or land slip
+- Describe security features, maintenance condition, or structural upgrades
+ affecting Home Insurance risk evaluation
+- May summarize claims history related to the residential property
+- Often reference supporting documents such as inspection reports,
+ engineering reports, weathertightness reports, rebuild estimates,
+ LIM reports, photographs, or maintenance records
+- Are intended to assist insurers in assessing and underwriting
+ residential properties under Home Insurance policies
+If the document presents residential property information for underwriting
+evaluation in the Home Insurance LOB, it should be classified as Submission_Report.
+
+
+Valuation_Report:
+A professional report prepared to determine the insurance value of a property
+or asset for insurance coverage purposes.
+These documents are typically used in home insurance underwriting
+to establish the appropriate insured value of buildings or assets.
+These documents usually:
+- Provide valuation estimates related to insurance coverage such as
+ reinstatement cost, replacement cost, indemnity value, or functional replacement value
+- Include valuation calculations or summaries used to determine the amount
+ required to rebuild or replace the insured property
+- Contain information about the property such as construction type,
+ age, asset description, land characteristics, or building specifications
+- Include provisions such as inflation allowances, demolition estimates,
+ depreciation, or cost adjustments
+- Are prepared by professional valuers, quantity surveyors, or valuation firms
+- May include valuation dates, valuation methodology, or professional declarations
+- Are specifically intended to establish insured values for insurance purposes
+ rather than documenting inspection findings or underwriting submissions
+
+
+Document Content:
+{text[:2000]}
+
+IMPORTANT OUTPUT RULES:
+- You MUST reply with EXACTLY ONE value.
+- The value MUST MATCH one of the following ENUMS EXACTLY (character-for-character).
+- Do NOT shorten, modify, or partially return any label.
+- If the document matches “Property Detailed Report”, you MUST return:
+ "PROPERTY_DETAILED_REPORT" ONLY, so you should not miss REPORT word
+Allowed outputs (EXACT ENUMS):
+ACORD
+SOV
+LOSS_RUN
+INSPECTION_REPORT
+Property_Detailed_Report
+Submission_Document
+Sample_Report
+Submission_Report
+Valuation_Report
+Return ONLY the enum value. Do not add text, punctuation, or explanation.
+
+"""
+
+    response = client.chat.completions.create(
+        model=AZURE_OPENAI_CHAT_DEPLOYMENT,
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=4,
+        temperature=0.0
+    )
+
+    try:
+        return response.choices[0].message.content.strip()
+    except Exception:
+        return getattr(response.choices[0].message, "content", "").strip()
+
 document_loader.py
 
 import io
@@ -35,10 +281,11 @@ async def load_document_from_bytes(blob_url: str, file_bytes: bytes):
    )
    result = poller.result()
    lines = [line.content for page in result.pages for line in page.lines]
-#   
-return {
+
+  return {
        "text": "\n".join(lines),
-}
+    #    "tables": tables
+   }
 
 handler.py
 
@@ -76,4 +323,6 @@ async def classify_blob_pdf_layout(blob_url: str) -> Dict[str, Any]:
        "details": document_content,
        "text_blob_url": text_blob_url
    }
+
+
 
