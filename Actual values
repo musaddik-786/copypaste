@@ -1,362 +1,79 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
-import os
+document_loader.py
+
+import io
+import mammoth
+from weasyprint import HTML
 from dotenv import load_dotenv
-from langchain_openai.chat_models import AzureChatOpenAI
-from langgraph.graph.message import add_messages
-from langchain_core.messages import AIMessage, ToolMessage, SystemMessage
-from langgraph.graph import StateGraph, START, END
-from langgraph.prebuilt import ToolNode
-from typing import TypedDict, Annotated
-from langchain_mcp_adapters.client import MultiServerMCPClient
-from openinference.instrumentation.langchain import LangChainInstrumentor
-from phoenix.otel import register
-from phoenix.client import Client  # for phoenix prompt
-import logging
-logging.getLogger("opentelemetry.context").setLevel(logging.CRITICAL)
-
-app = FastAPI()
-
+import os
+import tempfile
+from azure.ai.formrecognizer import DocumentAnalysisClient
+from azure.core.credentials import AzureKeyCredential
 load_dotenv()
-
-PHOENIX_API_KEY = os.getenv("PHOENIX_API_KEY")
-phoenix_endpoint = os.getenv("PHOENIX_ENDPOINT")
-
-os.environ["PHOENIX_COLLECTOR_ENDPOINT"] = phoenix_endpoint
-os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = phoenix_endpoint
-os.environ["PHOENIX_API_KEY"] = PHOENIX_API_KEY
-
-tracer_provider = register(project_name="jarvis_deployed", auto_instrument=True)
-
-LangChainInstrumentor(tracer_provider=tracer_provider).instrument(skip_dep_check=True)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+endpoint = os.getenv("LD_AZURE_FORMRECOG_ENDPOINT")
+key = os.getenv("LD_AZURE_FORMRECOG_KEY")
+client = DocumentAnalysisClient(
+   endpoint=endpoint,
+   credential=AzureKeyCredential(key)
 )
 
-config_mcp_server = {
-    "email_reader_mcp": {
-        "url": os.getenv("MCP_URL"),
-        "transport": "streamable_http",
-    }
+def convert_docx_bytes_to_pdf_bytes(docx_bytes: bytes):
+   docx_stream = io.BytesIO(docx_bytes)
+   html = mammoth.convert_to_html(docx_stream).value
+   pdf_bytes = HTML(string=html).write_pdf()
+   # print("This are the pdf bytes : ", pdf_bytes)
+   return pdf_bytes
+
+async def load_document_from_bytes(blob_url: str, file_bytes: bytes):
+   extension = blob_url.split(".")[-1].lower()
+   if extension == "docx":
+       file_bytes = convert_docx_bytes_to_pdf_bytes(file_bytes)
+   elif extension != "pdf":
+       raise ValueError(f"Unsupported file type: {extension}")
+   poller = client.begin_analyze_document(
+       "prebuilt-read",
+       document=file_bytes
+   )
+   result = poller.result()
+   lines = [line.content for page in result.pages for line in page.lines]
+#   
+return {
+       "text": "\n".join(lines),
 }
 
-class State(TypedDict):
-    messages: Annotated[list, add_messages]
+handler.py
 
-def router(state: State):
-    last_message = state["messages"][-1]
-    if isinstance(last_message, AIMessage) and getattr(last_message, 'tool_calls', None):
-        return "tools"
-    if isinstance(last_message, AIMessage) and last_message.content:
-        content = last_message.content
-        if 'Continue' in content:
-            return "tools"
-        elif "End" in content:
-            return "End"
-    return "End"
-
-# for phoenix prompt
-def load_prompt() -> str:
-    client = Client(base_url=phoenix_endpoint, api_key=PHOENIX_API_KEY)
-    prompt = client.prompts.get(prompt_version_id="a")
-
-    prompt_set = prompt._template["messages"]
-    prompt_msg = next(
-            (item["content"][0]["text"] for item in prompt_set if item.get("role") == "system"),
-            None
-        )
-    if prompt_msg and isinstance(prompt_msg, str) and len(prompt_msg) > 0:
-            system_msg = prompt_msg
-    else:
-            raise ValueError(f"Error: 'prompt_msg' is empty or improperly structured:{prompt_msg}, {agent_name}")
-    return system_msg
-
-def create_custom_graph(model, tools, prompt, checkpointer=None):
-    graph_builder = StateGraph(State)
-    llm_with_tools = model.bind_tools(tools)
-
-    async def agent_node(state: State):
-        messages = state["messages"]
-        system_prompt = SystemMessage(content=prompt)
-        all_messages = [system_prompt] + messages
-        message = await llm_with_tools.ainvoke(all_messages)
-        return {"messages": [message]}
-
-    graph_builder.add_node("agent", agent_node)
-    graph_builder.add_node("tools", ToolNode(tools=tools))
-    graph_builder.add_edge(START, "agent")
-    graph_builder.add_conditional_edges(
-        "agent",
-        router,
-        {
-            "tools": "tools",
-            "End": END
-        }
-    )
-    graph_builder.add_edge("tools", "agent")
-
-    return graph_builder.compile(checkpointer=checkpointer) if checkpointer else graph_builder.compile()
-
-async def get_tool_list(config_mcp_server):
-    client = MultiServerMCPClient(config_mcp_server)
-    tools_list = await client.get_tools()
-    print("Tools fetched from MCP:", [tool.name for tool in tools_list])
-    return tools_list
-
-@app.post("/chat")
-async def chat_stream():
-    # Load environment variables
-    load_dotenv()
-
-    # Fetch tools
-    tools = await get_tool_list(config_mcp_server=config_mcp_server)
-
-    # Setup Azure OpenAI model
-    endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
-    credential = os.getenv("AZURE_OPENAI_API_KEY")
-    deployment_name = os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT")
-    api_version = os.getenv("AZURE_OPENAI_API_VERSION")
-
-    model = AzureChatOpenAI(
-        api_key=credential,
-        api_version=api_version,  # fill if needed
-        azure_deployment=deployment_name,
-        azure_endpoint=endpoint
-    )
-
-    # Load system prompt
-    SYSTEM_INSTRUCTION = load_prompt()   # used for fetching prompt from phoenix
-
-    # Create the graph
-    graph = create_custom_graph(model=model, tools=tools, prompt=SYSTEM_INSTRUCTION)
-
-    async def stream():
-        async for chunk in graph.astream({"messages": ["Start your task"]}, config={"recursion_limit": 100}):
-            if "agent" in chunk:
-                messages = chunk["agent"]["messages"]
-                for msg in messages:
-                    if hasattr(msg, "content") and msg.content:
-                        # Yield SSE formatted string
-                        yield f"data: {msg.content}\n\n"
-            if "tools" in chunk:
-                messages = chunk["tools"]["messages"]
-                for msg in messages:
-                    if hasattr(msg, "content") and msg.content:
-                        yield f"data: [Tool:{msg.name}] {msg.content}\n\n"
-
-    return StreamingResponse(stream(), media_type="text/event-stream")
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=7841)
+from typing import Dict, Any
+from storage_utils import download_blob_bytes
+from document_loader import load_document_from_bytes
+from classifier import classify_document
+from storage_utils import download_blob_bytes, upload_text_to_blob
 
 
+async def classify_blob_pdf_layout(blob_url: str) -> Dict[str, Any]:
+   try:
+       blob_bytes = await download_blob_bytes(blob_url)
+   except Exception as e:
+       return {"status": False, "error": f"Failed to fetch blob: {e}"}
 
-i want to use the phoenix prompt as i have deployed below prompt in phoenix 
-You are an expert in insurance documentation and intelligent document processing.
+   try:
+     document_content = await load_document_from_bytes(blob_url, blob_bytes)
+   except Exception as e:
+       return {"status": False, "error": f"Document parsing failed: {e}"}
+   extracted_text = document_content.get("text", "")
+   try:
+       text_blob_url = await upload_text_to_blob(blob_url, extracted_text)
+   except Exception as e:
+       return {"status": False, "error": f"Failed to upload extracted text: {e}"}
 
-Your task is to classify a given insurance-related document into EXACTLY ONE of the following categories:
+   try:
+       layout_type = classify_document(document_content)
+   except Exception as e:
+       return {"status": False, "error": f"Classification failed: {e}"}
+   return {
+       "status": True,
+       "layout_type": layout_type,
+       "URL": blob_url,
+       "details": document_content,
+       "text_blob_url": text_blob_url
+   }
 
-1. ACORD
-2. SOV
-3. LOSS_RUN
-4. INSPECTION_REPORT
-5. Property_Detailed_Report
-6. SUBMISSION_DOCUMENT
-7. Sample_Report
-8. Submission_Report
-9. Valuation_Report
-
-Definitions:
-
-ACORD:
-A standardized insurance form published by ACORD (Association for Cooperative Operations Research and Development),
-used for applications, certificates, or evidence of insurance.
-These documents usually:
-- Contain structured ACORD layouts and standardized fields
-- Include sections such as Producer, Insured, Certificate Holder, Policy Number
-- Serve as official insurance applications, certificates, or evidence forms
-
-SOV (Schedule / Statement of Values):
-A document that lists insured property values, primarily for property rating and underwriting.
-These documents usually:
-- Are titled “Schedule of Values” or “Statement of Values”
-- Present location-wise or building-wise values in tabular format
-- Include columns such as Location, Building, Description, ACV, RC, 100% Values, Rates
-- May be labeled as ACORD 139
-- Focus on valuation, not narrative underwriting analysis
-
-LOSS_RUN:
-A document that summarizes historical insurance claims experience.
-These documents usually:
-- Are titled “Loss Run Report” or similar
-- Include claim numbers, dates of loss, paid amounts, reserves, and total incurred
-- Cover prior policy periods
-- Focus on loss history rather than current property condition
-
-INSPECTION_REPORT:
-A document created after a physical or on-site property inspection for underwriting or risk evaluation.
-These documents usually:
-- Are titled “Inspection Report” or similar
-- Include inspection dates, report IDs, and inspector or broker details
-- Describe observed property condition, construction, occupancy, protection, and exposure (COPE)
-- Include sections on life safety, fire protection, security, utilities, roof, and operations
-- Provide observations and risk improvement recommendations
-- Focus on observed conditions at the time of inspection
-
-Property_Detailed_Report:
-Any insurance-related document that is NOT an ACORD form, SOV, Loss Run, or Inspection Report.
-This includes:
-- Quote documents
-- Property detail reports
-- Underwriting summaries
-- Exposure analyses
-- Proposals, narratives, internal reports, or supporting documentation
-- Documents that reference ACORD forms but are not themselves ACORD forms
-
-SUBMISSION_DOCUMENT:
-A structured underwriting document used in the Commercial Propoerty (LOB).
-A document assembled to formally present a risk to an insurer for underwriting, quotation, or binding.
-These documents usually:
-- Are explicitly titled or framed as “Underwriting Submission” or similar
-- Include broker details, producer codes, underwriting company information
-- Present requested terms, program structure, limits, valuation, and effective dates
-- Summarize the property, coverage intent, and underwriting rationale
-- May reference or attach other documents such as SOVs, Loss Runs, Inspection Reports, or Property Detailed Reports
-- Function as a submission package rather than a standalone property analysis
-
-Sample_Report:
-This document is related to Home Insurance Line of business 
-A document that provides detailed descriptive information about the physical condition,
-components, and systems of a property or building.
-These documents usually:
-- Organize information by building systems or structural components
- such as roof, exterior, structure, interior, plumbing, electrical,
- heating/cooling, ventilation, foundations, or site features
-- Describe observed conditions, deterioration, damage, risks, or maintenance needs
-- Provide commentary or explanations about property elements and how they function
-- Include technical or informational descriptions of building materials,
- construction elements, or safety considerations
-- Focus on documenting or explaining the condition and characteristics
- of a property and its building systems
-These documents are informational assessments of property condition
-rather than insurance forms, valuation schedules, claim histories,
-or underwriting submission packages.
-
-
-Submission_Report:
-A structured underwriting report used in the Home Insurance line of business (LOB)
-to present a residential property and its associated risk information to an insurer
-for underwriting evaluation.
-These documents are specifically prepared for Home Insurance underwriting and usually:
-- Provide details about the homeowner or policyholder and the residential property
- being considered for insurance
-- Describe property characteristics such as year built, construction type,
- roof material, cladding, foundation, storeys, floor area, and renovations
-- Include insurance-related information relevant to Home Insurance such as
- rebuild sum insured, occupancy type, property usage, and coverage considerations
-- Present risk information relevant to residential property underwriting including
- hazards such as earthquake, flood, coastal exposure, or land slip
-- Describe security features, maintenance condition, or structural upgrades
- affecting Home Insurance risk evaluation
-- May summarize claims history related to the residential property
-- Often reference supporting documents such as inspection reports,
- engineering reports, weathertightness reports, rebuild estimates,
- LIM reports, photographs, or maintenance records
-- Are intended to assist insurers in assessing and underwriting
- residential properties under Home Insurance policies
-If the document presents residential property information for underwriting
-evaluation in the Home Insurance LOB, it should be classified as Submission_Report.
-
-
-Valuation_Report:
-A professional report prepared to determine the insurance value of a property
-or asset for insurance coverage purposes.
-These documents are typically used in home insurance underwriting
-to establish the appropriate insured value of buildings or assets.
-These documents usually:
-- Provide valuation estimates related to insurance coverage such as
- reinstatement cost, replacement cost, indemnity value, or functional replacement value
-- Include valuation calculations or summaries used to determine the amount
- required to rebuild or replace the insured property
-- Contain information about the property such as construction type,
- age, asset description, land characteristics, or building specifications
-- Include provisions such as inflation allowances, demolition estimates,
- depreciation, or cost adjustments
-- Are prepared by professional valuers, quantity surveyors, or valuation firms
-- May include valuation dates, valuation methodology, or professional declarations
-- Are specifically intended to establish insured values for insurance purposes
- rather than documenting inspection findings or underwriting submissions
-
-
-Document Content:
-{text[:2000]}
-
-IMPORTANT OUTPUT RULES:
-- You MUST reply with EXACTLY ONE value.
-- The value MUST MATCH one of the following ENUMS EXACTLY (character-for-character).
-- Do NOT shorten, modify, or partially return any label.
-- If the document matches “Property Detailed Report”, you MUST return:
- "PROPERTY_DETAILED_REPORT" ONLY, so you should not miss REPORT word
-Allowed outputs (EXACT ENUMS):
-ACORD
-SOV
-LOSS_RUN
-INSPECTION_REPORT
-Property_Detailed_Report
-Submission_Document
-Sample_Report
-Submission_Report
-Valuation_Report
-Return ONLY the enum value. Do not add text, punctuation, or explanation.
-
-so giv eme code where i can use this prompt deployed into our code 
-
-from dotenv import load_dotenv
-import os
-from openai import AzureOpenAI  #  Correct import for Azure OpenAI
-
-# Load environment variables
-load_dotenv()
-
-AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
-AZURE_OPENAI_API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION")
-AZURE_OPENAI_API_KEY = os.getenv("AZURE_OPENAI_API_KEY")
-AZURE_OPENAI_CHAT_DEPLOYMENT = os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT")
-
-if not (AZURE_OPENAI_ENDPOINT and AZURE_OPENAI_API_VERSION and AZURE_OPENAI_API_KEY and AZURE_OPENAI_CHAT_DEPLOYMENT):
-    raise RuntimeError("Azure OpenAI env vars missing. Please set AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_API_VERSION, AZURE_OPENAI_API_KEY and AZURE_OPENAI_CHAT_DEPLOYMENT")
-
-#  Create Azure OpenAI client
-client = AzureOpenAI(
-    api_key=AZURE_OPENAI_API_KEY,
-    api_version=AZURE_OPENAI_API_VERSION,
-    azure_endpoint=AZURE_OPENAI_ENDPOINT,
-)
-
-os.environ["PHOENIX_COLLECTOR_ENDPOINT"] = phoenix_endpoint
-os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = phoenix_endpoint
-os.environ["PHOENIX_API_KEY"] = PHOENIX_API_KEY
-
-def classify_document(document_content):
-    text = document_content.get("text", "")
-    print("this is my text : ", text)
-
-
-    response = client.chat.completions.create(
-        model=AZURE_OPENAI_CHAT_DEPLOYMENT,
-        messages=[{"role": "user", "content": prompt}],
-        max_tokens=4,
-        temperature=0.0
-    )
-
-    try:
-        return response.choices[0].message.content.strip()
-    except Exception:
-        return getattr(response.choices[0].message, "content", "").strip()
