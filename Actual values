@@ -138,6 +138,362 @@ def get_coverages():
     ]
 
 job_payload.py
+from ..models.model_data import QuoteData
+from ..payload_builders import job_payload
+
+def build_job_payload(account_id: str, data: QuoteData) -> dict:
+
+    
+    return {
+        "data": {
+            "attributes": {
+                "account": {
+                    "id": account_id
+                },
+                "baseState": {
+                    "code": data.state[:2].upper()
+                },
+                "jobEffectiveDate": data.job_effective_date,
+                "product": {
+                    "id": "GoCommercialProp"
+                },
+                "producerCode": {
+                    "id": "pc:6"
+                }
+            }
+        }
+    }
+
+
+location_payload.py
+from ..models.model_data import QuoteData
+
+def build_location_payload(data: QuoteData) -> dict:
+    return {
+        "data": {
+            "attributes": {
+                "addressLine1": data.address_line1,
+                "city": data.city,
+                "postalCode": data.postal_code,
+                "state": {
+                    "code": data.state[:2].upper()
+                },
+                "coverableJurisdiction": {
+                    "code": data.state[:2].upper(),
+                    # "name": data.state
+                }
+            }
+        }
+    }
+
+us_state_attributes
+us_states_abbreviations = {
+    "Alabama": "AL",
+    "Alaska": "AK",
+    "Arizona": "AZ",
+    "Arkansas": "AR",
+    "California": "CA",
+    "Colorado": "CO",
+    "Connecticut": "CT",
+    "Delaware": "DE",
+    "Florida": "FL",
+    "Georgia": "GA",
+    "Hawaii": "HI",
+    "Idaho": "ID",
+    "Illinois": "IL",
+    "Indiana": "IN",
+    "Iowa": "IA",
+    "Kansas": "KS",
+    "Kentucky": "KY",
+    "Louisiana": "LA",
+    "Maine": "ME",
+    "Maryland": "MD",
+    "Massachusetts": "MA",
+    "Michigan": "MI",
+    "Minnesota": "MN",
+    "Mississippi": "MS",
+    "Missouri": "MO",
+    "Montana": "MT",
+    "Nebraska": "NE",
+    "Nevada": "NV",
+    "New Hampshire": "NH",
+    "New Jersey": "NJ",
+    "New Mexico": "NM",
+    "New York": "NY",
+    "North Carolina": "NC",
+    "North Dakota": "ND",
+    "Ohio": "OH",
+    "Oklahoma": "OK",
+    "Oregon": "OR",
+    "Pennsylvania": "PA",
+    "Rhode Island": "RI",
+    "South Carolina": "SC",
+    "South Dakota": "SD",
+    "Tennessee": "TN",
+    "Texas": "TX",
+    "Utah": "UT",
+    "Vermont": "VT",
+    "Virginia": "VA",
+    "Washington": "WA",
+    "West Virginia": "WV",
+    "Wisconsin": "WI",
+    "Wyoming": "WY"
+}
+
+handler.py
+
+
+# handler.py
+from typing import Dict, Any
+from .service import _require_env
+from .storage_utils import read_json_from_blob
+from .mappers.document_mapper import map_document_to_model_data
+from .payload_builders.account_payload import build_account_payload
+from .payload_builders.job_payload import build_job_payload
+from .payload_builders.location_payload import build_location_payload
+from .payload_builders.coverage_payloads import get_coverages
+from .clients.guidewire_client import post
+from .service import _ref_parse_blob_url
+from .storage_utils import save_json_output_to_blob
+
+async def guidewire_api_call(blob_url: str) -> Dict[str, Any]:
+    """
+    Reads JSON directly from Azure Blob and calls Guidewire APIs to get the Quote.
+    """
+    try:
+        _require_env()
+    except Exception as e:
+        return {"status": False, "error": f"Environment misconfigured: {e}"}
+
+    try:
+        document = await read_json_from_blob(blob_url)
+        print(document)
+    except Exception as e:
+        return {"status": False, "error": f"Failed to read blob: {e}"}
+    
+    try:
+        canonical = map_document_to_model_data(document)
+        print("Canonical",canonical)
+    except Exception as e:
+        return {"status": False, "error": f"Failed to map data : {e}"}
+
+        # canonical = map_document_to_canonical(document)
+    account_resp = post("/account/v1/accounts", build_account_payload(canonical))
+    account_id = account_resp["data"]["attributes"]["id"]
+    
+    print("account_id",account_id)
+
+    job_resp = post("/job/v1/submissions", build_job_payload(account_id, canonical))
+    job_id = job_resp["data"]["attributes"]["id"]
+
+    print("JOB ID :",job_id)
+    location_resp = post(
+        f"/job/v1/jobs/{job_id}/lines/GOCommercialLine/locations",
+        build_location_payload(canonical)
+    )
+    location_id = location_resp["data"]["attributes"]["id"]
+
+    for coverage in get_coverages():
+        post(
+            f"/job/v1/jobs/{job_id}/lines/GOCommercialLine/coverages",
+            {"data": {"attributes": coverage}}
+        )
+
+    quote_resp = post(f"/job/v1/jobs/{job_id}/quote", {})
+
+    try:
+        container, blob_path, ref_id, name = _ref_parse_blob_url(blob_url)
+        print("Container:", container)
+        print("Blob_path:", blob_path)
+        print("Ref_id:", ref_id)
+        print("Name:", name)
+    except Exception as e:
+        return {"status": False, "error": f"Failed to extract name from blob url : {e}"}
+    
+    try:
+         output_blob_url = await save_json_output_to_blob(ref_id,name,quote_resp)
+    except Exception as e:
+        return {"status": False, "error": f"Failed to extract name from blob url : {e}"} 
+
+
+    # try:
+    #     policy_resp = post(f"/job/v1/jobs/{job_id}/bind-and-issue", {})
+    # except Exception as e:
+    #     return {"status": False, "error": f"Failed to create policy using GW API: {e}"}
+
+
+    return {
+        "status": True,
+        # "accountId": account_id,
+        "jobId": job_id,
+        # "locationId": location_id,
+        "quote": quote_resp,
+        "output_blob_url": output_blob_url
+    }
+
+
+service.py
+
+
+import os
+from urllib.parse import urlparse, unquote
+from dotenv import load_dotenv
+
+load_dotenv()
+
+AZURE_STORAGE_CONNECTION_STRING = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "")
+
+def _require_env() -> None:
+    """Ensure required environment variables exist."""
+    if not AZURE_STORAGE_CONNECTION_STRING:
+        raise RuntimeError("Missing AZURE_STORAGE_CONNECTION_STRING in environment/.env")
+
+def _extract_ref_id_and_name(blob_path: str) -> tuple[str, str]:
+    """
+    Extract ref_id and name from blob_path.
+    Example blob_path:
+      19C1DD3DD82FAE03_attachment_SunflowerHotels_Submission_Document_extraction_20260202_101302.json
+    Returns:
+      ref_id = "19C1DD3DD82FAE03"
+      name = "SunflowerHotels_Submission_Document_extraction_20260202_101302.json"
+    """
+    # parts = blob_path.split('_attachment_', 1)
+    parts = blob_path.split('_Submission_Document_', 1)
+    if len(parts) != 2:
+        raise ValueError("blob_path format unexpected, missing '_Submission_Document_' separator")
+    ref_id = parts[0]
+    name = parts[1]
+    return ref_id, name
+
+def _ref_parse_blob_url(url: str) -> tuple[str, str, str, str]:
+    """
+    Parse an Azure Blob URL and return (container_name, blob_path, ref_id, name).
+    Example URL:
+      https://account.blob.core.windows.net/output-results/19C1DD3DD82FAE03_attachment_SunflowerHotels_Submission_Document_extraction_20260202_101302.json
+    Returns:
+      ("output-results", "19C1DD3DD82FAE03_attachment_SunflowerHotels_Submission_Document_extraction_20260202_101302.json",
+       "19C1DD3DD82FAE03", "SunflowerHotels_Submission_Document_extraction_20260202_101302.json")
+    """
+    parsed = urlparse(url)
+    if not parsed.scheme.startswith("http"):
+        raise ValueError("url must be a valid http(s) Azure Blob URL.")
+
+    path = parsed.path.lstrip("/")
+    if "/" not in path:
+        raise ValueError("url must include both container and blob path.")
+    parts = path.split("/", 1)
+    container = parts[0]
+    blob_path = parts[1]
+    ref_id, name = _extract_ref_id_and_name(unquote(blob_path))
+    return unquote(container), blob_path, ref_id, name
+
+
+def _parse_blob_url(url: str) -> tuple[str, str]:
+    """
+    Parse an Azure Blob URL and return (container_name, blob_path).
+    Example URL:
+      https://account.blob.core.windows.net/output-results/folder/name.pdf
+    Returns:
+      ("output-results", "folder/name.pdf")
+    """
+    parsed = urlparse(url)
+    if not parsed.scheme.startswith("http"):
+        raise ValueError("url must be a valid http(s) Azure Blob URL.")
+
+    path = parsed.path.lstrip("/")
+    if "/" not in path:
+        raise ValueError("url must include both container and blob path.")
+    parts = path.split("/", 1)
+    container = parts[0]
+    blob_path = parts[1]
+    return unquote(container), unquote(blob_path)
+
+storage_utils.py
+
+
+# storage_utils.py
+import json
+import os
+from azure.storage.blob.aio import BlobServiceClient
+from azure.core.exceptions import ResourceNotFoundError
+from .service import AZURE_STORAGE_CONNECTION_STRING, _parse_blob_url
+
+
+async def read_json_from_blob(blob_url: str) -> dict:
+    """
+    Reads a JSON file directly from Azure Blob Storage and returns it as dict.
+    No local file system usage.
+    """
+    if not AZURE_STORAGE_CONNECTION_STRING:
+        raise RuntimeError("AZURE_STORAGE_CONNECTION_STRING not set")
+
+#working code
+    container, blob_path = _parse_blob_url(blob_url)
+    print("Container", container)
+    print("Blob_path", blob_path)
+
+    # container, blob_path, ref_id, name = _parse_blob_url(blob_url)
+    # print("Container:", container)
+    # print("Blob_path:", blob_path)
+    # print("Ref_id:", ref_id)
+    # print("Name:", name)
+
+    async with BlobServiceClient.from_connection_string(
+        AZURE_STORAGE_CONNECTION_STRING
+    ) as service:
+        container_client = service.get_container_client(container)
+        blob_client = container_client.get_blob_client(blob_path)
+
+        try:
+            await blob_client.get_blob_properties()
+        except ResourceNotFoundError:
+            raise FileNotFoundError(
+                f"Blob not found: container={container}, blob={blob_path}"
+            )
+
+        stream = await blob_client.download_blob()
+        raw_bytes = await stream.readall()
+
+    return json.loads(raw_bytes.decode("utf-8"))
+
+
+
+
+GUIDEWIRE_QUOTE_CONTAINER = os.environ.get("GUIDEWIRE_QUOTE_CONTAINER")
+
+async def save_json_output_to_blob(ref_id: str, name: str, quote_resp: dict):
+    """
+    Save quote_resp JSON to Azure Blob Storage in the container specified by GUIDEWIRE_QUOTE_CONTAINER,
+    with blob name formatted as "{ref_id}_Quote_{name}".
+    """
+    if not AZURE_STORAGE_CONNECTION_STRING:
+        raise RuntimeError("AZURE_STORAGE_CONNECTION_STRING not set")
+
+    blob_name = f"{ref_id}_Quote_{name}"
+
+    # Serialize quote_resp dict to JSON string
+    json_data = json.dumps(quote_resp, indent=2)
+
+    async with BlobServiceClient.from_connection_string(
+        AZURE_STORAGE_CONNECTION_STRING
+    ) as service:
+        container_client = service.get_container_client(GUIDEWIRE_QUOTE_CONTAINER)
+
+        # Create container if not exists (optional)
+        try:
+            await container_client.get_container_properties()
+        except Exception:
+            await container_client.create_container()
+
+        blob_client = container_client.get_blob_client(blob_name)
+
+        # Upload JSON string as bytes
+        await blob_client.upload_blob(json_data.encode("utf-8"), overwrite=True)
+
+        return blob_client.url
+
+
+
 
 
 
