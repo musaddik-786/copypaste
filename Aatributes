@@ -1,269 +1,364 @@
-Great. I carefully compared all 100 attributes across the 3 documents and grouped the ones that represent the same underwriting concept.
+this is my summary_handler that i am working on 
+
+
+
+import os
+import json
+from typing import Dict, Any, List
+import pandas as pd
+
+from summary_service import summary_require_env
+from summary_storage_utils import download_blob_to_input_folder
+from summary_loader import load_summary_document
+from summary_classifier import summarize_first_page
+from Data_Filler import extract_filenames_and_summaries
+from Data_Filler import connect_to_blob, beautify_extracted_data
+from newsummary import summarize_attachments
+from separate_summary import individual_summary
+from Data_Filler import beautify_api_response
+from summary_storage_utils import download_blob_to_input_folder_by_reference, read_text_file_from_container
+# from newsummary import extract_refs_from_attachments, load_raw_email_bodies_for_refs, summarize_attachments
+
+
+INPUT_FOLDER = "input"
+OUTPUT_FOLDER = "output"
+EMAIL_BODY = "email_body"
+
+def clean_result_for_api(result: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Build a compact, clean dictionary response from the full 'result' dict.
+
+    Output shape:
+    {
+      "combined_summary": "<string or None>",
+      "individualized_summary": [
+         { "file_name": ..., "summary": ..., "document_type": ..., "processed_summary": ... },
+         ...
+      ]
+    }
+
+    This removes raw 'text' and error details from the per-file items.
+    """
+    combined = result.get("combined_summary")
+
+    raw_individualized = result.get("individualized_summary", [])
+    cleaned_list: List[Dict[str, Any]] = []
+
+    if isinstance(raw_individualized, list):
+        for item in raw_individualized:
+            cleaned_item = {
+                "file_name": item.get("file_name"),
+                "summary": item.get("summary"),
+                "document_type": item.get("document_type"),
+                "processed_summary": item.get("processed_summary"),
+            }
+            cleaned_list.append(cleaned_item)
+
+    return {
+        "combined_summary": combined,
+        "individualized_summary": cleaned_list,
+    }
+
+
+async def summarize_blob_pdfs_layout(blob_urls: List[str]) -> Dict[str, Any]:
+    """
+    For each Blob URL:
+      - Download PDF into input/
+      - Use Form Recognizer to extract text (all pages)
+      - Use LLM to summarize the FIRST PAGE
+
+    Saves the full detailed JSON (including raw text) to ./output/layout_summaries_result.json
+    but RETURNS a cleaned dictionary suitable for API responses (no raw 'text').
+    """
+    try:
+        summary_require_env()
+    except Exception as e:
+        # Return a clean, empty-shaped response on environment failure
+        return {"combined_summary": None, "individualized_summary": []}
+
+    summaries: List[Dict[str, Any]] = []
+
+    for blob_url in blob_urls:
+        file_name = None
+
+        try:
+            container, filename, reference_number =  await extract_filename_referencenumber_container_name(blob_url)
+            print("Container ", container)
+            print("Reference number", reference_number)
+            print("filename", filename)
+        except Exception as e:
+            summaries.append(
+                {
+                    "blob_url": blob_url,
+                    "file_name": file_name,
+                    "summary": None,
+                    "text": None,
+                    "error": f"Failed to read filename: {e}",
+                }
+            )            
+            continue
+
+        try:
+            text = read_text_file_from_container(filename)
+        except Exception as e:
+            summaries.append(
+                {
+                    "blob_url": blob_url,
+                    "file_name": file_name,
+                    "summary": None,
+                    "text": text,
+                    "error": f"Failed to read filename: {e}",
+                }
+            )            
+            continue
+        # 1) Download PDF
+        # try:
+        #     local_pdf = await download_blob_to_input_folder(
+        #         blob_url, input_folder=INPUT_FOLDER
+        #     )
+        #     file_name = os.path.basename(local_pdf)
+        # except Exception as e:
+        #     summaries.append(
+        #         {
+        #             "blob_url": blob_url,
+        #             "file_name": file_name,
+        #             "summary": None,
+        #             "text": None,
+        #             "error": f"Failed to download blob: {e}",
+        #         }
+        #     )
+        #     continue
+
+        # # 2) Use Form Recognizer to analyze the document
+        # try:
+        #     document_content = load_summary_document(local_pdf)
+        # except Exception as e:
+        #     summaries.append(
+        #         {
+        #             "blob_url": blob_url,
+        #             "file_name": file_name,
+        #             "summary": None,
+        #             "text": None,
+        #             "error": f"Form Recognizer failed: {e}",
+        #         }
+        #     )
+        #     continue
+
+        # Extract raw text (stored in first_page_text key by loader)
+        # text_content = document_content.get("text", "")
+
+        # 3) Summarize FIRST PAGE using LLM (short summary)
+        # try:
+        #     summary_text = summarize_first_page(text, file_name=file_name)
+        # except Exception as e:
+        #     summaries.append(
+        #         {
+        #             "blob_url": blob_url,
+        #             "file_name": file_name,
+        #             "summary": None,
+        #             "text": text_content,
+        #             "error": f"Summarization failed: {e}",
+        #         }
+        #     )
+        #     continue
+
+        # 4) Success case for this document — include raw text for audit on disk
+        summaries.append(
+            {
+                "blob_url": blob_url,
+                "file_name": file_name,
+                "summary": summary_text,
+                "text": text_content,
+                "error": None,
+            }
+        )
+
+    result: Dict[str, Any] = {"status": True, "summaries": summaries}
+
+    # 5) Save result to ./output (retain 'text' on disk for audit)
+    try:
+        os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+        out_path = os.path.join(OUTPUT_FOLDER, "layout_summaries_result.json")
+        with open(out_path, "w", encoding="utf-8") as f:
+            json.dump(result, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        result["save_error"] = str(e)
+
+    # 6) Beautify and optionally write to Excel (unchanged; uses only file_name + summary)
+    try:
+        extracted_data = extract_filenames_and_summaries(OUTPUT_FOLDER)
+        print("Beautified Extracted Data:\n")
+        beautify_data = beautify_extracted_data(extracted_data)
+        print(beautify_data)
+
+    #     DATA_URL = os.getenv("Data_URL")
+    #     if DATA_URL:
+    #         try:
+    #             updated_data = connect_to_blob(DATA_URL, beautify_data)
+    #             print("Blob Data Processed Successfully.")
+    #             if isinstance(updated_data, pd.DataFrame):
+    #                 print("Blob Data Processed Successfully and Excel Updated.")
+    #             else:
+    #                 # updated_data may be an error dict
+    #                 print(f"Error: {updated_data.get('error')}")
+    #         except Exception as e:
+    #             print(f"Error processing blob data: {e}")
+    #     else:
+    #         print("Data_URL environment variable is not set.")
+    except Exception as e:
+        print(f"Error in beautify / blob step: {e}")
+
+
+    try:
+        download_results = await download_blob_to_input_folder_by_reference(
+            beautify_data,
+            output_folder=EMAIL_BODY,
+            container_name="attachment-downloader",
+            blob_name_template="body_{ref}.txt",
+        )
+        print("Email body download results:", download_results)
+    except Exception as e:
+        print("Failed to download email bodies by reference:", e)
+
+#Working code friday night 7:20 pm
+    # 7) Combined submission summary (uses file_name + summary only)
+    combined_summary_text = None
+    filenamesummary_extracted_beautified: List[Dict[str, Any]] = []
+    try:
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        output_folder = "output"
+
+        json_path = os.path.join(base_dir, output_folder, "layout_summaries_result.json")
+        with open(json_path, "r", encoding="utf-8") as f:
+            layout_json = json.load(f)
+
+        filenamesummary_extracted_beautified = extract_filenames_and_summaries(output_folder)
+        print("Per-document summaries (with text):")
+        print(filenamesummary_extracted_beautified)
+        
+        
+        #HERE WE CAN CALL THE EXTRACT REFS FROM ATTACHMENTS AND LOAD RAW EMAIL BODIES FOR REFS FUNCTIONS AND KEEP THE CALLING OF SUMMARIZE_ATTACHMENTS SAME AS BELOW 
+
+        # reference_number_extracted = extract_refs_from_attachments(beautify_data)
+
+        # load_raw_email_bodies_for_refs(reference_extracted,"email_body")
+
+        combined_summary_text = summarize_attachments(filenamesummary_extracted_beautified)
+        print("Combined Submission Summary:")
+        print(combined_summary_text)
+
+        result["combined_summary"] = combined_summary_text
+    except Exception as e:
+        print(f"Error generating combined submission summary: {e}")
+        result["combined_summary_error"] = str(e)
+        combined_summary_text = None
+
+    # 8) Individual typed summaries (ACORD / Loss Run / SOV)
+    try:
+        # individual_summary expects attachments each having 'file_name','summary','text'
+        individualized_summary = individual_summary(filenamesummary_extracted_beautified)
+        # print("Individualized Summary Output (raw):")
+        print(individualized_summary)
+        result["individualized_summary"] = individualized_summary
+    except Exception as e:
+        print(f"Error generating Individual summary: {e}")
+        result["individualized_summary_error"] = str(e)
+        result["individualized_summary"] = []
+
+
+    # 9) CLEAN the result for the API and return only the compact payload (no raw text)
+    cleaned_payload = clean_result_for_api(result)
+
+
+    
+    try:
+        beautified = beautify_api_response(cleaned_payload)
+        print("This is beautified for  response : ", beautified)
+
+        # print("\n----- COMBINED SUBMISSION SUMMARY (beautified) -----\n")
+        # if beautified["combined_summary"]:
+        #     print(beautified["combined_summary"])
+        # else:
+        #     print("No combined summary available.")
+
+        DATA_URL = os.getenv("Data_URL")
+        if DATA_URL:
+            try:
+                updated_data = connect_to_blob(DATA_URL, beautified)
+                print("Blob Data Processed Successfully.")
+                if isinstance(updated_data, pd.DataFrame):
+                    print("Blob Data Processed Successfully and Excel Updated.")
+                else:
+                    # updated_data may be an error dict
+                    print(f"Error: {updated_data.get('error')}")
+            except Exception as e:
+                print(f"Error processing blob data: {e}")
+        else:
+            print("Data_URL environment variable is not set.")
+    except Exception as e:
+        print(f"Error in beautify / blob step: {e}")
+
+
+
+
+    # try:
+    #     email_body = download_blob_to_input_folder_by_reference(beautify_data)
+    #     from summary_storage_utils import download_blob_to_input_folder_by_reference
+
+# ensure EMAIL_BODY = "email_body" at top of summary_handler.py
+
+# call it (since it's async, await it)
+    # try:
+    #     download_results = await download_blob_to_input_folder_by_reference(
+    #         beautify_data,
+    #         output_folder=EMAIL_BODY,
+    #         container_name="attachment-downloader",
+    #         blob_name_template="body_{ref}.txt",
+    #     )
+    #     print("Email body download results:", download_results)
+    # except Exception as e:
+    #     print("Failed to download email bodies by reference:", e)
+
+
+    # return cleaned_payload
+    return beautified
+
+storage_utils.py
+
+async def extract_filename_referencenumber_container_name(blob_url: str) -> str:
+    """
+    Downloads the blob at blob_url into input_folder (root-level) preserving filename.
+    Returns the local path to the downloaded file.
+    """
+    if not AZURE_STORAGE_CONNECTION_STRING:
+        raise RuntimeError("AZURE_STORAGE_CONNECTION_STRING not set")
+    
+    container, filename, reference_number = _parse_blob_url(blob_url)
+ return container, filename, reference_number
+
+Data_Raw_Text_Container_Name = "layout-detection-text-of-document"
+
+async def read_text_file_from_container(filename: str) -> str:
+    """
+    Reads the contents of a .txt file from the Azure Blob container Data_Raw_Text_Container_Name
+    corresponding to the provided filename (without extension).
+    Returns the text content of the file.
+    """
+    if not AZURE_STORAGE_CONNECTION_STRING:
+        raise RuntimeError("AZURE_STORAGE_CONNECTION_STRING not set")
+
+    blob_name = filename + ".txt"
+
+    async with BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING) as service:
+        container_client = service.get_container_client(Data_Raw_Text_Container_Name)
+        blob_client = container_client.get_blob_client(blob_name)
+        try:
+            await blob_client.get_blob_properties()
+        except ResourceNotFoundError:
+            raise FileNotFoundError(f"Blob not found in container '{Data_Raw_Text_Container_Name}': {blob_name}")
+
+        downloader = await blob_client.download_blob()
+        data = await downloader.readall()
+        return data.decode("utf-8")
 
-I used this notation:
-	•	(1) → Document 1 — Building Inspection Report
-	•	(2) → Document 2 — Underwriting Submission
-	•	(3) → Document 3 — Insurance Valuation Form
 
-Grouped attributes appear inside [ ].
-Unique attributes remain single entries.
-
-⸻
-
-Final Consolidated Attribute List
-
-Identity / Parties
-	1.	[Inspector Name (1), Broker Name (2), Valuer Name and Company (3)]
-	2.	[Policyholder Name (2), Client Name (3)]
-	3.	Contact Number (2)
-	4.	Email Address (2)
-
-⸻
-
-Property Location
-	5.	[Insured Property Address (2), Asset Address (3)]
-	6.	Current Address (2)
-	7.	City / Region (2)
-
-⸻
-
-Property Identification & Description
-	8.	[Construction Type (2), Asset Description (3)]
-	9.	[Property Use / Occupation (2), Property Use or Occupation (3)]
-	10.	Other Known Characteristics (3)
-
-⸻
-
-Property Age & Timeline
-	11.	[Year Built (2), Property Age (3)]
-	12.	Renovation Years (2)
-	13.	Inspection Date (1)
-	14.	Valuation Date (3)
-
-⸻
-
-Property Size & Layout
-	15.	Floor Area (2)
-	16.	Land Area (2)
-	17.	Number of Storeys (2)
-
-⸻
-
-Occupancy
-	18.	Occupancy Type (2)
-	19.	Number of Occupants (2)
-
-⸻
-
-Structural Components
-	20.	[Roof Material (1), Roof Material (2)]
-	21.	Roof Type (1)
-	22.	[Roof Condition (1), Roof Condition (2)]
-	23.	Roof Damage Indicators (1)
-
-⸻
-
-Drainage / Exterior
-	24.	[Gutter & Downpipe Material (1)]
-	25.	[Gutter Condition (1)]
-
-⸻
-
-Walls / Cladding
-	26.	[Exterior Wall Material / Cladding (1), Cladding Type (2)]
-	27.	[Exterior Wall Condition (1), Cladding Condition (2)]
-
-⸻
-
-Foundation & Ground Conditions
-	28.	[Foundation Type (1), Foundation Type (2)]
-	29.	Foundation Condition (1)
-	30.	[Land Contour (3)]
-	31.	[Subsoil Type (3)]
-
-⸻
-
-Structural Stability
-	32.	Floor Level Compliance (1)
-
-⸻
-
-Moisture & Environmental Conditions
-	33.	Moisture Reading Status (1)
-
-⸻
-
-Roof Cavity / Insulation
-	34.	Ceiling Cavity Structure Condition (1)
-	35.	Ceiling Insulation Type & Condition (1)
-
-⸻
-
-Interior Condition
-	36.	Property Interior Condition (1)
-	37.	Floor Type (1)
-	38.	Floor Condition (1)
-	39.	Wall Type (1)
-	40.	Wall Condition (1)
-	41.	Ceiling Type (1)
-
-⸻
-
-Hazardous Materials
-	42.	Asbestos Risk in Ceiling (1)
-
-⸻
-
-Garage
-	43.	Garage Condition (1)
-	44.	Garage Door Operation (1)
-
-⸻
-
-Doors & Windows
-	45.	Door Condition (1)
-	46.	Window Material (1)
-	47.	Window Glazing Type (1)
-
-⸻
-
-Interior Fixtures
-	48.	Kitchen Cabinetry Condition (1)
-
-⸻
-
-Water System
-	49.	Water Supply Source (1)
-	50.	Water Pressure (1)
-
-⸻
-
-Heating & Utilities
-	51.	[Heating System Type (1), Heating Type (2)]
-
-⸻
-
-Water Heating
-	52.	[Water Heater Type (1)]
-	53.	[Water Heater Condition (1)]
-
-⸻
-
-Plumbing
-	54.	[Plumbing Condition / Upgrade Year (2)]
-
-⸻
-
-Electrical
-	55.	[Electrical Switchboard Condition (1), Electrical Condition / Rewire Year (2)]
-
-⸻
-
-Bathroom / Water Damage
-	56.	Shower Leak Status (1)
-
-⸻
-
-Insurance Coverage
-	57.	[Rebuild Sum Insured (2)]
-	58.	[Sum Insured Basis (2)]
-
-⸻
-
-Additional Structures
-	59.	Other Structures Included (2)
-
-⸻
-
-Special Risks
-	60.	[Special / Non-Standard Risk (2)]
-
-⸻
-
-Natural Hazard Exposure
-	61.	Earthquake Risk Information (2)
-	62.	Flood Risk Information (2)
-
-⸻
-
-Claims
-	63.	Claims History (Past 5 Years) (2)
-
-⸻
-
-Property Improvements
-	64.	Upgrade Requirements (3)
-
-⸻
-
-Insurance Valuation — Reinstatement
-	65.	Reinstatement Cost Estimate (3)
-	66.	Reinstatement Inflationary Provision (3)
-	67.	Reinstatement Section Presence (3)
-	68.	Reinstatement Cost Basis (3)
-	69.	Reinstatement Assumption Notes (3)
-
-⸻
-
-Insurance Valuation — Indemnity
-	70.	Indemnity Value Estimate (3)
-	71.	Market Related Estimate (3)
-	72.	Depreciated Replacement Cost (3)
-	73.	Indemnity Inflationary Provision (3)
-	74.	Indemnity Valuation Method (3)
-
-⸻
-
-Insurance Valuation — Functional Replacement
-	75.	Functional Replacement Cost (3)
-	76.	Functional Replacement Inflationary Provision (3)
-	77.	Functional Design Reference (3)
-	78.	Functional Replacement Method (3)
-	79.	Functional Replacement Notes (3)
-
-⸻
-
-Demolition
-	80.	Demolition Estimate (3)
-
-⸻
-
-Valuer Credentials
-	81.	Valuer Signature (3)
-	82.	Valuer Qualifications (3)
-
-⸻
-
-Insurance Standards
-	83.	Insurance Valuation Standard Reference (3)
-
-⸻
-
-📊 Result
-
-Original attributes: 100
-
-After grouping repeated attributes → 83 final attributes
-
-⸻
-
-⚠️ Important Observation (for your AI extraction system)
-
-The major overlaps occur in these areas:
-	•	Person / Entity identity
-	•	Property address
-	•	Roof
-	•	Cladding
-	•	Foundation
-	•	Electrical
-	•	Heating
-
-These are core underwriting attributes, which explains why they appear in multiple documents.
-
-⸻
-
-✅ If you want, I can also show you something extremely useful for your data extraction AI agent:
-
-The 25–30 “core underwriting attributes” that appear across almost all insurance documents.
-
-These are the most important attributes your extraction system should prioritize.
