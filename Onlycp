@@ -1,166 +1,313 @@
-INFO:     Uvicorn running on http://0.0.0.0:8602 (Press CTRL+C to quit)
-Container  attachment-downloader
-Reference number 19CDC8AB7BCC5E85
-filename 19CDC8AB7BCC5E85_attachment_SunflowerHotels_Submission_Document
-Beautified Extracted Data:
+Now in separate summary .py, i have been told to have only 1 prompt no matter what the document type is and the prompt should be in sucha way that it should give a proper professional summary with heading bulled points etc
 
-file_name: 19CDC8AB7BCC5E85_attachment_SunflowerHotels_Submission_Document
-reference_number: 19CDC8AB7BCC5E85
-summary: The submission is for Sunflower Hotel Group LLC (dba Cruise Resort), a full-service, eight-story resort located in Daytona Beach, Florida, with a total insured value of $100,000,000 and a primary limit of liability of $6,750,000 on a replacement cost basis. The property, built in 2008 and partially renovated in 2019, features reinforced concrete and structural steel construction, a built-up membrane roof, and spans 198,240 square feet on a 4.2-acre site with landscaped grounds, two outdoor pools, spa, fitness center, and a private dock. Operations include 240 guest rooms (various suite types), three restaurants, two bars, banquet/event spaces, spa, retail, and limited marina services, with an average annual occupancy of 68% and seasonal peaks from November to April. Major building systems include a central chilled water HVAC plant (upgraded in 2019), 2,500 kVA electrical service with emergency generator backup, and full wet-pipe sprinkler fire protection. Insured values are allocated across buildings, FF&E, public areas, mechanical systems, site improvements, and marina structures. The risk is managed by Acme Low Hazard Insurance, with Armstrong and Company as the broker.
 
-[{'reference_number': '19CDC8AB7BCC5E85', 'file_name': '19CDC8AB7BCC5E85_attachment_SunflowerHotels_Submission_Document', 'summary': 'The submission is for Sunflower Hotel Group LLC (dba Cruise Resort), a full-service, eight-story resort located in Daytona Beach, Florida, with a total insured value of $100,000,000 and a primary limit of liability of $6,750,000 on a replacement cost basis. The property, built in 2008 and partially renovated in 2019, features reinforced concrete and structural steel construction, a built-up membrane roof, and spans 198,240 square feet on a 4.2-acre site with landscaped grounds, two outdoor pools, spa, fitness center, and a private dock. Operations include 240 guest rooms (various suite types), three restaurants, two bars, banquet/event spaces, spa, retail, and limited marina services, with an average annual occupancy of 68% and seasonal peaks from November to April. Major building systems include a central chilled water HVAC plant (upgraded in 2019), 2,500 kVA electrical service with emergency generator backup, and full wet-pipe sprinkler fire protection. Insured values are allocated across buildings, FF&E, public areas, mechanical systems, site improvements, and marina structures. The risk is managed by Acme Low Hazard Insurance, with Armstrong and Company as the broker.'}]
-Email body download results: {'status': 'done', 'details': {'19CDC8AB7BCC5E85': {'status': 'ok', 'path': 'email_body/body_19CDC8AB7BCC5E85.txt'}}}
-Per-document summaries (with text):
-[{'file_name': '19CDC8AB7BCC5E85_attachment_SunflowerHotels_Submission_Document', 'summary': 'The submission is for Sunflower Hotel Group LLC (dba Cruise Resort), a full-service, eight-story resort located in Daytona Beach, Florida, with a total insured value of $100,000,000 and a primary limit of liability of $6,750,000 on a replacement cost basis. The property, built in 2008 and partially renovated in 2019, features reinforced concrete and structural steel construction, a built-up membrane roof, and spans 198,240 square feet on a 4.2-acre site with landscaped grounds, two outdoor pools, spa, fitness center, and a private dock. Operations include 240 guest rooms (various suite types), three restaurants, two bars, banquet/event spaces, spa, retail, and limited marina services, with an average annual occupancy of 68% and seasonal peaks from November to April. Major building systems include a central chilled water HVAC plant (upgraded in 2019), 2,500 kVA electrical service with emergency generator backup, and full wet-pipe sprinkler fire protection. Insured values are allocated across buildings, FF&E, public areas, mechanical systems, site improvements, and marina structures. The risk is managed by Acme Low Hazard Insurance, with Armstrong and Company as the broker.', 'text': 'Commercial Property - Underwriting\nSubmission Cruise Resort\nBroker Name: Olivia Park\nOrganization Name: Armstrong and Company\nProducer Code: 100-002541\nUnderwriting Company: Acme Low Hazard Insurance\nName And Mailing Address: Sunflower Hotel Group LLC, 100 Harbor View Drive,\nSeabreeze, Daytona Beach, Volusia, FL 32118, USA\nOrganization Type: LLC\n1. Program Structure & Requested\nTerms\nLine of Business: Commercial Property\nTotal Insured Value (TIV):$100,000,000\nEffective Date: 01/01/2026\nExpiration Date: 01/01/2027\nTerm Type: Annual\nLimit of Liability: $6,750,000\nLayer: Primary\nValuation: Replacement Cost\nCoverage Currency: USD\nSettlement Currency: USD\n2. Executive Summary\nProperty Description: The property is an eight-story, full-service resort constructed in\n2008 with a reinforced concrete and structural steel frame and a masonry exterior finish. It\nfeatures concrete slab-on-grade and reinforced concrete floor decks, along with a built-up\nmembrane roofing system that received a partial overlay in 2019. The site spans 4.2 acres\nand includes landscaped areas, two outdoor pools, spa and fitness facilities, paved\ndriveways, walkways, and a private dock with eight guest berths. Mechanical rooms,\nstorage, and service corridors are located in the lower levels, with no guest rooms below\ngrade.\n3. Property Identification\nNamed Insured (Company Name):\nSunflower Hotel Group LLC (dba Cruise\nResort)\nAddress Line 1: 100 Harbor View Drive,\nSeabreeze\nCity: Daytona Beach\nState: Florida\nZip Code: 32118\nCountry: United States\nAddress Type: Business\nProperty Size: 4.2 acres (site area with\nlandscaped grounds, beach access, and\nprivate dock)\nBuilding Area (sq ft): 198240\nYear Constructed: 2008\nClass Code: 0585\nMajor Renovation: 2019 (lobby, HVAC\nreplacement, pool decking)\nNumber of Floors: 8\nNumber of Guest Rooms: 240\nGuest Room Mix: standard suites, one-\nand two-bedroom suites, select executive\nsuites\n4. Property Description & Construction\n· Primary construction: reinforced concrete and structural steel frame with masonry\nexterior finish\n· Floor construction: concrete slab-on-grade and reinforced concrete decks\n· Roof: built-up membrane roof system (2019 partial overlay) with routine maintenance\nprogram\n· Basements/lower levels: mechanical rooms, dry storage, service corridors; no guest\nlodging below grade\n· Site improvements: pool decks, two outdoor pools, spa, fitness center, paved driveways\n& drop-off, landscaped areas, walkways, private dock (8 guest berths)\n· Accessibility: main vehicular access from Harbor View Drive; service drive from Marina\nWay\n5. Occupancy & Operations\n· Primary use: full-service resort: accommodation, F&B, banquet/meeting, spa, fitness,\nretail, limited marina services\n· Revenue drivers: rooms; three restaurants; two bars; banquets/events; spa; marina\nguest fees; retail\n· Average annual occupancy: 68% (rolling 12-month average)\n· Seasonal variation: higher occupancy in high season (Nov-Apr) with peak banquets\nNov-Mar\n6. Insured Values (Summary)\nContents / FF&E: $15,000,000\nBuildings & structural improvements:\n$85,000,000\nTotal Insured Value (TIV):\n$100,000,000\nHigh-level itemization (for underwriting reference):\n· Guest suites & structural improvements: $62,000,000\n· Public areas, lobby, F&B & back-of-house structures: $12,500,000\n· Building services & mechanical systems: $3,500,000\n· Pool, decks, site improvements & landscaping: $2,000,000\n· Dock & marina structures: $1,000,000\n· FF&E (furniture, fixtures & equipment): $12,000,000\n· Misc contents, small tools, operating supplies: $6,000,000\n7. Critical Building Systems\n· HVAC: central chilled water plant; packaged rooftop units for public spaces; major\ncomponents replaced 2019; PM via CMMS\n· Electrical: main service 2,500 kVA; emergency circuits for life-safety; ATS for generator\ntie-in\n· Emergency power: diesel generator supports life-safety, fire pumps, selected essential\nloads and partial POS/IT; weekly test schedule\n· Fire protection: full wet-pipe sprinklers; addressable fire alarm with central station\nmonitoring; on-site fire pump; two hydrants within 100 ft; quarterly & annual test logs\n· Kitchen fire protection: commercial kitchen hood suppression with regular servicing\n· Plumbing: domestic hot water plant and booster pumps; backflow prevention devices\ninstalled\n· Elevators: two passenger elevators; one service elevator; annual inspections and\nmaintenance contracts\n· Life-safety: emergency lighting, illuminated exit signage, ADA egress, posted evacuation\nplans\n8. Security & Monitoring\n· Security staff: 24/7 on-site security team\n· Electronic access: key-card access for guest room floors and restricted staff areas\n· CCTV: integrated digital video surveillance across public areas, front-drive, perimeter\nand service yards; retention policy documented\n· Guest safety measures: pool lifeguard program (seasonal); signage & compliance with\naquatic facility codes\n9. Utilities & Third-party\nDependencies (CBI relevance)\nPower provider: Seabreeze Utilities\nAuthority\nWater & sewer: Seabreeze Water &\nWaste (municipal)\nPrimary ISP / CRS & POS connectivity:\nMaritime Communications Inc. (primary\nISP for booking/PMS/POS)\nRedundant ISP: Redundant ISP vendor\ncontract under review\nLaundry/Linens: Seabreeze Linen Co.\n(off-site)\nF&B suppliers: regional distributors;\nmultiple vendor relationships for key\nitems\nExcursion vendors / marina operators:\nlicensed third-party operators; vendor\nagreements in place\n10. Marina Specifics\n· Dock: fixed dock with eight guest berths; owned & maintained by resort; no on-site\nfueling (adjacent marina for fuel)\n· Marine operations: third-party licensed operators run excursions; hull/boat PD not\nunder property program (vendor responsibility in contracts)\n11. Maintenance, Inspections & Risk Controls\n· Preventive maintenance: CMMS logs for HVAC, kitchen hood, sprinkler, generator\ntesting\n· Life-safety testing: quarterly sprinklers; annual fire pump; monthly fire alarm tests;\nannual full alarm inspection; vendor certificates on file\n· Vendor controls: contractor insurance requirement min $2M GL; certificate\nmanagement process\n· Business continuity: documented BCP & EAP; off-site backups for reservations & guest\nrecords; periodic tabletop exercises with local emergency services\n· Staff training: annual fire/evacuation drills; F&B managers with food safety cert; first-\naid/CPR for supervisors\n12. Recent Loss History (Time-Element & Property)\n· 2024: kitchen exhaust grease fire - smoke damage; limited kitchen closure; BI & partial\nEE paid for 7 days; time-element approx. $250,000.\n· 2022: failed domestic line water intrusion (lower-level storage) - contents damage; BI\n3 days approx. $120,000.\n. 2025 (YTD): pool area slip & fall remediation with temporary closure; minor BI approx.\n$15,000.\nLoss-run reports and claim detail files available on request (attached in submission packet).\n13. Exposures & Underwriting Considerations\n· Time-element sensitivity: reliance on room revenue and banquet/event income; peak-\nseason outages materially impact revenue.\n· Third-party dependency: booking engine/CRS and primary ISP are key contingent BI\nexposures.\n· Marina & vendor risk: dock and excursion vendors introduce potential liability and\nservice interruption considerations.\n· Flood & windstorm: coastal location elevates storm surge and named storm exposure;\nflood zone/elevation certificate review recommended.\n· Utility interruption: municipal power/telecom failures may trigger service interruption\nclaims; redundancy & SLAs relevant.\n17. Broker & Property Contacts\nBroker: Olivia Park - Senior Hospitality\nBroker, Meridian Shoreline Insurance\nPartners\nBroker Email:\nolivia.park@meridianship.com\n18. Underwriter Notes\nNotes:\nFollow-ups:\nPrepared for submission - Cruise Resort\nBroker Phone: +1 (555) 214-7802\nProperty Contact: Marcus Reyes -\nGeneral Manager, Cruise Resort\nProperty Email:\nm.reyes@cruiseresort.com\nProperty Phone: +1 (555) 321-4400'}]
-[newsummary] prompt length=7539; email bodies included=True
-Combined Submission Summary:
+from dotenv import load_dotenv
+import os
+from typing import List, Dict, Any
+from openai import AzureOpenAI  # Correct import for Azure OpenAI
+
+# Load environment variables
+load_dotenv()
+
+AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
+AZURE_OPENAI_API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION")
+AZURE_OPENAI_API_KEY = os.getenv("AZURE_OPENAI_API_KEY")
+AZURE_OPENAI_CHAT_DEPLOYMENT = os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT")
+
+if not (
+    AZURE_OPENAI_ENDPOINT
+    and AZURE_OPENAI_API_VERSION
+    and AZURE_OPENAI_API_KEY
+    and AZURE_OPENAI_CHAT_DEPLOYMENT
+):
+    raise RuntimeError(
+        "Azure OpenAI env vars missing. Please set "
+        "AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_API_VERSION, "
+        "AZURE_OPENAI_API_KEY and AZURE_OPENAI_CHAT_DEPLOYMENT"
+    )
+
+# Create Azure OpenAI client
+client = AzureOpenAI(
+    api_key=AZURE_OPENAI_API_KEY,
+    api_version=AZURE_OPENAI_API_VERSION,
+    azure_endpoint=AZURE_OPENAI_ENDPOINT,
+)
+
+
+def _call_chat_llm(prompt: str, max_tokens: int = 512, temperature: float = 0.2) -> str:
+    response = client.chat.completions.create(
+        model=AZURE_OPENAI_CHAT_DEPLOYMENT,
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=max_tokens,
+        temperature=temperature,
+    )
+    return response.choices[0].message.content.strip()
+
+
+# def identify_document_type(file_name: str, summary: str) -> str:
+#     """
+#     Identifies the document type based on the file name and SUMMARY.
+#     Returns one of: 'ACORD', 'Loss Run', 'SOV'.
+#     """
+#     prompt = f"""
+# You are classifying a commercial insurance document.
+
+# Possible types:
+# - ACORD    (application / submission form)
+# - Loss Run (loss history / claims listing)
+# - SOV      (statement of values / property schedule)
+
+# Read the file name and the short underwriting summary and choose EXACTLY ONE type.
+
+# IMPORTANT:
+# - Your ENTIRE response must be exactly one of:
+#   ACORD
+#   Loss Run
+#   SOV
+# - Do NOT add any explanation or extra words.
+
+# File Name: {file_name}
+# Summary: {summary}
+# """
+
+
+def identify_document_type(file_name: str, summary: str) -> str:
+    """
+    Identifies the document type based on the SUMMARY.
+    Returns one of: 'ACORD', 'Loss Run', 'SOV'.
+    """
+    prompt = f"""
+You are classifying a commercial insurance document.
+
+Possible types:
+- ACORD    (application / submission form)
+- Loss Run (loss history / claims listing)
+- SOV      (statement of values / property schedule)
+
+Read short underwriting summary and choose EXACTLY ONE type.
+
+IMPORTANT:
+- Your ENTIRE response must be exactly one of:
+  ACORD
+  Loss Run
+  SOV
+- Do NOT add any explanation or extra words.
+
+Summary: {summary}
+"""
+
+
+    raw = _call_chat_llm(prompt, max_tokens=5, temperature=0.0)
+    doc_type = raw.strip()
+
+    if doc_type.upper() == "ACORD":
+        return "ACORD"
+    if doc_type.lower().startswith("loss"):
+        return "Loss Run"
+    if "SOV" in doc_type.upper():
+        return "SOV"
+
+    # Fallback if the model goes weird
+    return "ACORD"
+
+
+def process_acord(text: str) -> str:
+    """
+    Processes ACORD-type documents using the FIRST PAGE / FULL TEXT.
+    """
+    text = text[:4000]
+
+    prompt = f"""
+You are an experienced commercial insurance underwriter.
+
+You are given the FIRST PAGE TEXT (or full text) of an ACORD-style application
+or submission for a commercial property risk.
+
+Using ONLY this text, write a clear underwriting-friendly narrative.
+
+RULES:
+- Focus on: named insured, address/location, operations, carrier/program,
+  key dates, lines of business, and basic exposure info (revenue, employees)
+  IF they appear in the text.
+- Do NOT invent any data that is not clearly present.
+- Do NOT mention 'first page', 'ACORD', or 'this document'.
+
+STRUCTURE OF YOUR OUTPUT (USE THIS EXACT TEMPLATE):
+
 SUBMISSION SUMMARY  
-Client: Sunflower Hotel Group LLC (dba Cruise Resort)  
-Date: 2026-01-01
+Client: [Client Legal Name]  
+Date: [Submission or Document Date]
 
 1. SUBMISSION COVER LETTER / NARRATIVE  
-Exposure Description:  
-    - Sunflower Hotel Group LLC operates Cruise Resort, a full-service, eight-story resort located at 100 Harbor View Drive, Seabreeze, FL 33101.  
-    - The property comprises 240 guest rooms (including various suite types), three restaurants, two bars, banquet/event spaces, spa, retail, and limited marina services.  
-    - The resort features reinforced concrete and structural steel construction, a built-up membrane roof, and spans 198,240 square feet on a 4.2-acre site with landscaped grounds, two outdoor pools, spa, fitness center, and a private dock.  
-    - Major building systems include a central chilled water HVAC plant (upgraded in 2019), 2,500 kVA electrical service with emergency generator backup, and full wet-pipe sprinkler fire protection.  
-    - Insured values are allocated across buildings, FF&E, public areas, mechanical systems, site improvements, and marina structures.  
-    - Average annual occupancy is 68%, with seasonal peaks from November to April.  
+ Exposure Description:  
+    - [Describe what the business does]  
+    - [Main operations / physical activities]  
+    - [Property details: construction, age, protection, sprinklers, etc.]  
 
-Placement Strategy:  
-    - The submission requests Business Interruption and Contingent Business Interruption coverage, including Extra Expense and Civil Authority where available.  
-    - The broker is seeking feedback on appetite and capacity for BI with Contingent BI, preferred indemnity basis (Gross Revenue vs. Gross Profit), typical waiting period options, and any immediate underwriting requirements.  
+ Placement Strategy:  
+    - [Placement goals or program approach if evident]  
 
-Renewal Highlights:  
-    - Not Present  
+ Renewal Highlights:  
+    - [Notable changes or updates if mentioned]  
 
-Changes YOY:  
-    - Not Present  
+ Changes YOY:  
+    - [Any changes in exposure, values, operations, or loss experience]  
 
-Additional Overview Details:  
-    - Effective Date: 2026-01-01  
-    - Submission Type: New Business  
-    - Current Situation: Not Present  
-
-2. LOSS HISTORY PACKAGE  
-5–10 Year Loss Runs:  
-    - Not Present  
-
-Large Loss Details:  
-    - Not Present  
-
-Trends Analysis:  
-    - Not Present  
-
-Summary of Loss History:  
-    - Status: Not Present  
-    - Summary: Not Present  
-    - Major Incidents: Not Present  
-
-3. EXPOSURE DATA  
-COPE Information (Construction, Occupancy, Protection, Exposure):  
-    - Construction: Reinforced concrete and structural steel, built-up membrane roof  
-    - Occupancy: Resort hotel with guest rooms, restaurants, bars, event spaces, spa, retail, and marina services  
-    - Protection: Full wet-pipe sprinkler fire protection, emergency generator backup  
-    - Exposure: Coastal location in Daytona Beach, Florida; landscaped grounds, pools, spa, fitness center, private dock  
-
-Statement of Values (SOV):  
-    - Total Insurable Value (TIV): $100,000,000  
-    - Building Limit: Not Present  
-    - Contents/BPP Limit: Not Present  
-    - Business Income: $40,000,000 limit requested with 24 months indemnity  
-
-Financials:  
-    - Annual gross revenue: $40,000,000  
-    - Annual payroll: $6,500,000  
-
-CAT Worksheets / Specialty Schedules:  
-    - Not Present  
-
-Additional Exposure Details:  
-    - Total Locations: 1  
-    - Main Operations: Resort hotel with hospitality, food & beverage, event hosting, spa, retail, and marina services  
-    - Property Details: 198,240 square feet, eight stories, built in 2008, partial renovation in 2019, 4.2-acre site  
-    - Deductible Requested: Not Present
-Document Type Identified for 19CDC8AB7BCC5E85_attachment_SunflowerHotels_Submission_Document: SOV
-Processed Summary for 19CDC8AB7BCC5E85_attachment_SunflowerHotels_Submission_Document:
-EXPOSURE DATA  
-
-COPE Information (Construction, Occupancy, Protection, Exposure):  
-   - Eight-story, full-service resort constructed in 2008 with reinforced concrete and structural steel frame, masonry exterior finish, concrete slab-on-grade and reinforced concrete floor decks, built-up membrane roof (partial overlay in 2019). Occupancy includes 240 guest suites, restaurants, bars, banquet/event spaces, spa, fitness center, retail, and limited marina services. Protection includes full wet-pipe sprinkler system and diesel generator for life-safety and essential loads.  
-
-Statement of Values (SOV):  
-   - Total Insurable Value (TIV): $100,000,000  
-   - Building Limit: $85,000,000  
-   - Contents/BPP Limit: $15,000,000  
-   - Business Income: [Not specified]  
-
-Financials:  
-   - [No specific financial information provided]  
-
-CAT Worksheets:  
-   - [No catastrophe/hazard worksheets referenced]  
-
-Specialty Schedules:  
-   - [No special schedules referenced]  
-
-Additional Exposure Details:  
-   - Total Locations: 1  
-   - Main Operations: Full-service resort with accommodation, food & beverage, banquets/events, spa, fitness, retail, and marina guest services  
-   - Property Details: 198,240 sq ft building area on 4.2-acre site with landscaped grounds, two outdoor pools, spa, fitness center, paved driveways, walkways, and private dock (8 guest berths). Major renovation in 2019 (lobby, HVAC, pool decking).  
-   - Deductible Requested: [Not specified]
-
-[{'file_name': '19CDC8AB7BCC5E85_attachment_SunflowerHotels_Submission_Document', 'summary': 'The submission is for Sunflower Hotel Group LLC (dba Cruise Resort), a full-service, eight-story resort located in Daytona Beach, Florida, with a total insured value of $100,000,000 and a primary limit of liability of $6,750,000 on a replacement cost basis. The property, built in 2008 and partially renovated in 2019, features reinforced concrete and structural steel construction, a built-up membrane roof, and spans 198,240 square feet on a 4.2-acre site with landscaped grounds, two outdoor pools, spa, fitness center, and a private dock. Operations include 240 guest rooms (various suite types), three restaurants, two bars, banquet/event spaces, spa, retail, and limited marina services, with an average annual occupancy of 68% and seasonal peaks from November to April. Major building systems include a central chilled water HVAC plant (upgraded in 2019), 2,500 kVA electrical service with emergency generator backup, and full wet-pipe sprinkler fire protection. Insured values are allocated across buildings, FF&E, public areas, mechanical systems, site improvements, and marina structures. The risk is managed by Acme Low Hazard Insurance, with Armstrong and Company as the broker.', 'text': 'Commercial Property - Underwriting\nSubmission Cruise Resort\nBroker Name: Olivia Park\nOrganization Name: Armstrong and Company\nProducer Code: 100-002541\nUnderwriting Company: Acme Low Hazard Insurance\nName And Mailing Address: Sunflower Hotel Group LLC, 100 Harbor View Drive,\nSeabreeze, Daytona Beach, Volusia, FL 32118, USA\nOrganization Type: LLC\n1. Program Structure & Requested\nTerms\nLine of Business: Commercial Property\nTotal Insured Value (TIV):$100,000,000\nEffective Date: 01/01/2026\nExpiration Date: 01/01/2027\nTerm Type: Annual\nLimit of Liability: $6,750,000\nLayer: Primary\nValuation: Replacement Cost\nCoverage Currency: USD\nSettlement Currency: USD\n2. Executive Summary\nProperty Description: The property is an eight-story, full-service resort constructed in\n2008 with a reinforced concrete and structural steel frame and a masonry exterior finish. It\nfeatures concrete slab-on-grade and reinforced concrete floor decks, along with a built-up\nmembrane roofing system that received a partial overlay in 2019. The site spans 4.2 acres\nand includes landscaped areas, two outdoor pools, spa and fitness facilities, paved\ndriveways, walkways, and a private dock with eight guest berths. Mechanical rooms,\nstorage, and service corridors are located in the lower levels, with no guest rooms below\ngrade.\n3. Property Identification\nNamed Insured (Company Name):\nSunflower Hotel Group LLC (dba Cruise\nResort)\nAddress Line 1: 100 Harbor View Drive,\nSeabreeze\nCity: Daytona Beach\nState: Florida\nZip Code: 32118\nCountry: United States\nAddress Type: Business\nProperty Size: 4.2 acres (site area with\nlandscaped grounds, beach access, and\nprivate dock)\nBuilding Area (sq ft): 198240\nYear Constructed: 2008\nClass Code: 0585\nMajor Renovation: 2019 (lobby, HVAC\nreplacement, pool decking)\nNumber of Floors: 8\nNumber of Guest Rooms: 240\nGuest Room Mix: standard suites, one-\nand two-bedroom suites, select executive\nsuites\n4. Property Description & Construction\n· Primary construction: reinforced concrete and structural steel frame with masonry\nexterior finish\n· Floor construction: concrete slab-on-grade and reinforced concrete decks\n· Roof: built-up membrane roof system (2019 partial overlay) with routine maintenance\nprogram\n· Basements/lower levels: mechanical rooms, dry storage, service corridors; no guest\nlodging below grade\n· Site improvements: pool decks, two outdoor pools, spa, fitness center, paved driveways\n& drop-off, landscaped areas, walkways, private dock (8 guest berths)\n· Accessibility: main vehicular access from Harbor View Drive; service drive from Marina\nWay\n5. Occupancy & Operations\n· Primary use: full-service resort: accommodation, F&B, banquet/meeting, spa, fitness,\nretail, limited marina services\n· Revenue drivers: rooms; three restaurants; two bars; banquets/events; spa; marina\nguest fees; retail\n· Average annual occupancy: 68% (rolling 12-month average)\n· Seasonal variation: higher occupancy in high season (Nov-Apr) with peak banquets\nNov-Mar\n6. Insured Values (Summary)\nContents / FF&E: $15,000,000\nBuildings & structural improvements:\n$85,000,000\nTotal Insured Value (TIV):\n$100,000,000\nHigh-level itemization (for underwriting reference):\n· Guest suites & structural improvements: $62,000,000\n· Public areas, lobby, F&B & back-of-house structures: $12,500,000\n· Building services & mechanical systems: $3,500,000\n· Pool, decks, site improvements & landscaping: $2,000,000\n· Dock & marina structures: $1,000,000\n· FF&E (furniture, fixtures & equipment): $12,000,000\n· Misc contents, small tools, operating supplies: $6,000,000\n7. Critical Building Systems\n· HVAC: central chilled water plant; packaged rooftop units for public spaces; major\ncomponents replaced 2019; PM via CMMS\n· Electrical: main service 2,500 kVA; emergency circuits for life-safety; ATS for generator\ntie-in\n· Emergency power: diesel generator supports life-safety, fire pumps, selected essential\nloads and partial POS/IT; weekly test schedule\n· Fire protection: full wet-pipe sprinklers; addressable fire alarm with central station\nmonitoring; on-site fire pump; two hydrants within 100 ft; quarterly & annual test logs\n· Kitchen fire protection: commercial kitchen hood suppression with regular servicing\n· Plumbing: domestic hot water plant and booster pumps; backflow prevention devices\ninstalled\n· Elevators: two passenger elevators; one service elevator; annual inspections and\nmaintenance contracts\n· Life-safety: emergency lighting, illuminated exit signage, ADA egress, posted evacuation\nplans\n8. Security & Monitoring\n· Security staff: 24/7 on-site security team\n· Electronic access: key-card access for guest room floors and restricted staff areas\n· CCTV: integrated digital video surveillance across public areas, front-drive, perimeter\nand service yards; retention policy documented\n· Guest safety measures: pool lifeguard program (seasonal); signage & compliance with\naquatic facility codes\n9. Utilities & Third-party\nDependencies (CBI relevance)\nPower provider: Seabreeze Utilities\nAuthority\nWater & sewer: Seabreeze Water &\nWaste (municipal)\nPrimary ISP / CRS & POS connectivity:\nMaritime Communications Inc. (primary\nISP for booking/PMS/POS)\nRedundant ISP: Redundant ISP vendor\ncontract under review\nLaundry/Linens: Seabreeze Linen Co.\n(off-site)\nF&B suppliers: regional distributors;\nmultiple vendor relationships for key\nitems\nExcursion vendors / marina operators:\nlicensed third-party operators; vendor\nagreements in place\n10. Marina Specifics\n· Dock: fixed dock with eight guest berths; owned & maintained by resort; no on-site\nfueling (adjacent marina for fuel)\n· Marine operations: third-party licensed operators run excursions; hull/boat PD not\nunder property program (vendor responsibility in contracts)\n11. Maintenance, Inspections & Risk Controls\n· Preventive maintenance: CMMS logs for HVAC, kitchen hood, sprinkler, generator\ntesting\n· Life-safety testing: quarterly sprinklers; annual fire pump; monthly fire alarm tests;\nannual full alarm inspection; vendor certificates on file\n· Vendor controls: contractor insurance requirement min $2M GL; certificate\nmanagement process\n· Business continuity: documented BCP & EAP; off-site backups for reservations & guest\nrecords; periodic tabletop exercises with local emergency services\n· Staff training: annual fire/evacuation drills; F&B managers with food safety cert; first-\naid/CPR for supervisors\n12. Recent Loss History (Time-Element & Property)\n· 2024: kitchen exhaust grease fire - smoke damage; limited kitchen closure; BI & partial\nEE paid for 7 days; time-element approx. $250,000.\n· 2022: failed domestic line water intrusion (lower-level storage) - contents damage; BI\n3 days approx. $120,000.\n. 2025 (YTD): pool area slip & fall remediation with temporary closure; minor BI approx.\n$15,000.\nLoss-run reports and claim detail files available on request (attached in submission packet).\n13. Exposures & Underwriting Considerations\n· Time-element sensitivity: reliance on room revenue and banquet/event income; peak-\nseason outages materially impact revenue.\n· Third-party dependency: booking engine/CRS and primary ISP are key contingent BI\nexposures.\n· Marina & vendor risk: dock and excursion vendors introduce potential liability and\nservice interruption considerations.\n· Flood & windstorm: coastal location elevates storm surge and named storm exposure;\nflood zone/elevation certificate review recommended.\n· Utility interruption: municipal power/telecom failures may trigger service interruption\nclaims; redundancy & SLAs relevant.\n17. Broker & Property Contacts\nBroker: Olivia Park - Senior Hospitality\nBroker, Meridian Shoreline Insurance\nPartners\nBroker Email:\nolivia.park@meridianship.com\n18. Underwriter Notes\nNotes:\nFollow-ups:\nPrepared for submission - Cruise Resort\nBroker Phone: +1 (555) 214-7802\nProperty Contact: Marcus Reyes -\nGeneral Manager, Cruise Resort\nProperty Email:\nm.reyes@cruiseresort.com\nProperty Phone: +1 (555) 321-4400', 'document_type': 'SOV', 'processed_summary': 'EXPOSURE DATA  \n\nCOPE Information (Construction, Occupancy, Protection, Exposure):  \n   - Eight-story, full-service resort constructed in 2008 with reinforced concrete and structural steel frame, masonry exterior finish, concrete slab-on-grade and reinforced concrete floor decks, built-up membrane roof (partial overlay in 2019). Occupancy includes 240 guest suites, restaurants, bars, banquet/event spaces, spa, fitness center, retail, and limited marina services. Protection includes full wet-pipe sprinkler system and diesel generator for life-safety and essential loads.  \n\nStatement of Values (SOV):  \n   - Total Insurable Value (TIV): $100,000,000  \n   - Building Limit: $85,000,000  \n   - Contents/BPP Limit: $15,000,000  \n   - Business Income: [Not specified]  \n\nFinancials:  \n   - [No specific financial information provided]  \n\nCAT Worksheets:  \n   - [No catastrophe/hazard worksheets referenced]  \n\nSpecialty Schedules:  \n   - [No special schedules referenced]  \n\nAdditional Exposure Details:  \n   - Total Locations: 1  \n   - Main Operations: Full-service resort with accommodation, food & beverage, banquets/events, spa, fitness, retail, and marina guest services  \n   - Property Details: 198,240 sq ft building area on 4.2-acre site with landscaped grounds, two outdoor pools, spa, fitness center, paved driveways, walkways, and private dock (8 guest berths). Major renovation in 2019 (lobby, HVAC, pool decking).  \n   - Deductible Requested: [Not specified]'}]
-This is beautified for  response :  {'combined_summary': 'SUBMISSION SUMMARY\nClient: Sunflower Hotel Group LLC (dba Cruise Resort)\nDate: 2026-01-01\n\n1. SUBMISSION COVER LETTER / NARRATIVE\nExposure Description:\n- Sunflower Hotel Group LLC operates Cruise Resort, a full-service, eight-story resort located at 100 Harbor View Drive, Seabreeze, FL 33101.\n- The property comprises 240 guest rooms (including various suite types), three restaurants, two bars, banquet/event spaces, spa, retail, and limited marina services.\n- The resort features reinforced concrete and structural steel construction, a built-up membrane roof, and spans 198,240 square feet on a 4.2-acre site with landscaped grounds, two outdoor pools, spa, fitness center, and a private dock.\n- Major building systems include a central chilled water HVAC plant (upgraded in 2019), 2,500 kVA electrical service with emergency generator backup, and full wet-pipe sprinkler fire protection.\n- Insured values are allocated across buildings, FF&E, public areas, mechanical systems, site improvements, and marina structures.\n- Average annual occupancy is 68%, with seasonal peaks from November to April.\n\nPlacement Strategy:\n- The submission requests Business Interruption and Contingent Business Interruption coverage, including Extra Expense and Civil Authority where available.\n- The broker is seeking feedback on appetite and capacity for BI with Contingent BI, preferred indemnity basis (Gross Revenue vs. Gross Profit), typical waiting period options, and any immediate underwriting requirements.\n\nRenewal Highlights:\n- Not Present\n\nChanges YOY:\n- Not Present\n\nAdditional Overview Details:\n- Effective Date: 2026-01-01\n- Submission Type: New Business\n- Current Situation: Not Present\n\n2. LOSS HISTORY PACKAGE\n5â\x80\x9310 Year Loss Runs:\n- Not Present\n\nLarge Loss Details:\n- Not Present\n\nTrends Analysis:\n- Not Present\n\nSummary of Loss History:\n- Status: Not Present\n- Summary: Not Present\n- Major Incidents: Not Present\n\n3. EXPOSURE DATA\nCOPE Information (Construction, Occupancy, Protection, Exposure):\n- Construction: Reinforced concrete and structural steel, built-up membrane roof\n- Occupancy: Resort hotel with guest rooms, restaurants, bars, event spaces, spa, retail, and marina services\n- Protection: Full wet-pipe sprinkler fire protection, emergency generator backup\n- Exposure: Coastal location in Daytona Beach, Florida; landscaped grounds, pools, spa, fitness center, private dock\n\nStatement of Values (SOV):\n- Total Insurable Value (TIV): $100,000,000\n- Building Limit: Not Present\n- Contents/BPP Limit: Not Present\n- Business Income: $40,000,000 limit requested with 24 months indemnity\n\nFinancials:\n- Annual gross revenue: $40,000,000\n- Annual payroll: $6,500,000\n\nCAT Worksheets / Specialty Schedules:\n- Not Present\n\nAdditional Exposure Details:\n- Total Locations: 1\n- Main Operations: Resort hotel with hospitality, food & beverage, event hosting, spa, retail, and marina services\n- Property Details: 198,240 square feet, eight stories, built in 2008, partial renovation in 2019, 4.2-acre site\n- Deductible Requested: Not Present', 'individualized_summary': [{'file_name': '19CDC8AB7BCC5E85_attachment_SunflowerHotels_Submission_Document', 'summary': 'The submission is for Sunflower Hotel Group LLC (dba Cruise Resort), a full-service, eight-story resort located in Daytona Beach, Florida, with a total insured value of $100,000,000 and a primary limit of liability of $6,750,000 on a replacement cost basis. The property, built in 2008 and partially renovated in 2019, features reinforced concrete and structural steel construction, a built-up membrane roof, and spans 198,240 square feet on a 4.2-acre site with landscaped grounds, two outdoor pools, spa, fitness center, and a private dock. Operations include 240 guest rooms (various suite types), three restaurants, two bars, banquet/event spaces, spa, retail, and limited marina services, with an average annual occupancy of 68% and seasonal peaks from November to April. Major building systems include a central chilled water HVAC plant (upgraded in 2019), 2,500 kVA electrical service with emergency generator backup, and full wet-pipe sprinkler fire protection. Insured values are allocated across buildings, FF&E, public areas, mechanical systems, site improvements, and marina structures. The risk is managed by Acme Low Hazard Insurance, with Armstrong and Company as the broker.', 'document_type': 'SOV', 'processed_summary': 'EXPOSURE DATA\n\nCOPE Information (Construction, Occupancy, Protection, Exposure):\n- Eight-story, full-service resort constructed in 2008 with reinforced concrete and structural steel frame, masonry exterior finish, concrete slab-on-grade and reinforced concrete floor decks, built-up membrane roof (partial overlay in 2019). Occupancy includes 240 guest suites, restaurants, bars, banquet/event spaces, spa, fitness center, retail, and limited marina services. Protection includes full wet-pipe sprinkler system and diesel generator for life-safety and essential loads.\n\nStatement of Values (SOV):\n- Total Insurable Value (TIV): $100,000,000\n- Building Limit: $85,000,000\n- Contents/BPP Limit: $15,000,000\n- Business Income: [Not specified]\n\nFinancials:\n- [No specific financial information provided]\n\nCAT Worksheets:\n- [No catastrophe/hazard worksheets referenced]\n\nSpecialty Schedules:\n- [No special schedules referenced]\n\nAdditional Exposure Details:\n- Total Locations: 1\n- Main Operations: Full-service resort with accommodation, food & beverage, banquets/events, spa, fitness, retail, and marina guest services\n- Property Details: 198,240 sq ft building area on 4.2-acre site with landscaped grounds, two outdoor pools, spa, fitness center, paved driveways, walkways, and private dock (8 guest berths). Major renovation in 2019 (lobby, HVAC, pool decking).\n- Deductible Requested: [Not specified]'}]}
-Blob Data Processed Successfully.
-Error: Unable to parse blob URL: too many values to unpack (expected 2)
-INFO:     127.0.0.1:44024 - "POST /api/v1/summary_agent/attachment_summary_mcp HTTP/1.1" 200 OK
+ Additional Overview Details:  
+    - Effective Date: [Coverage start date]  
+    - Submission Type: [Renewal / New Business / Other]  
+    - Current Situation: [Reason for submission if stated]  
 
 
 
-(venv) Jarvis@JarvisPhase2:~/Musaddique/Ultimate_summary_pract_Excel$ python3 test_script.py 
-Testing /api/v1/summary_agent/attachment_summary_mcp ...
-Calling endpoint: http://localhost:8602/api/v1/summary_agent/attachment_summary_mcp
-Request payload:
-{
-  "attachment_urls": [
-    "https://agenticai1.blob.core.windows.net/attachment-downloader/19CDC8AB7BCC5E85_attachment_SunflowerHotels_Submission_Document.pdf"
-  ]
-}
-
-HTTP Status: 200
-
-Response JSON:
-{
-    "jsonrpc": "2.0",
-    "id": 1,
-    "result": {
-        "combined_summary": "SUBMISSION SUMMARY\nClient: Sunflower Hotel Group LLC (dba Cruise Resort)\nDate: 2026-01-01\n\n1. SUBMISSION COVER LETTER / NARRATIVE\nExposure Description:\n- Sunflower Hotel Group LLC operates Cruise Resort, a full-service, eight-story resort located at 100 Harbor View Drive, Seabreeze, FL 33101.\n- The property comprises 240 guest rooms (including various suite types), three restaurants, two bars, banquet/event spaces, spa, retail, and limited marina services.\n- The resort features reinforced concrete and structural steel construction, a built-up membrane roof, and spans 198,240 square feet on a 4.2-acre site with landscaped grounds, two outdoor pools, spa, fitness center, and a private dock.\n- Major building systems include a central chilled water HVAC plant (upgraded in 2019), 2,500 kVA electrical service with emergency generator backup, and full wet-pipe sprinkler fire protection.\n- Insured values are allocated across buildings, FF&E, public areas, mechanical systems, site improvements, and marina structures.\n- Average annual occupancy is 68%, with seasonal peaks from November to April.\n\nPlacement Strategy:\n- The submission requests Business Interruption and Contingent Business Interruption coverage, including Extra Expense and Civil Authority where available.\n- The broker is seeking feedback on appetite and capacity for BI with Contingent BI, preferred indemnity basis (Gross Revenue vs. Gross Profit), typical waiting period options, and any immediate underwriting requirements.\n\nRenewal Highlights:\n- Not Present\n\nChanges YOY:\n- Not Present\n\nAdditional Overview Details:\n- Effective Date: 2026-01-01\n- Submission Type: New Business\n- Current Situation: Not Present\n\n2. LOSS HISTORY PACKAGE\n5\u00e2\u0080\u009310 Year Loss Runs:\n- Not Present\n\nLarge Loss Details:\n- Not Present\n\nTrends Analysis:\n- Not Present\n\nSummary of Loss History:\n- Status: Not Present\n- Summary: Not Present\n- Major Incidents: Not Present\n\n3. EXPOSURE DATA\nCOPE Information (Construction, Occupancy, Protection, Exposure):\n- Construction: Reinforced concrete and structural steel, built-up membrane roof\n- Occupancy: Resort hotel with guest rooms, restaurants, bars, event spaces, spa, retail, and marina services\n- Protection: Full wet-pipe sprinkler fire protection, emergency generator backup\n- Exposure: Coastal location in Daytona Beach, Florida; landscaped grounds, pools, spa, fitness center, private dock\n\nStatement of Values (SOV):\n- Total Insurable Value (TIV): $100,000,000\n- Building Limit: Not Present\n- Contents/BPP Limit: Not Present\n- Business Income: $40,000,000 limit requested with 24 months indemnity\n\nFinancials:\n- Annual gross revenue: $40,000,000\n- Annual payroll: $6,500,000\n\nCAT Worksheets / Specialty Schedules:\n- Not Present\n\nAdditional Exposure Details:\n- Total Locations: 1\n- Main Operations: Resort hotel with hospitality, food & beverage, event hosting, spa, retail, and marina services\n- Property Details: 198,240 square feet, eight stories, built in 2008, partial renovation in 2019, 4.2-acre site\n- Deductible Requested: Not Present",
-        "individualized_summary": [
-            {
-                "file_name": "19CDC8AB7BCC5E85_attachment_SunflowerHotels_Submission_Document",
-                "summary": "The submission is for Sunflower Hotel Group LLC (dba Cruise Resort), a full-service, eight-story resort located in Daytona Beach, Florida, with a total insured value of $100,000,000 and a primary limit of liability of $6,750,000 on a replacement cost basis. The property, built in 2008 and partially renovated in 2019, features reinforced concrete and structural steel construction, a built-up membrane roof, and spans 198,240 square feet on a 4.2-acre site with landscaped grounds, two outdoor pools, spa, fitness center, and a private dock. Operations include 240 guest rooms (various suite types), three restaurants, two bars, banquet/event spaces, spa, retail, and limited marina services, with an average annual occupancy of 68% and seasonal peaks from November to April. Major building systems include a central chilled water HVAC plant (upgraded in 2019), 2,500 kVA electrical service with emergency generator backup, and full wet-pipe sprinkler fire protection. Insured values are allocated across buildings, FF&E, public areas, mechanical systems, site improvements, and marina structures. The risk is managed by Acme Low Hazard Insurance, with Armstrong and Company as the broker.",
-                "document_type": "SOV",
-                "processed_summary": "EXPOSURE DATA\n\nCOPE Information (Construction, Occupancy, Protection, Exposure):\n- Eight-story, full-service resort constructed in 2008 with reinforced concrete and structural steel frame, masonry exterior finish, concrete slab-on-grade and reinforced concrete floor decks, built-up membrane roof (partial overlay in 2019). Occupancy includes 240 guest suites, restaurants, bars, banquet/event spaces, spa, fitness center, retail, and limited marina services. Protection includes full wet-pipe sprinkler system and diesel generator for life-safety and essential loads.\n\nStatement of Values (SOV):\n- Total Insurable Value (TIV): $100,000,000\n- Building Limit: $85,000,000\n- Contents/BPP Limit: $15,000,000\n- Business Income: [Not specified]\n\nFinancials:\n- [No specific financial information provided]\n\nCAT Worksheets:\n- [No catastrophe/hazard worksheets referenced]\n\nSpecialty Schedules:\n- [No special schedules referenced]\n\nAdditional Exposure Details:\n- Total Locations: 1\n- Main Operations: Full-service resort with accommodation, food & beverage, banquets/events, spa, fitness, retail, and marina guest services\n- Property Details: 198,240 sq ft building area on 4.2-acre site with landscaped grounds, two outdoor pools, spa, fitness center, paved driveways, walkways, and private dock (8 guest berths). Major renovation in 2019 (lobby, HVAC, pool decking).\n- Deductible Requested: [Not specified]"
-            }
-        ]
-    }
-}
-(venv) Jarvis@JarvisPhase2:~/Musaddique/Ultimate_summary_pract_Excel$ 
+DOCUMENT TEXT:
+\"\"\" 
+{text}
+\"\"\"
+"""
+    return _call_chat_llm(prompt)
 
 
+def process_loss_run(text: str) -> str:
+    """
+    Processes Loss Run-type documents using the FIRST PAGE / FULL TEXT.
+    """
+    text = text[:4000]
 
-this si layout_summaries_result.json
-{
-  "status": true,
-  "summaries": [
-    {
-      "blob_url": "https://agenticai1.blob.core.windows.net/attachment-downloader/19CDC8AB7BCC5E85_attachment_SunflowerHotels_Submission_Document.pdf",
-      "file_name": "19CDC8AB7BCC5E85_attachment_SunflowerHotels_Submission_Document",
-      "reference_number": "19CDC8AB7BCC5E85",
-      "summary": "The submission is for Sunflower Hotel Group LLC (dba Cruise Resort), a full-service, eight-story resort located in Daytona Beach, Florida, with a total insured value of $100,000,000 and a primary limit of liability of $6,750,000 on a replacement cost basis. The property, built in 2008 and partially renovated in 2019, features reinforced concrete and structural steel construction, a built-up membrane roof, and spans 198,240 square feet on a 4.2-acre site with landscaped grounds, two outdoor pools, spa, fitness center, and a private dock. Operations include 240 guest rooms (various suite types), three restaurants, two bars, banquet/event spaces, spa, retail, and limited marina services, with an average annual occupancy of 68% and seasonal peaks from November to April. Major building systems include a central chilled water HVAC plant (upgraded in 2019), 2,500 kVA electrical service with emergency generator backup, and full wet-pipe sprinkler fire protection. Insured values are allocated across buildings, FF&E, public areas, mechanical systems, site improvements, and marina structures. The risk is managed by Acme Low Hazard Insurance, with Armstrong and Company as the broker.",
-      "text": "Commercial Property - Underwriting\nSubmission Cruise Resort\nBroker Name: Olivia Park\nOrganization Name: Armstrong and Company\nProducer Code: 100-002541\nUnderwriting Company: Acme Low Hazard Insurance\nName And Mailing Address: Sunflower Hotel Group LLC, 100 Harbor View Drive,\nSeabreeze, Daytona Beach, Volusia, FL 32118, USA\nOrganization Type: LLC\n1. Program Structure & Requested\nTerms\nLine of Business: Commercial Property\nTotal Insured Value (TIV):$100,000,000\nEffective Date: 01/01/2026\nExpiration Date: 01/01/2027\nTerm Type: Annual\nLimit of Liability: $6,750,000\nLayer: Primary\nValuation: Replacement Cost\nCoverage Currency: USD\nSettlement Currency: USD\n2. Executive Summary\nProperty Description: The property is an eight-story, full-service resort constructed in\n2008 with a reinforced concrete and structural steel frame and a masonry exterior finish. It\nfeatures concrete slab-on-grade and reinforced concrete floor decks, along with a built-up\nmembrane roofing system that received a partial overlay in 2019. The site spans 4.2 acres\nand includes landscaped areas, two outdoor pools, spa and fitness facilities, paved\ndriveways, walkways, and a private dock with eight guest berths. Mechanical rooms,\nstorage, and service corridors are located in the lower levels, with no guest rooms below\ngrade.\n3. Property Identification\nNamed Insured (Company Name):\nSunflower Hotel Group LLC (dba Cruise\nResort)\nAddress Line 1: 100 Harbor View Drive,\nSeabreeze\nCity: Daytona Beach\nState: Florida\nZip Code: 32118\nCountry: United States\nAddress Type: Business\nProperty Size: 4.2 acres (site area with\nlandscaped grounds, beach access, and\nprivate dock)\nBuilding Area (sq ft): 198240\nYear Constructed: 2008\nClass Code: 0585\nMajor Renovation: 2019 (lobby, HVAC\nreplacement, pool decking)\nNumber of Floors: 8\nNumber of Guest Rooms: 240\nGuest Room Mix: standard suites, one-\nand two-bedroom suites, select executive\nsuites\n4. Property Description & Construction\n· Primary construction: reinforced concrete and structural steel frame with masonry\nexterior finish\n· Floor construction: concrete slab-on-grade and reinforced concrete decks\n· Roof: built-up membrane roof system (2019 partial overlay) with routine maintenance\nprogram\n· Basements/lower levels: mechanical rooms, dry storage, service corridors; no guest\nlodging below grade\n· Site improvements: pool decks, two outdoor pools, spa, fitness center, paved driveways\n& drop-off, landscaped areas, walkways, private dock (8 guest berths)\n· Accessibility: main vehicular access from Harbor View Drive; service drive from Marina\nWay\n5. Occupancy & Operations\n· Primary use: full-service resort: accommodation, F&B, banquet/meeting, spa, fitness,\nretail, limited marina services\n· Revenue drivers: rooms; three restaurants; two bars; banquets/events; spa; marina\nguest fees; retail\n· Average annual occupancy: 68% (rolling 12-month average)\n· Seasonal variation: higher occupancy in high season (Nov-Apr) with peak banquets\nNov-Mar\n6. Insured Values (Summary)\nContents / FF&E: $15,000,000\nBuildings & structural improvements:\n$85,000,000\nTotal Insured Value (TIV):\n$100,000,000\nHigh-level itemization (for underwriting reference):\n· Guest suites & structural improvements: $62,000,000\n· Public areas, lobby, F&B & back-of-house structures: $12,500,000\n· Building services & mechanical systems: $3,500,000\n· Pool, decks, site improvements & landscaping: $2,000,000\n· Dock & marina structures: $1,000,000\n· FF&E (furniture, fixtures & equipment): $12,000,000\n· Misc contents, small tools, operating supplies: $6,000,000\n7. Critical Building Systems\n· HVAC: central chilled water plant; packaged rooftop units for public spaces; major\ncomponents replaced 2019; PM via CMMS\n· Electrical: main service 2,500 kVA; emergency circuits for life-safety; ATS for generator\ntie-in\n· Emergency power: diesel generator supports life-safety, fire pumps, selected essential\nloads and partial POS/IT; weekly test schedule\n· Fire protection: full wet-pipe sprinklers; addressable fire alarm with central station\nmonitoring; on-site fire pump; two hydrants within 100 ft; quarterly & annual test logs\n· Kitchen fire protection: commercial kitchen hood suppression with regular servicing\n· Plumbing: domestic hot water plant and booster pumps; backflow prevention devices\ninstalled\n· Elevators: two passenger elevators; one service elevator; annual inspections and\nmaintenance contracts\n· Life-safety: emergency lighting, illuminated exit signage, ADA egress, posted evacuation\nplans\n8. Security & Monitoring\n· Security staff: 24/7 on-site security team\n· Electronic access: key-card access for guest room floors and restricted staff areas\n· CCTV: integrated digital video surveillance across public areas, front-drive, perimeter\nand service yards; retention policy documented\n· Guest safety measures: pool lifeguard program (seasonal); signage & compliance with\naquatic facility codes\n9. Utilities & Third-party\nDependencies (CBI relevance)\nPower provider: Seabreeze Utilities\nAuthority\nWater & sewer: Seabreeze Water &\nWaste (municipal)\nPrimary ISP / CRS & POS connectivity:\nMaritime Communications Inc. (primary\nISP for booking/PMS/POS)\nRedundant ISP: Redundant ISP vendor\ncontract under review\nLaundry/Linens: Seabreeze Linen Co.\n(off-site)\nF&B suppliers: regional distributors;\nmultiple vendor relationships for key\nitems\nExcursion vendors / marina operators:\nlicensed third-party operators; vendor\nagreements in place\n10. Marina Specifics\n· Dock: fixed dock with eight guest berths; owned & maintained by resort; no on-site\nfueling (adjacent marina for fuel)\n· Marine operations: third-party licensed operators run excursions; hull/boat PD not\nunder property program (vendor responsibility in contracts)\n11. Maintenance, Inspections & Risk Controls\n· Preventive maintenance: CMMS logs for HVAC, kitchen hood, sprinkler, generator\ntesting\n· Life-safety testing: quarterly sprinklers; annual fire pump; monthly fire alarm tests;\nannual full alarm inspection; vendor certificates on file\n· Vendor controls: contractor insurance requirement min $2M GL; certificate\nmanagement process\n· Business continuity: documented BCP & EAP; off-site backups for reservations & guest\nrecords; periodic tabletop exercises with local emergency services\n· Staff training: annual fire/evacuation drills; F&B managers with food safety cert; first-\naid/CPR for supervisors\n12. Recent Loss History (Time-Element & Property)\n· 2024: kitchen exhaust grease fire - smoke damage; limited kitchen closure; BI & partial\nEE paid for 7 days; time-element approx. $250,000.\n· 2022: failed domestic line water intrusion (lower-level storage) - contents damage; BI\n3 days approx. $120,000.\n. 2025 (YTD): pool area slip & fall remediation with temporary closure; minor BI approx.\n$15,000.\nLoss-run reports and claim detail files available on request (attached in submission packet).\n13. Exposures & Underwriting Considerations\n· Time-element sensitivity: reliance on room revenue and banquet/event income; peak-\nseason outages materially impact revenue.\n· Third-party dependency: booking engine/CRS and primary ISP are key contingent BI\nexposures.\n· Marina & vendor risk: dock and excursion vendors introduce potential liability and\nservice interruption considerations.\n· Flood & windstorm: coastal location elevates storm surge and named storm exposure;\nflood zone/elevation certificate review recommended.\n· Utility interruption: municipal power/telecom failures may trigger service interruption\nclaims; redundancy & SLAs relevant.\n17. Broker & Property Contacts\nBroker: Olivia Park - Senior Hospitality\nBroker, Meridian Shoreline Insurance\nPartners\nBroker Email:\nolivia.park@meridianship.com\n18. Underwriter Notes\nNotes:\nFollow-ups:\nPrepared for submission - Cruise Resort\nBroker Phone: +1 (555) 214-7802\nProperty Contact: Marcus Reyes -\nGeneral Manager, Cruise Resort\nProperty Email:\nm.reyes@cruiseresort.com\nProperty Phone: +1 (555) 321-4400",
-      "error": null
-    }
-  ]
-}
+    prompt = f"""
+You are an experienced commercial insurance underwriter.
+
+You are given the FIRST PAGE TEXT (or full text) of a loss run / loss history document.
+
+Using ONLY this text, write a concise loss history summary.
+
+RULES:
+- Focus on: number of claims, type of losses (water, fire, wind, etc.),
+  total paid / incurred / reserved (if mentioned), coverage period, and
+  whether any large or open claims exist.
+- Comment briefly on frequency and severity based ONLY on the text.
+- Do NOT invent any new numbers or claims.
+- Do NOT mention 'loss run', 'this page', or 'this summary'.
+
+STRUCTURE OF YOUR OUTPUT (USE THIS EXACT TEMPLATE):
+
+LOSS HISTORY PACKAGE  
+ 5–10 Year Loss Runs:  
+    - [Summarize multi-year loss experience if available]  
+
+ Large Loss Details:  
+    - [Brief details on significant claims]  
+
+ Trends Analysis:  
+    - [Patterns in frequency/severity if evident]  
+
+ Summary of Loss History:  
+    - Status: [Clean / Losses Reported]  
+    - Summary: [1-sentence overview]  
+    - Major Incidents: [Largest incident if present] 
+
+DOCUMENT TEXT:
+\"\"\" 
+{text}
+\"\"\"
+"""
+    return _call_chat_llm(prompt)
+
+
+def process_sov(text: str) -> str:
+    """
+    Processes SOV-type documents using the FIRST PAGE / FULL TEXT.
+    """
+    text = text[:4000]
+
+    prompt = f"""
+You are an experienced commercial property underwriter.
+
+You are given the FIRST PAGE TEXT (or full text) of a Statement of Values (SOV)
+or similar property schedule.
+
+Using ONLY this text, write a concise property exposure summary.
+
+RULES:
+- Focus on: named insured, main location(s), total property values, valuation basis
+  (e.g. ACV or replacement cost), coinsurance, covered perils, and any major exclusions
+  IF they appear in the text.
+- Do NOT invent any extra locations, values, or terms.
+- Do NOT mention 'SOV', 'schedule', or 'this document'.
+
+STRUCTURE OF YOUR OUTPUT (USE THIS EXACT TEMPLATE):
+
+ EXPOSURE DATA  
+
+ COPE Information (Construction, Occupancy, Protection, Exposure):  
+    - [Building info, occupancy, protection systems]  
+
+ Statement of Values (SOV):  
+    - Total Insurable Value (TIV): $[Insert]  
+    - Building Limit: $[Insert]  
+    - Contents/BPP Limit: $[Insert]  
+    - Business Income: $[Insert]  
+
+ Financials:  
+    - [Any financial information if mentioned]  
+
+ CAT Worksheets:  
+    - [If any catastrophe/hazard info appears]  
+
+ Specialty Schedules:  
+    - [Any special schedules referenced]  
+
+ Additional Exposure Details:  
+    - Total Locations: [Insert]  
+    - Main Operations: [Insert]  
+    - Property Details: [Insert]  
+    - Deductible Requested: $[Insert]  
+
+
+
+DOCUMENT TEXT:
+\"\"\" 
+{text}
+\"\"\"
+"""
+    return _call_chat_llm(prompt)
+
+
+
+
+def individual_summary(attachments: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    attachments = list of dicts like:
+    [
+      {"file_name": "...pdf", "summary": "short summary", "text": "full text"},
+      ...
+    ]
+
+    For each:
+      - detect type using file_name + summary
+      - call corresponding processor using TEXT
+      - add 'document_type' and 'processed_summary'
+    """
+    for attachment in attachments:
+        file_name = attachment.get("file_name", "")
+        summary = attachment.get("summary", "")
+        text = attachment.get("text", "")
+
+        document_type = identify_document_type(file_name, summary)
+        print(f"Document Type Identified for {file_name}: {document_type}")
+
+        if document_type == "ACORD":
+            processed_summary = process_acord(text)
+        elif document_type == "Loss Run":
+            processed_summary = process_loss_run(text)
+        elif document_type == "SOV":
+            processed_summary = process_sov(text)
+        else:
+            processed_summary = "Unknown document type. Unable to process."
+
+        attachment["document_type"] = document_type
+        attachment["processed_summary"] = processed_summary
+
+        print(f"Processed Summary for {file_name}:\n{processed_summary}\n")
+
+    return attachments
