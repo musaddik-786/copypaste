@@ -1,12 +1,8 @@
-Now in separate summary .py, i have been told to have only 1 prompt no matter what the document type is and the prompt should be in sucha way that it should give a proper professional summary with heading bulled points etc
-
-
 from dotenv import load_dotenv
 import os
 from typing import List, Dict, Any
-from openai import AzureOpenAI  # Correct import for Azure OpenAI
+from openai import AzureOpenAI
 
-# Load environment variables
 load_dotenv()
 
 AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
@@ -20,13 +16,8 @@ if not (
     and AZURE_OPENAI_API_KEY
     and AZURE_OPENAI_CHAT_DEPLOYMENT
 ):
-    raise RuntimeError(
-        "Azure OpenAI env vars missing. Please set "
-        "AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_API_VERSION, "
-        "AZURE_OPENAI_API_KEY and AZURE_OPENAI_CHAT_DEPLOYMENT"
-    )
+    raise RuntimeError("Azure OpenAI env vars missing.")
 
-# Create Azure OpenAI client
 client = AzureOpenAI(
     api_key=AZURE_OPENAI_API_KEY,
     api_version=AZURE_OPENAI_API_VERSION,
@@ -34,280 +25,112 @@ client = AzureOpenAI(
 )
 
 
-def _call_chat_llm(prompt: str, max_tokens: int = 512, temperature: float = 0.2) -> str:
+def _call_chat_llm(prompt: str, max_tokens: int = 700, temperature: float = 0.2):
+
     response = client.chat.completions.create(
         model=AZURE_OPENAI_CHAT_DEPLOYMENT,
         messages=[{"role": "user", "content": prompt}],
         max_tokens=max_tokens,
         temperature=temperature,
     )
+
     return response.choices[0].message.content.strip()
 
 
-# def identify_document_type(file_name: str, summary: str) -> str:
-#     """
-#     Identifies the document type based on the file name and SUMMARY.
-#     Returns one of: 'ACORD', 'Loss Run', 'SOV'.
-#     """
-#     prompt = f"""
-# You are classifying a commercial insurance document.
+def generate_professional_summary(text: str):
 
-# Possible types:
-# - ACORD    (application / submission form)
-# - Loss Run (loss history / claims listing)
-# - SOV      (statement of values / property schedule)
-
-# Read the file name and the short underwriting summary and choose EXACTLY ONE type.
-
-# IMPORTANT:
-# - Your ENTIRE response must be exactly one of:
-#   ACORD
-#   Loss Run
-#   SOV
-# - Do NOT add any explanation or extra words.
-
-# File Name: {file_name}
-# Summary: {summary}
-# """
-
-
-def identify_document_type(file_name: str, summary: str) -> str:
-    """
-    Identifies the document type based on the SUMMARY.
-    Returns one of: 'ACORD', 'Loss Run', 'SOV'.
-    """
-    prompt = f"""
-You are classifying a commercial insurance document.
-
-Possible types:
-- ACORD    (application / submission form)
-- Loss Run (loss history / claims listing)
-- SOV      (statement of values / property schedule)
-
-Read short underwriting summary and choose EXACTLY ONE type.
-
-IMPORTANT:
-- Your ENTIRE response must be exactly one of:
-  ACORD
-  Loss Run
-  SOV
-- Do NOT add any explanation or extra words.
-
-Summary: {summary}
-"""
-
-
-    raw = _call_chat_llm(prompt, max_tokens=5, temperature=0.0)
-    doc_type = raw.strip()
-
-    if doc_type.upper() == "ACORD":
-        return "ACORD"
-    if doc_type.lower().startswith("loss"):
-        return "Loss Run"
-    if "SOV" in doc_type.upper():
-        return "SOV"
-
-    # Fallback if the model goes weird
-    return "ACORD"
-
-
-def process_acord(text: str) -> str:
-    """
-    Processes ACORD-type documents using the FIRST PAGE / FULL TEXT.
-    """
-    text = text[:4000]
+    text = text[:5000]
 
     prompt = f"""
-You are an experienced commercial insurance underwriter.
+You are a Senior Commercial Insurance Underwriter.
 
-You are given the FIRST PAGE TEXT (or full text) of an ACORD-style application
-or submission for a commercial property risk.
+You are given raw document text from an insurance submission.
 
-Using ONLY this text, write a clear underwriting-friendly narrative.
+Your task is to generate a PROFESSIONAL underwriting summary.
 
-RULES:
-- Focus on: named insured, address/location, operations, carrier/program,
-  key dates, lines of business, and basic exposure info (revenue, employees)
-  IF they appear in the text.
-- Do NOT invent any data that is not clearly present.
-- Do NOT mention 'first page', 'ACORD', or 'this document'.
+STRICT RULES:
 
-STRUCTURE OF YOUR OUTPUT (USE THIS EXACT TEMPLATE):
+• Use ONLY information present in the document
+• Do NOT hallucinate
+• Do NOT guess values
+• If information missing write "Not Present"
+• Keep professional underwriting tone
+• Use headings
+• Use bullet points
+• Keep structure clean
+• Focus only on underwriting relevant information
+• Do NOT mention document type
+• Do NOT mention source text
+• Do NOT explain what you are doing
 
-SUBMISSION SUMMARY  
-Client: [Client Legal Name]  
-Date: [Submission or Document Date]
+OUTPUT FORMAT:
 
-1. SUBMISSION COVER LETTER / NARRATIVE  
- Exposure Description:  
-    - [Describe what the business does]  
-    - [Main operations / physical activities]  
-    - [Property details: construction, age, protection, sprinklers, etc.]  
+DOCUMENT SUMMARY
 
- Placement Strategy:  
-    - [Placement goals or program approach if evident]  
+INSURED DETAILS
+• Named Insured:
+• Address:
+• Business Type:
+• Operations:
 
- Renewal Highlights:  
-    - [Notable changes or updates if mentioned]  
+PROPERTY DETAILS
+• Number of Locations:
+• Construction:
+• Year Built:
+• Square Footage:
+• Occupancy:
+• Protection Systems:
 
- Changes YOY:  
-    - [Any changes in exposure, values, operations, or loss experience]  
+COVERAGE DETAILS
+• Line of Business:
+• Effective Date:
+• Expiry Date:
+• Limits:
+• Valuation:
 
- Additional Overview Details:  
-    - Effective Date: [Coverage start date]  
-    - Submission Type: [Renewal / New Business / Other]  
-    - Current Situation: [Reason for submission if stated]  
+FINANCIAL DETAILS
+• Total Insured Value:
+• Revenue:
+• Payroll:
+• Business Income:
 
+LOSS DETAILS
+• Loss History:
+• Major Losses:
+• Trends:
 
+RISK CONSIDERATIONS
+• Key Exposures:
+• CAT Exposure:
+• Dependencies:
+
+UNDERWRITER NOTES
+• Key observations
+• Risk quality indicators
+• Important underwriting considerations
 
 DOCUMENT TEXT:
-\"\"\" 
+\"\"\"
 {text}
 \"\"\"
 """
+
     return _call_chat_llm(prompt)
 
 
-def process_loss_run(text: str) -> str:
-    """
-    Processes Loss Run-type documents using the FIRST PAGE / FULL TEXT.
-    """
-    text = text[:4000]
+def individual_summary(attachments: List[Dict[str, Any]]):
 
-    prompt = f"""
-You are an experienced commercial insurance underwriter.
-
-You are given the FIRST PAGE TEXT (or full text) of a loss run / loss history document.
-
-Using ONLY this text, write a concise loss history summary.
-
-RULES:
-- Focus on: number of claims, type of losses (water, fire, wind, etc.),
-  total paid / incurred / reserved (if mentioned), coverage period, and
-  whether any large or open claims exist.
-- Comment briefly on frequency and severity based ONLY on the text.
-- Do NOT invent any new numbers or claims.
-- Do NOT mention 'loss run', 'this page', or 'this summary'.
-
-STRUCTURE OF YOUR OUTPUT (USE THIS EXACT TEMPLATE):
-
-LOSS HISTORY PACKAGE  
- 5–10 Year Loss Runs:  
-    - [Summarize multi-year loss experience if available]  
-
- Large Loss Details:  
-    - [Brief details on significant claims]  
-
- Trends Analysis:  
-    - [Patterns in frequency/severity if evident]  
-
- Summary of Loss History:  
-    - Status: [Clean / Losses Reported]  
-    - Summary: [1-sentence overview]  
-    - Major Incidents: [Largest incident if present] 
-
-DOCUMENT TEXT:
-\"\"\" 
-{text}
-\"\"\"
-"""
-    return _call_chat_llm(prompt)
-
-
-def process_sov(text: str) -> str:
-    """
-    Processes SOV-type documents using the FIRST PAGE / FULL TEXT.
-    """
-    text = text[:4000]
-
-    prompt = f"""
-You are an experienced commercial property underwriter.
-
-You are given the FIRST PAGE TEXT (or full text) of a Statement of Values (SOV)
-or similar property schedule.
-
-Using ONLY this text, write a concise property exposure summary.
-
-RULES:
-- Focus on: named insured, main location(s), total property values, valuation basis
-  (e.g. ACV or replacement cost), coinsurance, covered perils, and any major exclusions
-  IF they appear in the text.
-- Do NOT invent any extra locations, values, or terms.
-- Do NOT mention 'SOV', 'schedule', or 'this document'.
-
-STRUCTURE OF YOUR OUTPUT (USE THIS EXACT TEMPLATE):
-
- EXPOSURE DATA  
-
- COPE Information (Construction, Occupancy, Protection, Exposure):  
-    - [Building info, occupancy, protection systems]  
-
- Statement of Values (SOV):  
-    - Total Insurable Value (TIV): $[Insert]  
-    - Building Limit: $[Insert]  
-    - Contents/BPP Limit: $[Insert]  
-    - Business Income: $[Insert]  
-
- Financials:  
-    - [Any financial information if mentioned]  
-
- CAT Worksheets:  
-    - [If any catastrophe/hazard info appears]  
-
- Specialty Schedules:  
-    - [Any special schedules referenced]  
-
- Additional Exposure Details:  
-    - Total Locations: [Insert]  
-    - Main Operations: [Insert]  
-    - Property Details: [Insert]  
-    - Deductible Requested: $[Insert]  
-
-
-
-DOCUMENT TEXT:
-\"\"\" 
-{text}
-\"\"\"
-"""
-    return _call_chat_llm(prompt)
-
-
-
-
-def individual_summary(attachments: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """
-    attachments = list of dicts like:
-    [
-      {"file_name": "...pdf", "summary": "short summary", "text": "full text"},
-      ...
-    ]
-
-    For each:
-      - detect type using file_name + summary
-      - call corresponding processor using TEXT
-      - add 'document_type' and 'processed_summary'
-    """
     for attachment in attachments:
-        file_name = attachment.get("file_name", "")
-        summary = attachment.get("summary", "")
-        text = attachment.get("text", "")
 
-        document_type = identify_document_type(file_name, summary)
-        print(f"Document Type Identified for {file_name}: {document_type}")
+        file_name = attachment.get("file_name","")
+        text = attachment.get("text","")
 
-        if document_type == "ACORD":
-            processed_summary = process_acord(text)
-        elif document_type == "Loss Run":
-            processed_summary = process_loss_run(text)
-        elif document_type == "SOV":
-            processed_summary = process_sov(text)
-        else:
-            processed_summary = "Unknown document type. Unable to process."
+        print(f"Processing summary for {file_name}")
 
-        attachment["document_type"] = document_type
+        processed_summary = generate_professional_summary(text)
+
         attachment["processed_summary"] = processed_summary
 
-        print(f"Processed Summary for {file_name}:\n{processed_summary}\n")
+        print(f"Processed Summary completed for {file_name}")
 
     return attachments
