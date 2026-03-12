@@ -1,136 +1,73 @@
-from dotenv import load_dotenv
-import os
-from typing import List, Dict, Any
-from openai import AzureOpenAI
-
-load_dotenv()
-
-AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
-AZURE_OPENAI_API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION")
-AZURE_OPENAI_API_KEY = os.getenv("AZURE_OPENAI_API_KEY")
-AZURE_OPENAI_CHAT_DEPLOYMENT = os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT")
-
-if not (
-    AZURE_OPENAI_ENDPOINT
-    and AZURE_OPENAI_API_VERSION
-    and AZURE_OPENAI_API_KEY
-    and AZURE_OPENAI_CHAT_DEPLOYMENT
-):
-    raise RuntimeError("Azure OpenAI env vars missing.")
-
-client = AzureOpenAI(
-    api_key=AZURE_OPENAI_API_KEY,
-    api_version=AZURE_OPENAI_API_VERSION,
-    azure_endpoint=AZURE_OPENAI_ENDPOINT,
-)
-
-
-def _call_chat_llm(prompt: str, max_tokens: int = 700, temperature: float = 0.2):
-
-    response = client.chat.completions.create(
-        model=AZURE_OPENAI_CHAT_DEPLOYMENT,
-        messages=[{"role": "user", "content": prompt}],
-        max_tokens=max_tokens,
-        temperature=temperature,
-    )
-
-    return response.choices[0].message.content.strip()
-
-
-def generate_professional_summary(text: str):
-
-    text = text[:5000]
-
-    prompt = f"""
-You are a Senior Commercial Insurance Underwriter.
-
-You are given raw document text from an insurance submission.
-
-Your task is to generate a PROFESSIONAL underwriting summary.
-
-STRICT RULES:
-
-• Use ONLY information present in the document
-• Do NOT hallucinate
-• Do NOT guess values
-• If information missing write "Not Present"
-• Keep professional underwriting tone
-• Use headings
-• Use bullet points
-• Keep structure clean
-• Focus only on underwriting relevant information
-• Do NOT mention document type
-• Do NOT mention source text
-• Do NOT explain what you are doing
-
-OUTPUT FORMAT:
-
+file_name: 19CDC8AB7BCC5E85_attachment_SunflowerHotels_Submission_Document
+processed_summary:
 DOCUMENT SUMMARY
 
 INSURED DETAILS
-• Named Insured:
-• Address:
-• Business Type:
-• Operations:
+â¢ Named Insured: Sunflower Hotel Group LLC (dba Cruise Resort)
+â¢ Address: 100 Harbor View Drive, Seabreeze, Daytona Beach, FL 32118, USA
+â¢ Business Type: LLC
+â¢ Operations: Full-service resort including accommodation, food & beverage, banquet/meeting facilities, spa, fitness, retail, and limited marina services
 
 PROPERTY DETAILS
-• Number of Locations:
-• Construction:
-• Year Built:
-• Square Footage:
-• Occupancy:
-• Protection Systems:
+â¢ Number of Locations: 1
+â¢ Construction: Reinforced concrete and structural steel frame with masonry exterior finish; concrete slab-on-grade and reinforced concrete floor decks; built-up membrane roof system (partial overlay in 2019)
+â¢ Year Built: 2008
+â¢ Square Footage: 198,240 sq ft (building area); 4.2 acres (site area)
+â¢ Occupancy: 240 guest rooms (standard suites, one- and two-bedroom suites, executive suites); average annual occupancy 68%
+â¢ Protection Systems:
+- Full wet-pipe sprinkler system
+- Addressable fire alarm with central station monitoring
+- On-site fire pump
+- Two hydrants within 100 ft
+- Commercial kitchen hood suppression
+- Emergency lighting and illuminated exit signage
+- 24/7 on-site security staff
+- Key-card access and CCTV surveillance
 
 COVERAGE DETAILS
-• Line of Business:
-• Effective Date:
-• Expiry Date:
-• Limits:
-• Valuation:
+â¢ Line of Business: Commercial Property
+â¢ Effective Date: 01/01/2026
+â¢ Expiry Date: 01/01/2027
+â¢ Limits: $6,750,000 (Primary Layer)
+â¢ Valuation: Replacement Cost
 
 FINANCIAL DETAILS
-• Total Insured Value:
-• Revenue:
-• Payroll:
-• Business Income:
+â¢ Total Insured Value: $100,000,000
+â¢ Revenue: Not Present
+â¢ Payroll: Not Present
+â¢ Business Income: Not Present
 
 LOSS DETAILS
-• Loss History:
-• Major Losses:
-• Trends:
+â¢ Loss History: Not Present
+â¢ Major Losses: Not Present
+â¢ Trends: Not Present
 
 RISK CONSIDERATIONS
-• Key Exposures:
-• CAT Exposure:
-• Dependencies:
+â¢ Key Exposures:
+- Hospitality operations (accommodation, F&B, events, spa, marina)
+- High guest occupancy and public access areas
+- Commercial kitchen operations
+- Marina and dock exposures
+- Seasonal occupancy variation
+â¢ CAT Exposure:
+- Not Present (location in Daytona Beach, FL suggests wind/hurricane exposure, but not explicitly stated)
+â¢ Dependencies:
+- Power provider: Seabreeze Utilit
+- Not Present (other dependencies)
 
 UNDERWRITER NOTES
-• Key observations
-• Risk quality indicators
-• Important underwriting considerations
-
-DOCUMENT TEXT:
-\"\"\"
-{text}
-\"\"\"
-"""
-
-    return _call_chat_llm(prompt)
-
-
-def individual_summary(attachments: List[Dict[str, Any]]):
-
-    for attachment in attachments:
-
-        file_name = attachment.get("file_name","")
-        text = attachment.get("text","")
-
-        print(f"Processing summary for {file_name}")
-
-        processed_summary = generate_professional_summary(text)
-
-        attachment["processed_summary"] = processed_summary
-
-        print(f"Processed Summary completed for {file_name}")
-
-    return attachments
+â¢ Key observations:
+- Modern construction (2008) with major renovations in 2019 (lobby, HVAC, pool decking)
+- Comprehensive fire protection and life-safety systems in place
+- Strong security protocols including 24/7 staff and electronic monitoring
+- No guest lodging below grade; mechanical and service areas only in lower levels
+â¢ Risk quality indicators:
+- Routine maintenance programs for roof and critical systems
+- Documented fire protection and kitchen suppression system servicing
+- Emergency power and life-safety systems tested regularly
+- ADA egress and posted evacuation plans
+â¢ Important underwriting considerations:
+- High TIV with significant values in guest suites and public areas
+- Exposure to hospitality-related risks and potential CAT per geographic location
+- No loss history or financial performance data provided
+- Third-party utility dependency noted; further details may be required
