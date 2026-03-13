@@ -1,512 +1,57 @@
-(venv) Jarvis@JarvisPhase2:~/Musaddique/Ultimate_summary_pract_Excel$ python3 test_script.py 
-Testing /api/v1/summary_agent/attachment_summary_mcp ...
+document_loader.py
 
-HTTP Status: 200
-
-Response JSON:
-{
-    "jsonrpc": "2.0",
-    "id": 1,
-    "result": {
-        "combined_summary": "SUBMISSION SUMMARY\nClient: Sunflower Hotel Group LLC (dba Cruise Resort)\nDate: Not Present\n\n1. SUBMISSION COVER LETTER / NARRATIVE\nExposure Description:\n- Sunflower Hotel Group LLC operates Cruise Resort, an eight-story, 240-room full-service resort located in Daytona Beach, Florida.\n- Main operations include accommodations, three restaurants, two bars, banquets/events, spa, marina guest fees, and retail. The property features landscaped grounds, two outdoor pools, spa, fitness center, and a private dock.\n- The resort was built in 2008 and partially renovated in 2019 (lobby, HVAC, pool decking). Construction is reinforced concrete and structural steel with a built-up membrane roof. Critical systems include a central chilled water HVAC plant (major components replaced in 2019), 2,500 kVA electrical service with emergency generator backup, and a full wet-pipe sprinkler fire protection system. The property spans 198,240 square feet on a 4.2-acre site.\n\nPlacement Strategy:\n- Seeking commercial property coverage, including Business Interruption and Contingent Business Interruption (with Extra Expense / Civil Authority where available).\n- Requested primary layer property limit of $6,750,000 on a replacement cost basis.\n- Requested BI/CBI limit of $40,000,000 with 24 months indemnity (open to insurer presentation).\n\nRenewal Highlights:\n- Not Present\n\nChanges YOY:\n- Not Present\n\nAdditional Overview Details:\n- Effective Date: 2026-01-01\n- Submission Type: New Business\n- Current Situation: Not Present\n\n2. LOSS HISTORY PACKAGE\n5\u00e2\u0080\u009310 Year Loss Runs:\n- Not Present\n\nLarge Loss Details:\n- Not Present\n\nTrends Analysis:\n- Not Present\n\nSummary of Loss History:\n- Status: Not Present\n- Summary: Not Present\n- Major Incidents: Not Present\n\n3. EXPOSURE DATA\nCOPE Information (Construction, Occupancy, Protection, Exposure):\n- Construction: Reinforced concrete and structural steel, built-up membrane roof.\n- Occupancy: Full-service resort hotel.\n- Protection: Full wet-pipe sprinkler system, emergency generator backup for life-safety and essential loads.\n- Exposure: Coastal location in Daytona Beach, Florida; landscaped grounds, marina, and dock.\n\nStatement of Values (SOV):\n- Total Insurable Value (TIV): $100,000,000\n- Building Limit: $85,000,000\n- Contents/BPP Limit: $15,000,000\n- Business Income: $40,000,000 (requested limit with 24 months indemnity)\n\nFinancials:\n- Annual gross revenue: $40,000,000\n- Annual payroll: $6,500,000\n\nCAT Worksheets / Specialty Schedules:\n- Not Present\n\nAdditional Exposure Details:\n- Total Locations: 1\n- Main Operations: Resort hotel with accommodations, restaurants, bars, events, spa, marina, and retail.\n- Property Details: Eight-story, 240-room resort, 198,240 sq ft, built 2008, partial renovation 2019, 4.2-acre site.\n- Deductible Requested: Not Present",
-        "individualized_summary": [
-            {
-                "file_name": "19CDC8AB7BCC5E85_attachment_SunflowerHotels_Submission_Document",
-                "summary": "The submission is for commercial property coverage for Sunflower Hotel Group LLC (dba Cruise Resort), an eight-story, 240-room full-service resort located in Daytona Beach, Florida, with a total insured value of $100,000,000 and a requested primary layer limit of $6,750,000 on a replacement cost basis. The property, built in 2008 and partially renovated in 2019 (including lobby, HVAC, and pool decking), is constructed with reinforced concrete and structural steel, features a built-up membrane roof, and spans 198,240 square feet on a 4.2-acre site with landscaped grounds, two outdoor pools, spa, fitness center, and a private dock. Major revenue streams include accommodations, three restaurants, two bars, banquets/events, spa, marina guest fees, and retail, with an average annual occupancy of 68% and higher occupancy during November to April. Critical building systems include a central chilled water HVAC plant (with major components replaced in 2019), a 2,500 kVA electrical service with emergency generator backup for life-safety and essential loads, and a full wet-pipe sprinkler fire protection system. The insured values are allocated as $85,000,000 for buildings and structural improvements and $15",
-                "document_type": null,
-                "processed_summary": "DOCUMENT SUMMARY\n\nINSURED DETAILS\n- Named Insured: Sunflower Hotel Group LLC (dba Cruise Resort)\n- Address: 100 Harbor View Drive, Seabreeze, Daytona Beach, Volusia, FL 32118, USA\n- Business Type: LLC\n- Operations: Full-service resort including accommodation, food & beverage, banquets/meetings, spa, fitness, retail, and limited marina services\n\nPROPERTY DETAILS\n- Number of Locations: 1\n- Construction: Reinforced concrete and structural steel frame with masonry exterior finish; concrete slab-on-grade and reinforced concrete floor decks; built-up membrane roof system (partial overlay in 2019)\n- Year Built: 2008\n- Square Footage: 198,240 sq ft (building area); 4.2 acres (site area)\n- Occupancy: 240 guest rooms (standard suites, one- and two-bedroom suites, executive suites); average annual occupancy 68%\n- Protection Systems:\n- Full wet-pipe sprinkler system\n- Addressable fire alarm with central station monitoring\n- On-site fire pump\n- Two hydrants within 100 ft\n- Kitchen hood suppression systems\n- Emergency lighting and illuminated exit signage\n- 24/7 on-site security staff\n- Key-card access and CCTV surveillance\n\nCOVERAGE DETAILS\n- Line of Business: Commercial Property\n- Effective Date: 01/01/2026\n- Expiry Date: 01/01/2027\n- Limits: $6,750,000 (Primary Layer)\n- Valuation: Replacement Cost\n\nFINANCIAL DETAILS\n- Total Insured Value: $100,000,000\n- Revenue: Not Present\n- Payroll: Not Present\n- Business Income: Not Present\n\nLOSS DETAILS\n- Loss History: Not Present\n- Major Losses: Not Present\n- Trends: Not Present\n\nRISK CONSIDERATIONS\n- Key Exposures:\n- High guest occupancy with seasonal peaks\n- Multiple revenue streams (rooms, F&B, banquets, spa, marina, retail)\n- On-site pools, spa, fitness center, and marina with guest berths\n- Commercial kitchens and banquet facilities\n- CAT Exposure:\n- Not Present\n- Dependencies:\n- Power provider: Seabreeze Utilit (incomplete information)\n\nUNDERWRITER NOTES\n- Key observations:\n- Modern construction (2008) with major renovations in 2019 (lobby, HVAC, pool decking)\n- Comprehensive fire protection and life-safety systems in place with documented maintenance/testing\n- Security measures robust, including 24/7 staff, electronic access, and CCTV\n- No guest rooms below grade; mechanical and service areas located in lower levels\n- Risk quality indicators:\n- Routine maintenance programs for critical systems\n- Documented PM schedules and inspections for elevators, fire protection, and emergency power\n- Seasonal lifeguard program and compliance with aquatic facility codes\n- Important underwriting considerations:\n- Absence of loss history and financial performance data\n- Exposure to guest liability and business interruption due to multiple amenities and services\n- CAT exposure not specified; location in Daytona Beach, FL may warrant further review for windstorm/flood risks\n- Third-party utility dependency noted but details incomplete"
-            },
-            {
-                "file_name": "19CDC8AB7BCC5E85_attachment_Tower_Insurance_-_Home_Submission_Report",
-                "summary": null,
-                "document_type": null,
-                "processed_summary": "DOCUMENT SUMMARY\n\nINSURED DETAILS\n- Named Insured: Sunflower Hotel Group LLC (dba Cruise Resort)\n- Address: 100 Harbor View Drive, Seabreeze, Daytona Beach, Volusia, FL 32118, USA\n- Business Type: LLC\n- Operations: Full-service resort including accommodation, food & beverage, banquet/meeting facilities, spa, fitness, retail, and limited marina services\n\nPROPERTY DETAILS\n- Number of Locations: 1\n- Construction: Reinforced concrete and structural steel frame with masonry exterior finish; concrete slab-on-grade and reinforced concrete floor decks; built-up membrane roof system (partial overlay in 2019)\n- Year Built: 2008\n- Square Footage: 198,240 sq ft (building area); 4.2 acres (site area)\n- Occupancy: 240 guest rooms (standard suites, one- and two-bedroom suites, executive suites); average annual occupancy 68%\n- Protection Systems:\n- Full wet-pipe sprinkler system\n- Addressable fire alarm with central station monitoring\n- On-site fire pump\n- Two hydrants within 100 ft\n- Commercial kitchen hood suppression\n- Emergency lighting and exit signage\n- 24/7 on-site security staff\n- Key-card access and CCTV surveillance\n\nCOVERAGE DETAILS\n- Line of Business: Commercial Property\n- Effective Date: 01/01/2026\n- Expiry Date: 01/01/2027\n- Limits: $6,750,000 (Primary Layer)\n- Valuation: Replacement Cost\n\nFINANCIAL DETAILS\n- Total Insured Value: $100,000,000\n- Revenue: Not Present\n- Payroll: Not Present\n- Business Income: Not Present\n\nLOSS DETAILS\n- Loss History: Not Present\n- Major Losses: Not Present\n- Trends: Not Present\n\nRISK CONSIDERATIONS\n- Key Exposures:\n- Hospitality operations (accommodation, F&B, events, spa, fitness, retail, marina)\n- High guest occupancy and public access areas\n- Seasonal occupancy variation (higher Nov-Apr)\n- Commercial kitchen operations\n- Marina and dock exposures\n- CAT Exposure: Not Present\n- Dependencies:\n- Power provider: Seabreeze Utilit (incomplete information)\n- Reliance on utilities for operations (CBI relevance noted)\n\nUNDERWRITER NOTES\n- Key observations:\n- Modern, well-maintained resort property with significant recent renovations (2019: lobby, HVAC, pool decking)\n- Comprehensive fire protection and life-safety systems in place and regularly maintained\n- Security measures robust, including 24/7 staff and electronic monitoring\n- No guest rooms below grade; mechanical and service areas located in lower levels\n- Risk quality indicators:\n- Routine maintenance programs for critical systems\n- Documented test schedules for emergency power and fire protection\n- Annual inspections and maintenance contracts for elevators\n- Documented CCTV retention and pool safety programs\n- Important underwriting considerations:\n- Absence of loss history and financial performance data\n- High total insured value with diverse revenue streams and exposures\n- Primary layer limit requested is $6,750,000 on a $100,000,000 TIV\n- CAT exposure information not provided; location in Florida may indicate wind/flood risk (not specified in document"
-            }
-        ],
-        "excel_update_status": "Excel updated successfully"
-    }
-}
-(venv) Jarvis@JarvisPhase2:~/Musaddique/Ultimate_summary_pract_Excel$ 
-
-
-
-
-Data_Filler.py
-
-
-import os
-import json
-import pandas as pd
-from io import BytesIO
-from azure.storage.blob import BlobServiceClient
-from typing import List, Dict, Any
-from summary_service import summary_require_env
-from summary_service import AZURE_STORAGE_CONNECTION_STRING, _parse_blob_url,new_parse_blob_url
-import re
-from typing import Iterable
-
-
-def extract_filenames_and_summaries(output_folder: str) -> List[Dict[str, Any]]:
-    """
-    Extracts file names, summaries, and raw text from the JSON file in the output folder.
-
-    Returns list of:
-      {
-        "file_name": "<file_name>",
-        "summary": "<summary>",
-        "text": "<full_text_or_first_page_text>"
-      }
-    """
-    result_file = os.path.join(output_folder, "layout_summaries_result.json")
-
-    if not os.path.exists(result_file):
-        raise FileNotFoundError(f"No JSON result file found at {result_file}")
-
-    with open(result_file, "r", encoding="utf-8") as f:
-        data = json.load(f) 
-
-    summaries = data.get("summaries", [])
-
-    extracted_data = [
-        {
-            "file_name": item["file_name"],
-            "summary": item["summary"],
-            "text": item.get("text", "")  # <-- thisismyNEW: raw text stored here
-        }
-        for item in summaries
-        if "file_name" in item and "summary" in item
-    ]
-
-    return extracted_data
-
-#Absolute working code 
-def beautify_extracted_data(extracted_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """
-    Beautifies and prints the extracted data in the desired format.
-    NOTE: we do NOT include 'text' here, only file_name + summary + reference_number.
-    """
-    beautified_data: List[Dict[str, Any]] = []
-
-    for item in extracted_data:
-        file_name = item["file_name"]
-        reference_number = file_name.split("_")[0]
-
-        beautified_item = {
-            "reference_number": reference_number,
-            "file_name": file_name,
-            "summary": item["summary"],
-        }
-        beautified_data.append(beautified_item)
-
-        print(f"file_name: {file_name}")
-        print(f"reference_number: {reference_number}")
-        print(f"summary: {item['summary']}\n")
-
-    return beautified_data
-
-
-# newsummary.py
+import io
+import mammoth
+from weasyprint import HTML
 from dotenv import load_dotenv
 import os
-from typing import List, Dict, Optional
-from openai import AzureOpenAI
-
+import tempfile
+from azure.ai.formrecognizer import DocumentAnalysisClient
+from azure.core.credentials import AzureKeyCredential
 load_dotenv()
-
-AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
-AZURE_OPENAI_API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION")
-AZURE_OPENAI_API_KEY = os.getenv("AZURE_OPENAI_API_KEY")
-AZURE_OPENAI_CHAT_DEPLOYMENT = os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT")
-
-if not (
-    AZURE_OPENAI_ENDPOINT
-    and AZURE_OPENAI_API_VERSION
-    and AZURE_OPENAI_API_KEY
-    and AZURE_OPENAI_CHAT_DEPLOYMENT
-):
-    raise RuntimeError("Azure OpenAI env vars missing.")
-
-client = AzureOpenAI(
-    api_key=AZURE_OPENAI_API_KEY,
-    api_version=AZURE_OPENAI_API_VERSION,
-    azure_endpoint=AZURE_OPENAI_ENDPOINT,
+endpoint = os.getenv("LD_AZURE_FORMRECOG_ENDPOINT")
+key = os.getenv("LD_AZURE_FORMRECOG_KEY")
+client = DocumentAnalysisClient(
+   endpoint=endpoint,
+   credential=AzureKeyCredential(key)
 )
 
-
-def extract_refs_from_attachments(attachments: List[Dict]) -> List[str]:
-    """Return unique refs from filenames (text before first underscore)."""
-    refs = []
-    for item in attachments or []:
-        fname = item.get("file_name", "") or ""
-        if "_" in fname:
-            refs.append(fname.split("_", 1)[0])
-    # keep unique in original order
-    seen = set()
-    out = []
-    for r in refs:
-        if r not in seen:
-            seen.add(r)
-            out.append(r)
-    return out
-
-
-def load_raw_email_bodies_for_refs(refs: List[str], email_body_folder: str = "email_body") -> Dict[str, Dict]:
-    """
-    Load raw files named `body_<ref>.txt` from email_body_folder.
-    Returns dict: ref -> {"status": "ok", "path": ..., "raw": "<full text>"} or {"status":"missing"}.
-    """
-    base = os.path.dirname(os.path.abspath(__file__))
-    out = {}
-    for ref in refs or []:
-        fname = f"body_{ref}.txt"
-        path = os.path.join(base, email_body_folder, fname)
-        if not os.path.exists(path):
-            out[ref] = {"status": "missing", "path": path}
-            continue
-        try:
-            with open(path, "r", encoding="utf-8", errors="ignore") as f:
-                raw = f.read()
-            out[ref] = {"status": "ok", "path": path, "raw": raw}
-        except Exception as e:
-            out[ref] = {"status": "error", "path": path, "error": str(e)}
-    return out
-
-
-def summarize_attachments(
-    attachments: List[Dict],
-    email_bodies: Optional[Dict[str, Dict]] = None,
-    include_email_bodies_in_prompt: bool = True,
-) -> str:
-    """
-    Build combined submission summary.
-
-    Args:
-      attachments: list of {"file_name":..., "summary":..., "text":...}
-      email_bodies: optional dict mapping ref -> {"status": "ok", "raw": "..."}.
-                    If None, this function will attempt to load local files body_<ref>.txt.
-      include_email_bodies_in_prompt: whether to include email bodies block in prompt.
-
-    Returns:
-      Combined summary string from LLM (or an informative error string on failure).
-    """
-    # build attachments text (single pass — no duplication)
-    attachment_chunks = []
-    for item in attachments or []:
-        file_name = item.get("file_name", "unknown_file")
-        summary_text = item.get("summary", "") or ""
-        chunk = f"FILENAME: {file_name}\nSUMMARY: {summary_text}"
-        attachment_chunks.append(chunk)
-    attachments_text = "\n\n".join(attachment_chunks)
-    attachments_text = attachments_text[:8000]  # safety limit
-
-    # load email bodies if not provided
-    if email_bodies is None:
-        refs = extract_refs_from_attachments(attachments)
-        email_bodies = load_raw_email_bodies_for_refs(refs)
-
-    # build email bodies text block (compact)
-    email_chunks = []
-    if include_email_bodies_in_prompt and isinstance(email_bodies, dict):
-        for ref, meta in (email_bodies or {}).items():
-            if meta.get("status") == "ok":
-                raw = meta.get("raw", "") or ""
-                snippet = raw[:3000]  # keep reasonable amount
-                email_chunks.append(f"REFERENCE: {ref}\nRAW_EMAIL_BODY:\n{snippet}")
-    email_bodies_text = "\n\n---\n\n".join(email_chunks)
-    if email_bodies_text and len(email_bodies_text) > 6000:
-        email_bodies_text = email_bodies_text[:6000] + "\n[TRUNCATED]"
-
-
-
-
-    prompt = f"""
-    You are an experienced Commercial Insurance Underwriter.
-
-    You are given multiple attachment documents that belong to a insurance submission. For each document you only see:
-    - the file name (which hints at document type, e.g. ACORD app, loss run, SOV)
-    - a short summary of the contents.
-
-    YOUR TASK:
-    Produce ONE combined "Submission Summary" for the account that synthesizes
-    all the information across all documents.
-
-    VERY IMPORTANT RULES:
-    1. Treat the file names and their summaries as the PRIMARY source of truth,
-    supplemented by the email body if provided.
-    - You may use the file name to infer the general document type
-        (e.g. application, loss runs, SOV, schedule).
-    - IMPORTANT: Do NOT invent any facts that are not clearly supported
-        by the attachment summaries or the email body.
-
-    2. EMAIL BODY PRIORITY & CONFLICT RESOLUTION:
-    - If the email body contains underwriting details (e.g. TIV, limits,
-        effective dates, requested coverage) AND those details conflict with
-        information in the attachment summaries, ALWAYS PRIORITIZE THE EMAIL BODY.
-    - The email body is considered the most recent broker communication.
-
-    3. RENEWAL VS NEW BUSINESS LOGIC:
-    - If the email body explicitly mentions that the submission is a RENEWAL,
-        classify the submission as "Renewal".
-    - If the email body does NOT explicitly state renewal, classify the
-        submission as "New Business".
-
-    4. HANDLING MISSING OR UNCERTAIN INFORMATION:
-    - If you are unsure about a value, date, limit, or detail, or if it is not
-        clearly stated anywhere, explicitly write "Not Present".
-    - Do NOT guess, infer, or fill placeholders with assumed values.
-
-    5. Do NOT mention which document or file any detail came from.
-    - The final summary must read like a single coherent underwriting view,
-        not a list of documents.
-
-    6. Focus only on underwriting-relevant information, including:
-    - Named insured / client
-    - Locations and occupancy
-    - Operations / business activities
-    - Coverage dates and program structure
-    - Property values / limits / coinsurance
-    - Loss history and major incidents
-    - Any material hazards or underwriting notes
-
-    IMPORTANT ABOUT EMAIL BODIES:
-    - If raw email body text is present below, use it only to supplement or clarify
-    facts from the attachments.
-    - Use ONLY the main content of the email (core submission facts).
-    - Ignore salutations ("Dear ..."), sign-offs ("Regards", "Kind regards"),
-    and signature/contact information.
-
-    STRUCTURE OF YOUR OUTPUT (USE THIS EXACT TEMPLATE):
-
-    SUBMISSION SUMMARY  
-    Client: [Client Legal Name]  
-    Date: [Submission or Document Date]
-
-    1. SUBMISSION COVER LETTER / NARRATIVE  
-    Exposure Description:  
-        - [Describe what the business does]  
-        - [Main operations / physical activities]  
-        - [Property details if present]  
-
-    Placement Strategy:  
-        - [Placement goals or program approach if evident]  
-
-    Renewal Highlights:  
-        - [Notable updates if present, else "Not Present"]  
-
-    Changes YOY:  
-        - [Changes if present, else "Not Present"]  
-
-    Additional Overview Details:  
-        - Effective Date: [date or "Not Present"]  
-        - Submission Type: [Renewal / New Business]  
-        - Current Situation: [Reason for submission or "Not Present"]  
-
-    2. LOSS HISTORY PACKAGE  
-    5–10 Year Loss Runs:  
-        - [Summary if present, else "Not Present"]  
-
-    Large Loss Details:  
-        - [Details or "Not Present"]  
-
-    Trends Analysis:  
-        - [Analysis or "Not Present"]  
-
-    Summary of Loss History:  
-        - Status: [Clean / Losses Reported / Not Present]  
-        - Summary: [one sentence or "Not Present"]  
-        - Major Incidents: [largest incident or "Not Present"]  
-
-    3. EXPOSURE DATA  
-    COPE Information (Construction, Occupancy, Protection, Exposure):  
-        - [Details or "Not Present"]  
-
-    Statement of Values (SOV):  
-        - Total Insurable Value (TIV): $[value or "Not Present"]  
-        - Building Limit: $[value or "Not Present"]  
-        - Contents/BPP Limit: $[value or "Not Present"]  
-        - Business Income: $[value or "Not Present"]  
-
-    Financials:  
-        - [Details or "Not Present"]  
-
-    CAT Worksheets / Specialty Schedules:  
-        - [Details or "Not Present"]  
-
-    Additional Exposure Details:  
-        - Total Locations: [value or "Not Present"]  
-        - Main Operations: [value or "Not Present"]  
-        - Property Details: [value or "Not Present"]  
-        - Deductible Requested: $[value or "Not Present"]  
-
-    Attached files included:
-    {attachments_text}
-
-    # RAW EMAIL BODIES (if present; use them only to supplement / clarify)
-    {email_bodies_text}
-    """
-
-    # debug prints to help you debug when running
-    try:
-        print(f"[newsummary] prompt length={len(prompt)}; email bodies included={bool(email_chunks)}")
-    except Exception:
-        pass
-
-    # Call the LLM — catch and return error text if it fails
-    try:
-        response = client.chat.completions.create(
-            model=AZURE_OPENAI_CHAT_DEPLOYMENT,
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=1024,
-            temperature=0.2,
-        )
-        return response.choices[0].message.content.strip()
-    except Exception as e:
-        # Return the error string so the handler won't silently make combined_summary null
-        err = f"[LLM_ERROR] {type(e).__name__}: {e}"
-        print(err)
-        return err
-
-
-separate_summary.py
-
-from dotenv import load_dotenv
-import os
-from typing import List, Dict, Any
-from openai import AzureOpenAI
-
-load_dotenv()
-
-AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
-AZURE_OPENAI_API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION")
-AZURE_OPENAI_API_KEY = os.getenv("AZURE_OPENAI_API_KEY")
-AZURE_OPENAI_CHAT_DEPLOYMENT = os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT")
-
-if not (
-    AZURE_OPENAI_ENDPOINT
-    and AZURE_OPENAI_API_VERSION
-    and AZURE_OPENAI_API_KEY
-    and AZURE_OPENAI_CHAT_DEPLOYMENT
-):
-    raise RuntimeError("Azure OpenAI env vars missing.")
-
-client = AzureOpenAI(
-    api_key=AZURE_OPENAI_API_KEY,
-    api_version=AZURE_OPENAI_API_VERSION,
-    azure_endpoint=AZURE_OPENAI_ENDPOINT,
-)
-
-
-def _call_chat_llm(prompt: str, max_tokens: int = 700, temperature: float = 0.2):
-
-    response = client.chat.completions.create(
-        model=AZURE_OPENAI_CHAT_DEPLOYMENT,
-        messages=[{"role": "user", "content": prompt}],
-        max_tokens=max_tokens,
-        temperature=temperature,
-    )
-
-    return response.choices[0].message.content.strip()
-
-
-def generate_professional_summary(text: str):
-
-    text = text[:5000]
-
-    prompt = f"""
-You are a Senior Commercial Insurance Underwriter.
-
-You are given raw document text from an insurance submission.
-
-Your task is to generate a PROFESSIONAL underwriting summary.
-
-STRICT RULES:
-
-• Use ONLY information present in the document
-• Do NOT hallucinate
-• Do NOT guess values
-• If information missing write "Not Present"
-• Keep professional underwriting tone
-• Use headings
-• Use "-" for bullets (not special characters)
-• Keep structure clean
-• Focus only on underwriting relevant information
-• Do NOT mention document type
-• Do NOT mention source text
-• Do NOT explain what you are doing
-
-OUTPUT FORMAT:
-
-DOCUMENT SUMMARY
-INSURED DETAILS
-- Named Insured:
-- Address:
-- Business Type:
-- Operations:
-PROPERTY DETAILS
-- Number of Locations:
-- Construction:
-- Year Built:
-- Square Footage:
-- Occupancy:
-- Protection Systems:
-COVERAGE DETAILS
-- Line of Business:
-- Effective Date:
-- Expiry Date:
-- Limits:
-- Valuation:
-FINANCIAL DETAILS
-- Total Insured Value:
-- Revenue:
-- Payroll:
-- Business Income:
-LOSS DETAILS
-- Loss History:
-- Major Losses:
-- Trends:
-RISK CONSIDERATIONS
-- Key Exposures:
-- CAT Exposure:
-- Dependencies:
-UNDERWRITER NOTES
-- Key observations
-- Risk quality indicators
-- Important underwriting considerations
-
-DOCUMENT TEXT:
-\"\"\"
-{text}
-\"\"\"
-"""
-
-    return _call_chat_llm(prompt)
-
-
-def individual_summary(attachments: List[Dict[str, Any]]):
-
-    for attachment in attachments:
-
-        file_name = attachment.get("file_name","")
-        text = attachment.get("text","")
-
-        print(f"Processing summary for {file_name}")
-
-        processed_summary = generate_professional_summary(text)
-
-        attachment["processed_summary"] = processed_summary
-
-        print(f"Processed Summary completed for {file_name}")
-
-    return attachments
-
+def convert_docx_bytes_to_pdf_bytes(docx_bytes: bytes):
+   docx_stream = io.BytesIO(docx_bytes)
+   html = mammoth.convert_to_html(docx_stream).value
+   pdf_bytes = HTML(string=html).write_pdf()
+   # print("This are the pdf bytes : ", pdf_bytes)
+   return pdf_bytes
+
+async def load_document_from_bytes(blob_url: str, file_bytes: bytes):
+   extension = blob_url.split(".")[-1].lower()
+   if extension == "docx":
+       file_bytes = convert_docx_bytes_to_pdf_bytes(file_bytes)
+   elif extension != "pdf":
+       raise ValueError(f"Unsupported file type: {extension}")
+   poller = client.begin_analyze_document(
+       "prebuilt-read",
+       document=file_bytes
+   )
+   result = poller.result()
+   lines = [line.content for page in result.pages for line in page.lines]
+#    tables = []
+#    for table in result.tables:
+#        row = []
+#        for cell in table.cells:
+#            row.append(cell.content)
+#        tables.append(row)
+   return {
+       "text": "\n".join(lines),
+    #    "tables": tables
+   }
 
 
 classifier.py
-# classifier.py
-# INTEGRATED WITH CHINMAY'S CODE - Final
+
 from dotenv import load_dotenv
 import os
-from openai import AzureOpenAI  # Correct import for Azure OpenAI
+from openai import AzureOpenAI  #  Correct import for Azure OpenAI
 
 # Load environment variables
 load_dotenv()
@@ -516,60 +61,190 @@ AZURE_OPENAI_API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION")
 AZURE_OPENAI_API_KEY = os.getenv("AZURE_OPENAI_API_KEY")
 AZURE_OPENAI_CHAT_DEPLOYMENT = os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT")
 
-if not (
-    AZURE_OPENAI_ENDPOINT
-    and AZURE_OPENAI_API_VERSION
-    and AZURE_OPENAI_API_KEY
-    and AZURE_OPENAI_CHAT_DEPLOYMENT
-):
-    raise RuntimeError(
-        "Azure OpenAI env vars missing. Please set "
-        "AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_API_VERSION, "
-        "AZURE_OPENAI_API_KEY and AZURE_OPENAI_CHAT_DEPLOYMENT"
-    )
+if not (AZURE_OPENAI_ENDPOINT and AZURE_OPENAI_API_VERSION and AZURE_OPENAI_API_KEY and AZURE_OPENAI_CHAT_DEPLOYMENT):
+    raise RuntimeError("Azure OpenAI env vars missing. Please set AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_API_VERSION, AZURE_OPENAI_API_KEY and AZURE_OPENAI_CHAT_DEPLOYMENT")
 
-# Create Azure OpenAI client
+#  Create Azure OpenAI client
 client = AzureOpenAI(
     api_key=AZURE_OPENAI_API_KEY,
     api_version=AZURE_OPENAI_API_VERSION,
     azure_endpoint=AZURE_OPENAI_ENDPOINT,
 )
 
+# os.environ["PHOENIX_COLLECTOR_ENDPOINT"] = phoenix_endpoint
+# os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = phoenix_endpoint
+# os.environ["PHOENIX_API_KEY"] = PHOENIX_API_KEY
 
-def summarize_first_page(document_content: dict, file_name: str | None = None) -> str:
-    """
-    Use Azure OpenAI to summarize the *first page* of the document.
+def classify_document(document_content):
+    text = document_content.get("text", "")
+    print("this is my text : ", text)
+    print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX:", document_content)
 
-    document_content is expected to come from load_summary_document() and contain:
-      - "first_page_text": str  # we store full text there now
-    """
 
-    first_page_text = document_content.get("first_page_text")
-    if not first_page_text:
-        first_page_text = document_content.get("text", "")
-
-    # Safety: limit size so we don't overload the prompt
-    first_page_text = first_page_text[:4000]
 
     prompt = f"""
-You are an experienced Commercial Insurance Underwriter.
-Read the FIRST PAGE of the document and write a short, underwriting-focused
-summary in natural language. The summary should highlight whatever information
-is actually present that would help an underwriter. 
-Do not mention document structure, do not
-reference page numbers, and more importantly DO NOT INCLUDE ANYTHING THAT IS NOT EXPLICITLY SUPPORTED BY THE TEXT.
-Write the summary as a single short paragraph of 4–6 sentences, objective,
-clear, and focused only on the details visible in the text. 
-Always remember, Do not mention document structure, do not mention reference page numbers.
-# First page content:
-# \"\"\"{first_page_text}\"\"\"
-    """
+You are an expert in insurance documentation and intelligent document processing.
+
+Your task is to classify a given insurance-related document into EXACTLY ONE of the following categories:
+
+1. ACORD
+2. SOV
+3. LOSS_RUN
+4. INSPECTION_REPORT
+5. Property_Detailed_Report
+6. SUBMISSION_DOCUMENT
+7. Submission_Report
+8. Valuation_Report
+
+Definitions:
+
+ACORD:
+A standardized insurance form published by ACORD (Association for Cooperative Operations Research and Development),
+used for applications, certificates, or evidence of insurance.
+These documents usually:
+- Contain structured ACORD layouts and standardized fields
+- Include sections such as Producer, Insured, Certificate Holder, Policy Number
+- Serve as official insurance applications, certificates, or evidence forms
+
+SOV (Schedule / Statement of Values):
+A document that lists insured property values, primarily for property rating and underwriting.
+These documents usually:
+- Are titled “Schedule of Values” or “Statement of Values”
+- Present location-wise or building-wise values in tabular format
+- Include columns such as Location, Building, Description, ACV, RC, 100% Values, Rates
+- May be labeled as ACORD 139
+- Focus on valuation, not narrative underwriting analysis
+
+LOSS_RUN:
+A document that summarizes historical insurance claims experience.
+These documents usually:
+- Are titled “Loss Run Report” or similar
+- Include claim numbers, dates of loss, paid amounts, reserves, and total incurred
+- Cover prior policy periods
+- Focus on loss history rather than current property condition
+
+INSPECTION_REPORT:
+A document created after a physical or on-site property inspection for underwriting or risk evaluation.
+These documents usually:
+- Are titled “Inspection Report” or similar
+- Include inspection dates, report IDs, and inspector or broker details
+- Describe observed property condition, construction, occupancy, protection, and exposure (COPE)
+- Include sections on life safety, fire protection, security, utilities, roof, and operations
+- Provide observations and risk improvement recommendations
+- Focus on observed conditions at the time of inspection
+A document that provides detailed descriptive information about the physical condition,
+components, and systems of a property or building.
+These documents usually:
+- Organize information by building systems or structural components
+ such as roof, exterior, structure, interior, plumbing, electrical,
+ heating/cooling, ventilation, foundations, or site features
+- Describe observed conditions, deterioration, damage, risks, or maintenance needs
+- Provide commentary or explanations about property elements and how they function
+- Include technical or informational descriptions of building materials,
+ construction elements, or safety considerations
+- Focus on documenting or explaining the condition and characteristics
+ of a property and its building systems
+These documents are informational assessments of property condition
+rather than insurance forms, valuation schedules, claim histories,
+or underwriting submission packages.
+
+
+Property_Detailed_Report:
+Any insurance-related document that is NOT an ACORD form, SOV, Loss Run, or Inspection Report.
+This includes:
+- Quote documents
+- Property detail reports
+- Underwriting summaries
+- Exposure analyses
+- Proposals, narratives, internal reports, or supporting documentation
+- Documents that reference ACORD forms but are not themselves ACORD forms
+
+
+SUBMISSION_DOCUMENT:
+A structured underwriting document used in the Commercial Propoerty (LOB).
+A document assembled to formally present a risk to an insurer for underwriting, quotation, or binding.
+These documents usually:
+- Are explicitly titled or framed as “Underwriting Submission” or similar
+- Include broker details, producer codes, underwriting company information
+- Present requested terms, program structure, limits, valuation, and effective dates
+- Summarize the property, coverage intent, and underwriting rationale
+- May reference or attach other documents such as SOVs, Loss Runs, Inspection Reports, or Property Detailed Reports
+- Function as a submission package rather than a standalone property analysis
+
+
+Submission_Report:
+A structured underwriting report used in the Home Insurance line of business (LOB)
+to present a residential property and its associated risk information to an insurer
+for underwriting evaluation.
+These documents are specifically prepared for Home Insurance underwriting and usually:
+- Provide details about the homeowner or policyholder and the residential property
+ being considered for insurance
+- Describe property characteristics such as year built, construction type,
+ roof material, cladding, foundation, storeys, floor area, and renovations
+- Include insurance-related information relevant to Home Insurance such as
+ rebuild sum insured, occupancy type, property usage, and coverage considerations
+- Present risk information relevant to residential property underwriting including
+ hazards such as earthquake, flood, coastal exposure, or land slip
+- Describe security features, maintenance condition, or structural upgrades
+ affecting Home Insurance risk evaluation
+- May summarize claims history related to the residential property
+- Often reference supporting documents such as inspection reports,
+ engineering reports, weathertightness reports, rebuild estimates,
+ LIM reports, photographs, or maintenance records
+- Are intended to assist insurers in assessing and underwriting
+ residential properties under Home Insurance policies
+If the document presents residential property information for underwriting
+evaluation in the Home Insurance LOB, it should be classified as Submission_Report.
+
+
+Valuation_Report:
+A professional report prepared to determine the insurance value of a property
+or asset for insurance coverage purposes.
+These documents are typically used in home insurance underwriting
+to establish the appropriate insured value of buildings or assets.
+These documents usually:
+- Provide valuation estimates related to insurance coverage such as
+ reinstatement cost, replacement cost, indemnity value, or functional replacement value
+- Include valuation calculations or summaries used to determine the amount
+ required to rebuild or replace the insured property
+- Contain information about the property such as construction type,
+ age, asset description, land characteristics, or building specifications
+- Include provisions such as inflation allowances, demolition estimates,
+ depreciation, or cost adjustments
+- Are prepared by professional valuers, quantity surveyors, or valuation firms
+- May include valuation dates, valuation methodology, or professional declarations
+- Are specifically intended to establish insured values for insurance purposes
+ rather than documenting inspection findings or underwriting submissions
+
+
+Document Content:
+{text[:2000]}
+
+IMPORTANT OUTPUT RULES:
+- You MUST reply with EXACTLY ONE value.
+- The value MUST MATCH one of the following ENUMS EXACTLY (character-for-character).
+- Do NOT shorten, modify, or partially return any label.
+- If the document matches “Property Detailed Report”, you MUST return:
+ "PROPERTY_DETAILED_REPORT" ONLY, so you should not miss REPORT word
+Allowed outputs (EXACT ENUMS):
+ACORD
+SOV
+LOSS_RUN
+INSPECTION_REPORT
+Property_Detailed_Report
+Submission_Document
+Submission_Report
+Valuation_Report
+Return ONLY the enum value. Do not add text, punctuation, or explanation.
+
+"""
+
 
     response = client.chat.completions.create(
         model=AZURE_OPENAI_CHAT_DEPLOYMENT,
         messages=[{"role": "user", "content": prompt}],
-        max_tokens=256,
-        temperature=0.2,
+        max_tokens=4,
+        temperature=0.0
     )
 
     try:
@@ -577,346 +252,60 @@ Always remember, Do not mention document structure, do not mention reference pag
     except Exception:
         return getattr(response.choices[0].message, "content", "").strip()
 
+handler.py
 
-summary_handler.py
-
-
-import os
-import json
-from typing import Dict, Any, List
-import pandas as pd
-
-from summary_service import summary_require_env
-# from summary_storage_utils import download_blob_to_input_folder
-from summary_loader import load_summary_document
-from summary_classifier import summarize_first_page
-from Data_Filler import extract_filenames_and_summaries
-from Data_Filler import connect_to_blob, beautify_extracted_data
-from newsummary import summarize_attachments
-from separate_summary import individual_summary
-from Data_Filler import beautify_api_response
-from summary_storage_utils import download_blob_to_input_folder_by_reference, read_text_file_from_container,extract_filename_referencenumber_container_name
-# from newsummary import extract_refs_from_attachments, load_raw_email_bodies_for_refs, summarize_attachments
+from typing import Dict, Any
+from storage_utils import download_blob_bytes
+from document_loader import load_document_from_bytes
+from classifier import classify_document
+from storage_utils import download_blob_bytes, upload_text_to_blob
 
 
-INPUT_FOLDER = "input"
-OUTPUT_FOLDER = "output"
-EMAIL_BODY = "email_body"
-
-def clean_result_for_api(result: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Build a compact, clean dictionary response from the full 'result' dict.
-
-    Output shape:
-    {
-      "combined_summary": "<string or None>",
-      "individualized_summary": [
-         { "file_name": ..., "summary": ..., "document_type": ..., "processed_summary": ... },
-         ...
-      ]
-    }
-
-    This removes raw 'text' and error details from the per-file items.
-    """
-    combined = result.get("combined_summary")
-
-    raw_individualized = result.get("individualized_summary", [])
-    cleaned_list: List[Dict[str, Any]] = []
-
-    if isinstance(raw_individualized, list):
-        for item in raw_individualized:
-            cleaned_item = {
-                "file_name": item.get("file_name"),
-                "summary": item.get("summary"),
-                "document_type": item.get("document_type"),
-                "processed_summary": item.get("processed_summary"),
-            }
-            cleaned_list.append(cleaned_item)
-
-    return {
-        "combined_summary": combined,
-        "individualized_summary": cleaned_list,
-    }
+async def classify_blob_pdf_layout(blob_url: str) -> Dict[str, Any]:
+   try:
+       blob_bytes = await download_blob_bytes(blob_url)
+   except Exception as e:
+       return {"status": False, "error": f"Failed to fetch blob: {e}"}
+#    try:
+#        document_content = await load_document_from_bytes(blob_url, blob_bytes)
+#    except Exception as e:
+#        return {"status": False, "error": f"Document parsing failed: {e}"}
+   
+#        extracted_text = document_content.get("text", "")
+#    try:
+#        text_blob_url = await upload_text_to_blob(blob_url, extracted_text)
+#    except Exception as e:
+#        return {"status": False, "error": f"Failed to upload extracted text: {e}"}
 
 
-async def summarize_blob_pdfs_layout(blob_urls: List[str]) -> Dict[str, Any]:
-    """
-    For each Blob URL:
-      - Download PDF into input/
-      - Use Form Recognizer to extract text (all pages)
-      - Use LLM to summarize the FIRST PAGE
+   try:
+     document_content = await load_document_from_bytes(blob_url, blob_bytes)
+   except Exception as e:
+       return {"status": False, "error": f"Document parsing failed: {e}"}
+   extracted_text = document_content.get("text", "")
+   try:
+       text_blob_url = await upload_text_to_blob(blob_url, extracted_text)
+   except Exception as e:
+       return {"status": False, "error": f"Failed to upload extracted text: {e}"}
 
-    Saves the full detailed JSON (including raw text) to ./output/layout_summaries_result.json
-    but RETURNS a cleaned dictionary suitable for API responses (no raw 'text').
-    """
-    try:
-        summary_require_env()
-    except Exception as e:
-        # Return a clean, empty-shaped response on environment failure
-        return {"combined_summary": None, "individualized_summary": []}
-
-    summaries: List[Dict[str, Any]] = []
-
-    for blob_url in blob_urls:
-        file_name = None
-
-        try:
-            container, filename, reference_number =  await extract_filename_referencenumber_container_name(blob_url)
-            file_name = filename
-            print("Container ", container)
-            print("Reference number", reference_number)
-            print("filename", filename)
-        except Exception as e:
-            summaries.append(
-                {
-                    "blob_url": blob_url,
-                    "file_name": file_name,
-                    "summary": None,
-                    "text": None,
-                    "error": f"Failed to read filename: {e}",
-                }
-            )            
-            continue
-
-        try:
-            text = await read_text_file_from_container(filename)
-        except Exception as e:
-            summaries.append(
-                {
-                    "blob_url": blob_url,
-                    "file_name": file_name,
-                    "summary": None,
-                    "text": text,
-                    "error": f"Failed to read filename: {e}",
-                }
-            )            
-            continue
-
-        try:
-            summary_text = summarize_first_page({"first_page_text":text}, file_name=file_name)
-        except Exception as e:
-            summaries.append(
-                {
-                    "blob_url": blob_url,
-                    "file_name": file_name,
-                    "summary": None,
-                    "text": text_content,
-                    "error": f"Summarization failed: {e}",
-                }
-            )
-            continue
-
-        # 4) Success case for this document — include raw text for audit on disk
-        summaries.append(
-            {
-                "blob_url": blob_url,
-                "file_name": file_name,
-                "reference_number":reference_number,
-                "summary": summary_text,
-                "text": text,
-                "error": None,
-            }
-        )
-
-    result: Dict[str, Any] = {"status": True, "summaries": summaries}
-
-    # 5) Save result to ./output (retain 'text' on disk for audit)
-    try:
-        os.makedirs(OUTPUT_FOLDER, exist_ok=True)
-        out_path = os.path.join(OUTPUT_FOLDER, "layout_summaries_result.json")
-        with open(out_path, "w", encoding="utf-8") as f:
-            json.dump(result, f, indent=2, ensure_ascii=False)
-    except Exception as e:
-        result["save_error"] = str(e)
-
-    # 6) Beautify and optionally write to Excel (unchanged; uses only file_name + summary)
-    try:
-        extracted_data = extract_filenames_and_summaries(OUTPUT_FOLDER)
-        print("Beautified Extracted Data:\n")
-        beautify_data = beautify_extracted_data(extracted_data)
-        print(beautify_data)
-
-    #     DATA_URL = os.getenv("Data_URL")
-    #     if DATA_URL:
-    #         try:
-    #             updated_data = connect_to_blob(DATA_URL, beautify_data)
-    #             print("Blob Data Processed Successfully.")
-    #             if isinstance(updated_data, pd.DataFrame):
-    #                 print("Blob Data Processed Successfully and Excel Updated.")
-    #             else:
-    #                 # updated_data may be an error dict
-    #                 print(f"Error: {updated_data.get('error')}")
-    #         except Exception as e:
-    #             print(f"Error processing blob data: {e}")
-    #     else:
-    #         print("Data_URL environment variable is not set.")
-    except Exception as e:
-        print(f"Error in beautify / blob step: {e}")
-
-
-    try:
-        download_results = await download_blob_to_input_folder_by_reference(
-            beautify_data,
-            output_folder=EMAIL_BODY,
-            container_name="attachment-downloader",
-            blob_name_template="body_{ref}.txt",
-        )
-        print("Email body download results:", download_results)
-    except Exception as e:
-        print("Failed to download email bodies by reference:", e)
-
-#Working code friday night 7:20 pm
-    # 7) Combined submission summary (uses file_name + summary only)
-    combined_summary_text = None
-    filenamesummary_extracted_beautified: List[Dict[str, Any]] = []
-    try:
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        output_folder = "output"
-
-        json_path = os.path.join(base_dir, output_folder, "layout_summaries_result.json")
-        with open(json_path, "r", encoding="utf-8") as f:
-            layout_json = json.load(f)
-
-        filenamesummary_extracted_beautified = extract_filenames_and_summaries(output_folder)
-        print("Per-document summaries (with text):")
-        print(filenamesummary_extracted_beautified)
-        
-        
-        #HERE WE CAN CALL THE EXTRACT REFS FROM ATTACHMENTS AND LOAD RAW EMAIL BODIES FOR REFS FUNCTIONS AND KEEP THE CALLING OF SUMMARIZE_ATTACHMENTS SAME AS BELOW 
-
-        # reference_number_extracted = extract_refs_from_attachments(beautify_data)
-
-        # load_raw_email_bodies_for_refs(reference_extracted,"email_body")
-
-        combined_summary_text = summarize_attachments(filenamesummary_extracted_beautified)
-        print("Combined Submission Summary:")
-        print(combined_summary_text)
-
-        result["combined_summary"] = combined_summary_text
-    except Exception as e:
-        print(f"Error generating combined submission summary: {e}")
-        result["combined_summary_error"] = str(e)
-        combined_summary_text = None
-
-    # 8) Individual typed summaries (ACORD / Loss Run / SOV)
-    try:
-        # individual_summary expects attachments each having 'file_name','summary','text'
-        individualized_summary = individual_summary(filenamesummary_extracted_beautified)
-        # print("Individualized Summary Output (raw):")
-        print(individualized_summary)
-        result["individualized_summary"] = individualized_summary
-    except Exception as e:
-        print(f"Error generating Individual summary: {e}")
-        result["individualized_summary_error"] = str(e)
-        result["individualized_summary"] = []
-
-
-    # 9) CLEAN the result for the API and return only the compact payload (no raw text)
-    cleaned_payload = clean_result_for_api(result)
-
-
-    
-    try:
-        beautified = beautify_api_response(cleaned_payload)
-        print("This is beautified for  response : ", beautified)
-
-        # print("\n----- COMBINED SUBMISSION SUMMARY (beautified) -----\n")
-        # if beautified["combined_summary"]:
-        #     print(beautified["combined_summary"])
-        # else:
-        #     print("No combined summary available.")
-
-        DATA_URL = os.getenv("Data_URL")
-        if DATA_URL:
-            try:
-                updated_data = connect_to_blob(DATA_URL, beautified)
-                print("Blob Data Processed Successfully.")
-                if isinstance(updated_data, pd.DataFrame):
-                    print("Blob Data Processed Successfully and Excel Updated.")
-                    excel_update_status = "Excel updated successfully"
-                else:
-                    # updated_data may be an error dict
-                    error_msg = updated_data.get("error", "Excel update failed")
-                    # print(f"Error: {updated_data.get('error')}")
-                    print(f"Error: {error_msg}")
-                    excel_update_status = error_msg
-            except Exception as e:
-                print(f"Error processing blob data: {e}")
-                excel_update_status = str(e)
-        else:
-            print("Data_URL environment variable is not set.")
-            excel_update_status = "DATA_URL not configured"
-    except Exception as e:
-        print(f"Error in beautify / blob step: {e}")
-
-    # return cleaned_payload
-    beautified["excel_update_status"] = excel_update_status
-    return beautified
+   try:
+       layout_type = classify_document(document_content)
+   except Exception as e:
+       return {"status": False, "error": f"Classification failed: {e}"}
+   return {
+       "status": True,
+       "layout_type": layout_type,
+       "URL": blob_url,
+    #    "details": document_content,
+       "text_blob_url": text_blob_url
+   }
 
 
 
-summary_loader.py
 
-from dotenv import load_dotenv
-import os
-from azure.ai.formrecognizer import DocumentAnalysisClient
-from azure.core.credentials import AzureKeyCredential
-
-# Load environment variables from .env file
-load_dotenv()
-
-# Fetch variables
-endpoint = os.getenv("AZURE_FORMRECOG_ENDPOINT")
-key = os.getenv("AZURE_FORMRECOG_KEY")
-
-# Fail fast if missing
-if not endpoint:
-    raise ValueError("AZURE_FORMRECOG_ENDPOINT is not set. Check your .env file.")
-if not key:
-    raise ValueError("AZURE_FORMRECOG_KEY is not set. Check your .env file.")
-
-# Create the client using the key and endpoint
-client = DocumentAnalysisClient(endpoint=endpoint, credential=AzureKeyCredential(key))
-
-
-def load_summary_document(file_path: str) -> dict:
-    """
-    Extract ALL PAGES using Form Recognizer's prebuilt-read model.
-
-    Even though the return key is 'first_page_text',
-    we now return the FULL DOCUMENT TEXT (all pages) concatenated.
-    """
-    with open(file_path, "rb") as f:
-        poller = client.begin_analyze_document(
-            "prebuilt-read",
-            document=f
-        )
-        result = poller.result()
-
-    if not result.pages:
-        return {"first_page_text": ""}
-
-    all_pages_text_list = []
-    # Collect text for ALL pages
-    for page in result.pages:
-        page_lines = [line.content for line in page.lines]
-        page_text = "\n".join(page_lines)
-        all_pages_text_list.append(page_text)
-
-    # Combine everything into ONE string
-    all_pages_text = "\n\n".join(all_pages_text_list)
-
-    # Optional debug
-    print("ALL pages text (truncated to 500 chars):")
-    print(all_pages_text[:500])
-    print("\n---- END OF PREVIEW ----\n")
-
-    return {
-        "first_page_text": all_pages_text   # full text stored under this key
-    }
-
-
-summary_service.py
+service.py
+# service.py
+#Working code 
 
 import os
 from urllib.parse import urlparse, unquote
@@ -926,14 +315,12 @@ load_dotenv()
 
 AZURE_STORAGE_CONNECTION_STRING = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "")
 
-
-def summary_require_env() -> None:
+def _require_env() -> None:
     """Ensure required environment variables exist."""
     if not AZURE_STORAGE_CONNECTION_STRING:
         raise RuntimeError("Missing AZURE_STORAGE_CONNECTION_STRING in environment/.env")
 
-
-def new_parse_blob_url(url: str) -> tuple[str, str]:
+def _parse_blob_url(url: str) -> tuple[str, str]:
     """
     Parse an Azure Blob URL and return (container_name, blob_path).
     Example URL:
@@ -953,216 +340,50 @@ def new_parse_blob_url(url: str) -> tuple[str, str]:
     blob_path = parts[1]
     return unquote(container), unquote(blob_path)
 
-
-def _parse_blob_url(url: str) -> tuple[str, str, str]:
-    """
-    Parse an Azure Blob URL and return (container_name, filename_without_ext, reference_number).
-    Example URL:
-      https://account.blob.core.windows.net/output-results/folder/name.pdf
-    Returns:
-      ("output-results", "name", "name_reference_part") 
-    
-    For your example URL: 
-      "https://agenticai1.blob.core.windows.net/attachment-downloader/19CDC8AB7BCC5E85_attachment_SunflowerHotels_Submission_Document.pdf"
-    Returns:
-      ("attachment-downloader", "19CDC8AB7BCC5E85_attachment_SunflowerHotels_Submission_Document", "19CDC8AB7BCC5E85")
-    """
-    parsed = urlparse(url)
-    if not parsed.scheme.startswith("http"):
-        raise ValueError("url must be a valid http(s) Azure Blob URL.")
-
-    path = parsed.path.lstrip("/")
-    if "/" not in path:
-        raise ValueError("url must include both container and blob path.")
-    
-    container, blob_path = path.split("/", 1)
-    container = unquote(container)
-    blob_path = unquote(blob_path)
-
-    # Extract filename and remove extension
-    filename_with_ext = os.path.basename(blob_path)
-    filename, _ = os.path.splitext(filename_with_ext)
-
-    # Extract reference number (assumed to be the part before first underscore)
-    if "_" not in filename:
-        raise ValueError("filename does not contain an underscore to extract reference number")
-    reference_number = filename.split("_", 1)[0]
-
-    return container, filename, reference_number
+storage_utils.py
 
 
-summary_storage_utils.py
-
-async def extract_filename_referencenumber_container_name(blob_url: str) -> str:
-    """
-    Downloads the blob at blob_url into input_folder (root-level) preserving filename.
-    Returns the local path to the downloaded file.
-    """
-    if not AZURE_STORAGE_CONNECTION_STRING:
-        raise RuntimeError("AZURE_STORAGE_CONNECTION_STRING not set")
-    
-    container, filename, reference_number = _parse_blob_url(blob_url)
-
-    return container, filename, reference_number
-
-Data_Raw_Text_Container_Name = "layout-detection-text-of-document"
-
-
-async def read_text_file_from_container(filename: str) -> str:
-    """
-    Reads the contents of a .txt file from the Azure Blob container Data_Raw_Text_Container_Name
-    corresponding to the provided filename (without extension).
-    Returns the text content of the file.
-    """
-    if not AZURE_STORAGE_CONNECTION_STRING:
-        raise RuntimeError("AZURE_STORAGE_CONNECTION_STRING not set")
-
-    # filename_without_ext = os.path.splitext(filename)[0]
-    # blob_name = filename + ".txt"
-
-    filename_without_ext = os.path.splitext(filename)[0]
-    blob_name = filename_without_ext + ".txt"
-
-    async with BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING) as service:
-        container_client = service.get_container_client(Data_Raw_Text_Container_Name)
-        blob_client = container_client.get_blob_client(blob_name)
-        try:
-            await blob_client.get_blob_properties()
-        except ResourceNotFoundError:
-            raise FileNotFoundError(f"Blob not found in container '{Data_Raw_Text_Container_Name}': {blob_name}")
-
-        downloader = await blob_client.download_blob()
-        data = await downloader.readall()
-        return data.decode("utf-8")
-
-
-
-
-
-async def download_blob_to_input_folder_by_reference(
-    beautified_data: list,
-    output_folder: str = "email_body",
-    container_name: str = "attachment-downloader",
-    blob_name_template: str = "body_{ref}.txt",
-) -> dict:
-    """
-    Download blobs whose names are derived from reference numbers found in beautified_data.
-
-    Args:
-      beautified_data: list of dicts each containing "reference_number" (as produced by beautify_extracted_data)
-      output_folder: local folder to save downloaded email bodies
-      container_name: blob container name (default 'attachment-downloader')
-      blob_name_template: template for filename in blob storage, {ref} will be replaced by the reference number
-
-    Returns:
-      dict mapping reference_number -> {"status":"ok","path":local_path} or {"status":"error","error":msg}
-    """
-    results = {}
-
-    if not AZURE_STORAGE_CONNECTION_STRING:
-        raise RuntimeError("AZURE_STORAGE_CONNECTION_STRING not set")
-
-    # collect unique references
-    refs = set()
-    for item in beautified_data or []:
-        ref = item.get("reference_number") or item.get("reference") or None
-        if ref:
-            refs.add(str(ref))
-
-    if not refs:
-        return {"status": "no_refs", "message": "No reference numbers found in beautified_data", "details": {}}
-
-    os.makedirs(output_folder, exist_ok=True)
-
-    svc = BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING)
-
-    async with svc:
-        container_client = svc.get_container_client(container_name)
-        for ref in refs:
-            blob_name = blob_name_template.format(ref=ref)
-            local_path = os.path.join(output_folder, blob_name)
-
-            try:
-                blob_client = container_client.get_blob_client(blob_name)
-
-                # check existence
-                try:
-                    await blob_client.get_blob_properties()
-                except ResourceNotFoundError:
-                    results[ref] = {"status": "error", "error": f"Blob not found: container={container_name} blob={blob_name}"}
-                    continue
-
-                stream = await blob_client.download_blob()
-                data = await stream.readall()
-
-                # write file async
-                async with aiofiles.open(local_path, "wb") as f:
-                    await f.write(data)
-
-                results[ref] = {"status": "ok", "path": local_path}
-            except AzureError as ae:
-                results[ref] = {"status": "error", "error": f"AzureError: {ae}"}
-            except Exception as e:
-                results[ref] = {"status": "error", "error": str(e)}
-
-    return {"status": "done", "details": results}
-
-
-test_script.py
-
+from azure.storage.blob.aio import BlobServiceClient
+from azure.core.exceptions import ResourceNotFoundError
+from service import AZURE_STORAGE_CONNECTION_STRING, _parse_blob_url
+from urllib.parse import urlparse
 import os
-import json
-import requests
 
-# Base URL of your FastAPI service
-# After main.py starts, the root app listens on port 8602
-BASE_URL = os.getenv("LAYOUT_BASE_URL", "http://localhost:8602")
+TEXT_CONTAINER = "layout-detection-text-of-document"
 
-# We mounted the sub-app at /api/v1/layout_agent
-# Router path is /layout_detection_mcp
-# So final endpoint is:
-#   POST http://localhost:8602/api/v1/layout_agent/layout_detection_mcp
-ENDPOINT = f"{BASE_URL}/api/v1/summary_agent/attachment_summary_mcp"
+async def download_blob_bytes(blob_url: str):
+   container, blob_path = _parse_blob_url(blob_url)
+   async with BlobServiceClient.from_connection_string(
+       AZURE_STORAGE_CONNECTION_STRING
+   ) as service:
+       container_client = service.get_container_client(container)
+       blob_client = container_client.get_blob_client(blob_path)
+       try:
+           await blob_client.get_blob_properties()
+       except ResourceNotFoundError:
+           raise FileNotFoundError("Blob not found")
+       stream = await blob_client.download_blob()
+       data = await stream.readall()
+   return data
 
-
-def run_test():
-    # Example payload: list of blob URLs
-    payload = {
-        "attachment_urls": [
-
-
-   "https://agenticai1.blob.core.windows.net/attachment-downloader/19CDC8AB7BCC5E85_attachment_SunflowerHotels_Submission_Document.pdf",
-            "https://agenticai1.blob.core.windows.net/quote-extraction-results/19CDC8AB7BCC5E85_attachment_Tower_Insurance_-_Home_Submission_Report.pdf"
-
-            # "https://agenticai1.blob.core.windows.net/attachment-downloader/19CDC8AB7BCC5E85_attachment_Property_Detailed_Report.pdf"
-        ]
-    }
-
-    # print(f"Calling endpoint: {ENDPOINT}")
-    # print("Request payload:")
-    # print(json.dumps(payload, indent=2))
-
-    try:
-        resp = requests.post(ENDPOINT, json=payload, timeout=180)
-        print("\nHTTP Status:", resp.status_code)
-
-        try:
-            data = resp.json()
-            print("\nResponse JSON:")
-            print(json.dumps(data, indent=4))
-        except json.JSONDecodeError:
-            print("\nResponse is not valid JSON:")
-            print(resp.text)
-
-    except Exception as e:
-        print("Error calling API:", str(e))
-
-
-if __name__ == "__main__":
-    print("Testing /api/v1/summary_agent/attachment_summary_mcp ...")
-    run_test()
-
-
-
+async def upload_text_to_blob(blob_url: str, text: str):
+   parsed = urlparse(blob_url)
+   path = parsed.path.lstrip("/")
+   container, blob_path = path.split("/", 1)
+   filename = os.path.basename(blob_path)
+   base_name = os.path.splitext(filename)[0]
+   new_blob_name = f"{base_name}.txt"
+   async with BlobServiceClient.from_connection_string(
+       AZURE_STORAGE_CONNECTION_STRING
+   ) as blob_service:
+       # create container if not exists
+       container_client = blob_service.get_container_client(TEXT_CONTAINER)
+       try:
+           await container_client.create_container()
+       except Exception:
+           pass   # container already exists
+       blob_client = container_client.get_blob_client(new_blob_name)
+       await blob_client.upload_blob(text, overwrite=True)
+   return f"{parsed.scheme}://{parsed.netloc}/{TEXT_CONTAINER}/{new_blob_name}"
 
 
