@@ -1,3 +1,26 @@
+here i had payload with only one thing as input but now i have been told that there is one more thing that
+it has to take as input and this will be from other tool and the ine thing that we were taking as input was from other tool
+
+{
+    "detected_lob": "RESIDENTIAL PROPERTY"
+}
+
+so earlier in excel only 2 rows were populated
+as you can refer the code
+now there will be additional 2 rows in rown number 4 and 5 all the data will be same in that row of what it had in row 2 and 3 the only change in data will be in column Line of Business 
+so in the new rows row 4 and row 5 under column D it will have RESIDENTIAL PROPERTY instead of Commercial Property 
+so earlier i think we were only comparing one of the columns to understand whether it is sanctioned or not i dont exaclty remember but i will share the excel details here as well how our excel looks currently
+so along with that comparison, now we also have to compare the Line of business column so if the line of businnes ie "detected_lob": "RESIDENTIAL PROPERTY" then row 4 and 5 should be considered and 
+then based on the santioned we have to pick those particular data and populate as we are populating now in the new Excel 
+
+
+so this is our excel 
+Reference Number	Eligibility check date and time	Reason Summary	                Line of Business	Location Risk Zone  	Business Type	Licensing and Sanction Check	Source of Check	Eligibility Status 	Approval Flag	Approval Date and Time
+	                                            	Within sum insured limits   	Commercial Property	     Medium	                New Business	Cleared	                        OFAC SDN, EU Sanctions, UN Sanctions	Eligible	FALSE	
+		                                            Entity found in sanction list.	Commercial Property	     High	                New Business	Not Cleared	                    OFAC SDN, EU Sanctions, UN Sanctions	Not Eligible	FALSE	
+	                                            	Within sum insured limits and   RESIDENTIAL PROPERTY	Medium	                New Business	Cleared	                        OFAC SDN, EU Sanctions, UN Sanctions	Eligible	FALSE	
+		                                            Entity found in sanction list.	RESIDENTIAL PROPERTY	High	                New Business	Not Cleared	                    OFAC SDN, EU Sanctions, UN Sanctions	Not Eligible	FALSE	
+
 
 # file_router.py (updated)
 
