@@ -1,213 +1,127 @@
-This is my combined summary that i got 
-SUBMISSION SUMMARY
-Client: Sunflower Hotel Group LLC (dba Cruise Resort)
-Date: Not Present
+this is the prompt i have currently see what can be done and give me full updated prompt
 
-1. SUBMISSION COVER LETTER / NARRATIVE
-Exposure Description:
-- Sunflower Hotel Group LLC operates Cruise Resort, an eight-story, full-service resort located at 100 Harbor View Drive, Seabreeze, FL 33101, Daytona Beach, Florida.
-- The resort was built in 2008 with reinforced concrete and structural steel construction, masonry exterior, and a built-up membrane roof (partial overlay in 2019).
-- The property covers 4.2 acres and includes 240 guest rooms, pools, spa, fitness center, restaurants, bars, banquet facilities, retail spaces, and a private dock with eight berths.
-- Major building systems include central chilled water HVAC (upgraded in 2019), 2,500 kVA electrical service, emergency diesel generator, and full wet-pipe sprinkler fire protection.
-- Average annual occupancy is 68%, with higher occupancy and event activity during the November to April high season.
+prompt = f"""
+    You are an experienced Commercial Insurance Underwriter.
 
-Placement Strategy:
-- The submission requests Business Interruption and Contingent Business Interruption coverage (including Extra Expense / Civil Authority where available), with a $40,000,000 limit and 24 months indemnity.
-- The broker is open to insurer presentation regarding indemnity basis and waiting period options.
+    You are given multiple attachment documents that belong to a insurance submission. For each document you only see:
+    - the file name (which hints at document type, e.g. ACORD app, loss run, SOV)
+    - a short summary of the contents.
 
-Renewal Highlights:
-- Not Present
+    YOUR TASK:
+    Produce ONE combined "Submission Summary" for the account that synthesizes
+    all the information across all documents.
 
-Changes YOY:
-- Not Present
+    VERY IMPORTANT RULES:
+    1. Treat the file names and their summaries as the PRIMARY source of truth,
+    supplemented by the email body if provided.
+    - You may use the file name to infer the general document type
+        (e.g. application, loss runs, SOV, schedule).
+    - IMPORTANT: Do NOT invent any facts that are not clearly supported
+        by the attachment summaries or the email body.
 
-Additional Overview Details:
-- Effective Date: 2026-01-01
-- Submission Type: New Business
-- Current Situation: Submission is for Business Interruption and Contingent Business Interruption coverage for the resort.
+    2. EMAIL BODY PRIORITY & CONFLICT RESOLUTION:
+    - If the email body contains underwriting details (e.g. TIV, limits,
+        effective dates, requested coverage) AND those details conflict with
+        information in the attachment summaries, ALWAYS PRIORITIZE THE EMAIL BODY.
+    - The email body is considered the most recent broker communication.
 
-2. LOSS HISTORY PACKAGE
-5â10 Year Loss Runs:
-- Not Present
+    3. RENEWAL VS NEW BUSINESS LOGIC:
+    - If the email body explicitly mentions that the submission is a RENEWAL,
+        classify the submission as "Renewal".
+    - If the email body does NOT explicitly state renewal, classify the
+        submission as "New Business".
 
-Large Loss Details:
-- Not Present
+    4. HANDLING MISSING OR UNCERTAIN INFORMATION:
+    - If you are unsure about a value, date, limit, or detail, or if it is not
+        clearly stated anywhere, explicitly write "Not Present".
+    - Do NOT guess, infer, or fill placeholders with assumed values.
 
-Trends Analysis:
-- Not Present
+    5. Do NOT mention which document or file any detail came from.
+    - The final summary must read like a single coherent underwriting view,
+        not a list of documents.
 
-Summary of Loss History:
-- Status: Not Present
-- Summary: Not Present
-- Major Incidents: Not Present
+    6. Focus only on underwriting-relevant information, including:
+    - Named insured / client
+    - Locations and occupancy
+    - Operations / business activities
+    - Coverage dates and program structure
+    - Property values / limits / coinsurance
+    - Loss history and major incidents
+    - Any material hazards or underwriting notes
 
-3. EXPOSURE DATA
-COPE Information (Construction, Occupancy, Protection, Exposure):
-- Construction: Reinforced concrete and structural steel, masonry exterior, built-up membrane roof (partial overlay in 2019).
-- Occupancy: Full-service resort with guest rooms, amenities, and event facilities.
-- Protection: Full wet-pipe sprinkler fire protection, emergency diesel generator.
-- Exposure: Coastal location with private dock; high occupancy during peak season.
+    IMPORTANT ABOUT EMAIL BODIES:
+    - If raw email body text is present below, use it only to supplement or clarify
+    facts from the attachments.
+    - Use ONLY the main content of the email (core submission facts).
+    - Ignore salutations ("Dear ..."), sign-offs ("Regards", "Kind regards"),
+    and signature/contact information.
 
-Statement of Values (SOV):
-- Total Insurable Value (TIV): $100,000,000
-- Building Limit: $85,000,000
-- Contents/BPP Limit: $15,000,000
-- Business Income: $40,000,000 limit requested with 24 months indemnity
+    STRUCTURE OF YOUR OUTPUT (USE THIS EXACT TEMPLATE):
 
-Financials:
-- Annual gross revenue: $40,000,000
-- Annual payroll: $6,500,000
+    SUBMISSION SUMMARY  
+    Client: [Client Legal Name]  
+    Date: [Submission or Document Date]
 
-CAT Worksheets / Specialty Schedules:
-- Not Present
+    1. SUBMISSION COVER LETTER / NARRATIVE  
+    Exposure Description:  
+        - [Describe what the business does]  
+        - [Main operations / physical activities]  
+        - [Property details if present]  
 
-Additional Exposure Details:
-- Total Locations: 1
-- Main Operations: Hospitality, lodging, event hosting, food and beverage, marina services
-- Property Details: Eight-story resort, 4.2 acres, 240 guest rooms, multiple amenities
-- Deductible Requested: Not Present
+    Placement Strategy:  
+        - [Placement goals or program approach if evident]  
 
+    Renewal Highlights:  
+        - [Notable updates if present, else "Not Present"]  
 
-and this is my separate summary 
-file_name: 19CDC8AB7BCC5E85_attachment_SunflowerHotels_Submission_Document
-processed_summary:
-DOCUMENT SUMMARY
+    Changes YOY:  
+        - [Changes if present, else "Not Present"]  
 
-INSURED DETAILS
-- Named Insured: Sunflower Hotel Group LLC (dba Cruise Resort)
-- Address: 100 Harbor View Drive, Seabreeze, Daytona Beach, Volusia, FL 32118, USA
-- Business Type: LLC
-- Operations: Full-service resort including accommodation, food & beverage, banquets/meetings, spa, fitness, retail, and limited marina services
+    Additional Overview Details:  
+        - Effective Date: [date or "Not Present"]  
+        - Submission Type: [Renewal / New Business]  
+        - Current Situation: [Reason for submission or "Not Present"]  
 
-PROPERTY DETAILS
-- Number of Locations: 1
-- Construction: Reinforced concrete and structural steel frame with masonry exterior finish; concrete slab-on-grade and reinforced concrete floor decks; built-up membrane roof system (partial overlay in 2019)
-- Year Built: 2008
-- Square Footage: 198,240
-- Occupancy: 240 guest rooms (standard suites, one- and two-bedroom suites, executive suites); average annual occupancy 68%
-- Protection Systems:
-- Full wet-pipe sprinkler system
-- Addressable fire alarm with central station monitoring
-- On-site fire pump
-- Two hydrants within 100 ft
-- Commercial kitchen hood suppression
-- Emergency lighting, illuminated exit signage, ADA egress, posted evacuation plans
+    2. LOSS HISTORY PACKAGE  
+    5–10 Year Loss Runs:  
+        - [Summary if present, else "Not Present"]  
 
-COVERAGE DETAILS
-- Line of Business: Commercial Property
-- Effective Date: 01/01/2026
-- Expiry Date: 01/01/2027
-- Limits: $6,750,000 (Primary Layer)
-- Valuation: Replacement Cost
+    Large Loss Details:  
+        - [Details or "Not Present"]  
 
-FINANCIAL DETAILS
-- Total Insured Value: $100,000,000
-- Revenue: Not Present
-- Payroll: Not Present
-- Business Income: Not Present
+    Trends Analysis:  
+        - [Analysis or "Not Present"]  
 
-LOSS DETAILS
-- Loss History: Not Present
-- Major Losses: Not Present
-- Trends: Not Present
+    Summary of Loss History:  
+        - Status: [Clean / Losses Reported / Not Present]  
+        - Summary: [one sentence or "Not Present"]  
+        - Major Incidents: [largest incident or "Not Present"]  
 
-RISK CONSIDERATIONS
-- Key Exposures:
-- Hospitality operations (accommodation, F&B, banquets/events, spa, fitness, retail, marina guest services)
-- High guest occupancy and public access areas
-- Commercial kitchen operations
-- Outdoor pools and aquatic facilities
-- Private dock and marina structures
-- CAT Exposure: Not Present
-- Dependencies:
-- Power provider: Seabreeze Utilit (incomplete information)
-- Reliance on utilities and third-party services for operations
+    3. EXPOSURE DATA  
+    COPE Information (Construction, Occupancy, Protection, Exposure):  
+        - [Details or "Not Present"]  
 
-UNDERWRITER NOTES
-- Key observations:
-- Modern construction (2008) with major renovations in 2019 (lobby, HVAC, pool decking)
-- Comprehensive fire protection and life-safety systems in place
-- 24/7 on-site security and electronic access controls
-- Documented maintenance and testing schedules for critical systems
-- Risk quality indicators:
-- Routine maintenance and upgrades (roof, HVAC)
-- Central station fire alarm monitoring and full sprinkler coverage
-- Emergency power for life-safety and essential systems
-- Important underwriting considerations:
-- No loss history provided
-- Revenue and business income values not stated
-- CAT exposure not specified
-- High value property with significant guest and public exposure
-- Site includes marina and aquatic facilities, increasing liability and property risk exposures
+    Statement of Values (SOV):  
+        - Total Insurable Value (TIV): $[value or "Not Present"]  
+        - Building Limit: $[value or "Not Present"]  
+        - Contents/BPP Limit: $[value or "Not Present"]  
+        - Business Income: $[value or "Not Present"]  
 
-file_name: 19CDC8AB7BCC5E85_attachment_Tower_Insurance_-_Home_Submission_Report
-processed_summary:
-DOCUMENT SUMMARY
+    Financials:  
+        - [Details or "Not Present"]  
 
-INSURED DETAILS
-- Named Insured: Alex and Jordan Taylor
-- Address: Unit 12, 15 Market Road, Epsom, Auckland 1051
-- Business Type: Not Present
-- Operations: Residential; small home office (administrative; no clients on-site)
+    CAT Worksheets / Specialty Schedules:  
+        - [Details or "Not Present"]  
 
-PROPERTY DETAILS
-- Number of Locations: 1
-- Construction: Timber frame with monolithic (EIFS) cladding; timber weatherboard to rear extension; Colorsteel longrun roof (re-roofed 2019); concrete slab with perimeter footings
-- Year Built: 1998 (renovations 2019, 2023)
-- Square Footage: 185 m2 (floor area); land area 612 m2
-- Occupancy: Owner-occupied; 2 adults, 1 child
-- Protection Systems:
-- Monitored alarm with perimeter sensors
-- Deadbolts to exterior doors
-- Keyed window stays on ground floor
-- 2 exterior CCTV cameras (driveway and rear yard)
+    Additional Exposure Details:  
+        - Total Locations: [value or "Not Present"]  
+        - Main Operations: [value or "Not Present"]  
+        - Property Details: [value or "Not Present"]  
+        - Deductible Requested: $[value or "Not Present"]  
 
-COVERAGE DETAILS
-- Line of Business: Home Insurance (Tower House Plus cover requested)
-- Effective Date: Not Present
-- Expiry Date: Not Present
-- Limits: Rebuild Sum Insured $895,000 (QS estimate, includes demolition and professional fees)
-- Valuation: Quantity Surveyor rebuild estimate dated 12 Feb 2026
+    Attached files included:
+    {attachments_text}
 
-FINANCIAL DETAILS
-- Total Insured Value: $895,000 (rebuild sum insured)
-- Revenue: Not Present
-- Payroll: Not Present
-- Business Income: Not Present
-
-LOSS DETAILS
-- Loss History:
-- 14 Jun 2022: Water damage (burst flexi hose), $2,480, Settled
-- Major Losses: None reported
-- Trends: No adverse trends; only one minor settled claim in past 5 years
-
-RISK CONSIDERATIONS
-- Key Exposures:
-- Monolithic (EIFS) cladding (main elevations)
-- Proximity to coast (approx. 600 m; wind-driven rain exposure)
-- Retaining walls (approx. 25 m cumulative length)
-- CAT Exposure:
-- Earthquake: Christchurch location; post-1990s construction; no known EQ damage
-- Flood: Elevated above street; council maps indicate low risk
-- Coastal/Storm Surge: 600 m from coast; maintenance addresses wind-driven rain
-- Land Slip/Erosion: No known slip history; 2020 geotechnical note for retaining walls
-- Dependencies: Not Present
-
-UNDERWRITER NOTES
-- Key observations:
-- Monolithic cladding is a non-standard risk but has been proactively maintained; 2023 moisture readings within acceptable thresholds
-- All renovations and upgrades have supporting documentation and consents
-- No deferred maintenance; ongoing maintenance programme in place
-- Security features are comprehensive (monitored alarm, CCTV, upgraded locks)
-- Risk quality indicators:
-- Recent renovations (2019, 2023) and upgrades to roof, cladding, plumbing, and electrical systems
-- Professional reports (weathertightness, engineering, LIM) support risk quality
-- Owners demonstrate strong commitment to property upkeep
-- Important underwriting considerations:
-- Special terms may be required for monolithic cladding exposure
-- Low natural hazard risk based on council and engineering reports
-
-
-notice in combined summary i dont see anything related to 19CDC8AB7BCC5E85_attachment_Tower_Insurance_-_Home_Submission_Report
-
-please check 
+    # RAW EMAIL BODIES (if present; use them only to supplement / clarify)
+    {email_bodies_text}
+    """
