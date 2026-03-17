@@ -1,17 +1,24 @@
-#LICENSIG AND SANCRION FOR HOME INSURANCE
-class CompareRequest(BaseModel):
-   jsonfilepath: str = Field(..., description="Full Azure Blob URL to the extracted JSON.")
-   detected_lob: str = Field(..., description="Detected Line of Business from LOB agent")
-@router.post(
-   "/Licensing_and_Sanction_Checker_MCP",
-   operation_id="Licensing_and_Sanction_Checker_MCP",
-   summary="Compare JSON with sanctions CSV and update eligibility excel."
-)
-async def compare_files(request: CompareRequest):
     """
-    Receives the JSON blob URL from the Data Extraction Agent ie. "retriever_mcp" and 
-    "detected_lob" from the response of "risk_type_checker"
-    and performs the comparison.
-    Only Azure Blob URLs containing "_Submission_Document_", "_Submission_Report_" in the blob name
-    (e.g., "..._Submission_Document_...json") will be considered valid for processing.
+    Processes a list of blob URLs from the layout_detection_mcp which are text files and generates a summary of the each document text files.
+    Args:
+    request (AttachmentSummaryRequest): The input request containing a list of blob URLs from layout_detection_mcp.
+
+    Returns JSON-RPC style result:
+    {
+      "jsonrpc": "2.0",
+      "id": 1,
+      "result": {
+        "status": true/false,
+        "summaries": [
+          {
+            "blob_url": "...",
+            "file_name": "...",
+            "summary": "...",
+            "error": null or "message"
+          },
+          ...
+        ],
+        "save_error": "..." (optional)
+      }
+    }
     """
