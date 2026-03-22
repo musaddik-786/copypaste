@@ -289,11 +289,11 @@ class PostgreSQLPromptManager:
     
     def __init__(self):
         self.connection_params = {
-            "host": os.getenv("PGHOST", "jarvis-uw.postgres.database.azure.com"),
-            "port": int(os.getenv("PGPORT", "5432")),
-            "database": os.getenv("PGDATABASE", "postgres"),
-            "user": os.getenv("PGUSER", "Jarvisuwadmin"),
-            "password": os.getenv("PGPASSWORD", "Uwpassword!2025")
+            "host": os.getenv("PGHOST", "com"),
+            "port": int(os.getenv("PGPORT", "2")),
+            "database": os.getenv("PGDATABASE", "s"),
+            "user": os.getenv("PGUSER", "in"),
+            "password": os.getenv("PGPASSWORD", "5")
         }
 
        
