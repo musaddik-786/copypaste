@@ -1,158 +1,801 @@
-Let’s understand chunk overlap very simply with a clear example.
-
-What is Chunk Overlap?
-
-Chunk overlap = Some part of the previous chunk is repeated in the next chunk to preserve context.
-
-Think like this:
-
-Instead of cutting text like this:
-
-Chunk 1 → 0 to 100 characters
-Chunk 2 → 101 to 200 characters
-
-We do this:
-
-Chunk 1 → 0 to 100
-Chunk 2 → 80 to 180
-
-Here 80–100 is repeated.
-
-That repeated part is called chunk overlap.
-
-⸻
-
-Simple Real Example
-
-Suppose text is:
-
-Virat Kohli is one of the best batsmen in the world. He plays for RCB in IPL.
-
-Without overlap (chunk_size=40, overlap=0)
-
-Chunk 1:
-Virat Kohli is one of the best batsmen
-
-Chunk 2:
-in the world. He plays for RCB in IPL
-
-Problem:
-Meaning split.
-
-If user asks:
-Which team does Virat Kohli play for?
-
-Chunk1 → has Virat
-Chunk2 → has RCB
-
-Retriever may fail.
-
-⸻
-
-With overlap (chunk_size=40, overlap=10)
-
-Chunk 1:
-Virat Kohli is one of the best batsmen
-
-Chunk 2:
-best batsmen in the world. He plays for RCB
-
-Notice:
-“best batsmen” repeated.
-
-Now context connected.
-
-⸻
-
-Why chunk overlap exists (real reason)
-
-When splitting, sometimes:
-	•	Sentence breaks
-	•	Idea breaks
-	•	Context breaks
-
-Overlap ensures:
-Next chunk still knows previous context.
-
-⸻
-
-Visual Understanding
-
-Without overlap:
-
-[Chunk1] [Chunk2]
-
-With overlap:
-
-[Chunk1]
-        [Chunk2]
-
-The middle part overlaps.
-
-⸻
-
-Engineering Definition
-
-If:
-
-chunk_size = 100
-chunk_overlap = 20
-
-Then:
-
-Chunk1:
-
-0–100
-
-Chunk2:
-
-80–180
-
-Chunk3:
-
-160–260
-
-Formula idea:
-
-Next chunk start =
-previous_end − overlap
-
-⸻
-
-One line understanding ⭐
-
-Chunk overlap repeats some text between chunks so meaning is not lost.
-
-⸻
-
-How much overlap should we use?
-
-General rule:
-
-10–20% of chunk size
-
-Example:
-
-Chunk Size	Overlap
-100	10–20
-500	50–100
-1000	100–200
-
-
-⸻
-
-One practical intuition (very important)
-
-Think like reading a book:
-
-If I tear pages exactly:
-You may miss story connection.
-
-If I repeat last few lines:
-You understand next page better.
-
-Chunk overlap = repeating last few lines.
-
-⸻
-
-If you want, I can also explain why chunk overlap improves embeddings and retrieval accuracy (this is a deeper AI engineer concept but very useful).
+pdf_to_vector.py
+
+
+import os
+import logging
+from typing import Dict, Any
+from dotenv import load_dotenv
+from azure.storage.blob import BlobClient, BlobServiceClient
+from azure.core.exceptions import AzureError
+from azure.ai.formrecognizer import DocumentAnalysisClient
+from azure.core.credentials import AzureKeyCredential
+from urllib.parse import urlparse, quote, unquote
+# from langchain.text_splitter import RecursiveCharacterTextSplitter
+# from langchain_community.embeddings import AzureOpenAIEmbeddings
+# from langchain_community.vectorstores import Chroma
+# from langchain.schema import Document
+import tempfile
+
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_openai import AzureOpenAIEmbeddings
+from langchain_chroma import Chroma
+from langchain_core.documents import Document
+
+# Load environment variables
+load_dotenv()
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Initialize Azure Document Intelligence client
+doc_client = DocumentAnalysisClient(
+    endpoint=os.getenv("DOCUMENTINTELLIGENCE_ENDPOINT"),
+    credential=AzureKeyCredential(os.getenv("DOCUMENTINTELLIGENCE_API_KEY"))
+)
+
+# Initialize Azure OpenAI embeddings
+embeddings = AzureOpenAIEmbeddings(
+    azure_deployment=os.getenv("AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME"),
+    openai_api_key=os.getenv("AZURE_OPENAI_API_KEY"),
+    openai_api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
+    azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
+    chunk_size=1024  # Adding required chunk_size parameter
+)
+
+# Configure text splitter
+text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=int(os.getenv("CHUNK_SIZE", "800")),
+    chunk_overlap=int(os.getenv("CHUNK_OVERLAP", "100")),
+    length_function=len,
+)
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+def _quote_path_only(url: str) -> str:
+    """Safely percent-encode only the path component of the URL."""
+    parsed = urlparse(url)
+    quoted_path = quote(parsed.path, safe="/")
+    return unquote(parsed.path)
+
+async def download_from_blob(blob_url: str) -> bytes:
+    """Download PDF bytes from blob storage."""
+    if not blob_url or not blob_url.lower().startswith(("http://", "https://")):
+        raise ValueError("A full http(s) blob URL must be provided")
+
+    try:
+        # Try direct blob URL first (for public blobs or SAS URLs)
+        blob_client = BlobClient.from_blob_url(blob_url)
+        return blob_client.download_blob().readall()
+    except AzureError as e:
+        # Fall back to connection string if available
+        conn_str = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
+        if not conn_str:
+            raise RuntimeError(f"Failed to download blob: {str(e)}")
+        
+        parsed = urlparse(blob_url)
+        path = unquote(parsed.path)
+        path_parts = [p for p in path.split("/") if p]
+        if len(path_parts) < 2:
+            raise RuntimeError("Invalid blob URL format")
+            
+        container_name = path_parts[0]
+        blob_name = "/".join(path_parts[1:])
+        
+        svc = BlobServiceClient.from_connection_string(conn_str)
+        blob_client = svc.get_blob_client(container=container_name, blob=blob_name)
+        return blob_client.download_blob().readall()
+
+def extract_text_from_pdf(pdf_bytes: bytes) -> str:
+    """Extract text from PDF using Azure Document Intelligence."""
+    with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as temp_pdf:
+        temp_pdf.write(pdf_bytes)
+        temp_pdf.flush()
+        
+        try:
+            poller = doc_client.begin_analyze_document(
+                "prebuilt-document", 
+                document=open(temp_pdf.name, "rb")
+            )
+            result = poller.result()
+            
+            # Extract text from all pages
+            text = "\n".join([
+                line.content 
+                for page in result.pages 
+                for line in page.lines
+            ])
+            return text
+        finally:
+            # Clean up temp file
+            os.unlink(temp_pdf.name)
+
+def extract_text_from_docx(docx_bytes: bytes) -> str:
+    """Extract text from DOCX using Azure Document Intelligence."""
+    with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as temp_docx:
+        temp_docx.write(docx_bytes)
+        temp_docx.flush()
+
+        try:
+            with open(temp_docx.name, "rb") as docx_file:
+                poller = doc_client.begin_analyze_document(
+                    model_id="prebuilt-read",
+                    document=docx_file,
+                    content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                )
+                result = poller.result()
+
+                # Extract text from all pages
+                text = "\n".join([
+                    line.content
+                    for page in result.pages
+                    for line in page.lines
+                ])
+                return text
+        finally:
+            os.unlink(temp_docx.name)
+
+def chunk_and_embed(text: str, vector_db_path: str) -> bool:
+    """Chunk text and create vector embeddings in ChromaDB."""
+    try:
+        # Create document and split into chunks
+        doc = Document(page_content=text)
+        chunks = text_splitter.split_documents([doc])
+        
+        # Get safe collection name from vector_db_path
+        # safe_name = os.path.basename(vector_db_path).lower().replace(" ", "_").replace("-", "_").replace(".", "_")
+        # collection_name = f"{safe_name}_collection"
+        # persist_directory = os.path.join(vector_db_path, "chroma_db", safe_name)
+        
+        # ChromaDB only allows: [a-zA-Z0-9._-]
+        safe_name = os.path.basename(vector_db_path).lower()
+        safe_name = safe_name.replace(" ", "_").replace("-", "_").replace(".", "_")
+        # Remove parentheses and other special characters
+        safe_name = "".join(c if c.isalnum() or c in "._-" else "" for c in safe_name)
+        # Ensure it starts and ends with alphanumeric
+        safe_name = safe_name.strip("._-")
+        collection_name = f"{safe_name}_collection"
+        persist_directory = os.path.join(vector_db_path, "chroma_db", safe_name)
+        # Create ChromaDB instance and store chunks
+        vectordb = Chroma.from_documents(
+            chunks,
+            embedding=embeddings,
+            persist_directory=persist_directory,
+            collection_name=collection_name
+        )
+        # vectordb.persist() # This method ensures data is written to disk
+        
+        # Verify we can create a retriever (validates the DB was created properly)
+        retriever = Chroma(
+            embedding_function=embeddings,
+            persist_directory=persist_directory,
+            collection_name=collection_name
+        ).as_retriever()
+        
+        return True
+    except Exception as e:
+        logger.error(f"Error in chunking/embedding: {str(e)}")
+        return False
+
+async def process_pdf(blob_url: str, vector_db_path: str = None) -> Dict[str, Any]:
+    """Main processing function that handles the complete pipeline for PDF and DOCX files."""
+    try:
+        # Use VDB_PATH from env if vector_db_path not provided
+        # Always convert to absolute path
+        # vector_db_path = vector_db_path or os.getenv("VDB_PATH", "/home/jarvis/Chinmay/Jarvis/MCP/Quote_Extraction_MCP/data/vec_db")
+        
+        vector_db_path = vector_db_path or os.getenv("VDB_PATH", "/MCP/Quote_Extraction_MCP/data/vec_db")
+
+        # vector_db_path = vector_db_path or os.getenv("VDB_PATH", "/home/Jarvis/Chinmay/JarvisAgent/Jarvis/MCP/Quote_Extraction_MCP/data/vec_db")
+
+        vector_db_path = os.path.abspath(vector_db_path)
+        
+        # Extract file name and extension from blob URL
+        path = unquote(urlparse(blob_url).path)
+        file_name_with_ext = os.path.basename(path)
+        file_name, file_ext = os.path.splitext(file_name_with_ext)
+        file_ext = file_ext.lower()
+        
+        # Create specific vector DB path for this file (absolute path)
+        file_vector_db_path = os.path.abspath(os.path.join(vector_db_path, file_name))
+        
+        # Download file from blob
+        file_bytes = await download_from_blob(blob_url)
+        
+        # Extract text based on file extension
+        if file_ext in (".pdf",):
+            # PDF: use Azure Document Intelligence (prebuilt-document model)
+            text = extract_text_from_pdf(file_bytes)
+        elif file_ext in (".docx", ".doc"):
+            # DOCX/DOC: use Azure Document Intelligence (prebuilt-read model)
+            text = extract_text_from_docx(file_bytes)
+        else:
+            raise ValueError(f"Unsupported file format: {file_ext}. Supported formats: .pdf, .docx, .doc")
+        
+        # Create chunks and embeddings (same pipeline for both PDF and DOCX)
+        is_embedded = chunk_and_embed(text, file_vector_db_path)
+        
+        return {
+            "is_vectorised": is_embedded,
+            "metadata": {
+                "is_embedded": is_embedded,
+                "is_error": not is_embedded,
+                "error_message": None if is_embedded else "Failed to create embeddings",
+                "pdf_name": file_name,
+                "vector_db_path": file_vector_db_path
+            }
+        }
+        
+    except Exception as e:
+        logger.exception("Error processing file")
+        # Try to get file name even in error case
+        try:
+            path = unquote(urlparse(blob_url).path)
+            file_name = os.path.splitext(os.path.basename(path))[0]
+            # file_vector_db_path = os.path.join(vector_db_path or os.getenv("VDB_PATH", "/home/jarvis/Chinmay/Jarvis/MCP/Quote_Extraction_MCP/data/vec_db"), file_name)
+            file_vector_db_path = os.path.join(vector_db_path or os.getenv("VDB_PATH", "/MCP/Quote_Extraction_MCP/data/vec_db"), file_name)
+
+        except:
+            file_name = "unknown"
+            file_vector_db_path = None
+            
+        return {
+            "is_vectorised": False,
+            "metadata": {
+                "is_embedded": False,
+                "is_error": True,
+                "error_message": str(e),
+                "pdf_name": file_name,
+                "vector_db_path": file_vector_db_path
+            }
+        }
+
+
+
+
+retriever.py
+import os
+import json
+import logging
+from typing import Dict, Any, List, Optional
+from dotenv import load_dotenv
+from langchain.chains import LLMChain
+# from langchain.prompts import PromptTemplate
+from langchain_core.prompts import PromptTemplate
+# from langchain_community.chat_models import AzureChatOpenAI
+from langchain_openai import AzureChatOpenAI, AzureOpenAIEmbeddings
+# from langchain_community.vectorstores import Chroma
+from langchain_chroma import Chroma
+# from langchain_community.embeddings import AzureOpenAIEmbeddings
+from azure.storage.blob import BlobServiceClient, ContainerClient
+from azure.core.exceptions import ResourceExistsError
+import re
+from datetime import datetime
+from urllib.parse import urlparse, unquote
+import psycopg2
+from psycopg2.extras import RealDictCursor
+
+# Load environment variables
+load_dotenv()
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# ==================== DATABASE CONFIGURATION ====================
+class PostgreSQLPromptManager:
+    """Manages dynamic prompt fetching from PostgreSQL"""
+    
+    def __init__(self):
+        self.connection_params = {
+            "host": os.getenv("PGHOST", "jarvis-uw.postgres.database.azure.com"),
+            "port": int(os.getenv("PGPORT", "5432")),
+            "database": os.getenv("PGDATABASE", "postgres"),
+            "user": os.getenv("PGUSER", "Jarvisuwadmin"),
+            "password": os.getenv("PGPASSWORD", "Uwpassword!2025")
+        }
+
+       
+    
+    def get_connection(self):
+        """Establish database connection"""
+        try:
+            conn = psycopg2.connect(**self.connection_params)
+            return conn
+        except Exception as e:
+            logger.error(f"❌ Database connection failed: {str(e)}")
+            return None
+    
+    def get_prompt_and_extraction_rules(self, document_type: str) -> Optional[Dict]:
+        """
+        Fetch prompt and extraction rules from database by document type using SQL query.
+        
+        Query: SELECT prompt, extraction_rules FROM ref_prompt_library WHERE document_type = ?
+        
+        Args:
+            document_type: Document type name (e.g., 'quote', 'acord', 'inspection_report')
+        
+        Returns:
+            Dictionary with 'prompt' and 'extraction_rules' keys, or None if not found
+        """
+        conn = self.get_connection()
+        if not conn:
+            logger.warning(f"⚠️  No database connection - cannot fetch data for {document_type}")
+            return None
+        
+        try:
+            cur = conn.cursor(cursor_factory=RealDictCursor)
+            # Single SQL query to fetch both prompt and extraction rules
+            query = """
+            SELECT prompt, extraction_rules 
+            FROM ref_prompt_library 
+            WHERE LOWER(document_type) = LOWER(%s)
+            LIMIT 1
+            """
+            cur.execute(query, (document_type,))
+            result = cur.fetchone()
+            
+            if result and result['prompt']:
+                logger.info(f"✅ Fetched prompt and extraction rules for document type: {document_type}")
+                # Parse extraction_rules JSON string from database into Python dict
+                extraction_rules = {}
+                if result['extraction_rules']:
+                    try:
+                        if isinstance(result['extraction_rules'], str):
+                            extraction_rules = json.loads(result['extraction_rules'])
+                        else:
+                            extraction_rules = result['extraction_rules']
+                    except json.JSONDecodeError as e:
+                        logger.warning(f"⚠️  Failed to parse extraction_rules JSON: {str(e)}")
+                        extraction_rules = {}
+                
+                return {
+                    'prompt': result['prompt'],
+                    'extraction_rules': extraction_rules
+                }
+            else:
+                logger.warning(f"⚠️  No data found for document type: {document_type}")
+                return None
+        except Exception as e:
+            logger.error(f"❌ Error fetching prompt and rules: {str(e)}")
+            return None
+        finally:
+            if conn:
+                conn.close()
+
+
+# Initialize PostgreSQL prompt manager
+prompt_manager = PostgreSQLPromptManager()
+
+# ==================== DEFAULT FALLBACK PROMPT ====================
+# NOTE: This prompt is NOT currently used in the implementation.
+# All extraction is done using the SQL query prompt from PostgreSQL database.
+# Keeping this for reference only - can be enabled in future if fallback is needed.
+# DEFAULT_EXTRACTION_PROMPT = """You are an expert commercial property insurance underwriter assistant.
+# 
+# Your task is to extract structured underwriting data from submission documents provided by various brokers.
+# 
+# The layout, terminology, and formatting may vary across documents.
+# 
+# ATTRIBUTE: {attribute}
+# 
+# INSTRUCTIONS FOR EXTRACTION:
+# {instruction}
+# 
+# RESPONSE FORMAT:
+# 
+# {{"amount": "VALUE"}}
+# 
+# CONTEXT:
+# {context}
+# 
+# If any field is not found in the provided context, return {{"amount": null}}.
+# 
+# Do not guess values not supported by the text.
+# """
+
+# Initialize Azure OpenAI embeddings
+embeddings = AzureOpenAIEmbeddings(
+    azure_deployment=os.getenv("AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME"),
+    openai_api_key=os.getenv("AZURE_OPENAI_API_KEY"),
+    openai_api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
+    azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
+    chunk_size=1024
+)
+
+
+def group_attributes_by_category(attributes_dict: Dict[str, str]) -> Dict[str, Any]:
+    """
+    Group extracted attributes into logical categories using LLM-based semantic categorization.
+    
+    Dynamically analyzes extracted underwriting attributes and groups them into semantic categories
+    based on context, without relying on hardcoded keyword mappings.
+    
+    The LLM determines the most logical grouping based on the specific fields present in the document.
+    """
+    
+    llm = AzureChatOpenAI(
+        openai_api_key=os.getenv("AZURE_OPENAI_API_KEY"),
+        azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
+        openai_api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
+        deployment_name=os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT"),
+        temperature=0,
+        top_p=1
+    )
+    
+    # Create the dynamic categorization prompt
+    grouping_prompt = PromptTemplate(
+        input_variables=["attributes_json"],
+        template="""You are a JSON data formatter for insurance underwriting documents.
+
+The following JSON contains extracted attributes from a non-ACORD insurance submission form.
+These fields were extracted using semantic search and LLM-based information retrieval from submission documents.
+
+Your task is to group these fields logically based on semantic context.
+
+Requirements:
+1. Group fields logically. The grouping is FLEXIBLE — create categories as needed based on the context of the fields present.
+
+2. Analyze the semantic meaning of each attribute name and value to determine the best category fit.
+
+3. Each attribute should appear in exactly one category.
+
+4. If an attribute doesn't fit standard categories, place it in "Other".
+
+5. Do NOT create empty categories.
+
+INPUT ATTRIBUTES (extracted from non-ACORD submission form):
+{attributes_json}
+
+TASK:
+1. Analyze each attribute name and value semantically
+2. Identify groupings based on contextual meaning (e.g., "Named insured" → Insured category, "Year built" → Property category)
+3. Group all semantically related attributes together
+4. Create category names that are meaningful and clear for insurance underwriting context
+5. Preserve exact attribute names and values as provided
+
+RESPONSE FORMAT (STRICT JSON ONLY):
+Return ONLY valid JSON with this structure - no commentary, no markdown, no explanations:
+{{
+  "Category Name 1": {{
+    "attribute_name_1": "value_1",
+    "attribute_name_2": "value_2"
+  }},
+  "Category Name 2": {{
+    "attribute_name_3": "value_3"
+  }},
+  "Other": {{
+    "attribute_name_4": "value_4"
+  }}
+}}
+
+CRITICAL RULES:
+- Return ONLY the JSON object, nothing else
+- Preserve exact attribute names (do NOT modify them)
+- Preserve exact values (do NOT modify them)
+- Category names should be descriptive and capitalized
+- Ensure ALL attributes from input are included in output in exactly one category
+- If no clear category fit, use "Other" category
+"""
+    )
+    
+    chain = LLMChain(llm=llm, prompt=grouping_prompt)
+    
+    try:
+        # Convert attributes dict to JSON string for the prompt
+        attributes_json = json.dumps(attributes_dict, indent=2)
+        
+        print("🧠 Grouping attributes using LLM semantic analysis...")
+        
+        # Get categorization from LLM
+        raw_response = chain.run({
+            "attributes_json": attributes_json
+        }).strip()
+        
+        # Parse the JSON response
+        try:
+            # Remove markdown code blocks if present
+            clean_response = re.sub(r"```(?:json)?|```", "", raw_response.strip())
+            grouped_data = json.loads(clean_response)
+            
+            # Validate the response
+            if isinstance(grouped_data, dict) and len(grouped_data) > 0:
+                # Ensure all categories contain dictionaries with content
+                cleaned_grouped = {}
+                for category, fields in grouped_data.items():
+                    if isinstance(fields, dict) and len(fields) > 0:
+                        cleaned_grouped[category] = fields
+                
+                if cleaned_grouped:
+                    print(f"✅ Successfully grouped attributes into {len(cleaned_grouped)} categories")
+                    return cleaned_grouped
+                else:
+                    logger.warning("No valid grouped data received from LLM, using flat structure")
+                    return {"All Attributes": attributes_dict}
+            else:
+                logger.warning("Invalid grouped data structure from LLM, using flat structure")
+                return {"All Attributes": attributes_dict}
+                
+        except (json.JSONDecodeError, KeyError, TypeError) as e:
+            logger.warning(f"Could not parse grouping response from LLM: {raw_response}")
+            logger.warning(f"Error details: {e}")
+            # Fallback to flat structure
+            return {"All Attributes": attributes_dict}
+            
+    except Exception as e:
+        logger.error(f"Error in LLM-based attribute grouping: {e}")
+        # Fallback to flat structure
+        return {"All Attributes": attributes_dict}
+
+
+def extract_with_llm(vectordb: Any, extraction_rules: Dict[str, Dict], prompt_template: str) -> Dict[str, Any]:
+    """Extract values from vectorized content using semantic search with database-driven extraction rules
+    
+    Args:
+        vectordb: ChromaDB instance with embeddings
+        extraction_rules: Dictionary mapping attribute names to their extraction instructions
+                         Format: {"attr_name": {"description": "instruction text"}, ...}
+        prompt_template: Prompt template string fetched from database
+    
+    Returns:
+        Dictionary mapping attributes to extracted values
+    """
+    print(f"🔎 Extracting values using semantic search with database-driven rules...")
+    
+    llm = AzureChatOpenAI(
+        openai_api_key=os.getenv("AZURE_OPENAI_API_KEY"),
+        azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
+        openai_api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
+        deployment_name=os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT"),
+        temperature=0,
+        top_p=1
+    )
+
+    # Create prompt template from database content
+    # CRITICAL: Escape the JSON response format in the prompt so LangChain doesn't interpret braces as variables
+    # The database stores: {\"amount\": \"VALUE\"} and {\"amount\": null}
+    # We need to escape to: {{\"amount\": \"VALUE\"}} and {{\"amount\": null}}
+    escaped_template = prompt_template.replace(
+        '{\"amount\": \"VALUE\"}', 
+        '{{\"amount\": \"VALUE\"}}'
+    ).replace(
+        '{\"amount\": null}', 
+        '{{\"amount\": null}}'
+    )
+    
+    attribute_prompt = PromptTemplate(
+        input_variables=["context", "attribute", "instruction"],
+        template=escaped_template
+    )
+    chain = LLMChain(llm=llm, prompt=attribute_prompt)
+    attribute_values = {}
+    
+    # Iterate over extraction_rules dictionary: attribute_name -> attribute_info
+    for attribute_name, attribute_info in extraction_rules.items():
+        # Extract the instruction/description from the attribute info
+        instruction = attribute_info.get("description", "") if isinstance(attribute_info, dict) else ""
+        
+        print(f"🧠 Extracting: {attribute_name}")
+        
+        # Get focused search terms based on attribute type
+        search_terms = {
+            "abcd": "example terms"
+        }
+        
+        # Build comprehensive search query
+        search_query = attribute_name
+        for key, terms in search_terms.items():
+            if key in attribute_name.lower():
+                search_query = f"{attribute_name} {terms}"
+                break
+                
+        # Get relevant chunks with larger k value
+        relevant_chunks = vectordb.similarity_search(
+            search_query,
+            k=20  # Significantly increased for better context
+        )
+        
+        if not relevant_chunks:
+            attribute_values[attribute_name] = "Not Found"
+            continue
+
+        # Combine relevant chunks
+        context = "\n".join([chunk.page_content for chunk in relevant_chunks])
+        
+        try:
+            raw_response = chain.run({
+                "context": context,
+                "attribute": attribute_name,
+                "instruction": instruction
+            }).strip()
+            
+            # Parse the JSON response to extract the actual value
+            try:
+                # Remove markdown code blocks if present
+                clean_response = re.sub(r"```(?:json)?|```", "", raw_response.strip())
+                parsed_response = json.loads(clean_response)
+                value = parsed_response.get("amount", "Not Found")
+                
+                # Handle null values
+                if value is None:
+                    value = "Not Found"
+                else:
+                    value = str(value).strip()
+                
+                # Only keep non-empty values
+                if value and value.lower() not in ["not found", "not provided", "n/a", ""]:
+                    attribute_values[attribute_name] = value
+                else:
+                    attribute_values[attribute_name] = "Not Found"
+            except (json.JSONDecodeError, KeyError, TypeError) as e:
+                logger.warning(f"Could not parse JSON response for {attribute_name}: {raw_response}")
+                attribute_values[attribute_name] = "Not Found"
+                
+        except Exception as e:
+            logger.error(f"Error extracting {attribute_name}: {e}")
+            attribute_values[attribute_name] = "Not Found"
+
+    return attribute_values
+
+def _get_container_client_for_output(output_container_name: str) -> ContainerClient:
+    """Get container client for uploading outputs"""
+    connection_string = os.getenv("AZURE_BLOB_CONNECTION_STRING") or os.getenv("AZURE_STORAGE_CONNECTION_STRING")
+
+    if connection_string:
+        blob_service_client = BlobServiceClient.from_connection_string(connection_string)
+        return blob_service_client.get_container_client(output_container_name)
+
+    raise RuntimeError("No Azure Blob connection string found for uploading output")
+
+
+def _upload_bytes_to_container(container_client: ContainerClient, blob_name: str, data: bytes) -> str:
+    """Upload bytes to blob container and return URL"""
+    try:
+        container_client.create_container()
+    except ResourceExistsError:
+        pass
+    except Exception:
+        pass
+
+    blob_client = container_client.get_blob_client(blob_name)
+    blob_client.upload_blob(data, overwrite=True)
+    return blob_client.url
+
+
+async def process_retrieval(vector_db_path: str, document_type: str) -> Dict[str, Any]:
+    """Main processing function for retrieval using semantic search with database-driven prompts
+    
+    This function:
+    1. Fetches prompt and extraction rules from PostgreSQL based on document_type
+    2. Loads the vector database from vector_db_path
+    3. Extracts values for each attribute in extraction_rules using semantic search
+    4. Groups results by category from the extraction rules
+    5. Uploads results to blob storage
+    
+    Args:
+        vector_db_path: Can be either:
+            1. Local absolute path from pdf_vectorizer output: /home/jarvis/rohan/Quote_Extraction_MCP/data/vec_db/pdf_name
+            2. Blob URL (fallback): https://... - will extract pdf name and construct local path
+        document_type: Document type for database lookup (e.g., 'Property_Detailed_Report', 'quote', 'acord')
+                      Uses this to fetch prompt and extraction rules from ref_prompt_library table
+    
+    Returns:
+        Dict with extraction results and metadata
+    """
+    try:
+        # Fetch prompt and extraction rules from database based on document type
+        logger.info(f"📊 Fetching prompt and extraction rules for document type: {document_type}")
+        db_data = prompt_manager.get_prompt_and_extraction_rules(document_type)
+        
+        if not db_data:
+            logger.warning(f"⚠️  Could not fetch data for {document_type} from database")
+            return {
+                "error": f"No data found in database for document type: {document_type}",
+                "document_type": document_type
+            }
+        
+        prompt_template = db_data['prompt']
+        extraction_rules = db_data['extraction_rules']
+        
+        if not extraction_rules:
+            logger.warning(f"⚠️  No extraction rules found for {document_type}")
+            return {
+                "error": f"No extraction rules found for document type: {document_type}",
+                "document_type": document_type
+            }
+        
+        logger.info(f"✅ Loaded {len(extraction_rules)} extraction rules from database")
+        
+        # Handle both blob URLs and local paths
+        if vector_db_path.startswith(("http://", "https://")):
+            # This is a blob URL - extract the PDF name and construct local path
+            logger.warning(f"Received blob URL instead of local path. Extracting PDF name...")
+            path = unquote(urlparse(vector_db_path).path)
+            file_name_with_ext = os.path.basename(path)
+            pdf_name = os.path.splitext(file_name_with_ext)[0]
+            
+            # Construct the local vector_db_path
+            vdb_base_path = os.getenv("VDB_PATH", "./data/vec_db")
+            vector_db_path = os.path.abspath(os.path.join(vdb_base_path, pdf_name))
+            logger.info(f"Reconstructed local vector_db_path: {vector_db_path}")
+        else:
+            # Ensure it's an absolute path
+            vector_db_path = os.path.abspath(vector_db_path)
+        
+        # Get safe collection name from vector_db_path
+        # Remove all invalid characters: parentheses, brackets, special chars
+        # ChromaDB only allows: [a-zA-Z0-9._-]
+        safe_name = os.path.basename(vector_db_path).lower()
+        safe_name = safe_name.replace(" ", "_").replace("-", "_").replace(".", "_")
+        # Remove parentheses and other special characters
+        safe_name = "".join(c if c.isalnum() or c in "._-" else "" for c in safe_name)
+        # Ensure it starts and ends with alphanumeric
+        safe_name = safe_name.strip("._-")
+        collection_name = f"{safe_name}_collection"
+        persist_directory = os.path.join(vector_db_path, "chroma_db", safe_name)
+        
+        # Verify the vector DB exists
+        if not os.path.exists(persist_directory):
+            raise FileNotFoundError(f"Vector database not found at: {persist_directory}")
+        
+        # Load the vector store
+        print(f"📚 Loading vector store from {persist_directory}")
+        vectordb = Chroma(
+            embedding_function=embeddings,
+            persist_directory=persist_directory,
+            collection_name=collection_name
+        )
+        
+        # Extract values using semantic search with database-driven extraction rules and prompt
+        extracted_data = extract_with_llm(vectordb, extraction_rules, prompt_template)
+        
+        # Group attributes by logical categories
+        grouped_data = group_attributes_by_category(extracted_data)
+        
+        # Create local directory for outputs using the vector_db_path parent
+        local_output_dir = os.path.abspath(os.path.join(os.path.dirname(vector_db_path), "extraction_outputs"))
+        os.makedirs(local_output_dir, exist_ok=True)
+        
+        # Save locally first
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        pdf_name = os.path.basename(vector_db_path)
+        local_filename = f"{pdf_name}_{document_type}_extraction_{timestamp}.json"
+        local_path = os.path.join(local_output_dir, local_filename)
+        
+        # Save JSON locally
+        with open(local_path, "w", encoding="utf-8") as f:
+            json.dump(grouped_data, f, indent=2)
+        print(f"💾 Saved local output to: {local_path}")
+        
+        # Upload results to blob storage
+        output_container = _get_container_client_for_output("output-results")
+        blob_name = local_filename
+        
+        json_data = json.dumps(grouped_data, indent=2).encode('utf-8')
+        output_url = _upload_bytes_to_container(output_container, blob_name, json_data)
+        
+        return {
+            "is_extracted": True,
+            "metadata": {
+                "is_extracted": True,
+                "is_error": False,
+                "error_message": None,
+                "output_blob_url": output_url,
+                "source_pdf": pdf_name,
+                "local_output_path": local_path,
+                "vector_db_path": vector_db_path
+            }
+        }
+        
+    except Exception as e:
+        logger.exception("Error in retrieval process")
+        return {
+            "is_extracted": False,
+            "metadata": {
+                "is_extracted": False,
+                "is_error": True,
+                "error_message": str(e),
+                "output_blob_url": None
+            }
+        }
