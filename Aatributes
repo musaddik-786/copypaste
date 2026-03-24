@@ -27,7 +27,8 @@ logger.setLevel(logging.INFO)
 AZURE_STORAGE_CONNECTION_STRING = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "")
 
 # Fixed containers
-INPUT_CONTAINER = "risk-score-output"
+# INPUT_CONTAINER = "risk-score-output"
+INPUT_CONTAINER = "risk-results"
 OUTPUT_CONTAINER = "accept-reject-riskfunctionality-output"
 
 # Additional excel/audit output container/file
@@ -529,13 +530,22 @@ async def process_risk_from_blob(
         decisions: List[Dict[str, Any]] = []
         now_iso = datetime.now(timezone.utc).isoformat()
 
+
+        #added
+        account_host, data, latest_blob_name = await _download_latest_json_from_container(input_blob_url)
+        input_data = [data] if isinstance(data, dict) else data
+
+
+
         for item in input_data:
             # score = item.get("risk_score")
             score = item.get("composite_score")
             # submission_id = item.get("submission_id")
             node = item.get("node", {})
 
-            if score is None or submission_id is None:
+            #added
+            # if score is None or submission_id is None:
+            if score is None:
                 continue  # Skip incomplete entries
 
             decision, _, hitl = _determine_decision(score, thresholds)
@@ -543,7 +553,7 @@ async def process_risk_from_blob(
             reference_number = node.get("reference number")
 
             decisions.append({
-                "submission_id": submission_id,
+                # "submission_id": submission_id,
                 "reference number": reference_number,
                 "risk score": score,
                 "decision": decision,
@@ -641,3 +651,149 @@ async def process_risk_from_blob(
     # except Exception as e:
     #     # Keep log minimal; return structured error for API client
     #     return {"status": False, "error": str(e)}
+
+
+======================================================================
+
+INFO:apscheduler.scheduler:Adding job tentatively -- it will be properly scheduled when the scheduler starts
+INFO:apscheduler.scheduler:Added job "Gmail Token Refresh (72-hour cycle)" to job store "default"
+INFO:apscheduler.scheduler:Scheduler started
+✅ Token refresh scheduler STARTED (runs every 72 hours)
+   Next refresh: 2026-03-27 06:42:59
+INFO:fastapi_mcp.server:No auth config provided, skipping auth setup
+INFO:fastapi_mcp.server:MCP HTTP server listening at /mcp
+INFO:     Started server process [38081]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:6724 (Press CTRL+C to quit)
+INFO:     127.0.0.1:38618 - "GET /api/v1/email_intent_agent/docs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38618 - "GET /api/v1/email_intent_agent/openapi.json HTTP/1.1" 200 OK
+INFO:     127.0.0.1:38634 - "POST /api/v1/email_intent_agent/Accept_Reject_Risk_Functionality_MCP HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/home/Jarvis/Chinmay/JarvisAgent/Jarvis/MCP/mcp_venv/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 409, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/Jarvis/Chinmay/JarvisAgent/Jarvis/MCP/mcp_venv/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 60, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/Jarvis/Chinmay/JarvisAgent/Jarvis/MCP/mcp_venv/lib/python3.11/site-packages/fastapi/applications.py", line 1133, in __call__
+    await super().__call__(scope, receive, send)
+  File "/home/Jarvis/Chinmay/JarvisAgent/Jarvis/MCP/mcp_venv/lib/python3.11/site-packages/starlette/applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/Jarvis/Chinmay/JarvisAgent/Jarvis/MCP/mcp_venv/lib/python3.11/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/home/Jarvis/Chinmay/JarvisAgent/Jarvis/MCP/mcp_venv/lib/python3.11/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/home/Jarvis/Chinmay/JarvisAgent/Jarvis/MCP/mcp_venv/lib/python3.11/site-packages/starlette/middleware/cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/home/Jarvis/Chinmay/JarvisAgent/Jarvis/MCP/mcp_venv/lib/python3.11/site-packages/starlette/middleware/cors.py", line 144, in simple_response
+    await self.app(scope, receive, send)
+  File "/home/Jarvis/Chinmay/JarvisAgent/Jarvis/MCP/mcp_venv/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/home/Jarvis/Chinmay/JarvisAgent/Jarvis/MCP/mcp_venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/home/Jarvis/Chinmay/JarvisAgent/Jarvis/MCP/mcp_venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/Jarvis/Chinmay/JarvisAgent/Jarvis/MCP/mcp_venv/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/home/Jarvis/Chinmay/JarvisAgent/Jarvis/MCP/mcp_venv/lib/python3.11/site-packages/starlette/routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/Jarvis/Chinmay/JarvisAgent/Jarvis/MCP/mcp_venv/lib/python3.11/site-packages/starlette/routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "/home/Jarvis/Chinmay/JarvisAgent/Jarvis/MCP/mcp_venv/lib/python3.11/site-packages/starlette/routing.py", line 462, in handle
+    await self.app(scope, receive, send)
+  File "/home/Jarvis/Chinmay/JarvisAgent/Jarvis/MCP/mcp_venv/lib/python3.11/site-packages/fastapi/applications.py", line 1133, in __call__
+    await super().__call__(scope, receive, send)
+  File "/home/Jarvis/Chinmay/JarvisAgent/Jarvis/MCP/mcp_venv/lib/python3.11/site-packages/starlette/applications.py", line 113, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/Jarvis/Chinmay/JarvisAgent/Jarvis/MCP/mcp_venv/lib/python3.11/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/home/Jarvis/Chinmay/JarvisAgent/Jarvis/MCP/mcp_venv/lib/python3.11/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/home/Jarvis/Chinmay/JarvisAgent/Jarvis/MCP/mcp_venv/lib/python3.11/site-packages/starlette/middleware/cors.py", line 93, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/home/Jarvis/Chinmay/JarvisAgent/Jarvis/MCP/mcp_venv/lib/python3.11/site-packages/starlette/middleware/cors.py", line 144, in simple_response
+    await self.app(scope, receive, send)
+  File "/home/Jarvis/Chinmay/JarvisAgent/Jarvis/MCP/mcp_venv/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/home/Jarvis/Chinmay/JarvisAgent/Jarvis/MCP/mcp_venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/home/Jarvis/Chinmay/JarvisAgent/Jarvis/MCP/mcp_venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/Jarvis/Chinmay/JarvisAgent/Jarvis/MCP/mcp_venv/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/home/Jarvis/Chinmay/JarvisAgent/Jarvis/MCP/mcp_venv/lib/python3.11/site-packages/starlette/routing.py", line 716, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/Jarvis/Chinmay/JarvisAgent/Jarvis/MCP/mcp_venv/lib/python3.11/site-packages/starlette/routing.py", line 736, in app
+    await route.handle(scope, receive, send)
+  File "/home/Jarvis/Chinmay/JarvisAgent/Jarvis/MCP/mcp_venv/lib/python3.11/site-packages/starlette/routing.py", line 290, in handle
+    await self.app(scope, receive, send)
+  File "/home/Jarvis/Chinmay/JarvisAgent/Jarvis/MCP/mcp_venv/lib/python3.11/site-packages/fastapi/routing.py", line 123, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/home/Jarvis/Chinmay/JarvisAgent/Jarvis/MCP/mcp_venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/home/Jarvis/Chinmay/JarvisAgent/Jarvis/MCP/mcp_venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/Jarvis/Chinmay/JarvisAgent/Jarvis/MCP/mcp_venv/lib/python3.11/site-packages/fastapi/routing.py", line 109, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/home/Jarvis/Chinmay/JarvisAgent/Jarvis/MCP/mcp_venv/lib/python3.11/site-packages/fastapi/routing.py", line 387, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/Jarvis/Chinmay/JarvisAgent/Jarvis/MCP/mcp_venv/lib/python3.11/site-packages/fastapi/routing.py", line 288, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/Jarvis/Shrutee/JarvisAgent/Jarvis/MCP/test_email_router.py", line 808, in accept_reject_risk_mcp
+    thresholds = RiskThresholds(
+                 ^^^^^^^^^^^^^^^
+TypeError: RiskThresholds.__init__() got an unexpected keyword argument 'acceptance_threshold'
+
+
+
+this is input req
+{
+  "input_blob_url": "https://agenticai1.blob.core.windows.net/risk-results/risk_score_output_20260324_053406.json",
+  "acceptance_threshold": 40,
+  "rejection_threshold": 75,
+  "earthquake_count": 0,
+  "flood_zone": true,
+  "construction_type": "string",
+  "distance_to_fire_hydrant": "string",
+  "distance_to_fire_station": "string",
+  "year_built": 0
+}
+
+curl -X 'POST' \
+  'http://localhost:6724/api/v1/email_intent_agent/Accept_Reject_Risk_Functionality_MCP' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "input_blob_url": "https://agenticai1.blob.core.windows.net/risk-results/risk_score_output_20260324_053406.json",
+  "acceptance_threshold": 40,
+  "rejection_threshold": 75,
+  "earthquake_count": 0,
+  "flood_zone": true,
+  "construction_type": "string",
+  "distance_to_fire_hydrant": "string",
+  "distance_to_fire_station": "string",
+  "year_built": 0
+}'
+
+Request URL
+http://localhost:6724/api/v1/email_intent_agent/Accept_Reject_Risk_Functionality_MCP
+Server response
+Code	Details
+500
+Undocumented
+Error: Internal Server Error
+
+Response body
+Download
+Internal Server Error
+Response headers
+ access-control-allow-origin: * 
+ content-length: 21 
+ content-type: text/plain; charset=utf-8 
+ date: Tue,24 Mar 2026 06:43:28 GMT 
+ server: uvicorn 
