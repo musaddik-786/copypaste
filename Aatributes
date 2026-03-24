@@ -1,801 +1,643 @@
-pdf_to_vector.py
-
-
+# python
 import os
-import logging
-from typing import Dict, Any
-from dotenv import load_dotenv
-from azure.storage.blob import BlobClient, BlobServiceClient
-from azure.core.exceptions import AzureError
-from azure.ai.formrecognizer import DocumentAnalysisClient
-from azure.core.credentials import AzureKeyCredential
-from urllib.parse import urlparse, quote, unquote
-# from langchain.text_splitter import RecursiveCharacterTextSplitter
-# from langchain_community.embeddings import AzureOpenAIEmbeddings
-# from langchain_community.vectorstores import Chroma
-# from langchain.schema import Document
-import tempfile
-
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_openai import AzureOpenAIEmbeddings
-from langchain_chroma import Chroma
-from langchain_core.documents import Document
-
-# Load environment variables
-load_dotenv()
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-# Initialize Azure Document Intelligence client
-doc_client = DocumentAnalysisClient(
-    endpoint=os.getenv("DOCUMENTINTELLIGENCE_ENDPOINT"),
-    credential=AzureKeyCredential(os.getenv("DOCUMENTINTELLIGENCE_API_KEY"))
-)
-
-# Initialize Azure OpenAI embeddings
-embeddings = AzureOpenAIEmbeddings(
-    azure_deployment=os.getenv("AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME"),
-    openai_api_key=os.getenv("AZURE_OPENAI_API_KEY"),
-    openai_api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
-    azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
-    chunk_size=1024  # Adding required chunk_size parameter
-)
-
-# Configure text splitter
-text_splitter = RecursiveCharacterTextSplitter(
-    chunk_size=int(os.getenv("CHUNK_SIZE", "800")),
-    chunk_overlap=int(os.getenv("CHUNK_OVERLAP", "100")),
-    length_function=len,
-)
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-def _quote_path_only(url: str) -> str:
-    """Safely percent-encode only the path component of the URL."""
-    parsed = urlparse(url)
-    quoted_path = quote(parsed.path, safe="/")
-    return unquote(parsed.path)
-
-async def download_from_blob(blob_url: str) -> bytes:
-    """Download PDF bytes from blob storage."""
-    if not blob_url or not blob_url.lower().startswith(("http://", "https://")):
-        raise ValueError("A full http(s) blob URL must be provided")
-
-    try:
-        # Try direct blob URL first (for public blobs or SAS URLs)
-        blob_client = BlobClient.from_blob_url(blob_url)
-        return blob_client.download_blob().readall()
-    except AzureError as e:
-        # Fall back to connection string if available
-        conn_str = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
-        if not conn_str:
-            raise RuntimeError(f"Failed to download blob: {str(e)}")
-        
-        parsed = urlparse(blob_url)
-        path = unquote(parsed.path)
-        path_parts = [p for p in path.split("/") if p]
-        if len(path_parts) < 2:
-            raise RuntimeError("Invalid blob URL format")
-            
-        container_name = path_parts[0]
-        blob_name = "/".join(path_parts[1:])
-        
-        svc = BlobServiceClient.from_connection_string(conn_str)
-        blob_client = svc.get_blob_client(container=container_name, blob=blob_name)
-        return blob_client.download_blob().readall()
-
-def extract_text_from_pdf(pdf_bytes: bytes) -> str:
-    """Extract text from PDF using Azure Document Intelligence."""
-    with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as temp_pdf:
-        temp_pdf.write(pdf_bytes)
-        temp_pdf.flush()
-        
-        try:
-            poller = doc_client.begin_analyze_document(
-                "prebuilt-document", 
-                document=open(temp_pdf.name, "rb")
-            )
-            result = poller.result()
-            
-            # Extract text from all pages
-            text = "\n".join([
-                line.content 
-                for page in result.pages 
-                for line in page.lines
-            ])
-            return text
-        finally:
-            # Clean up temp file
-            os.unlink(temp_pdf.name)
-
-def extract_text_from_docx(docx_bytes: bytes) -> str:
-    """Extract text from DOCX using Azure Document Intelligence."""
-    with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as temp_docx:
-        temp_docx.write(docx_bytes)
-        temp_docx.flush()
-
-        try:
-            with open(temp_docx.name, "rb") as docx_file:
-                poller = doc_client.begin_analyze_document(
-                    model_id="prebuilt-read",
-                    document=docx_file,
-                    content_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                )
-                result = poller.result()
-
-                # Extract text from all pages
-                text = "\n".join([
-                    line.content
-                    for page in result.pages
-                    for line in page.lines
-                ])
-                return text
-        finally:
-            os.unlink(temp_docx.name)
-
-def chunk_and_embed(text: str, vector_db_path: str) -> bool:
-    """Chunk text and create vector embeddings in ChromaDB."""
-    try:
-        # Create document and split into chunks
-        doc = Document(page_content=text)
-        chunks = text_splitter.split_documents([doc])
-        
-        # Get safe collection name from vector_db_path
-        # safe_name = os.path.basename(vector_db_path).lower().replace(" ", "_").replace("-", "_").replace(".", "_")
-        # collection_name = f"{safe_name}_collection"
-        # persist_directory = os.path.join(vector_db_path, "chroma_db", safe_name)
-        
-        # ChromaDB only allows: [a-zA-Z0-9._-]
-        safe_name = os.path.basename(vector_db_path).lower()
-        safe_name = safe_name.replace(" ", "_").replace("-", "_").replace(".", "_")
-        # Remove parentheses and other special characters
-        safe_name = "".join(c if c.isalnum() or c in "._-" else "" for c in safe_name)
-        # Ensure it starts and ends with alphanumeric
-        safe_name = safe_name.strip("._-")
-        collection_name = f"{safe_name}_collection"
-        persist_directory = os.path.join(vector_db_path, "chroma_db", safe_name)
-        # Create ChromaDB instance and store chunks
-        vectordb = Chroma.from_documents(
-            chunks,
-            embedding=embeddings,
-            persist_directory=persist_directory,
-            collection_name=collection_name
-        )
-        # vectordb.persist() # This method ensures data is written to disk
-        
-        # Verify we can create a retriever (validates the DB was created properly)
-        retriever = Chroma(
-            embedding_function=embeddings,
-            persist_directory=persist_directory,
-            collection_name=collection_name
-        ).as_retriever()
-        
-        return True
-    except Exception as e:
-        logger.error(f"Error in chunking/embedding: {str(e)}")
-        return False
-
-async def process_pdf(blob_url: str, vector_db_path: str = None) -> Dict[str, Any]:
-    """Main processing function that handles the complete pipeline for PDF and DOCX files."""
-    try:
-        # Use VDB_PATH from env if vector_db_path not provided
-        # Always convert to absolute path
-        # vector_db_path = vector_db_path or os.getenv("VDB_PATH", "/home/jarvis/Chinmay/Jarvis/MCP/Quote_Extraction_MCP/data/vec_db")
-        
-        vector_db_path = vector_db_path or os.getenv("VDB_PATH", "/MCP/Quote_Extraction_MCP/data/vec_db")
-
-        # vector_db_path = vector_db_path or os.getenv("VDB_PATH", "/home/Jarvis/Chinmay/JarvisAgent/Jarvis/MCP/Quote_Extraction_MCP/data/vec_db")
-
-        vector_db_path = os.path.abspath(vector_db_path)
-        
-        # Extract file name and extension from blob URL
-        path = unquote(urlparse(blob_url).path)
-        file_name_with_ext = os.path.basename(path)
-        file_name, file_ext = os.path.splitext(file_name_with_ext)
-        file_ext = file_ext.lower()
-        
-        # Create specific vector DB path for this file (absolute path)
-        file_vector_db_path = os.path.abspath(os.path.join(vector_db_path, file_name))
-        
-        # Download file from blob
-        file_bytes = await download_from_blob(blob_url)
-        
-        # Extract text based on file extension
-        if file_ext in (".pdf",):
-            # PDF: use Azure Document Intelligence (prebuilt-document model)
-            text = extract_text_from_pdf(file_bytes)
-        elif file_ext in (".docx", ".doc"):
-            # DOCX/DOC: use Azure Document Intelligence (prebuilt-read model)
-            text = extract_text_from_docx(file_bytes)
-        else:
-            raise ValueError(f"Unsupported file format: {file_ext}. Supported formats: .pdf, .docx, .doc")
-        
-        # Create chunks and embeddings (same pipeline for both PDF and DOCX)
-        is_embedded = chunk_and_embed(text, file_vector_db_path)
-        
-        return {
-            "is_vectorised": is_embedded,
-            "metadata": {
-                "is_embedded": is_embedded,
-                "is_error": not is_embedded,
-                "error_message": None if is_embedded else "Failed to create embeddings",
-                "pdf_name": file_name,
-                "vector_db_path": file_vector_db_path
-            }
-        }
-        
-    except Exception as e:
-        logger.exception("Error processing file")
-        # Try to get file name even in error case
-        try:
-            path = unquote(urlparse(blob_url).path)
-            file_name = os.path.splitext(os.path.basename(path))[0]
-            # file_vector_db_path = os.path.join(vector_db_path or os.getenv("VDB_PATH", "/home/jarvis/Chinmay/Jarvis/MCP/Quote_Extraction_MCP/data/vec_db"), file_name)
-            file_vector_db_path = os.path.join(vector_db_path or os.getenv("VDB_PATH", "/MCP/Quote_Extraction_MCP/data/vec_db"), file_name)
-
-        except:
-            file_name = "unknown"
-            file_vector_db_path = None
-            
-        return {
-            "is_vectorised": False,
-            "metadata": {
-                "is_embedded": False,
-                "is_error": True,
-                "error_message": str(e),
-                "pdf_name": file_name,
-                "vector_db_path": file_vector_db_path
-            }
-        }
-
-
-
-
-retriever.py
-import os
+import io
 import json
 import logging
-from typing import Dict, Any, List, Optional
-from dotenv import load_dotenv
-from langchain.chains import LLMChain
-# from langchain.prompts import PromptTemplate
-from langchain_core.prompts import PromptTemplate
-# from langchain_community.chat_models import AzureChatOpenAI
-from langchain_openai import AzureChatOpenAI, AzureOpenAIEmbeddings
-# from langchain_community.vectorstores import Chroma
-from langchain_chroma import Chroma
-# from langchain_community.embeddings import AzureOpenAIEmbeddings
-from azure.storage.blob import BlobServiceClient, ContainerClient
-from azure.core.exceptions import ResourceExistsError
-import re
-from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
+from datetime import datetime, timezone
 from urllib.parse import urlparse, unquote
-import psycopg2
-from psycopg2.extras import RealDictCursor
+from azure.storage.blob.aio import BlobServiceClient
+from azure.core.exceptions import ResourceNotFoundError, ResourceExistsError
+from dotenv import load_dotenv
+from langchain_openai.chat_models import AzureChatOpenAI
+from openpyxl import Workbook, load_workbook
 
-# Load environment variables
+# Load .env to ensure AZURE_STORAGE_CONNECTION_STRING is available
 load_dotenv()
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# Minimal concise logger
+logger = logging.getLogger("accept_reject_mcp")
+if not logger.handlers:
+    handler = logging.StreamHandler()
+    handler.setFormatter(logging.Formatter("%(levelname)s:%(name)s:%(message)s"))
+    logger.addHandler(handler)
+logger.setLevel(logging.INFO)
 
-# ==================== DATABASE CONFIGURATION ====================
-class PostgreSQLPromptManager:
-    """Manages dynamic prompt fetching from PostgreSQL"""
-    
-    def __init__(self):
-        self.connection_params = {
-            "host": os.getenv("PGHOST", "com"),
-            "port": int(os.getenv("PGPORT", "2")),
-            "database": os.getenv("PGDATABASE", "s"),
-            "user": os.getenv("PGUSER", "in"),
-            "password": os.getenv("PGPASSWORD", "5")
-        }
+# ENV
+AZURE_STORAGE_CONNECTION_STRING = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "")
 
-       
-    
-    def get_connection(self):
-        """Establish database connection"""
-        try:
-            conn = psycopg2.connect(**self.connection_params)
-            return conn
-        except Exception as e:
-            logger.error(f"❌ Database connection failed: {str(e)}")
-            return None
-    
-    def get_prompt_and_extraction_rules(self, document_type: str) -> Optional[Dict]:
-        """
-        Fetch prompt and extraction rules from database by document type using SQL query.
-        
-        Query: SELECT prompt, extraction_rules FROM ref_prompt_library WHERE document_type = ?
-        
-        Args:
-            document_type: Document type name (e.g., 'quote', 'acord', 'inspection_report')
-        
-        Returns:
-            Dictionary with 'prompt' and 'extraction_rules' keys, or None if not found
-        """
-        conn = self.get_connection()
-        if not conn:
-            logger.warning(f"⚠️  No database connection - cannot fetch data for {document_type}")
-            return None
-        
-        try:
-            cur = conn.cursor(cursor_factory=RealDictCursor)
-            # Single SQL query to fetch both prompt and extraction rules
-            query = """
-            SELECT prompt, extraction_rules 
-            FROM ref_prompt_library 
-            WHERE LOWER(document_type) = LOWER(%s)
-            LIMIT 1
-            """
-            cur.execute(query, (document_type,))
-            result = cur.fetchone()
-            
-            if result and result['prompt']:
-                logger.info(f"✅ Fetched prompt and extraction rules for document type: {document_type}")
-                # Parse extraction_rules JSON string from database into Python dict
-                extraction_rules = {}
-                if result['extraction_rules']:
-                    try:
-                        if isinstance(result['extraction_rules'], str):
-                            extraction_rules = json.loads(result['extraction_rules'])
-                        else:
-                            extraction_rules = result['extraction_rules']
-                    except json.JSONDecodeError as e:
-                        logger.warning(f"⚠️  Failed to parse extraction_rules JSON: {str(e)}")
-                        extraction_rules = {}
-                
-                return {
-                    'prompt': result['prompt'],
-                    'extraction_rules': extraction_rules
-                }
-            else:
-                logger.warning(f"⚠️  No data found for document type: {document_type}")
-                return None
-        except Exception as e:
-            logger.error(f"❌ Error fetching prompt and rules: {str(e)}")
-            return None
-        finally:
-            if conn:
-                conn.close()
+# Fixed containers
+INPUT_CONTAINER = "risk-score-output"
+OUTPUT_CONTAINER = "accept-reject-riskfunctionality-output"
 
+# Additional excel/audit output container/file
+AZURE_RISK_ASSESSMENT_CONTAINER_NAME = "risk-assessment-results"
+AZURE_RISK_ASSESSMENT_FILE_NAME = "risk_assessment.xlsx"
 
-# Initialize PostgreSQL prompt manager
-prompt_manager = PostgreSQLPromptManager()
+# Thresholds model kept simple (optional for endpoint)
+# class RiskThresholds:
+#     def __init__(self, acceptance_threshold: float = 40.0, rejection_threshold: float = 75.0):
+#         self.acceptance_threshold = acceptance_threshold
+#         self.rejection_threshold = rejection_threshold
 
-# ==================== DEFAULT FALLBACK PROMPT ====================
-# NOTE: This prompt is NOT currently used in the implementation.
-# All extraction is done using the SQL query prompt from PostgreSQL database.
-# Keeping this for reference only - can be enabled in future if fallback is needed.
-# DEFAULT_EXTRACTION_PROMPT = """You are an expert commercial property insurance underwriter assistant.
-# 
-# Your task is to extract structured underwriting data from submission documents provided by various brokers.
-# 
-# The layout, terminology, and formatting may vary across documents.
-# 
-# ATTRIBUTE: {attribute}
-# 
-# INSTRUCTIONS FOR EXTRACTION:
-# {instruction}
-# 
-# RESPONSE FORMAT:
-# 
-# {{"amount": "VALUE"}}
-# 
-# CONTEXT:
-# {context}
-# 
-# If any field is not found in the provided context, return {{"amount": null}}.
-# 
-# Do not guess values not supported by the text.
-# """
+#     def validate_thresholds(self) -> bool:
+#         # Ensure a review band exists between acceptance and rejection
+#         return self.acceptance_threshold < self.rejection_threshold
 
-# Initialize Azure OpenAI embeddings
-embeddings = AzureOpenAIEmbeddings(
-    azure_deployment=os.getenv("AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME"),
-    openai_api_key=os.getenv("AZURE_OPENAI_API_KEY"),
-    openai_api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
-    azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
-    chunk_size=1024
-)
-
-
-def group_attributes_by_category(attributes_dict: Dict[str, str]) -> Dict[str, Any]:
+class RiskThresholds:
     """
-    Group extracted attributes into logical categories using LLM-based semantic categorization.
-    
-    Dynamically analyzes extracted underwriting attributes and groups them into semantic categories
-    based on context, without relying on hardcoded keyword mappings.
-    
-    The LLM determines the most logical grouping based on the specific fields present in the document.
+    Multi-band risk thresholds.
+
+    Default bands (continuous coverage, no gaps):
+      - Auto-Accept:        score <= 200
+      - Accept:             200 < score <= 350
+      - Accept w/ Cond.:    350 < score <= 500
+      - Senior UW Review:   500 < score <= 650
+      - Refer to Specialty: 650 < score <= 800
+      - DECLINE:            800 < score <= 1000
     """
-    
-    llm = AzureChatOpenAI(
-        openai_api_key=os.getenv("AZURE_OPENAI_API_KEY"),
-        azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
-        openai_api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
-        deployment_name=os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT"),
-        temperature=0,
-        top_p=1
-    )
-    
-    # Create the dynamic categorization prompt
-    grouping_prompt = PromptTemplate(
-        input_variables=["attributes_json"],
-        template="""You are a JSON data formatter for insurance underwriting documents.
+    def __init__(self, bands: List[Dict] = None):
+        # Each band is defined with bounds and inclusivity, plus decision and whether human review is needed.
+        # Inclusivity is set to ensure continuous coverage without gaps for float scores.
+        if bands is None:
+            bands = [
+                {
+                    "lower": float("-inf"),
+                    "upper": 200.0,
+                    "include_lower": True,
+                    "include_upper": True,
+                    "decision": "Auto-Accept",
+                    "needs_review": False,
+                },
+                {
+                    "lower": 200.0,
+                    "upper": 350.0,
+                    "include_lower": False,  # (200, 350]
+                    "include_upper": True,
+                    "decision": "Accept",
+                    "needs_review": False,
+                },
+                {
+                    "lower": 350.0,
+                    "upper": 500.0,
+                    "include_lower": False,  # (350, 500]
+                    "include_upper": True,
+                    "decision": "Accept w/ Conditions",
+                    "needs_review": True,  # Conditions typically require human oversight
+                },
+                {
+                    "lower": 500.0,
+                    "upper": 650.0,
+                    "include_lower": False,  # (500, 650]
+                    "include_upper": True,
+                    "decision": "Senior UW Review",
+                    "needs_review": True,
+                },
+                {
+                    "lower": 650.0,
+                    "upper": 800.0,
+                    "include_lower": False,  # (650, 800]
+                    "include_upper": True,
+                    "decision": "Refer to Specialty",
+                    "needs_review": True,
+                },
+                {
+                    "lower": 800.0,
+                    "upper": 1000.0,
+                    "include_lower": False,  # (800, 1000]
+                    "include_upper": True,
+                    "decision": "DECLINE",
+                    "needs_review": False,
+                },
+            ]
+        self.bands = bands
 
-The following JSON contains extracted attributes from a non-ACORD insurance submission form.
-These fields were extracted using semantic search and LLM-based information retrieval from submission documents.
+    def validate_thresholds(self) -> bool:
+        """
+        Validates that bands are:
+          - Properly ordered,
+          - Non-overlapping considering inclusivity,
+          - Have lower <= upper for each band.
+        """
+        if not self.bands:
+            return False
 
-Your task is to group these fields logically based on semantic context.
+        # Sort by lower bound for validation purposes
+        bands = sorted(self.bands, key=lambda b: (b["lower"], not b["include_lower"]))
 
-Requirements:
-1. Group fields logically. The grouping is FLEXIBLE — create categories as needed based on the context of the fields present.
+        def overlaps(b1: Dict, b2: Dict) -> bool:
+            # Determine if two bands overlap considering inclusivity
+            # b1 comes before b2 (sorted)
+            if b1["upper"] < b2["lower"]:
+                return False
+            if b1["upper"] > b2["lower"]:
+                return True
+            # b1["upper"] == b2["lower"] -> overlap only if both include the shared boundary
+            return b1["include_upper"] and b2["include_lower"]
 
-2. Analyze the semantic meaning of each attribute name and value to determine the best category fit.
+        for b in bands:
+            if b["lower"] > b["upper"]:
+                return False
 
-3. Each attribute should appear in exactly one category.
+        for i in range(1, len(bands)):
+            if overlaps(bands[i - 1], bands[i]):
+                return False
 
-4. If an attribute doesn't fit standard categories, place it in "Other".
+        return True
 
-5. Do NOT create empty categories.
 
-INPUT ATTRIBUTES (extracted from non-ACORD submission form):
-{attributes_json}
+# Utils
+def _require_env() -> None:
+    if not AZURE_STORAGE_CONNECTION_STRING:
+        raise RuntimeError("Missing AZURE_STORAGE_CONNECTION_STRING in environment")
 
-TASK:
-1. Analyze each attribute name and value semantically
-2. Identify groupings based on contextual meaning (e.g., "Named insured" → Insured category, "Year built" → Property category)
-3. Group all semantically related attributes together
-4. Create category names that are meaningful and clear for insurance underwriting context
-5. Preserve exact attribute names and values as provided
+def _parse_container_from_url(url: str) -> Tuple[str, str]:
+    """
+    Parse an Azure Blob URL and return (account_host, container_name).
+    Accepts either a container URL or any blob URL within that container.
+    """
+    parsed = urlparse(url)
+    if not parsed.scheme.startswith("http"):
+        raise ValueError("input_blob_url must be a valid http(s) Azure Blob URL")
+    account_host = parsed.netloc
+    path = parsed.path.lstrip("/")
+    if not path:
+        raise ValueError("input_blob_url must include at least the container name")
+    container = path.split("/", 1)[0]
+    return account_host, unquote(container)
 
-RESPONSE FORMAT (STRICT JSON ONLY):
-Return ONLY valid JSON with this structure - no commentary, no markdown, no explanations:
-{{
-  "Category Name 1": {{
-    "attribute_name_1": "value_1",
-    "attribute_name_2": "value_2"
-  }},
-  "Category Name 2": {{
-    "attribute_name_3": "value_3"
-  }},
-  "Other": {{
-    "attribute_name_4": "value_4"
-  }}
-}}
+def _parse_container_and_blob_from_url(url: str) -> Tuple[str, str, Optional[str]]:
+    """
+    Parse an Azure Blob URL and return (account_host, container_name, blob_path_or_none).
+    If the URL points to a specific blob, blob_path_or_none is the path after the container.
+    If it points to the container root, blob_path_or_none is None.
+    """
+    parsed = urlparse(url)
+    if not parsed.scheme.startswith("http"):
+        raise ValueError("input_blob_url must be a valid http(s) Azure Blob URL")
+    account_host = parsed.netloc
+    path = parsed.path.lstrip("/")
+    if not path:
+        raise ValueError("input_blob_url must include at least the container name")
+    parts = path.split("/", 1)
+    container = unquote(parts[0])
+    blob_path = unquote(parts[1]) if len(parts) > 1 and parts[1] else None
+    return account_host, container, blob_path
 
-CRITICAL RULES:
-- Return ONLY the JSON object, nothing else
-- Preserve exact attribute names (do NOT modify them)
-- Preserve exact values (do NOT modify them)
-- Category names should be descriptive and capitalized
-- Ensure ALL attributes from input are included in output in exactly one category
-- If no clear category fit, use "Other" category
-"""
-    )
-    
-    chain = LLMChain(llm=llm, prompt=grouping_prompt)
-    
+def _expected_account_host_from_conn() -> Optional[str]:
+    """
+    Derives the expected blob account host from AZURE_STORAGE_CONNECTION_STRING.
+    Priority order:
+      - BlobEndpoint=https://<host>/...
+      - AccountName + EndpointSuffix -> <AccountName>.blob.<EndpointSuffix>
+    Returns None if it cannot be derived.
+    """
+    cs = AZURE_STORAGE_CONNECTION_STRING
+    if not cs:
+        return None
+    parts: Dict[str, str] = {}
+    for segment in cs.split(";"):
+        if "=" in segment:
+            k, v = segment.split("=", 1)
+            parts[k.strip()] = v.strip()
+
+    blob_endpoint = parts.get("BlobEndpoint")
+    if blob_endpoint:
+        try:
+            return urlparse(blob_endpoint).netloc
+        except Exception:
+            return None
+
+    account_name = parts.get("AccountName")
+    endpoint_suffix = parts.get("EndpointSuffix")
+    if account_name and endpoint_suffix:
+        return f"{account_name}.blob.{endpoint_suffix}"
+
+    return None
+
+async def _get_latest_blob_name(container_client) -> str:
+    """
+    Returns the name of the most recently modified blob in the container.
+    """
+    latest_blob = None
+    async for blob in container_client.list_blobs():
+        if latest_blob is None or blob.last_modified > latest_blob.last_modified:
+            latest_blob = blob
+    if latest_blob is None:
+        raise FileNotFoundError("No blobs found in the input container")
+    return latest_blob.name
+
+async def _download_latest_json_from_container(url: str) -> Tuple[str, Any, str]:
+    """
+    Returns (account_host, parsed JSON, blob_name) for either:
+      - the most recent blob in the container (if URL points to container root), or
+      - the specific blob provided in the URL (if a blob path is present).
+    In case of any invalid URL or non-existent container/blob, raises ValueError('invalid url').
+    """
+    _require_env()
+
+    # Parse URL; normalize any parse error to 'invalid url'
     try:
-        # Convert attributes dict to JSON string for the prompt
-        attributes_json = json.dumps(attributes_dict, indent=2)
-        
-        print("🧠 Grouping attributes using LLM semantic analysis...")
-        
-        # Get categorization from LLM
-        raw_response = chain.run({
-            "attributes_json": attributes_json
-        }).strip()
-        
-        # Parse the JSON response
+        account_host, container, blob_path = _parse_container_and_blob_from_url(url)
+    except ValueError:
+        raise ValueError("invalid url")
+
+    # Validate host against connection string-derived expectation
+    expected_host = _expected_account_host_from_conn()
+    if expected_host and account_host != expected_host:
+        raise ValueError("invalid url")
+
+    # Enforce that the container in the URL is the expected input container
+    if container != INPUT_CONTAINER:
+        raise ValueError("invalid url")
+
+    async with BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING) as svc:
+        container_client = svc.get_container_client(container)
         try:
-            # Remove markdown code blocks if present
-            clean_response = re.sub(r"```(?:json)?|```", "", raw_response.strip())
-            grouped_data = json.loads(clean_response)
-            
-            # Validate the response
-            if isinstance(grouped_data, dict) and len(grouped_data) > 0:
-                # Ensure all categories contain dictionaries with content
-                cleaned_grouped = {}
-                for category, fields in grouped_data.items():
-                    if isinstance(fields, dict) and len(fields) > 0:
-                        cleaned_grouped[category] = fields
-                
-                if cleaned_grouped:
-                    print(f"✅ Successfully grouped attributes into {len(cleaned_grouped)} categories")
-                    return cleaned_grouped
-                else:
-                    logger.warning("No valid grouped data received from LLM, using flat structure")
-                    return {"All Attributes": attributes_dict}
-            else:
-                logger.warning("Invalid grouped data structure from LLM, using flat structure")
-                return {"All Attributes": attributes_dict}
-                
-        except (json.JSONDecodeError, KeyError, TypeError) as e:
-            logger.warning(f"Could not parse grouping response from LLM: {raw_response}")
-            logger.warning(f"Error details: {e}")
-            # Fallback to flat structure
-            return {"All Attributes": attributes_dict}
-            
-    except Exception as e:
-        logger.error(f"Error in LLM-based attribute grouping: {e}")
-        # Fallback to flat structure
-        return {"All Attributes": attributes_dict}
+            # Ensure container exists
+            await container_client.get_container_properties()
+        except ResourceNotFoundError:
+            # Treat missing container as invalid url per requirement
+            raise ValueError("invalid url")
 
-
-def extract_with_llm(vectordb: Any, extraction_rules: Dict[str, Dict], prompt_template: str) -> Dict[str, Any]:
-    """Extract values from vectorized content using semantic search with database-driven extraction rules
-    
-    Args:
-        vectordb: ChromaDB instance with embeddings
-        extraction_rules: Dictionary mapping attribute names to their extraction instructions
-                         Format: {"attr_name": {"description": "instruction text"}, ...}
-        prompt_template: Prompt template string fetched from database
-    
-    Returns:
-        Dictionary mapping attributes to extracted values
-    """
-    print(f"🔎 Extracting values using semantic search with database-driven rules...")
-    
-    llm = AzureChatOpenAI(
-        openai_api_key=os.getenv("AZURE_OPENAI_API_KEY"),
-        azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
-        openai_api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
-        deployment_name=os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT"),
-        temperature=0,
-        top_p=1
-    )
-
-    # Create prompt template from database content
-    # CRITICAL: Escape the JSON response format in the prompt so LangChain doesn't interpret braces as variables
-    # The database stores: {\"amount\": \"VALUE\"} and {\"amount\": null}
-    # We need to escape to: {{\"amount\": \"VALUE\"}} and {{\"amount\": null}}
-    escaped_template = prompt_template.replace(
-        '{\"amount\": \"VALUE\"}', 
-        '{{\"amount\": \"VALUE\"}}'
-    ).replace(
-        '{\"amount\": null}', 
-        '{{\"amount\": null}}'
-    )
-    
-    attribute_prompt = PromptTemplate(
-        input_variables=["context", "attribute", "instruction"],
-        template=escaped_template
-    )
-    chain = LLMChain(llm=llm, prompt=attribute_prompt)
-    attribute_values = {}
-    
-    # Iterate over extraction_rules dictionary: attribute_name -> attribute_info
-    for attribute_name, attribute_info in extraction_rules.items():
-        # Extract the instruction/description from the attribute info
-        instruction = attribute_info.get("description", "") if isinstance(attribute_info, dict) else ""
-        
-        print(f"🧠 Extracting: {attribute_name}")
-        
-        # Get focused search terms based on attribute type
-        search_terms = {
-            "abcd": "example terms"
-        }
-        
-        # Build comprehensive search query
-        search_query = attribute_name
-        for key, terms in search_terms.items():
-            if key in attribute_name.lower():
-                search_query = f"{attribute_name} {terms}"
-                break
-                
-        # Get relevant chunks with larger k value
-        relevant_chunks = vectordb.similarity_search(
-            search_query,
-            k=20  # Significantly increased for better context
-        )
-        
-        if not relevant_chunks:
-            attribute_values[attribute_name] = "Not Found"
-            continue
-
-        # Combine relevant chunks
-        context = "\n".join([chunk.page_content for chunk in relevant_chunks])
-        
-        try:
-            raw_response = chain.run({
-                "context": context,
-                "attribute": attribute_name,
-                "instruction": instruction
-            }).strip()
-            
-            # Parse the JSON response to extract the actual value
+        # If a specific blob path is provided, it must exist; otherwise 'invalid url'
+        if blob_path:
+            blob_client = container_client.get_blob_client(blob_path)
             try:
-                # Remove markdown code blocks if present
-                clean_response = re.sub(r"```(?:json)?|```", "", raw_response.strip())
-                parsed_response = json.loads(clean_response)
-                value = parsed_response.get("amount", "Not Found")
-                
-                # Handle null values
-                if value is None:
-                    value = "Not Found"
-                else:
-                    value = str(value).strip()
-                
-                # Only keep non-empty values
-                if value and value.lower() not in ["not found", "not provided", "n/a", ""]:
-                    attribute_values[attribute_name] = value
-                else:
-                    attribute_values[attribute_name] = "Not Found"
-            except (json.JSONDecodeError, KeyError, TypeError) as e:
-                logger.warning(f"Could not parse JSON response for {attribute_name}: {raw_response}")
-                attribute_values[attribute_name] = "Not Found"
-                
-        except Exception as e:
-            logger.error(f"Error extracting {attribute_name}: {e}")
-            attribute_values[attribute_name] = "Not Found"
+                stream = await blob_client.download_blob()
+                raw = await stream.readall()
+            except ResourceNotFoundError:
+                # Blob in path does not exist -> invalid url
+                raise ValueError("invalid url")
+            return account_host, json.loads(raw.decode("utf-8")), blob_path
 
-    return attribute_values
+        # No specific blob path: use the latest in the container
+        latest_name = await _get_latest_blob_name(container_client)
+        blob_client = container_client.get_blob_client(latest_name)
+        stream = await blob_client.download_blob()
+        raw = await stream.readall()
+        return account_host, json.loads(raw.decode("utf-8")), latest_name
 
-def _get_container_client_for_output(output_container_name: str) -> ContainerClient:
-    """Get container client for uploading outputs"""
-    connection_string = os.getenv("AZURE_BLOB_CONNECTION_STRING") or os.getenv("AZURE_STORAGE_CONNECTION_STRING")
+async def _upload_json_to_timestamped_output(account_host: str, data: Any) -> str:
+    """
+    Uploads to the output container using a UTC timestamped file name: accept-reject-riskfunctionality-output_YYYYMMDD_HHMMSS.json
+    Returns the full output blob URL.
+    """
+    _require_env()
+    async with BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING) as svc:
+        container_client = svc.get_container_client(OUTPUT_CONTAINER)
+        # Ensure container exists
+        try:
+            await container_client.create_container()
+        except ResourceExistsError:
+            pass
 
-    if connection_string:
-        blob_service_client = BlobServiceClient.from_connection_string(connection_string)
-        return blob_service_client.get_container_client(output_container_name)
+        ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        blob_name = f"accept-reject-riskfunctionality-output_{ts}.json"
+        blob_client = container_client.get_blob_client(blob_name)
+        payload = json.dumps(data, indent=2, ensure_ascii=False).encode("utf-8")
+        await blob_client.upload_blob(payload, overwrite=True)
+        return f"https://{account_host}/{OUTPUT_CONTAINER}/{blob_name}"
 
-    raise RuntimeError("No Azure Blob connection string found for uploading output")
+def _ensure_local_output_dir() -> str:
+    out_dir = os.path.join(os.getcwd(), "output")
+    os.makedirs(out_dir, exist_ok=True)
+    return out_dir
 
+def _save_local_results(results: List[Dict[str, Any]]) -> str:
+    out_dir = _ensure_local_output_dir()
+    out_file = os.path.join(out_dir, "results.json")
+    with open(out_file, "w", encoding="utf-8") as f:
+        json.dump(results, f, indent=2, ensure_ascii=False)
+    return out_file
 
-def _upload_bytes_to_container(container_client: ContainerClient, blob_name: str, data: bytes) -> str:
-    """Upload bytes to blob container and return URL"""
+def _try_parse_float(value: Any) -> Optional[float]:
     try:
-        container_client.create_container()
-    except ResourceExistsError:
-        pass
+        if isinstance(value, (int, float)):
+            return float(value)
+        if isinstance(value, str):
+            s = value.strip()
+            if s == "":
+                return None
+            return float(s)
+        return None
     except Exception:
-        pass
+        return None
 
-    blob_client = container_client.get_blob_client(blob_name)
-    blob_client.upload_blob(data, overwrite=True)
-    return blob_client.url
+def _extract_risk_items(obj: Any) -> List[Tuple[float, Optional[str], dict]]:
+    """
+    Recursively find all 'risk score' values in obj and return a list of tuples:
+      (risk score, submission_id_if_available, the_dict_node_that_had_risk_score)
+    - Only the key 'risk score' (case-sensitive) is considered.
+    - submission_id is captured from the same dict level if present (case-sensitive).
+    """
+    results: List[Tuple[float, Optional[str], dict]] = []
 
+    def walk(node: Any):
+        if isinstance(node, dict):
+            # If this dict has 'risk score', attempt to parse it and capture the dict
+            if "risk score" in node:
+                score = _try_parse_float(node["risk score"])
+                if score is not None:
+                    sub_id = None
+                    if "submission_id" in node:
+                        sub_id_val = node["submission_id"]
+                        sub_id = str(sub_id_val) if isinstance(sub_id_val, (str, int, float)) else None
+                    # Append the node (copy to avoid accidental mutation)
+                    results.append((score, sub_id, dict(node)))
+            # Continue recursion
+            for v in node.values():
+                walk(v)
+        elif isinstance(node, list):
+            for item in node:
+                walk(item)
+        # Other types ignored
 
-async def process_retrieval(vector_db_path: str, document_type: str) -> Dict[str, Any]:
-    """Main processing function for retrieval using semantic search with database-driven prompts
-    
-    This function:
-    1. Fetches prompt and extraction rules from PostgreSQL based on document_type
-    2. Loads the vector database from vector_db_path
-    3. Extracts values for each attribute in extraction_rules using semantic search
-    4. Groups results by category from the extraction rules
-    5. Uploads results to blob storage
-    
-    Args:
-        vector_db_path: Can be either:
-            1. Local absolute path from pdf_vectorizer output: /home/jarvis/rohan/Quote_Extraction_MCP/data/vec_db/pdf_name
-            2. Blob URL (fallback): https://... - will extract pdf name and construct local path
-        document_type: Document type for database lookup (e.g., 'Property_Detailed_Report', 'quote', 'acord')
-                      Uses this to fetch prompt and extraction rules from ref_prompt_library table
-    
+    walk(obj)
+    return results
+
+# def _determine_decision(score: float, thr: RiskThresholds) -> Tuple[str, str, bool]:
+#     """
+#     Accept/Reject logic:
+#       - Accepted if score < acceptance_threshold
+#       - Rejected if score > rejection_threshold
+#       - Needs Review otherwise (Human-in-the-loop required; typically between and including the thresholds)
+#     """
+#     if score < thr.acceptance_threshold:
+#         return ("Accepted", f"Risk score {score} is below acceptance threshold {thr.acceptance_threshold}", False)
+#     if score > thr.rejection_threshold:
+#         return ("Rejected", f"Risk score {score} is above rejection threshold {thr.rejection_threshold}", False)
+#     return ("Needs Review", f"Risk score {score} falls between acceptance threshold {thr.acceptance_threshold} and rejection threshold {thr.rejection_threshold}", True)
+
+def _determine_decision(score: float, thr: RiskThresholds) -> Tuple[str, str, bool]:
+    """
+    Multi-band Accept/Review/Decline logic based on configured thresholds.
+
     Returns:
-        Dict with extraction results and metadata
+      - decision: str
+      - message: str (explains which band was matched)
+      - needs_review: bool (whether human-in-the-loop is required)
+    """
+    def in_band(value: float, band: Dict) -> bool:
+        lower_ok = value >= band["lower"] if band["include_lower"] else value > band["lower"]
+        upper_ok = value <= band["upper"] if band["include_upper"] else value < band["upper"]
+        return lower_ok and upper_ok
+
+    for band in thr.bands:
+        if in_band(score, band):
+            decision = band["decision"]
+            lower_bracket = "[" if band["include_lower"] else "("
+            upper_bracket = "]" if band["include_upper"] else ")"
+            msg = (
+                f"Risk score {score} falls in {lower_bracket}{band['lower']}, {band['upper']}{upper_bracket} "
+                f"→ Decision: {decision}"
+            )
+            return (decision, msg, band["needs_review"])
+
+    # If no band captures the score, flag for review.
+    return (
+        "Needs Review",
+        f"Risk score {score} is not covered by configured thresholds; manual review required",
+        True,
+    )
+
+# async def derive_decision_reason(
+#     earthquake_count: int,
+#     flood_zone: bool,
+#     construction_type: str,
+#     distance_to_fire_hydrant: str,
+#     distance_to_fire_station: str,
+#     year_built: int,
+#     decision: str
+# ) -> str:
+#         prompt = f"""
+#         Role:
+#         You are a Commercial Property Insurance Risk Assessor.
+#         Task:
+#         Based on the provided data, you have already made a decision to either accept or reject the risk. Your decision is stored in the "decision" key.
+#         Instruction:
+#         Using only the data provided (do not assume anything beyond it), write a short justification for your assessment.
+#         Data:
+       
+#         'earthquake_count': {earthquake_count},
+#         'flood_zone': {flood_zone},
+#         'construction_type': {construction_type},
+#         'distance_to_fire_hydrant': {distance_to_fire_hydrant},
+#         'distance_to_fire_station': {distance_to_fire_station},
+#         'year_built': {year_built},
+#         'decision': {decision}"""
+
+#         model = AzureChatOpenAI(
+#         api_key=os.getenv("AZURE_OPENAI_API_KEY"),
+#         api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
+#         azure_deployment=os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT"),
+#         azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"))
+
+#         justification = await model.ainvoke(prompt)
+       
+#         return justification.content
+
+# async def _append_row_to_excel(account_host: str, row_values: List[Any]) -> None:
+#     """
+#     Download or create the Excel file at AZURE_RISK_ASSESSMENT_CONTAINER_NAME/AZURE_RISK_ASSESSMENT_FILE_NAME,
+#     append a single row (row_values), and upload back to blob storage.
+#     """
+#     _require_env()
+#     async with BlobServiceClient.from_connection_string(AZURE_STORAGE_CONNECTION_STRING) as svc:
+#         container_client = svc.get_container_client(AZURE_RISK_ASSESSMENT_CONTAINER_NAME)
+#         try:
+#             await container_client.create_container()
+#         except ResourceExistsError:
+#             pass
+
+#         blob_client = container_client.get_blob_client(AZURE_RISK_ASSESSMENT_FILE_NAME)
+
+#         # Try download existing workbook
+#         try:
+#             stream = await blob_client.download_blob()
+#             raw = await stream.readall()
+#             bio = io.BytesIO(raw)
+#             wb = load_workbook(bio)
+#             ws = wb.active
+#         except ResourceNotFoundError:
+#             # Create new workbook with headers
+#             wb = Workbook()
+#             ws = wb.active
+#             headers = [
+#                 "Reference Number",
+#                 "Risk check date and time",
+#                 "Risk Score",
+#                 "Fire Safety",
+#                 "Claims History",
+#                 "Location Exposure",
+#                 "Final Decision",
+#                 "Decision Reason",
+#                 "Approval Flag",
+#                 "Approval Date and time"
+#             ]
+#             ws.append(headers)
+
+#         # Append the provided row (ensure same number of columns)
+#         ws.append(row_values)
+
+#         # Save to bytes and upload
+#         out_bio = io.BytesIO()
+#         wb.save(out_bio)
+#         out_bio.seek(0)
+#         await blob_client.upload_blob(out_bio.read(), overwrite=True)
+
+async def process_risk_from_blob(
+    input_blob_url: str,
+    # earthquake_count: int,
+    # flood_zone: bool,
+    # construction_type: str,
+    # distance_to_fire_hydrant: str,
+    # distance_to_fire_station: str,
+    # year_built: int,
+    thresholds: Optional[RiskThresholds] = None
+) -> Dict[str, Any]:
+    """
+    Orchestration:
+      - Identify latest blob in risk-score-output container (if container URL).
+      - Or read the specific blob if URL includes a blob path; if it does not exist -> 'invalid url'.
+      - Extract risk score values (case-sensitive key).
+      - If none found -> return message 'please upload a valid blob url path which has risk score'.
+      - Evaluate decisions using thresholds (defaults: accept=40, reject=75).
+      - Save results locally to ./output/results.json.
+      - Upload results to OUTPUT_CONTAINER as timestamped JSON.
+      - Append a single row per decision to the Excel file in AZURE_RISK_ASSESSMENT_CONTAINER_NAME/AZURE_RISK_ASSESSMENT_FILE_NAME
+      - Print exactly two INFO lines for generation; startup adds two more (total four lines on success).
     """
     try:
-        # Fetch prompt and extraction rules from database based on document type
-        logger.info(f"📊 Fetching prompt and extraction rules for document type: {document_type}")
-        db_data = prompt_manager.get_prompt_and_extraction_rules(document_type)
-        
-        if not db_data:
-            logger.warning(f"⚠️  Could not fetch data for {document_type} from database")
-            return {
-                "error": f"No data found in database for document type: {document_type}",
-                "document_type": document_type
-            }
-        
-        prompt_template = db_data['prompt']
-        extraction_rules = db_data['extraction_rules']
-        
-        if not extraction_rules:
-            logger.warning(f"⚠️  No extraction rules found for {document_type}")
-            return {
-                "error": f"No extraction rules found for document type: {document_type}",
-                "document_type": document_type
-            }
-        
-        logger.info(f"✅ Loaded {len(extraction_rules)} extraction rules from database")
-        
-        # Handle both blob URLs and local paths
-        if vector_db_path.startswith(("http://", "https://")):
-            # This is a blob URL - extract the PDF name and construct local path
-            logger.warning(f"Received blob URL instead of local path. Extracting PDF name...")
-            path = unquote(urlparse(vector_db_path).path)
-            file_name_with_ext = os.path.basename(path)
-            pdf_name = os.path.splitext(file_name_with_ext)[0]
-            
-            # Construct the local vector_db_path
-            vdb_base_path = os.getenv("VDB_PATH", "./data/vec_db")
-            vector_db_path = os.path.abspath(os.path.join(vdb_base_path, pdf_name))
-            logger.info(f"Reconstructed local vector_db_path: {vector_db_path}")
-        else:
-            # Ensure it's an absolute path
-            vector_db_path = os.path.abspath(vector_db_path)
-        
-        # Get safe collection name from vector_db_path
-        # Remove all invalid characters: parentheses, brackets, special chars
-        # ChromaDB only allows: [a-zA-Z0-9._-]
-        safe_name = os.path.basename(vector_db_path).lower()
-        safe_name = safe_name.replace(" ", "_").replace("-", "_").replace(".", "_")
-        # Remove parentheses and other special characters
-        safe_name = "".join(c if c.isalnum() or c in "._-" else "" for c in safe_name)
-        # Ensure it starts and ends with alphanumeric
-        safe_name = safe_name.strip("._-")
-        collection_name = f"{safe_name}_collection"
-        persist_directory = os.path.join(vector_db_path, "chroma_db", safe_name)
-        
-        # Verify the vector DB exists
-        if not os.path.exists(persist_directory):
-            raise FileNotFoundError(f"Vector database not found at: {persist_directory}")
-        
-        # Load the vector store
-        print(f"📚 Loading vector store from {persist_directory}")
-        vectordb = Chroma(
-            embedding_function=embeddings,
-            persist_directory=persist_directory,
-            collection_name=collection_name
-        )
-        
-        # Extract values using semantic search with database-driven extraction rules and prompt
-        extracted_data = extract_with_llm(vectordb, extraction_rules, prompt_template)
-        
-        # Group attributes by logical categories
-        grouped_data = group_attributes_by_category(extracted_data)
-        
-        # Create local directory for outputs using the vector_db_path parent
-        local_output_dir = os.path.abspath(os.path.join(os.path.dirname(vector_db_path), "extraction_outputs"))
-        os.makedirs(local_output_dir, exist_ok=True)
-        
-        # Save locally first
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        pdf_name = os.path.basename(vector_db_path)
-        local_filename = f"{pdf_name}_{document_type}_extraction_{timestamp}.json"
-        local_path = os.path.join(local_output_dir, local_filename)
-        
-        # Save JSON locally
-        with open(local_path, "w", encoding="utf-8") as f:
-            json.dump(grouped_data, f, indent=2)
-        print(f"💾 Saved local output to: {local_path}")
-        
-        # Upload results to blob storage
-        output_container = _get_container_client_for_output("output-results")
-        blob_name = local_filename
-        
-        json_data = json.dumps(grouped_data, indent=2).encode('utf-8')
-        output_url = _upload_bytes_to_container(output_container, blob_name, json_data)
-        
+        thresholds = thresholds or RiskThresholds()
+        if not thresholds.validate_thresholds():
+            raise ValueError("Invalid thresholds: acceptance_threshold must be less than rejection_threshold")
+
+        # Download the input JSON from the container or specific blob
+        # account_host, data, latest_blob_name = await _download_latest_json_from_container(input_blob_url)
+
+        # # Extract risk_score items anywhere in the JSON
+        # items = _extract_risk_items(data)
+        # if not items:
+        #     return {
+        #         "status": False,
+        #         "message": "please upload a valid blob url path which has risk score",
+        #         "input_blob_used": latest_blob_name
+        #     }
+
+        # Evaluate decisions
+        decisions: List[Dict[str, Any]] = []
+        now_iso = datetime.now(timezone.utc).isoformat()
+
+        for item in input_data:
+            # score = item.get("risk_score")
+            score = item.get("composite_score")
+            # submission_id = item.get("submission_id")
+            node = item.get("node", {})
+
+            if score is None or submission_id is None:
+                continue  # Skip incomplete entries
+
+            decision, _, hitl = _determine_decision(score, thresholds)
+
+            reference_number = node.get("reference number")
+
+            decisions.append({
+                "submission_id": submission_id,
+                "reference number": reference_number,
+                "risk score": score,
+                "decision": decision,
+                "is_hitl_required": hitl,
+                "time_stamp": now_iso
+            })
+
+        # for score, submission_id, node in items:
+        #     decision, _, hitl = _determine_decision(score, thresholds)
+
+        #     # Try to extract requested fields from the node (fall back where appropriate)
+        #     reference_number = node.get("reference number") 
+        #     claims_history = node.get("Claims History") 
+        #     location_exposure = node.get("Location Exposure") 
+        #     fire_safety = node.get("Fire Safety") 
+        #     # Prefer Year Built from node; fall back to the function parameter year_built
+        #     year_built_from_node = node.get("Year Built") 
+
+        #     # Call LLM for justification
+        #     # justification = await derive_decision_reason(
+        #     #     earthquake_count=earthquake_count,
+        #     #     flood_zone=flood_zone,
+        #     #     construction_type=construction_type,
+        #     #     distance_to_fire_hydrant=distance_to_fire_hydrant,
+        #     #     distance_to_fire_station=distance_to_fire_station,
+        #     #     year_built=year_built_from_node,
+        #     #     decision=decision
+        #     # )
+
+        #     # Build the decision record. Note the hyphenated key "decision-reason"
+        #     decisions.append({
+        #         "submission_id": submission_id,
+        #         "reference number": reference_number,
+        #         "risk score": score,
+        #         # "Claims History": claims_history,
+        #         # "Location Exposure": location_exposure,
+        #         # "Fire Safety": fire_safety,
+        #         # "Year Built": year_built_from_node,
+        #         "decision": decision,
+        #         # "decision-reason": justification,
+        #         # "is_hitl_required": hitl,
+        #         "time_stamp": now_iso
+        #     })
+
+            # Prepare row in the required Excel order and exact columns:
+            # Reference Number | Risk check date and time | Risk Score | Fire Safety | Claims History | Location Exposure | Final Decision | Decision Reason | Approval Flag | Approval Date and time
+            # row = [
+            #     reference_number,
+            #     now_iso,
+            #     score,
+            #     # fire_safety,
+            #     # claims_history,
+            #     # location_exposure,
+            #     decision,               # Final Decision -> mapped from "decision"
+            #     # justification,          # Decision Reason -> mapped from "decision-reason"
+            #     "",                     # Approval Flag left blank as requested
+            #     ""                      # Approval Date and time left blank as requested
+            # ]
+
+            # # Append the row to the Azure-hosted Excel file
+            # try:
+            #     await _append_row_to_excel(account_host, row)
+            # except Exception as ex_append:
+            #     logger.warning(f"Failed to append row to excel: {ex_append}")
+
+        # Save locally
+        # local_path = _save_local_results(decisions)
+
+        # # Upload to output container with timestamped name
+        # output_blob_url = await _upload_json_to_timestamped_output(account_host, decisions)
+
+        # # Only two lines for output generation
+        # print(f"INFO | Output generated on blob: {output_blob_url}")
+        # logger.info(f"Output generated on blob: {output_blob_url}")
+
+        # return {
+        #     "status": True,
+        #     "message": "Accept/Reject results generated and uploaded successfully",
+        #     "local_output": local_path,
+        #     "blob_output_url": output_blob_url,
+        #     "input_blob_used": latest_blob_name,
+        #     "results": decisions
+        # }
+
         return {
-            "is_extracted": True,
-            "metadata": {
-                "is_extracted": True,
-                "is_error": False,
-                "error_message": None,
-                "output_blob_url": output_url,
-                "source_pdf": pdf_name,
-                "local_output_path": local_path,
-                "vector_db_path": vector_db_path
-            }
+            "status": True,
+            "results": decisions
         }
-        
+
     except Exception as e:
-        logger.exception("Error in retrieval process")
         return {
-            "is_extracted": False,
-            "metadata": {
-                "is_extracted": False,
-                "is_error": True,
-                "error_message": str(e),
-                "output_blob_url": None
-            }
+            "status": False,
+            "error": str(e)
         }
+    # except Exception as e:
+    #     # Keep log minimal; return structured error for API client
+    #     return {"status": False, "error": str(e)}
