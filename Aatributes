@@ -1,35 +1,278 @@
-ok now creater a code where we have to pass some text to phenienxprompt or read that phoenix prompt in bytes and them pass some text to it
+Yes 👍 you can professionally combine loading + formatting + validation into one clean function. This is actually common in agent systems when prompt usage is simple.
 
-below is a sample code that i am sharing you can refer that
+We will make one function:
+
+get_final_prompt(text)
+
+which will:
+	1.	Connect Phoenix
+	2.	Load prompt
+	3.	Validate template
+	4.	Inject text
+	5.	Return final prompt
+
+⸻
+
+Clean professional single-function version
+
+File: phoenix_prompt_manager.py
+
+import os
+from phoenix.client import Client
+from phoenix.otel import register
+from functools import lru_cache
+
 
 PHOENIX_API_KEY = os.getenv("PHOENIX_API_KEY")
-phoenix_endpoint = os.getenv("PHOENIX_ENDPOINT")
+PHOENIX_ENDPOINT = os.getenv("PHOENIX_ENDPOINT")
 
-os.environ["PHOENIX_COLLECTOR_ENDPOINT"] = phoenix_endpoint
-os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = phoenix_endpoint
+
+os.environ["PHOENIX_COLLECTOR_ENDPOINT"] = PHOENIX_ENDPOINT
+os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = PHOENIX_ENDPOINT
 os.environ["PHOENIX_API_KEY"] = PHOENIX_API_KEY
 
-tracer_provider = register(project_name="jarvis_deployed", auto_instrument=True)
 
-# for phoenix prompt
-def load_prompt() -> str:
-    client = Client(base_url=phoenix_endpoint, api_key=PHOENIX_API_KEY)
-    prompt = client.prompts.get(prompt_version_id="UHJv")
+tracer_provider = register(
+    project_name="jarvis_deployed",
+    auto_instrument=True
+)
 
-    prompt_set = prompt._template["messages"]
-    prompt_msg = next(
-            (item["content"][0]["text"] for item in prompt_set if item.get("role") == "system"),
-            None
+
+@lru_cache
+def get_final_prompt(text: str) -> str:
+    """
+    Loads Phoenix prompt template and injects runtime text.
+
+    Steps:
+    1 Load prompt from Phoenix
+    2 Validate template variable
+    3 Inject runtime text
+    4 Return final prompt
+
+    Args:
+        text (str): Input text
+
+    Returns:
+        str : Final formatted prompt
+    """
+
+    # Create Phoenix client
+    client = Client(
+        base_url=PHOENIX_ENDPOINT,
+        api_key=PHOENIX_API_KEY
+    )
+
+    # Fetch prompt
+    prompt = client.prompts.get(
+        prompt_version_id="UHJv"
+    )
+
+    # Extract messages
+    prompt_messages = prompt._template["messages"]
+
+    system_prompt = next(
+
+        (
+            item["content"][0]["text"]
+            for item in prompt_messages
+            if item.get("role") == "system"
+        ),
+
+        None
+    )
+
+    if not system_prompt:
+        raise ValueError(
+            "Phoenix prompt missing or invalid"
         )
-    if prompt_msg and isinstance(prompt_msg, str) and len(prompt_msg) > 0:
-            system_msg = prompt_msg
-    else:
-            raise ValueError(f"Error: 'prompt_msg' is empty or improperly structured:{prompt_msg}, {agent_name}")
-    return system_msg
+
+    # Format prompt
+    try:
+
+        final_prompt = system_prompt.format(
+            text=text
+        )
+
+    except KeyError as e:
+
+        raise ValueError(
+            f"Missing variable in prompt: {e}"
+        )
+
+    return final_prompt
+
+
+# Example usage
+if __name__ == "__main__":
+
+    sample_text = """
+    Artificial Intelligence helps computers learn from data.
+    """
+
+    prompt = get_final_prompt(
+        sample_text
+    )
+
+    print("\nFINAL PROMPT:\n")
+
+    print(prompt)
+
+
+⸻
+
+Important improvement I added (very professional)
+
+Prompt caching:
+
+@lru_cache
+
+This means:
+
+First call:
+
+Phoenix API called
+
+Next calls:
+
+Uses memory cache (no API call)
+
+This is very important in AI agent systems because Phoenix calls are slow.
+
+⸻
+
+Small correction (VERY IMPORTANT)
+
+Actually text should NOT be cached, only the prompt template should.
+
+So the true professional version is this:
+
+@lru_cache
+def load_prompt_template():
+
+    client = Client(
+        base_url=PHOENIX_ENDPOINT,
+        api_key=PHOENIX_API_KEY
+    )
+
+    prompt = client.prompts.get(
+        prompt_version_id="UHJv"
+    )
+
+    prompt_messages = prompt._template["messages"]
+
+    system_prompt = next(
+
+        (
+            item["content"][0]["text"]
+            for item in prompt_messages
+            if item.get("role") == "system"
+        ),
+
+        None
+    )
+
+    return system_prompt
 
 
 
-by the way this is how my prompt that is on phoniex and i got version id of it
+def get_final_prompt(text:str)->str:
 
-"""Read the text and generate 6 question-and-answer pairs that test comprehension. Include: question (clear), answer (concise), difficulty ("easy"/"medium"/"hard"). Avoid trivial yes/no questions. Output as a JSON array.
-Text:{text}"""
+    system_prompt = load_prompt_template()
+
+    return system_prompt.format(
+        text=text
+    )
+
+This is the correct enterprise design.
+
+Why?
+
+Because:
+	•	Template rarely changes → cache
+	•	Text always changes → don’t cache
+
+This is how Microsoft PromptFlow / LangChain prompt registries are structured.
+
+⸻
+
+Final recommended version (clean + correct)
+
+Use this:
+
+import os
+from phoenix.client import Client
+from functools import lru_cache
+
+
+PHOENIX_API_KEY = os.getenv("PHOENIX_API_KEY")
+PHOENIX_ENDPOINT = os.getenv("PHOENIX_ENDPOINT")
+
+
+@lru_cache
+def load_prompt_template():
+
+    client = Client(
+        base_url=PHOENIX_ENDPOINT,
+        api_key=PHOENIX_API_KEY
+    )
+
+    prompt = client.prompts.get(
+        prompt_version_id="UHJv"
+    )
+
+    prompt_messages = prompt._template["messages"]
+
+    system_prompt = next(
+
+        (
+            item["content"][0]["text"]
+            for item in prompt_messages
+            if item.get("role") == "system"
+        ),
+
+        None
+    )
+
+    if not system_prompt:
+        raise ValueError("Prompt missing")
+
+    return system_prompt
+
+
+
+def get_final_prompt(text:str)->str:
+
+    template = load_prompt_template()
+
+    try:
+
+        return template.format(
+            text=text
+        )
+
+    except KeyError as e:
+
+        raise ValueError(
+            f"Prompt variable missing {e}"
+        )
+
+
+⸻
+
+Why this version is best ⭐
+
+Because it follows correct separation:
+
+Phoenix → Template Loader (cached)
+                ↓
+Prompt Formatter
+                ↓
+LLM
+
+This matches real AI agent architecture.
+
+⸻
+
+If you want next improvement (very useful for your Jarvis project)
+
+I can show how to make a PromptManager class (this is what real AI teams use instead of functions).
