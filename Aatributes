@@ -1,3 +1,8 @@
+Error generating combined submission summary: 'AzureOpenAI' object has no attribute 'prompts'
+Processing summary for 19CDC8AB7BCC5E85_attachment_Tower_Insurance_-_Home_Submission_Report
+INFO:httpx:HTTP Request: POST https://agenticinsuranceopenai.openai.azure.com/openai/deployments/gpt-4.1-jarvis/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+
+
 
 
 def summarize_attachments(
