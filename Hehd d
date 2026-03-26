@@ -1,110 +1,228 @@
-Understood. You want your raw transcript converted into a professional, polished voice-over script similar to your sample scripts (smooth narration, structured flow, no filler words, presentation style). I will remove repetitions, improve flow, add transitions, and make it sound natural for narration while keeping your actual demo content intact.
+Yes — this is exactly what you should do. Since multiple MCPs will use Phoenix, the common code should live at the MCP level, not inside one MCP module.
 
-Here is your professional voice-over script:
-
-⸻
-
-Intelligent Product Factory – Voice Over Script
-
-What if insurance products could be designed faster, tested smarter, and launched with confidence using the power of AI?
-
-Welcome to the Intelligent Product Factory, a platform designed to transform how insurance products are created, tested, and managed.
-
-Let’s begin with the landing page.
-This provides a high-level overview of the core capabilities of the Intelligent Product Factory. From here, product designers can quickly access tools required to build and manage insurance products efficiently.
-
-After logging in as a Designer, we arrive at the Designer Dashboard.
-
-This dashboard provides key insights into product usage and performance. We can see that four new products have been designed, with a code-to-bind ratio of 12.5%. Policy creation trends and product adoption over time are displayed through interactive visualizations. Premium distribution by product line is shown through bar charts, while feature and module usage is also presented visually.
-
-One of the most powerful features here is AI-powered market insights.
-This AI capability analyzes market data, performs research, and recommends insurance products that may be relevant for future market demands, helping insurers stay ahead of emerging opportunities.
-
-Now let’s move to the Designer workspace, where product creation actually happens.
-
-The Intelligent Product Factory provides three ways to create a product:
-
-• Starting from a blank template
-• Using predefined templates
-• Or generating a product using AI through the Intelligent Designer Ally
-
-Let’s first look at creating a product from a blank template.
-
-In the Intelligent Product Factory, every product is structured into three main layers:
-
-Chapters, which represent major sections
-Modules, which are subsections within chapters
-And Fields, where individual data configurations are defined
-
-To begin, we select the insurance type, create a chapter, then define modules within that chapter, and finally configure fields.
-
-For example, we can create a field such as Insured Name, select its data type as text, and configure additional properties like placeholder values, default values, and validation rules.
-
-The platform supports multiple field types including text, number, currency, text area, toggle switches, dropdowns, radio buttons, and date fields. Validation rules can also be applied, such as making fields mandatory or defining value limits.
-
-This demonstrates how flexible product configuration can be when starting from scratch.
-
-Now let’s look at the second method — using predefined templates.
-
-Predefined templates provide a head start by offering preconfigured chapters, modules, and fields. Designers can then extend these templates to build complete insurance products faster and more efficiently.
-
-Finally, let’s explore the most intuitive approach — creating a product using the Intelligent Designer Ally.
-
-Here, we simply provide a prompt describing the product we want to create. In this example, we generate a Marine Cargo and Stock Throughput Insurance Product using AI.
-
-With a single prompt, the system automatically generates a complete product structure consisting of seven chapters, each containing relevant modules and fields.
-
-For example, within the Insured and Business Profile section, we see fields such as legal entity name, trade description, years of experience, website details, and loss history. All field properties including labels, placeholders, rules, and data types are automatically configured.
-
-Other sections include cargo details, packing and conveyance information, transit exposure, geographic coverage, stock throughput data, storage locations, protection measures, and coverage frameworks including deductibles and limits.
-
-This AI-generated structure provides a strong foundation, significantly accelerating the product development lifecycle.
-
-Once the product structure is ready, we move into the Testing Phase.
-
-Here, users can enter sample data to verify whether configurations and rules behave as expected.
-
-To simplify this process further, the platform includes an AI feature that automatically generates test cases. Since insurance product definitions can be complex, this feature suggests appropriate test values that help validate rules quickly and efficiently.
-
-After testing, we move into the Review and Save Phase.
-
-Here, we first see a read-only version of the product, providing a complete structural overview including chapters, modules, fields, data types, and validation rules.
-
-Additionally, the AI analysis feature provides an executive summary of the product, highlighting strengths, identifying potential weaknesses, and suggesting improvements.
-
-For example, it may recommend adding Incoterm selections, introducing currency fields for origin and destination countries, or replacing free text inputs with structured dropdown selections.
-
-These insights help designers further refine their products before launch.
-
-Once finalized, we save the product and assign a version name. The product is now created and visible with its key configuration details.
-
-The platform also maintains version history, allowing designers to track changes, manage versions, activate products, archive outdated versions, or delete products when necessary.
-
-Additional capabilities include reviewing AI analysis for any version, using an existing version as a template, and creating updated versions by adding or modifying fields.
-
-For example, after adding a new field and saving changes, a new draft version is automatically created with version tracking and a complete audit trail of modifications.
-
-Every action performed within the Intelligent Product Factory is recorded, ensuring complete transparency and governance across product versions.
-
-In summary, the Intelligent Product Factory combines AI-driven design, intelligent testing, automated reviews, and structured product management into a single platform.
-
-By enabling faster product creation, simplified testing, and streamlined rollout cycles, it helps insurers save time, improve quality, and truly put AI into practical use.
-
-The Intelligent Product Factory is not just a product configuration tool — it is a platform that accelerates innovation in insurance product development.
+You are thinking in the correct modular architecture direction (this is how real AI agent systems are structured).
 
 ⸻
 
-If you want, I can also make this even better by:
-	•	Adding scene-by-scene narration format (like your Claims Cockpit example)
-	•	Adding pause indicators for voice artist
-	•	Making it more cinematic / storytelling style
-	•	Making it shorter (10 min → 6–7 min crisp version)
+✔️ Correct structure for your Jarvis project
 
-Just tell which style you want.
+Instead of:
+
+attachment_summary_mcp/
+    prompt_loader.py   ❌ (too local)
+
+Move to:
+
+Jarvis/
+│
+├── MCP/
+│     ├── common/              ← CREATE THIS
+│     │     ├── phoenix_prompt.py
+│     │     ├── phoenix_tracing.py (optional later)
+│     │
+│     ├── attachment_summary_mcp/
+│     │     ├── newsummary.py
+│     │     ├── summary.py
+│     │
+│     ├── risk_mcp/
+│     ├── extraction_mcp/
+
+This becomes your shared MCP utilities layer.
+
+⸻
+
+✔️ Step 1 — Create common Phoenix loader
+
+Create:
+
+Jarvis/MCP/common/phoenix_prompt.py
+
+phoenix_prompt.py
+
+from phoenix.client import Client
+import os
+from functools import lru_cache
+
+
+PHOENIX_API_KEY = os.getenv("PHOENIX_API_KEY")
+
+PHOENIX_ENDPOINT = os.getenv("PHOENIX_ENDPOINT")
+
+
+phoenix_client = Client(
+
+    base_url=PHOENIX_ENDPOINT,
+
+    api_key=PHOENIX_API_KEY
+
+)
+
+
+@lru_cache
+def get_prompt_template(prompt_version_id:str):
+
+    prompt_stored = phoenix_client.prompts.get(
+
+        prompt_version_id=prompt_version_id
+
+    )
+
+    prompt_messages = prompt_stored._template["messages"]
+
+    system_prompt = next(
+
+        (
+
+            item["content"][0]["text"]
+
+            for item in prompt_messages
+
+            if item.get("role") == "system"
+
+        ),
+
+        None
+
+    )
+
+    if not system_prompt:
+
+        raise ValueError(
+            "Phoenix prompt missing"
+        )
+
+    return system_prompt
 
 
 
+def build_prompt(
+
+    prompt_version_id:str,
+
+    **kwargs
+
+)->str:
+
+    template = get_prompt_template(
+
+        prompt_version_id
+
+    )
+
+    return template.format(
+
+        **kwargs
+
+    )
 
 
+⸻
+
+✔️ Step 2 — Use in any MCP
+
+Example newsummary.py:
+
+from MCP.common.phoenix_prompt import build_prompt
+
+Then:
+
+prompt = build_prompt(
+
+    "UHJvbXB0VmVyc2lvbjoxNQ==",
+
+    attachments_text=attachments_text,
+
+    email_bodies_text=email_bodies_text
+
+)
+
+
+⸻
+
+✔️ Step 3 — Use in summary.py
+
+from MCP.common.phoenix_prompt import build_prompt
+
+
+prompt = build_prompt(
+
+    "UHJvbXB0VmVyc2lvbjoxNg==",
+
+    attachments_text=attachments_text
+
+)
+
+
+⸻
+
+✔️ Why this is the correct architecture
+
+You now have:
+
+Phoenix logic → ONE place
+MCP modules → reuse
+
+Instead of:
+
+Phoenix logic → duplicated everywhere
+
+
+⸻
+
+✔️ Benefits (important)
+
+Benefit	Why it matters
+No duplication	Less bugs
+Central change	Change once
+Prompt caching	Faster
+Clean MCP design	Matches agent architecture
+Easier debugging	One location
+
+
+⸻
+
+✔️ This matches your Omnicore philosophy
+
+You are basically creating:
+
+Common Services Layer
+
+Like:
+
+Mera Brain → shared services
+Role agents → use services
+Process agents → use services
+
+Phoenix prompt loader becomes a shared MCP service.
+
+⸻
+
+✔️ One more thing professionals also do (optional but recommended)
+
+Usually they also add:
+
+MCP/common/
+    phoenix_prompt.py
+    phoenix_tracing.py
+    llm_client.py
+    blob_utils.py
+
+So MCP becomes self-contained.
+
+⸻
+
+✔️ Final verdict
+
+Yes — best place is:
+
+Jarvis/MCP/common/
+
+This is exactly how enterprise AI agent repos are structured.
+
+⸻
+
+If you want the perfect Jarvis structure
+
+I can show you the exact MCP structure used in production AI underwriting agents (it will make your project look like a senior engineer designed it).
 
 
