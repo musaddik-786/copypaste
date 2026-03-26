@@ -1,549 +1,582 @@
-in below 
-
-INFO:apscheduler.scheduler:Adding job tentatively -- it will be properly scheduled when the scheduler starts
-INFO:apscheduler.scheduler:Added job "Gmail Token Refresh (72-hour cycle)" to job store "default"
-INFO:apscheduler.scheduler:Scheduler started
-✅ Token refresh scheduler STARTED (runs every 72 hours)
-   Next refresh: 2026-03-29 12:06:45
-INFO:fastapi_mcp.server:No auth config provided, skipping auth setup
-INFO:fastapi_mcp.server:MCP HTTP server listening at /mcp
-INFO:     Started server process [45458]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     Uvicorn running on http://0.0.0.0:8658 (Press CTRL+C to quit)
-INFO:     127.0.0.1:56526 - "GET /api/v1/email_intent_agent/docs HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56526 - "GET /api/v1/email_intent_agent/openapi.json HTTP/1.1" 200 OK
-Container  layout-detection-text-of-document
-Reference number 19CDC8AB7BCC5E85
-filename 19CDC8AB7BCC5E85_attachment_Tower_Insurance_-_Home_Submission_Report
-INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://agenticai1.blob.core.windows.net/layout-detection-text-of-document/19CDC8AB7BCC5E85_attachment_Tower_Insurance_-_Home_Submission_Report.txt'
-Request method: 'HEAD'
-Request headers:
-    'x-ms-version': 'REDACTED'
-    'Accept': 'application/xml'
-    'x-ms-date': 'REDACTED'
-    'x-ms-client-request-id': '491be998-290c-11f1-be6e-7c1e52ff7339'
-    'User-Agent': 'azsdk-python-storage-blob/12.20.0 Python/3.11.2 (Linux-6.1.0-44-cloud-amd64-x86_64-with-glibc2.36)'
-    'Authorization': 'REDACTED'
-No body was attached to the request
-INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 200
-Response headers:
-    'Content-Length': '4880'
-    'Content-Type': 'application/octet-stream'
-    'Content-MD5': 'REDACTED'
-    'Last-Modified': 'Wed, 18 Mar 2026 12:42:38 GMT'
-    'Accept-Ranges': 'REDACTED'
-    'Etag': '"0x8DE84EBD69BA6CC"'
-    'Vary': 'REDACTED'
-    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
-    'x-ms-request-id': '003348b4-a01e-0011-2b19-bd59ff000000'
-    'x-ms-client-request-id': '491be998-290c-11f1-be6e-7c1e52ff7339'
-    'x-ms-version': 'REDACTED'
-    'x-ms-creation-time': 'REDACTED'
-    'x-ms-lease-status': 'REDACTED'
-    'x-ms-lease-state': 'REDACTED'
-    'x-ms-blob-type': 'REDACTED'
-    'x-ms-server-encrypted': 'REDACTED'
-    'x-ms-access-tier': 'REDACTED'
-    'x-ms-access-tier-inferred': 'REDACTED'
-    'Date': 'Thu, 26 Mar 2026 12:06:56 GMT'
-INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://agenticai1.blob.core.windows.net/layout-detection-text-of-document/19CDC8AB7BCC5E85_attachment_Tower_Insurance_-_Home_Submission_Report.txt'
-Request method: 'GET'
-Request headers:
-    'x-ms-range': 'REDACTED'
-    'x-ms-version': 'REDACTED'
-    'Accept': 'application/xml'
-    'x-ms-date': 'REDACTED'
-    'x-ms-client-request-id': '491be999-290c-11f1-be6e-7c1e52ff7339'
-    'User-Agent': 'azsdk-python-storage-blob/12.20.0 Python/3.11.2 (Linux-6.1.0-44-cloud-amd64-x86_64-with-glibc2.36)'
-    'Authorization': 'REDACTED'
-No body was attached to the request
-INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 206
-Response headers:
-    'Content-Length': '4880'
-    'Content-Type': 'application/octet-stream'
-    'Content-Range': 'REDACTED'
-    'Last-Modified': 'Wed, 18 Mar 2026 12:42:38 GMT'
-    'Accept-Ranges': 'REDACTED'
-    'Etag': '"0x8DE84EBD69BA6CC"'
-    'Vary': 'REDACTED'
-    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
-    'x-ms-request-id': '003348b9-a01e-0011-2e19-bd59ff000000'
-    'x-ms-client-request-id': '491be999-290c-11f1-be6e-7c1e52ff7339'
-    'x-ms-version': 'REDACTED'
-    'x-ms-creation-time': 'REDACTED'
-    'x-ms-blob-content-md5': 'REDACTED'
-    'x-ms-lease-status': 'REDACTED'
-    'x-ms-lease-state': 'REDACTED'
-    'x-ms-blob-type': 'REDACTED'
-    'x-ms-server-encrypted': 'REDACTED'
-    'x-ms-access-tier': 'REDACTED'
-    'x-ms-access-tier-inferred': 'REDACTED'
-    'Date': 'Thu, 26 Mar 2026 12:06:56 GMT'
-INFO:httpx:HTTP Request: POST https://agenticinsuranceopenai.openai.azure.com/openai/deployments/gpt-4.1-jarvis/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
-Container  layout-detection-text-of-document
-Reference number 19CDC8AB7BCC5E85
-filename 19CDC8AB7BCC5E85_attachment_SunflowerHotels_Submission_Document
-INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://agenticai1.blob.core.windows.net/layout-detection-text-of-document/19CDC8AB7BCC5E85_attachment_SunflowerHotels_Submission_Document.txt'
-Request method: 'HEAD'
-Request headers:
-    'x-ms-version': 'REDACTED'
-    'Accept': 'application/xml'
-    'x-ms-date': 'REDACTED'
-    'x-ms-client-request-id': '4b58578c-290c-11f1-be6e-7c1e52ff7339'
-    'User-Agent': 'azsdk-python-storage-blob/12.20.0 Python/3.11.2 (Linux-6.1.0-44-cloud-amd64-x86_64-with-glibc2.36)'
-    'Authorization': 'REDACTED'
-No body was attached to the request
-INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 200
-Response headers:
-    'Content-Length': '7985'
-    'Content-Type': 'application/octet-stream'
-    'Content-MD5': 'REDACTED'
-    'Last-Modified': 'Fri, 13 Mar 2026 12:29:58 GMT'
-    'Accept-Ranges': 'REDACTED'
-    'Etag': '"0x8DE80FC3D9DC6CB"'
-    'Vary': 'REDACTED'
-    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
-    'x-ms-request-id': '43ad3374-901e-007f-5419-bdf0d6000000'
-    'x-ms-client-request-id': '4b58578c-290c-11f1-be6e-7c1e52ff7339'
-    'x-ms-version': 'REDACTED'
-    'x-ms-creation-time': 'REDACTED'
-    'x-ms-lease-status': 'REDACTED'
-    'x-ms-lease-state': 'REDACTED'
-    'x-ms-blob-type': 'REDACTED'
-    'x-ms-copy-id': 'REDACTED'
-    'x-ms-copy-source': 'REDACTED'
-    'x-ms-copy-status': 'REDACTED'
-    'x-ms-copy-progress': 'REDACTED'
-    'x-ms-copy-completion-time': 'REDACTED'
-    'x-ms-server-encrypted': 'REDACTED'
-    'x-ms-access-tier': 'REDACTED'
-    'x-ms-access-tier-inferred': 'REDACTED'
-    'Date': 'Thu, 26 Mar 2026 12:06:59 GMT'
-INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://agenticai1.blob.core.windows.net/layout-detection-text-of-document/19CDC8AB7BCC5E85_attachment_SunflowerHotels_Submission_Document.txt'
-Request method: 'GET'
-Request headers:
-    'x-ms-range': 'REDACTED'
-    'x-ms-version': 'REDACTED'
-    'Accept': 'application/xml'
-    'x-ms-date': 'REDACTED'
-    'x-ms-client-request-id': '4b58578d-290c-11f1-be6e-7c1e52ff7339'
-    'User-Agent': 'azsdk-python-storage-blob/12.20.0 Python/3.11.2 (Linux-6.1.0-44-cloud-amd64-x86_64-with-glibc2.36)'
-    'Authorization': 'REDACTED'
-No body was attached to the request
-INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 206
-Response headers:
-    'Content-Length': '7985'
-    'Content-Type': 'application/octet-stream'
-    'Content-Range': 'REDACTED'
-    'Last-Modified': 'Fri, 13 Mar 2026 12:29:58 GMT'
-    'Accept-Ranges': 'REDACTED'
-    'Etag': '"0x8DE80FC3D9DC6CB"'
-    'Vary': 'REDACTED'
-    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
-    'x-ms-request-id': '43ad3382-901e-007f-6019-bdf0d6000000'
-    'x-ms-client-request-id': '4b58578d-290c-11f1-be6e-7c1e52ff7339'
-    'x-ms-version': 'REDACTED'
-    'x-ms-creation-time': 'REDACTED'
-    'x-ms-blob-content-md5': 'REDACTED'
-    'x-ms-lease-status': 'REDACTED'
-    'x-ms-lease-state': 'REDACTED'
-    'x-ms-blob-type': 'REDACTED'
-    'x-ms-copy-id': 'REDACTED'
-    'x-ms-copy-source': 'REDACTED'
-    'x-ms-copy-status': 'REDACTED'
-    'x-ms-copy-progress': 'REDACTED'
-    'x-ms-copy-completion-time': 'REDACTED'
-    'x-ms-server-encrypted': 'REDACTED'
-    'x-ms-access-tier': 'REDACTED'
-    'x-ms-access-tier-inferred': 'REDACTED'
-    'Date': 'Thu, 26 Mar 2026 12:06:59 GMT'
-INFO:httpx:HTTP Request: POST https://agenticinsuranceopenai.openai.azure.com/openai/deployments/gpt-4.1-jarvis/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
-Beautified Extracted Data:
-
-file_name: 19CDC8AB7BCC5E85_attachment_Tower_Insurance_-_Home_Submission_Report
-reference_number: 19CDC8AB7BCC5E85
-summary: The submission concerns a residential property at 28 Seaview Terrace, Sumner, Christchurch, owned and occupied by Alex and Jordan Taylor, with two adults and one child residing. The home, built in 1998 and renovated in 2019 and 2023, is a two-storey timber-framed structure with monolithic (EIFS) cladding and a Colorsteel roof, both recently maintained and certified. The rebuild sum insured is $895,000, based on a recent Quantity Surveyor’s estimate including demolition and fees, and covers additional structures such as a detached garage, decks, and retaining walls. The property is owner-occupied with a small administrative home office and has a strong maintenance history, recent upgrades to electrical, plumbing, and heating, and no deferred maintenance. Notable risks include the presence of monolithic cladding (with recent weathertightness reporting), but there is no known earthquake, flood, or landslip damage, and security features include a monitored alarm, deadbolts, window stays, and CCTV. Only one settled water damage claim is noted in the past five years.
-
-file_name: 19CDC8AB7BCC5E85_attachment_SunflowerHotels_Submission_Document
-reference_number: 19CDC8AB7BCC5E85
-summary: The submission is for commercial property coverage on the Sunflower Hotel Group LLC (dba Cruise Resort), an eight-story, full-service resort located in Daytona Beach, Florida, with a total insured value of $100,000,000 and a requested primary limit of $6,750,000 on a replacement cost basis. The property, built in 2008 and partially renovated in 2019, comprises 240 guest rooms, multiple restaurants, bars, banquet facilities, spa, fitness center, retail, and a private marina with eight guest berths, spanning a 4.2-acre site and 198,240 square feet of building area. Construction is reinforced concrete and structural steel with a masonry exterior, concrete slab-on-grade, and a built-up membrane roof with a partial overlay completed in 2019. Major building systems include a central chilled water HVAC plant (with 2019 upgrades), a 2,500 kVA electrical service, emergency diesel generator, and full wet-pipe sprinkler fire protection. Average annual occupancy is 68%, with higher rates during the November–April high season. Insured values are allocated across buildings, contents, FF&E, public areas, mechanical systems, pools, landscaping, and marina structures.
-
-[{'reference_number': '19CDC8AB7BCC5E85', 'file_name': '19CDC8AB7BCC5E85_attachment_Tower_Insurance_-_Home_Submission_Report', 'summary': 'The submission concerns a residential property at 28 Seaview Terrace, Sumner, Christchurch, owned and occupied by Alex and Jordan Taylor, with two adults and one child residing. The home, built in 1998 and renovated in 2019 and 2023, is a two-storey timber-framed structure with monolithic (EIFS) cladding and a Colorsteel roof, both recently maintained and certified. The rebuild sum insured is $895,000, based on a recent Quantity Surveyor’s estimate including demolition and fees, and covers additional structures such as a detached garage, decks, and retaining walls. The property is owner-occupied with a small administrative home office and has a strong maintenance history, recent upgrades to electrical, plumbing, and heating, and no deferred maintenance. Notable risks include the presence of monolithic cladding (with recent weathertightness reporting), but there is no known earthquake, flood, or landslip damage, and security features include a monitored alarm, deadbolts, window stays, and CCTV. Only one settled water damage claim is noted in the past five years.'}, {'reference_number': '19CDC8AB7BCC5E85', 'file_name': '19CDC8AB7BCC5E85_attachment_SunflowerHotels_Submission_Document', 'summary': 'The submission is for commercial property coverage on the Sunflower Hotel Group LLC (dba Cruise Resort), an eight-story, full-service resort located in Daytona Beach, Florida, with a total insured value of $100,000,000 and a requested primary limit of $6,750,000 on a replacement cost basis. The property, built in 2008 and partially renovated in 2019, comprises 240 guest rooms, multiple restaurants, bars, banquet facilities, spa, fitness center, retail, and a private marina with eight guest berths, spanning a 4.2-acre site and 198,240 square feet of building area. Construction is reinforced concrete and structural steel with a masonry exterior, concrete slab-on-grade, and a built-up membrane roof with a partial overlay completed in 2019. Major building systems include a central chilled water HVAC plant (with 2019 upgrades), a 2,500 kVA electrical service, emergency diesel generator, and full wet-pipe sprinkler fire protection. Average annual occupancy is 68%, with higher rates during the November–April high season. Insured values are allocated across buildings, contents, FF&E, public areas, mechanical systems, pools, landscaping, and marina structures.'}]
-INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://agenticai1.blob.core.windows.net/attachment-downloader/body_19CDC8AB7BCC5E85.txt'
-Request method: 'HEAD'
-Request headers:
-    'x-ms-version': 'REDACTED'
-    'Accept': 'application/xml'
-    'x-ms-date': 'REDACTED'
-    'x-ms-client-request-id': '4cf35510-290c-11f1-be6e-7c1e52ff7339'
-    'User-Agent': 'azsdk-python-storage-blob/12.20.0 Python/3.11.2 (Linux-6.1.0-44-cloud-amd64-x86_64-with-glibc2.36)'
-    'Authorization': 'REDACTED'
-No body was attached to the request
-INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 200
-Response headers:
-    'Content-Length': '1456'
-    'Content-Type': 'application/octet-stream'
-    'Content-MD5': 'REDACTED'
-    'Last-Modified': 'Wed, 11 Mar 2026 10:57:29 GMT'
-    'Accept-Ranges': 'REDACTED'
-    'Etag': '"0x8DE7F5CFD61922F"'
-    'Vary': 'REDACTED'
-    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
-    'x-ms-request-id': '3febc677-f01e-008a-5519-bdd4c7000000'
-    'x-ms-client-request-id': '4cf35510-290c-11f1-be6e-7c1e52ff7339'
-    'x-ms-version': 'REDACTED'
-    'x-ms-creation-time': 'REDACTED'
-    'x-ms-lease-status': 'REDACTED'
-    'x-ms-lease-state': 'REDACTED'
-    'x-ms-blob-type': 'REDACTED'
-    'x-ms-server-encrypted': 'REDACTED'
-    'x-ms-access-tier': 'REDACTED'
-    'x-ms-access-tier-inferred': 'REDACTED'
-    'Date': 'Thu, 26 Mar 2026 12:07:03 GMT'
-INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://agenticai1.blob.core.windows.net/attachment-downloader/body_19CDC8AB7BCC5E85.txt'
-Request method: 'GET'
-Request headers:
-    'x-ms-range': 'REDACTED'
-    'x-ms-version': 'REDACTED'
-    'Accept': 'application/xml'
-    'x-ms-date': 'REDACTED'
-    'x-ms-client-request-id': '4cf35511-290c-11f1-be6e-7c1e52ff7339'
-    'User-Agent': 'azsdk-python-storage-blob/12.20.0 Python/3.11.2 (Linux-6.1.0-44-cloud-amd64-x86_64-with-glibc2.36)'
-    'Authorization': 'REDACTED'
-No body was attached to the request
-INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 206
-Response headers:
-    'Content-Length': '1456'
-    'Content-Type': 'application/octet-stream'
-    'Content-Range': 'REDACTED'
-    'Last-Modified': 'Wed, 11 Mar 2026 10:57:29 GMT'
-    'Accept-Ranges': 'REDACTED'
-    'Etag': '"0x8DE7F5CFD61922F"'
-    'Vary': 'REDACTED'
-    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
-    'x-ms-request-id': '3febc683-f01e-008a-5f19-bdd4c7000000'
-    'x-ms-client-request-id': '4cf35511-290c-11f1-be6e-7c1e52ff7339'
-    'x-ms-version': 'REDACTED'
-    'x-ms-creation-time': 'REDACTED'
-    'x-ms-blob-content-md5': 'REDACTED'
-    'x-ms-lease-status': 'REDACTED'
-    'x-ms-lease-state': 'REDACTED'
-    'x-ms-blob-type': 'REDACTED'
-    'x-ms-server-encrypted': 'REDACTED'
-    'x-ms-access-tier': 'REDACTED'
-    'x-ms-access-tier-inferred': 'REDACTED'
-    'Date': 'Thu, 26 Mar 2026 12:07:03 GMT'
-Email body download results: {'status': 'done', 'details': {'19CDC8AB7BCC5E85': {'status': 'ok', 'path': '/home/Jarvis/Musaddique/JarvisAgent_1.0/Jarvis/MCP/attachment_summary_mcp/email_body/body_19CDC8AB7BCC5E85.txt'}}}
-Per-document summaries (with text):
-[{'blob_url': 'https://agenticai1.blob.core.windows.net/layout-detection-text-of-document/19CDC8AB7BCC5E85_attachment_Tower_Insurance_-_Home_Submission_Report.txt', 'file_name': '19CDC8AB7BCC5E85_attachment_Tower_Insurance_-_Home_Submission_Report', 'reference_number': '19CDC8AB7BCC5E85', 'summary': 'The submission concerns a residential property at 28 Seaview Terrace, Sumner, Christchurch, owned and occupied by Alex and Jordan Taylor, with two adults and one child residing. The home, built in 1998 and renovated in 2019 and 2023, is a two-storey timber-framed structure with monolithic (EIFS) cladding and a Colorsteel roof, both recently maintained and certified. The rebuild sum insured is $895,000, based on a recent Quantity Surveyor’s estimate including demolition and fees, and covers additional structures such as a detached garage, decks, and retaining walls. The property is owner-occupied with a small administrative home office and has a strong maintenance history, recent upgrades to electrical, plumbing, and heating, and no deferred maintenance. Notable risks include the presence of monolithic cladding (with recent weathertightness reporting), but there is no known earthquake, flood, or landslip damage, and security features include a monitored alarm, deadbolts, window stays, and CCTV. Only one settled water damage claim is noted in the past five years.', 'text': "Home Insurance Underwriting Submission Report\nTailored for Tower Insurance (New Zealand)\nSubmission Date: 06 Mar 2026\nThis submission provides property, risk and documentation details to support underwriting assessment for a\nresidential home in New Zealand. Information is structured to align with Tower Insurance's risk-based approach and\npolicy responsibilities.\n1. Policyholder Details\nField\nDetails\nName\nAlex and Jordan Taylor\nContact Number\n+64 21 555 0198\nEmail\nalex.taylor@example.co.nz\nCurrent Address\nUnit 12, 15 Market Road, Epsom, Auckland 1051\nInsured Property Address\n28 Seaview Terrace, Sumner, Christchurch 8081\n2. Property Overview\nField\nDetails\nYear Built\n1998 (renovations 2019, 2023)\nConstruction Type\nTimber frame with monolithic (EIFS) cladding; timber weatherboard to rear\nextension\nRoof Material\nColorsteel longrun (re-roofed 2019)\nFoundations\nConcrete slab with perimeter footings\nStoreys\n2\nFloor Area\n185 m2 (per 2019 council records)\nLand Area\n612 m2\n3. Occupancy & Use\nField\nDetails\nOccupancy Type\nOwner-occupied\nUse\nResidential; small home office (administrative; no clients on-site)\nNumber of Occupants\n2 adults, 1 child\n4. Sum Insured Information\nField\nDetails\nRebuild Sum Insured\n$895,000\nBasis\nQuantity Surveyor (QS) rebuild estimate dated 12 Feb 2026; includes demolition\nand professional fees\nOther Structures\nDetached single garage (24 m2), timber decks (30 m2), retaining walls (approx. 25\nm cumulative length)\n5. Construction & Condition Notes\nField\nDetails\nRoof Condition\nExcellent; full re-roof 2019, compliance certificates attached\nCladding Condition\nMonolithic cladding professionally recoated and detailed in 2023; routine\nmaintenance log attached\nElectrical\nPartial rewire 2019; Electrical Safety Certificate (C.o.C.) attached\nPlumbing\nPEX manifold system upgraded 2020; no known leaks\nHeating\n2x heat pumps (serviced 2025), compliant wood burner (installed 2018; producer\nstatement attached)\nDeferred Maintenance\nNone noted; gutters and downpipes serviced Nov 2025\n6. Special Features or NonStandard Elements\nField\nDetails\nNon-standard Risk\nMonolithic (EIFS) cladding to main elevations\nReports\n2023 Weathertightness Report (moisture readings within acceptable thresholds);\n2020 Engineering report for retaining walls\nAlterations\n2019 kitchen and bathroom renovations (building consent and CCC attached);\n2023 deck extension (record of work, no structural changes)\n7. Recent Renovations or Upgrades\nField\nDetails\n2019\nRe-roof (Colorsteel), partial rewire, kitchen & bathroom refurbishment; CCC issued\n20 Nov 2019\n2020\nPlumbing system upgrade (PEX)\n2023\nDeck extension; cladding recoating and flashings upgrade; maintenance\nprogramme established\n8. Hazard & Risk Information\nField\nDetails\nEarthquake\nChristchurch location; property constructed post-1990s; QS confirms standard\nfoundation; no known EQ damage\nFlood/Overland Flow\nProperty elevated above street level; council flood maps indicate low risk; LIM\nexcerpt attached\nCoastal/Storm Surge\nApprox. 600 m from coast; wind-driven rain exposure considered in cladding\nmaintenance\nLand Slip/Erosion\nNo known slip history; 2020 geotechnical note for retaining walls attached\n9. Security Features\nField\nDetails\nAlarm\nMonitored alarm; perimeter sensors\nLocks\nDeadbolts to exterior doors; keyed window stays on ground floor\nCCTV\n2 exterior cameras covering driveway and rear yard\n10. Claims History (Past 5 Years)\nDate\nType of Loss\nAmount Paid\nStatus\n14 Jun 2022\nWater damage (burst flexi hose)\n$2,480\nSettled\n--\n--\n--\n11. Supporting Documents (Attached/Available)\n· 2026 QS rebuild estimate (includes demolition, professional fees, inflationary provisions)\n· 2023 Weathertightness report and moisture readings\n· 2020 Engineer's letter and calculations for retaining walls\n· Electrical Compliance Certificate (2019) and producer statement for wood burner (2018)\n· LIM report excerpts (flood and coastal hazard maps)\n· Photo pack: elevations, roof, decks, joinery, site drainage\n· Maintenance log (2019-2026)\n12. Additional Notes for Underwriter\nThe property's monolithic cladding has been proactively maintained with professional recoating and updated\nflashings. Moisture readings in 2023 fell within acceptable thresholds. The owners are committed to ongoing\nmaintenance and have scheduled annual inspections. No known unconsented works. All renovations listed have\nsupporting documentation.\n13. Broker / Advisor (If Applicable)\nField\nDetails\nBroker Name\nCasey Morgan\nCompany\nHarbour Risk Advisory Ltd\nContact\n+64 9 555 0100 | casey.morgan@harbourrisk.co.nz\nSubmission Notes\nSeeking Tower House Plus cover with standard excess; open to reasonable special\nterms for cladding if required.\nThis document is prepared for underwriting assessment purposes only and does not confer cover. All cover is subject to Tower Insurance\nunderwriting criteria, policy terms, limits and exclusions.", 'error': None}, {'blob_url': 'https://agenticai1.blob.core.windows.net/layout-detection-text-of-document/19CDC8AB7BCC5E85_attachment_SunflowerHotels_Submission_Document.txt', 'file_name': '19CDC8AB7BCC5E85_attachment_SunflowerHotels_Submission_Document', 'reference_number': '19CDC8AB7BCC5E85', 'summary': 'The submission is for commercial property coverage on the Sunflower Hotel Group LLC (dba Cruise Resort), an eight-story, full-service resort located in Daytona Beach, Florida, with a total insured value of $100,000,000 and a requested primary limit of $6,750,000 on a replacement cost basis. The property, built in 2008 and partially renovated in 2019, comprises 240 guest rooms, multiple restaurants, bars, banquet facilities, spa, fitness center, retail, and a private marina with eight guest berths, spanning a 4.2-acre site and 198,240 square feet of building area. Construction is reinforced concrete and structural steel with a masonry exterior, concrete slab-on-grade, and a built-up membrane roof with a partial overlay completed in 2019. Major building systems include a central chilled water HVAC plant (with 2019 upgrades), a 2,500 kVA electrical service, emergency diesel generator, and full wet-pipe sprinkler fire protection. Average annual occupancy is 68%, with higher rates during the November–April high season. Insured values are allocated across buildings, contents, FF&E, public areas, mechanical systems, pools, landscaping, and marina structures.', 'text': 'Commercial Property - Underwriting\nSubmission Cruise Resort\nBroker Name: Olivia Park\nOrganization Name: Armstrong and Company\nProducer Code: 100-002541\nUnderwriting Company: Acme Low Hazard Insurance\nName And Mailing Address: Sunflower Hotel Group LLC, 100 Harbor View Drive,\nSeabreeze, Daytona Beach, Volusia, FL 32118, USA\nOrganization Type: LLC\n1. Program Structure & Requested\nTerms\nLine of Business: Commercial Property\nTotal Insured Value (TIV):$100,000,000\nEffective Date: 01/01/2026\nExpiration Date: 01/01/2027\nTerm Type: Annual\nLimit of Liability: $6,750,000\nLayer: Primary\nValuation: Replacement Cost\nCoverage Currency: USD\nSettlement Currency: USD\n2. Executive Summary\nProperty Description: The property is an eight-story, full-service resort constructed in\n2008 with a reinforced concrete and structural steel frame and a masonry exterior finish. It\nfeatures concrete slab-on-grade and reinforced concrete floor decks, along with a built-up\nmembrane roofing system that received a partial overlay in 2019. The site spans 4.2 acres\nand includes landscaped areas, two outdoor pools, spa and fitness facilities, paved\ndriveways, walkways, and a private dock with eight guest berths. Mechanical rooms,\nstorage, and service corridors are located in the lower levels, with no guest rooms below\ngrade.\n3. Property Identification\nNamed Insured (Company Name):\nSunflower Hotel Group LLC (dba Cruise\nResort)\nAddress Line 1: 100 Harbor View Drive,\nSeabreeze\nCity: Daytona Beach\nState: Florida\nZip Code: 32118\nCountry: United States\nAddress Type: Business\nProperty Size: 4.2 acres (site area with\nlandscaped grounds, beach access, and\nprivate dock)\nBuilding Area (sq ft): 198240\nYear Constructed: 2008\nClass Code: 0585\nMajor Renovation: 2019 (lobby, HVAC\nreplacement, pool decking)\nNumber of Floors: 8\nNumber of Guest Rooms: 240\nGuest Room Mix: standard suites, one-\nand two-bedroom suites, select executive\nsuites\n4. Property Description & Construction\n· Primary construction: reinforced concrete and structural steel frame with masonry\nexterior finish\n· Floor construction: concrete slab-on-grade and reinforced concrete decks\n· Roof: built-up membrane roof system (2019 partial overlay) with routine maintenance\nprogram\n· Basements/lower levels: mechanical rooms, dry storage, service corridors; no guest\nlodging below grade\n· Site improvements: pool decks, two outdoor pools, spa, fitness center, paved driveways\n& drop-off, landscaped areas, walkways, private dock (8 guest berths)\n· Accessibility: main vehicular access from Harbor View Drive; service drive from Marina\nWay\n5. Occupancy & Operations\n· Primary use: full-service resort: accommodation, F&B, banquet/meeting, spa, fitness,\nretail, limited marina services\n· Revenue drivers: rooms; three restaurants; two bars; banquets/events; spa; marina\nguest fees; retail\n· Average annual occupancy: 68% (rolling 12-month average)\n· Seasonal variation: higher occupancy in high season (Nov-Apr) with peak banquets\nNov-Mar\n6. Insured Values (Summary)\nContents / FF&E: $15,000,000\nBuildings & structural improvements:\n$85,000,000\nTotal Insured Value (TIV):\n$100,000,000\nHigh-level itemization (for underwriting reference):\n· Guest suites & structural improvements: $62,000,000\n· Public areas, lobby, F&B & back-of-house structures: $12,500,000\n· Building services & mechanical systems: $3,500,000\n· Pool, decks, site improvements & landscaping: $2,000,000\n· Dock & marina structures: $1,000,000\n· FF&E (furniture, fixtures & equipment): $12,000,000\n· Misc contents, small tools, operating supplies: $6,000,000\n7. Critical Building Systems\n· HVAC: central chilled water plant; packaged rooftop units for public spaces; major\ncomponents replaced 2019; PM via CMMS\n· Electrical: main service 2,500 kVA; emergency circuits for life-safety; ATS for generator\ntie-in\n· Emergency power: diesel generator supports life-safety, fire pumps, selected essential\nloads and partial POS/IT; weekly test schedule\n· Fire protection: full wet-pipe sprinklers; addressable fire alarm with central station\nmonitoring; on-site fire pump; two hydrants within 100 ft; quarterly & annual test logs\n· Kitchen fire protection: commercial kitchen hood suppression with regular servicing\n· Plumbing: domestic hot water plant and booster pumps; backflow prevention devices\ninstalled\n· Elevators: two passenger elevators; one service elevator; annual inspections and\nmaintenance contracts\n· Life-safety: emergency lighting, illuminated exit signage, ADA egress, posted evacuation\nplans\n8. Security & Monitoring\n· Security staff: 24/7 on-site security team\n· Electronic access: key-card access for guest room floors and restricted staff areas\n· CCTV: integrated digital video surveillance across public areas, front-drive, perimeter\nand service yards; retention policy documented\n· Guest safety measures: pool lifeguard program (seasonal); signage & compliance with\naquatic facility codes\n9. Utilities & Third-party\nDependencies (CBI relevance)\nPower provider: Seabreeze Utilities\nAuthority\nWater & sewer: Seabreeze Water &\nWaste (municipal)\nPrimary ISP / CRS & POS connectivity:\nMaritime Communications Inc. (primary\nISP for booking/PMS/POS)\nRedundant ISP: Redundant ISP vendor\ncontract under review\nLaundry/Linens: Seabreeze Linen Co.\n(off-site)\nF&B suppliers: regional distributors;\nmultiple vendor relationships for key\nitems\nExcursion vendors / marina operators:\nlicensed third-party operators; vendor\nagreements in place\n10. Marina Specifics\n· Dock: fixed dock with eight guest berths; owned & maintained by resort; no on-site\nfueling (adjacent marina for fuel)\n· Marine operations: third-party licensed operators run excursions; hull/boat PD not\nunder property program (vendor responsibility in contracts)\n11. Maintenance, Inspections & Risk Controls\n· Preventive maintenance: CMMS logs for HVAC, kitchen hood, sprinkler, generator\ntesting\n· Life-safety testing: quarterly sprinklers; annual fire pump; monthly fire alarm tests;\nannual full alarm inspection; vendor certificates on file\n· Vendor controls: contractor insurance requirement min $2M GL; certificate\nmanagement process\n· Business continuity: documented BCP & EAP; off-site backups for reservations & guest\nrecords; periodic tabletop exercises with local emergency services\n· Staff training: annual fire/evacuation drills; F&B managers with food safety cert; first-\naid/CPR for supervisors\n12. Recent Loss History (Time-Element & Property)\n· 2024: kitchen exhaust grease fire - smoke damage; limited kitchen closure; BI & partial\nEE paid for 7 days; time-element approx. $250,000.\n· 2022: failed domestic line water intrusion (lower-level storage) - contents damage; BI\n3 days approx. $120,000.\n. 2025 (YTD): pool area slip & fall remediation with temporary closure; minor BI approx.\n$15,000.\nLoss-run reports and claim detail files available on request (attached in submission packet).\n13. Exposures & Underwriting Considerations\n· Time-element sensitivity: reliance on room revenue and banquet/event income; peak-\nseason outages materially impact revenue.\n· Third-party dependency: booking engine/CRS and primary ISP are key contingent BI\nexposures.\n· Marina & vendor risk: dock and excursion vendors introduce potential liability and\nservice interruption considerations.\n· Flood & windstorm: coastal location elevates storm surge and named storm exposure;\nflood zone/elevation certificate review recommended.\n· Utility interruption: municipal power/telecom failures may trigger service interruption\nclaims; redundancy & SLAs relevant.\n17. Broker & Property Contacts\nBroker: Olivia Park - Senior Hospitality\nBroker, Meridian Shoreline Insurance\nPartners\nBroker Email:\nolivia.park@meridianship.com\n18. Underwriter Notes\nNotes:\nFollow-ups:\nPrepared for submission - Cruise Resort\nBroker Phone: +1 (555) 214-7802\nProperty Contact: Marcus Reyes -\nGeneral Manager, Cruise Resort\nProperty Email:\nm.reyes@cruiseresort.com\nProperty Phone: +1 (555) 321-4400', 'error': None}]
-INFO:httpx:HTTP Request: GET http://phoenix-app-1772100950.eastus.azurecontainer.io:6006/v1/prompt_versions/UHJvbXB0VmVyc2lvbjoxNQ%3D%3D "HTTP/1.1 200 OK"
 
 
-"""
-You are an experienced Insurance Underwriter.
-You are given multiple attachment documents that belong to a insurance submission. For each document you only see:
-- a short summary of the contents.
-YOUR TASK:
-Produce ONE combined "Submission Summary" for the account that synthesizes
-all the information across all documents.
-VERY IMPORTANT RULES:
-1. Treat ALL file names and their summaries as important sources of truth,
-supplemented by the email body if provided.
-- IMPORTANT: Do NOT invent any facts that are not clearly supported
-by the attachment summaries or the email body.
-2. DOCUMENT COVERAGE RULE (VERY IMPORTANT):
-- Every document provided MUST contribute information to the final summary.
-- Do NOT ignore any document even if it belongs to a different insurance type.
-- Do NOT prioritize one document over another.
-- If multiple documents contain different risks, include information from all.
-3. EMAIL BODY PRIORITY & CONFLICT RESOLUTION:
-- If the email body contains underwriting details (e.g. TIV, limits,
-effective dates, requested coverage) AND those details conflict with
-information in the attachment summaries, ALWAYS PRIORITIZE THE EMAIL BODY.
-- The email body is considered the most recent broker communication.
-4. RENEWAL VS NEW BUSINESS LOGIC:
-- If the email body explicitly mentions that the submission is a RENEWAL,
-classify the submission as "Renewal".
-- If the email body does NOT explicitly state renewal, classify the
-submission as "New Business".
-5. HANDLING MISSING OR UNCERTAIN INFORMATION:
-- If you are unsure about a value, date, limit, or detail, or if it is not
-clearly stated anywhere, explicitly write "Not Present".
-- Do NOT guess, infer, or fill placeholders with assumed values.
-6. Do NOT mention which document or file any detail came from.
-- The final summary must read like a single coherent submission view,
-not a list of documents.
-7. Focus on ALL important information present in the documents, including:
-- Named insured / client
-- Locations and occupancy
-- Operations / business activities
-- Coverage dates and program structure
-- Property values / limits / coinsurance
-- Loss history and major incidents
-- Any material hazards or underwriting notes
-- Any other relevant information present in the documents
-IMPORTANT ABOUT EMAIL BODIES:
-- If raw email body text is present below, use it only to supplement or clarify
-facts from the attachments.
-- Use ONLY the main content of the email (core submission facts).
-- Ignore salutations ("Dear ..."), sign-offs ("Regards", "Kind regards"),
-and signature/contact information.
-STRUCTURE OF YOUR OUTPUT (USE THIS EXACT TEMPLATE):
-SUBMISSION SUMMARY  
-Client: [Client Legal Name or Multiple Insureds if applicable]  
-Date: [Submission or Document Date]
-1. SUBMISSION COVER LETTER / NARRATIVE  
-Exposure Description:  
-   - [Describe what the business or property does]  
-   - [Main operations / activities]  
-   - [Property details if present]  
-Placement Strategy:  
-   - [Placement goals or program approach if evident]  
-Renewal Highlights:  
-   - [Notable updates if present, else "Not Present"]  
-Changes YOY:  
-   - [Changes if present, else "Not Present"]  
-Additional Overview Details:  
-   - Effective Date: [date or "Not Present"]  
-   - Submission Type: [Renewal / New Business]  
-   - Current Situation: [Reason for submission or "Not Present"]  
-2. LOSS HISTORY PACKAGE  
-5–10 Year Loss Runs:  
-   - [Summary if present, else "Not Present"]  
-Large Loss Details:  
-   - [Details or "Not Present"]  
-Trends Analysis:  
-   - [Analysis or "Not Present"]  
-Summary of Loss History:  
-   - Status: [Clean / Losses Reported / Not Present]  
-   - Summary: [one sentence or "Not Present"]  
-   - Major Incidents: [largest incident or "Not Present"]  
-3. EXPOSURE DATA  
-COPE Information (Construction, Occupancy, Protection, Exposure):  
-   - [Details or "Not Present"]  
-Statement of Values (SOV):  
-   - Total Insurable Value (TIV): $[value or "Not Present"]  
-   - Building Limit: $[value or "Not Present"]  
-   - Contents/BPP Limit: $[value or "Not Present"]  
-   - Business Income: $[value or "Not Present"]  
-Financials:  
-   - [Details or "Not Present"]  
-CAT Worksheets / Specialty Schedules:  
-   - [Details or "Not Present"]  
-Additional Exposure Details:  
-   - Total Locations: [value or "Not Present"]  
-   - Main Operations: [value or "Not Present"]  
-   - Property Details: [value or "Not Present"]  
-   - Deductible Requested: $[value or "Not Present"]  
-Attached files included:
-FILENAME: 19CDC8AB7BCC5E85_attachment_Tower_Insurance_-_Home_Submission_Report
-SUMMARY: The submission concerns a residential property at 28 Seaview Terrace, Sumner, Christchurch, owned and occupied by Alex and Jordan Taylor, with two adults and one child residing. The home, built in 1998 and renovated in 2019 and 2023, is a two-storey timber-framed structure with monolithic (EIFS) cladding and a Colorsteel roof, both recently maintained and certified. The rebuild sum insured is $895,000, based on a recent Quantity Surveyor’s estimate including demolition and fees, and covers additional structures such as a detached garage, decks, and retaining walls. The property is owner-occupied with a small administrative home office and has a strong maintenance history, recent upgrades to electrical, plumbing, and heating, and no deferred maintenance. Notable risks include the presence of monolithic cladding (with recent weathertightness reporting), but there is no known earthquake, flood, or landslip damage, and security features include a monitored alarm, deadbolts, window stays, and CCTV. Only one settled water damage claim is noted in the past five years.
+separetsummary.py
+from dotenv import load_dotenv
+import os
+from typing import List, Dict, Any
+from openai import AzureOpenAI
 
-FILENAME: 19CDC8AB7BCC5E85_attachment_SunflowerHotels_Submission_Document
-SUMMARY: The submission is for commercial property coverage on the Sunflower Hotel Group LLC (dba Cruise Resort), an eight-story, full-service resort located in Daytona Beach, Florida, with a total insured value of $100,000,000 and a requested primary limit of $6,750,000 on a replacement cost basis. The property, built in 2008 and partially renovated in 2019, comprises 240 guest rooms, multiple restaurants, bars, banquet facilities, spa, fitness center, retail, and a private marina with eight guest berths, spanning a 4.2-acre site and 198,240 square feet of building area. Construction is reinforced concrete and structural steel with a masonry exterior, concrete slab-on-grade, and a built-up membrane roof with a partial overlay completed in 2019. Major building systems include a central chilled water HVAC plant (with 2019 upgrades), a 2,500 kVA electrical service, emergency diesel generator, and full wet-pipe sprinkler fire protection. Average annual occupancy is 68%, with higher rates during the November–April high season. Insured values are allocated across buildings, contents, FF&E, public areas, mechanical systems, pools, landscaping, and marina structures.
-# RAW EMAIL BODIES (if present; use them only to supplement / clarify)
-REFERENCE: 19CDC8AB7BCC5E85
-RAW_EMAIL_BODY:
-Dear Underwriting Team,
+
+#Phoenix prmpt
+from Jarvis.MCP.common.phoenix_prompt import build_prompt
 
 
 
-Please find the attached Property Detail Report in support of this Business
-Interruption and Contingent Business Interruption submission for Sunflower
-Hotel Group LLC (dba Cruise Resort).
+
+
+load_dotenv()
+
+AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
+AZURE_OPENAI_API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION")
+AZURE_OPENAI_API_KEY = os.getenv("AZURE_OPENAI_API_KEY")
+AZURE_OPENAI_CHAT_DEPLOYMENT = os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT")
+
+if not (
+    AZURE_OPENAI_ENDPOINT
+    and AZURE_OPENAI_API_VERSION
+    and AZURE_OPENAI_API_KEY
+    and AZURE_OPENAI_CHAT_DEPLOYMENT
+):
+    raise RuntimeError("Azure OpenAI env vars missing.")
+
+client = AzureOpenAI(
+    api_key=AZURE_OPENAI_API_KEY,
+    api_version=AZURE_OPENAI_API_VERSION,
+    azure_endpoint=AZURE_OPENAI_ENDPOINT,
+)
+
+
+def _call_chat_llm(prompt: str, max_tokens: int = 700, temperature: float = 0.2):
+
+    response = client.chat.completions.create(
+        model=AZURE_OPENAI_CHAT_DEPLOYMENT,
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=max_tokens,
+        temperature=temperature,
+    )
+
+    return response.choices[0].message.content.strip()
+
+
+def generate_professional_summary(text: str):
+
+    text = text[:5000]
+
+#     prompt = f"""
+# You are a Senior Commercial Insurance Underwriter.
+
+# You are given raw document text from an insurance submission.
+
+# Your task is to generate a PROFESSIONAL underwriting summary.
+
+# STRICT RULES:
+
+# • Use ONLY information present in the document
+# • Do NOT hallucinate
+# • Do NOT guess values
+# • If information missing write "Not Present"
+# • Keep professional underwriting tone
+# • Use headings
+# • Use "-" for bullets (not special characters)
+# • Keep structure clean
+# • Focus only on underwriting relevant information
+# • Do NOT mention document type
+# • Do NOT mention source text
+# • Do NOT explain what you are doing
+
+# OUTPUT FORMAT:
+
+# DOCUMENT SUMMARY
+# INSURED DETAILS
+# - Named Insured:
+# - Address:
+# - Business Type:
+# - Operations:
+# PROPERTY DETAILS
+# - Number of Locations:
+# - Construction:
+# - Year Built:
+# - Square Footage:
+# - Occupancy:
+# - Protection Systems:
+# COVERAGE DETAILS
+# - Line of Business:
+# - Effective Date:
+# - Expiry Date:
+# - Limits:
+# - Valuation:
+# FINANCIAL DETAILS
+# - Total Insured Value:
+# - Revenue:
+# - Payroll:
+# - Business Income:
+# LOSS DETAILS
+# - Loss History:
+# - Major Losses:
+# - Trends:
+# RISK CONSIDERATIONS
+# - Key Exposures:
+# - CAT Exposure:
+# - Dependencies:
+# UNDERWRITER NOTES
+# - Key observations
+# - Risk quality indicators
+# - Important underwriting considerations
+
+# DOCUMENT TEXT:
+# \"\"\"
+# {text}
+# \"\"\"
+# """
 
 
 
-Key details
 
-- Named insured: Sunflower Hotel Group LLC (dba Cruise Resort)
+    prompt = build_prompt(
 
-- Location: Cruise Resort, 100 Harbor View Drive, Seabreeze, FL 33101
+        "UHJvbXB0VmVyc2lvbjoxNw==",
 
-- Line requested: Business Interruption & Contingent Business Interruption
-(including Extra Expense / Civil Authority where available)
+        text=text,
 
-- Requested effective date: 2026-01-01
+    )
+    print(prompt,"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁")
 
-- Limit requested: $40,000,000 with 24 months indemnity (open to insurer
-presentation)
-
-- Annual gross revenue: $40,000,000
-
-- Annual payroll: $6,500,000
+    return _call_chat_llm(prompt)
 
 
+def individual_summary(attachments: List[Dict[str, Any]]):
 
-Requested feedback
+    for attachment in attachments:
 
-- Please confirm appetite and capacity for BI with Contingent BI for this
-account.
+        file_name = attachment.get("file_name","")
+        text = attachment.get("text","")
 
-- Advise preferred indemnity basis (Gross Revenue vs. Gross Profit),
-typical waiting period options, and any immediate underwriting
-requirements.
+        print(f"Processing summary for {file_name}")
 
-- Confirm preferred secure channel for any additional documentation
-(monthly revenue schedules, P&L, payroll breakdown, loss runs, BCP/IT DR)
-and I will forward the files promptly.
+        processed_summary = generate_professional_summary(text)
 
+        attachment["processed_summary"] = processed_summary
 
+        print(f"Processed Summary completed for {file_name}")
 
-Attachments
-
-- Property Detail Report
+    return attachments
 
 
-
-Broker contact
-
-Olivia Park
-
-Senior Hospitality Broker, Meridian Shoreline Insurance Partners
-
-olivia.park@meridianship.com
-
-+1 (555) 214-7802
+summaryhandler.py
 
 
+import os
+import json
+from typing import Dict, Any, List
+import pandas as pd
 
-Thank you, I look forward to your confirmation and any initial guidance.
-"""
 
- 
-[newsummary] prompt length=8433; email bodies included=True
-INFO:httpx:HTTP Request: POST https://agenticinsuranceopenai.openai.azure.com/openai/deployments/gpt-4.1-jarvis/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
-Combined Submission Summary:
-SUBMISSION SUMMARY  
-Client: Alex and Jordan Taylor; Sunflower Hotel Group LLC (dba Cruise Resort)  
-Date: Not Present
+from urllib.parse import urlparse
+import os
 
-1. SUBMISSION COVER LETTER / NARRATIVE  
-Exposure Description:  
-   - The submission includes two distinct risks: a residential property and a commercial hospitality operation.  
-   - The residential property is a two-storey, owner-occupied home at 28 Seaview Terrace, Sumner, Christchurch, housing two adults and one child, with a small administrative home office. The home was built in 1998, renovated in 2019 and 2023, and features timber framing, monolithic (EIFS) cladding, and a Colorsteel roof.  
-   - The commercial property is the Sunflower Hotel Group LLC (dba Cruise Resort), an eight-story, full-service resort located at 100 Harbor View Drive, Seabreeze, FL 33101. The resort comprises 240 guest rooms, multiple restaurants, bars, banquet facilities, spa, fitness center, retail, and a private marina. Construction is reinforced concrete and structural steel, with a masonry exterior and a built-up membrane roof. The property was built in 2008 and partially renovated in 2019.  
-   - Main operations include residential occupancy with minor home office use, and hospitality operations with average annual occupancy of 68%, higher during the November–April high season.  
-   - Property details for the home include a detached garage, decks, and retaining walls; for the hotel, the site spans 4.2 acres and 198,240 square feet of building area, with major building systems and full fire protection.  
-Placement Strategy:  
-   - For the hotel, the submission requests Business Interruption and Contingent Business Interruption coverage (including Extra Expense and Civil Authority where available), with a $40,000,000 limit and 24 months indemnity, and is open to insurer presentation for terms.  
-   - Placement goals or program approach for the residential property are not present.  
-Renewal Highlights:  
-   - Not Present  
-Changes YOY:  
-   - Not Present  
-Additional Overview Details:  
-   - Effective Date: 2026-01-01 (for Sunflower Hotel Group LLC); Not Present (for residential property)  
-   - Submission Type: New Business  
-   - Current Situation: Not Present  
 
-2. LOSS HISTORY PACKAGE  
-5–10 Year Loss Runs:  
-   - For the residential property, one settled water damage claim in the past five years.  
-   - For the hotel, not present.  
-Large Loss Details:  
-   - Not Present  
-Trends Analysis:  
-   - Not Present  
-Summary of Loss History:  
-   - Status: Losses Reported  
-   - Summary: The residential property has one settled water damage claim in the past five years; no loss history provided for the hotel.  
-   - Major Incidents: Not Present  
+from summary_service import summary_require_env
+# from summary_storage_utils import download_blob_to_input_folder
+from summary_loader import load_summary_document
+from summary_classifier import summarize_first_page
+from Data_Filler import extract_filenames_and_summaries
+from Data_Filler import connect_to_blob, beautify_extracted_data
+from newsummary import summarize_attachments
+from separate_summary import individual_summary
+from Data_Filler import beautify_api_response
+from summary_storage_utils import download_blob_to_input_folder_by_reference, read_text_file_from_container,extract_filename_referencenumber_container_name
+# from newsummary import extract_refs_from_attachments, load_raw_email_bodies_for_refs, summarize_attachments
 
-3. EXPOSURE DATA  
-COPE Information (Construction, Occupancy, Protection, Exposure):  
-   - The residential property is a two-storey, timber-framed home with monolithic (EIFS) cladding, Colorsteel roof, and recent upgrades to electrical, plumbing, and heating. Security features include a monitored alarm, deadbolts, window stays, and CCTV.  
-   - The hotel is constructed of reinforced concrete and structural steel with a masonry exterior, built-up membrane roof, central chilled water HVAC, 2,500 kVA electrical service, emergency diesel generator, and full wet-pipe sprinkler fire protection.  
-Statement of Values (SOV):  
-   - Total Insurable Value (TIV): $895,000 (residential); $100,000,000 (hotel)  
-   - Building Limit: $895,000 (residential); $6,750,000 (hotel, primary limit requested)  
-   - Contents/BPP Limit: Not Present (residential); included in TIV allocation (hotel), specific value not present  
-   - Business Income: Not Present (residential); $40,000,000 limit requested with 24 months indemnity (hotel)  
-Financials:  
-   - Not Present (residential)  
-   - Annual gross revenue: $40,000,000 (hotel)  
-   - Annual payroll: $6,500,000 (hotel)  
-CAT Worksheets / Specialty Schedules:  
-   - Not Present  
-Additional Exposure Details:  
-   - Total Locations: 2 (one residential, one hotel)  
-   - Main Operations: Residential occupancy with home office; full-service hospitality resort  
-   - Property Details: Residential property includes detached garage, decks, retaining walls; hotel includes guest rooms, restaurants, bars, banquet/meeting facilities, spa, fitness center, retail, pools, landscaping, and marina structures  
-   - Deductible Requested: Not Present
-Processing summary for 19CDC8AB7BCC5E85_attachment_Tower_Insurance_-_Home_Submission_Report
-INFO:httpx:HTTP Request: POST https://agenticinsuranceopenai.openai.azure.com/openai/deployments/gpt-4.1-jarvis/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
-Processed Summary completed for 19CDC8AB7BCC5E85_attachment_Tower_Insurance_-_Home_Submission_Report
-Processing summary for 19CDC8AB7BCC5E85_attachment_SunflowerHotels_Submission_Document
-INFO:httpx:HTTP Request: POST https://agenticinsuranceopenai.openai.azure.com/openai/deployments/gpt-4.1-jarvis/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
-Processed Summary completed for 19CDC8AB7BCC5E85_attachment_SunflowerHotels_Submission_Document
-[{'blob_url': 'https://agenticai1.blob.core.windows.net/layout-detection-text-of-document/19CDC8AB7BCC5E85_attachment_Tower_Insurance_-_Home_Submission_Report.txt', 'file_name': '19CDC8AB7BCC5E85_attachment_Tower_Insurance_-_Home_Submission_Report', 'reference_number': '19CDC8AB7BCC5E85', 'summary': 'The submission concerns a residential property at 28 Seaview Terrace, Sumner, Christchurch, owned and occupied by Alex and Jordan Taylor, with two adults and one child residing. The home, built in 1998 and renovated in 2019 and 2023, is a two-storey timber-framed structure with monolithic (EIFS) cladding and a Colorsteel roof, both recently maintained and certified. The rebuild sum insured is $895,000, based on a recent Quantity Surveyor’s estimate including demolition and fees, and covers additional structures such as a detached garage, decks, and retaining walls. The property is owner-occupied with a small administrative home office and has a strong maintenance history, recent upgrades to electrical, plumbing, and heating, and no deferred maintenance. Notable risks include the presence of monolithic cladding (with recent weathertightness reporting), but there is no known earthquake, flood, or landslip damage, and security features include a monitored alarm, deadbolts, window stays, and CCTV. Only one settled water damage claim is noted in the past five years.', 'text': "Home Insurance Underwriting Submission Report\nTailored for Tower Insurance (New Zealand)\nSubmission Date: 06 Mar 2026\nThis submission provides property, risk and documentation details to support underwriting assessment for a\nresidential home in New Zealand. Information is structured to align with Tower Insurance's risk-based approach and\npolicy responsibilities.\n1. Policyholder Details\nField\nDetails\nName\nAlex and Jordan Taylor\nContact Number\n+64 21 555 0198\nEmail\nalex.taylor@example.co.nz\nCurrent Address\nUnit 12, 15 Market Road, Epsom, Auckland 1051\nInsured Property Address\n28 Seaview Terrace, Sumner, Christchurch 8081\n2. Property Overview\nField\nDetails\nYear Built\n1998 (renovations 2019, 2023)\nConstruction Type\nTimber frame with monolithic (EIFS) cladding; timber weatherboard to rear\nextension\nRoof Material\nColorsteel longrun (re-roofed 2019)\nFoundations\nConcrete slab with perimeter footings\nStoreys\n2\nFloor Area\n185 m2 (per 2019 council records)\nLand Area\n612 m2\n3. Occupancy & Use\nField\nDetails\nOccupancy Type\nOwner-occupied\nUse\nResidential; small home office (administrative; no clients on-site)\nNumber of Occupants\n2 adults, 1 child\n4. Sum Insured Information\nField\nDetails\nRebuild Sum Insured\n$895,000\nBasis\nQuantity Surveyor (QS) rebuild estimate dated 12 Feb 2026; includes demolition\nand professional fees\nOther Structures\nDetached single garage (24 m2), timber decks (30 m2), retaining walls (approx. 25\nm cumulative length)\n5. Construction & Condition Notes\nField\nDetails\nRoof Condition\nExcellent; full re-roof 2019, compliance certificates attached\nCladding Condition\nMonolithic cladding professionally recoated and detailed in 2023; routine\nmaintenance log attached\nElectrical\nPartial rewire 2019; Electrical Safety Certificate (C.o.C.) attached\nPlumbing\nPEX manifold system upgraded 2020; no known leaks\nHeating\n2x heat pumps (serviced 2025), compliant wood burner (installed 2018; producer\nstatement attached)\nDeferred Maintenance\nNone noted; gutters and downpipes serviced Nov 2025\n6. Special Features or NonStandard Elements\nField\nDetails\nNon-standard Risk\nMonolithic (EIFS) cladding to main elevations\nReports\n2023 Weathertightness Report (moisture readings within acceptable thresholds);\n2020 Engineering report for retaining walls\nAlterations\n2019 kitchen and bathroom renovations (building consent and CCC attached);\n2023 deck extension (record of work, no structural changes)\n7. Recent Renovations or Upgrades\nField\nDetails\n2019\nRe-roof (Colorsteel), partial rewire, kitchen & bathroom refurbishment; CCC issued\n20 Nov 2019\n2020\nPlumbing system upgrade (PEX)\n2023\nDeck extension; cladding recoating and flashings upgrade; maintenance\nprogramme established\n8. Hazard & Risk Information\nField\nDetails\nEarthquake\nChristchurch location; property constructed post-1990s; QS confirms standard\nfoundation; no known EQ damage\nFlood/Overland Flow\nProperty elevated above street level; council flood maps indicate low risk; LIM\nexcerpt attached\nCoastal/Storm Surge\nApprox. 600 m from coast; wind-driven rain exposure considered in cladding\nmaintenance\nLand Slip/Erosion\nNo known slip history; 2020 geotechnical note for retaining walls attached\n9. Security Features\nField\nDetails\nAlarm\nMonitored alarm; perimeter sensors\nLocks\nDeadbolts to exterior doors; keyed window stays on ground floor\nCCTV\n2 exterior cameras covering driveway and rear yard\n10. Claims History (Past 5 Years)\nDate\nType of Loss\nAmount Paid\nStatus\n14 Jun 2022\nWater damage (burst flexi hose)\n$2,480\nSettled\n--\n--\n--\n11. Supporting Documents (Attached/Available)\n· 2026 QS rebuild estimate (includes demolition, professional fees, inflationary provisions)\n· 2023 Weathertightness report and moisture readings\n· 2020 Engineer's letter and calculations for retaining walls\n· Electrical Compliance Certificate (2019) and producer statement for wood burner (2018)\n· LIM report excerpts (flood and coastal hazard maps)\n· Photo pack: elevations, roof, decks, joinery, site drainage\n· Maintenance log (2019-2026)\n12. Additional Notes for Underwriter\nThe property's monolithic cladding has been proactively maintained with professional recoating and updated\nflashings. Moisture readings in 2023 fell within acceptable thresholds. The owners are committed to ongoing\nmaintenance and have scheduled annual inspections. No known unconsented works. All renovations listed have\nsupporting documentation.\n13. Broker / Advisor (If Applicable)\nField\nDetails\nBroker Name\nCasey Morgan\nCompany\nHarbour Risk Advisory Ltd\nContact\n+64 9 555 0100 | casey.morgan@harbourrisk.co.nz\nSubmission Notes\nSeeking Tower House Plus cover with standard excess; open to reasonable special\nterms for cladding if required.\nThis document is prepared for underwriting assessment purposes only and does not confer cover. All cover is subject to Tower Insurance\nunderwriting criteria, policy terms, limits and exclusions.", 'error': None, 'processed_summary': 'DOCUMENT SUMMARY\n\nINSURED DETAILS\n- Named Insured: Alex and Jordan Taylor\n- Address: Unit 12, 15 Market Road, Epsom, Auckland 1051\n- Business Type: Not Present\n- Operations: Residential; small home office (administrative; no clients on-site)\n\nPROPERTY DETAILS\n- Number of Locations: 1\n- Construction: Timber frame with monolithic (EIFS) cladding; timber weatherboard to rear extension; Colorsteel longrun roof (re-roofed 2019); concrete slab with perimeter footings\n- Year Built: 1998 (renovations 2019, 2023)\n- Square Footage: 185 m2 (floor area); land area 612 m2\n- Occupancy: Owner-occupied; 2 adults, 1 child\n- Protection Systems: Monitored alarm with perimeter sensors; deadbolts to exterior doors; keyed window stays on ground floor; 2 exterior CCTV cameras\n\nCOVERAGE DETAILS\n- Line of Business: Home Insurance (Tower House Plus cover requested)\n- Effective Date: Not Present\n- Expiry Date: Not Present\n- Limits: Rebuild Sum Insured $895,000 (QS estimate 12 Feb 2026, includes demolition and professional fees)\n- Valuation: Quantity Surveyor rebuild estimate\n\nFINANCIAL DETAILS\n- Total Insured Value: $895,000 (main dwelling); includes detached single garage (24 m2), timber decks (30 m2), retaining walls (approx. 25 m cumulative length)\n- Revenue: Not Present\n- Payroll: Not Present\n- Business Income: Not Present\n\nLOSS DETAILS\n- Loss History: One claim in past 5 years (14 Jun 2022, water damage from burst flexi hose, $2,480, settled)\n- Major Losses: None reported\n- Trends: No adverse trends; single minor settled claim\n\nRISK CONSIDERATIONS\n- Key Exposures:\n  - Monolithic (EIFS) cladding to main elevations (non-standard risk)\n  - Proximity to coast (approx. 600 m; wind-driven rain exposure)\n  - Small home office (administrative only, no client visits)\n- CAT Exposure:\n  - Earthquake: Christchurch location; post-1990s construction; standard foundation; no known EQ damage\n  - Flood: Elevated above street level; council maps indicate low risk\n  - Coastal/Storm Surge: 600 m from coast; maintenance considers wind-driven rain\n  - Land Slip/Erosion: No known slip history; 2020 geotechnical note for retaining walls\n- Dependencies: Not Present\n\nUNDERWRITER NOTES\n- Key observations:\n  - All renovations and upgrades are documented and consented (2019, 2020, 2023)\n  - Proactive maintenance regime in place; maintenance log and inspection schedule provided\n  - Monolithic cladding professionally maintained; 2023 weathertightness report with acceptable moisture readings\n  - Security features include monitored alarm, deadbolts, keyed window stays, and CCTV\n  - No deferred maintenance; recent servicing of gutters and downpipes (Nov 2025)\n- Risk quality indicators:\n  - Recent renovations and upgrades (roof, electrical, plumbing, cladding, decks)\n  - Supporting compliance certificates and professional reports attached\n  - Low flood and land slip risk per council'}, {'blob_url': 'https://agenticai1.blob.core.windows.net/layout-detection-text-of-document/19CDC8AB7BCC5E85_attachment_SunflowerHotels_Submission_Document.txt', 'file_name': '19CDC8AB7BCC5E85_attachment_SunflowerHotels_Submission_Document', 'reference_number': '19CDC8AB7BCC5E85', 'summary': 'The submission is for commercial property coverage on the Sunflower Hotel Group LLC (dba Cruise Resort), an eight-story, full-service resort located in Daytona Beach, Florida, with a total insured value of $100,000,000 and a requested primary limit of $6,750,000 on a replacement cost basis. The property, built in 2008 and partially renovated in 2019, comprises 240 guest rooms, multiple restaurants, bars, banquet facilities, spa, fitness center, retail, and a private marina with eight guest berths, spanning a 4.2-acre site and 198,240 square feet of building area. Construction is reinforced concrete and structural steel with a masonry exterior, concrete slab-on-grade, and a built-up membrane roof with a partial overlay completed in 2019. Major building systems include a central chilled water HVAC plant (with 2019 upgrades), a 2,500 kVA electrical service, emergency diesel generator, and full wet-pipe sprinkler fire protection. Average annual occupancy is 68%, with higher rates during the November–April high season. Insured values are allocated across buildings, contents, FF&E, public areas, mechanical systems, pools, landscaping, and marina structures.', 'text': 'Commercial Property - Underwriting\nSubmission Cruise Resort\nBroker Name: Olivia Park\nOrganization Name: Armstrong and Company\nProducer Code: 100-002541\nUnderwriting Company: Acme Low Hazard Insurance\nName And Mailing Address: Sunflower Hotel Group LLC, 100 Harbor View Drive,\nSeabreeze, Daytona Beach, Volusia, FL 32118, USA\nOrganization Type: LLC\n1. Program Structure & Requested\nTerms\nLine of Business: Commercial Property\nTotal Insured Value (TIV):$100,000,000\nEffective Date: 01/01/2026\nExpiration Date: 01/01/2027\nTerm Type: Annual\nLimit of Liability: $6,750,000\nLayer: Primary\nValuation: Replacement Cost\nCoverage Currency: USD\nSettlement Currency: USD\n2. Executive Summary\nProperty Description: The property is an eight-story, full-service resort constructed in\n2008 with a reinforced concrete and structural steel frame and a masonry exterior finish. It\nfeatures concrete slab-on-grade and reinforced concrete floor decks, along with a built-up\nmembrane roofing system that received a partial overlay in 2019. The site spans 4.2 acres\nand includes landscaped areas, two outdoor pools, spa and fitness facilities, paved\ndriveways, walkways, and a private dock with eight guest berths. Mechanical rooms,\nstorage, and service corridors are located in the lower levels, with no guest rooms below\ngrade.\n3. Property Identification\nNamed Insured (Company Name):\nSunflower Hotel Group LLC (dba Cruise\nResort)\nAddress Line 1: 100 Harbor View Drive,\nSeabreeze\nCity: Daytona Beach\nState: Florida\nZip Code: 32118\nCountry: United States\nAddress Type: Business\nProperty Size: 4.2 acres (site area with\nlandscaped grounds, beach access, and\nprivate dock)\nBuilding Area (sq ft): 198240\nYear Constructed: 2008\nClass Code: 0585\nMajor Renovation: 2019 (lobby, HVAC\nreplacement, pool decking)\nNumber of Floors: 8\nNumber of Guest Rooms: 240\nGuest Room Mix: standard suites, one-\nand two-bedroom suites, select executive\nsuites\n4. Property Description & Construction\n· Primary construction: reinforced concrete and structural steel frame with masonry\nexterior finish\n· Floor construction: concrete slab-on-grade and reinforced concrete decks\n· Roof: built-up membrane roof system (2019 partial overlay) with routine maintenance\nprogram\n· Basements/lower levels: mechanical rooms, dry storage, service corridors; no guest\nlodging below grade\n· Site improvements: pool decks, two outdoor pools, spa, fitness center, paved driveways\n& drop-off, landscaped areas, walkways, private dock (8 guest berths)\n· Accessibility: main vehicular access from Harbor View Drive; service drive from Marina\nWay\n5. Occupancy & Operations\n· Primary use: full-service resort: accommodation, F&B, banquet/meeting, spa, fitness,\nretail, limited marina services\n· Revenue drivers: rooms; three restaurants; two bars; banquets/events; spa; marina\nguest fees; retail\n· Average annual occupancy: 68% (rolling 12-month average)\n· Seasonal variation: higher occupancy in high season (Nov-Apr) with peak banquets\nNov-Mar\n6. Insured Values (Summary)\nContents / FF&E: $15,000,000\nBuildings & structural improvements:\n$85,000,000\nTotal Insured Value (TIV):\n$100,000,000\nHigh-level itemization (for underwriting reference):\n· Guest suites & structural improvements: $62,000,000\n· Public areas, lobby, F&B & back-of-house structures: $12,500,000\n· Building services & mechanical systems: $3,500,000\n· Pool, decks, site improvements & landscaping: $2,000,000\n· Dock & marina structures: $1,000,000\n· FF&E (furniture, fixtures & equipment): $12,000,000\n· Misc contents, small tools, operating supplies: $6,000,000\n7. Critical Building Systems\n· HVAC: central chilled water plant; packaged rooftop units for public spaces; major\ncomponents replaced 2019; PM via CMMS\n· Electrical: main service 2,500 kVA; emergency circuits for life-safety; ATS for generator\ntie-in\n· Emergency power: diesel generator supports life-safety, fire pumps, selected essential\nloads and partial POS/IT; weekly test schedule\n· Fire protection: full wet-pipe sprinklers; addressable fire alarm with central station\nmonitoring; on-site fire pump; two hydrants within 100 ft; quarterly & annual test logs\n· Kitchen fire protection: commercial kitchen hood suppression with regular servicing\n· Plumbing: domestic hot water plant and booster pumps; backflow prevention devices\ninstalled\n· Elevators: two passenger elevators; one service elevator; annual inspections and\nmaintenance contracts\n· Life-safety: emergency lighting, illuminated exit signage, ADA egress, posted evacuation\nplans\n8. Security & Monitoring\n· Security staff: 24/7 on-site security team\n· Electronic access: key-card access for guest room floors and restricted staff areas\n· CCTV: integrated digital video surveillance across public areas, front-drive, perimeter\nand service yards; retention policy documented\n· Guest safety measures: pool lifeguard program (seasonal); signage & compliance with\naquatic facility codes\n9. Utilities & Third-party\nDependencies (CBI relevance)\nPower provider: Seabreeze Utilities\nAuthority\nWater & sewer: Seabreeze Water &\nWaste (municipal)\nPrimary ISP / CRS & POS connectivity:\nMaritime Communications Inc. (primary\nISP for booking/PMS/POS)\nRedundant ISP: Redundant ISP vendor\ncontract under review\nLaundry/Linens: Seabreeze Linen Co.\n(off-site)\nF&B suppliers: regional distributors;\nmultiple vendor relationships for key\nitems\nExcursion vendors / marina operators:\nlicensed third-party operators; vendor\nagreements in place\n10. Marina Specifics\n· Dock: fixed dock with eight guest berths; owned & maintained by resort; no on-site\nfueling (adjacent marina for fuel)\n· Marine operations: third-party licensed operators run excursions; hull/boat PD not\nunder property program (vendor responsibility in contracts)\n11. Maintenance, Inspections & Risk Controls\n· Preventive maintenance: CMMS logs for HVAC, kitchen hood, sprinkler, generator\ntesting\n· Life-safety testing: quarterly sprinklers; annual fire pump; monthly fire alarm tests;\nannual full alarm inspection; vendor certificates on file\n· Vendor controls: contractor insurance requirement min $2M GL; certificate\nmanagement process\n· Business continuity: documented BCP & EAP; off-site backups for reservations & guest\nrecords; periodic tabletop exercises with local emergency services\n· Staff training: annual fire/evacuation drills; F&B managers with food safety cert; first-\naid/CPR for supervisors\n12. Recent Loss History (Time-Element & Property)\n· 2024: kitchen exhaust grease fire - smoke damage; limited kitchen closure; BI & partial\nEE paid for 7 days; time-element approx. $250,000.\n· 2022: failed domestic line water intrusion (lower-level storage) - contents damage; BI\n3 days approx. $120,000.\n. 2025 (YTD): pool area slip & fall remediation with temporary closure; minor BI approx.\n$15,000.\nLoss-run reports and claim detail files available on request (attached in submission packet).\n13. Exposures & Underwriting Considerations\n· Time-element sensitivity: reliance on room revenue and banquet/event income; peak-\nseason outages materially impact revenue.\n· Third-party dependency: booking engine/CRS and primary ISP are key contingent BI\nexposures.\n· Marina & vendor risk: dock and excursion vendors introduce potential liability and\nservice interruption considerations.\n· Flood & windstorm: coastal location elevates storm surge and named storm exposure;\nflood zone/elevation certificate review recommended.\n· Utility interruption: municipal power/telecom failures may trigger service interruption\nclaims; redundancy & SLAs relevant.\n17. Broker & Property Contacts\nBroker: Olivia Park - Senior Hospitality\nBroker, Meridian Shoreline Insurance\nPartners\nBroker Email:\nolivia.park@meridianship.com\n18. Underwriter Notes\nNotes:\nFollow-ups:\nPrepared for submission - Cruise Resort\nBroker Phone: +1 (555) 214-7802\nProperty Contact: Marcus Reyes -\nGeneral Manager, Cruise Resort\nProperty Email:\nm.reyes@cruiseresort.com\nProperty Phone: +1 (555) 321-4400', 'error': None, 'processed_summary': 'DOCUMENT SUMMARY\n\nINSURED DETAILS\n- Named Insured: Sunflower Hotel Group LLC (dba Cruise Resort)\n- Address: 100 Harbor View Drive, Seabreeze, Daytona Beach, Volusia, FL 32118, USA\n- Business Type: LLC\n- Operations: Full-service resort including accommodation, food & beverage, banquets/meetings, spa, fitness, retail, and limited marina services\n\nPROPERTY DETAILS\n- Number of Locations: 1\n- Construction: Reinforced concrete and structural steel frame with masonry exterior finish; concrete slab-on-grade and reinforced concrete floor decks; built-up membrane roofing system (partial overlay in 2019)\n- Year Built: 2008\n- Square Footage: 198,240 sq ft (building area); 4.2 acres (site area)\n- Occupancy: 240 guest rooms (standard suites, one- and two-bedroom suites, select executive suites); average annual occupancy 68%\n- Protection Systems:\n  - Full wet-pipe sprinkler system\n  - Addressable fire alarm with central station monitoring\n  - On-site fire pump\n  - Two hydrants within 100 ft\n  - Commercial kitchen hood suppression\n  - Emergency lighting, illuminated exit signage, ADA egress, posted evacuation plans\n\nCOVERAGE DETAILS\n- Line of Business: Commercial Property\n- Effective Date: 01/01/2026\n- Expiry Date: 01/01/2027\n- Limits: $6,750,000 (Primary Layer)\n- Valuation: Replacement Cost\n\nFINANCIAL DETAILS\n- Total Insured Value: $100,000,000\n- Revenue: Not Present\n- Payroll: Not Present\n- Business Income: Not Present\n\nLOSS DETAILS\n- Loss History: Not Present\n- Major Losses: Not Present\n- Trends: Not Present\n\nRISK CONSIDERATIONS\n- Key Exposures:\n  - Hospitality operations with guest accommodations, F&B, banquets/events, spa, fitness, retail, and marina services\n  - Seasonal occupancy variation with higher exposure during November-April\n  - On-site pools and marina (docks, guest berths)\n  - Commercial kitchens\n- CAT Exposure:\n  - Not Present\n- Dependencies:\n  - Power provider: Seabreeze Utilit (incomplete information)\n\nUNDERWRITER NOTES\n- Key observations:\n  - Modern construction (2008) with major renovations in 2019 (lobby, HVAC, pool decking)\n  - Comprehensive fire protection and life-safety systems in place\n  - 24/7 on-site security and electronic access controls\n  - Documented maintenance and testing schedules for critical systems\n- Risk quality indicators:\n  - Routine maintenance program for roof and building systems\n  - Central station fire alarm monitoring and regular fire protection servicing\n  - Security staff and CCTV coverage\n- Important underwriting considerations:\n  - Absence of loss history and financial performance data\n  - CAT exposure not specified; location in Daytona Beach, FL may indicate wind/flood exposure\n  - Business income and payroll values not provided\n  - Power provider information incomplete; further details on utility dependencies may be required'}]
-This is beautified for  response :  {'combined_summary': 'SUBMISSION SUMMARY\nClient: Alex and Jordan Taylor; Sunflower Hotel Group LLC (dba Cruise Resort)\nDate: Not Present\n\n1. SUBMISSION COVER LETTER / NARRATIVE\nExposure Description:\n- The submission includes two distinct risks: a residential property and a commercial hospitality operation.\n- The residential property is a two-storey, owner-occupied home at 28 Seaview Terrace, Sumner, Christchurch, housing two adults and one child, with a small administrative home office. The home was built in 1998, renovated in 2019 and 2023, and features timber framing, monolithic (EIFS) cladding, and a Colorsteel roof.\n- The commercial property is the Sunflower Hotel Group LLC (dba Cruise Resort), an eight-story, full-service resort located at 100 Harbor View Drive, Seabreeze, FL 33101. The resort comprises 240 guest rooms, multiple restaurants, bars, banquet facilities, spa, fitness center, retail, and a private marina. Construction is reinforced concrete and structural steel, with a masonry exterior and a built-up membrane roof. The property was built in 2008 and partially renovated in 2019.\n- Main operations include residential occupancy with minor home office use, and hospitality operations with average annual occupancy of 68%, higher during the Novemberâ\x80\x93April high season.\n- Property details for the home include a detached garage, decks, and retaining walls; for the hotel, the site spans 4.2 acres and 198,240 square feet of building area, with major building systems and full fire protection.\nPlacement Strategy:\n- For the hotel, the submission requests Business Interruption and Contingent Business Interruption coverage (including Extra Expense and Civil Authority where available), with a $40,000,000 limit and 24 months indemnity, and is open to insurer presentation for terms.\n- Placement goals or program approach for the residential property are not present.\nRenewal Highlights:\n- Not Present\nChanges YOY:\n- Not Present\nAdditional Overview Details:\n- Effective Date: 2026-01-01 (for Sunflower Hotel Group LLC); Not Present (for residential property)\n- Submission Type: New Business\n- Current Situation: Not Present\n\n2. LOSS HISTORY PACKAGE\n5â\x80\x9310 Year Loss Runs:\n- For the residential property, one settled water damage claim in the past five years.\n- For the hotel, not present.\nLarge Loss Details:\n- Not Present\nTrends Analysis:\n- Not Present\nSummary of Loss History:\n- Status: Losses Reported\n- Summary: The residential property has one settled water damage claim in the past five years; no loss history provided for the hotel.\n- Major Incidents: Not Present\n\n3. EXPOSURE DATA\nCOPE Information (Construction, Occupancy, Protection, Exposure):\n- The residential property is a two-storey, timber-framed home with monolithic (EIFS) cladding, Colorsteel roof, and recent upgrades to electrical, plumbing, and heating. Security features include a monitored alarm, deadbolts, window stays, and CCTV.\n- The hotel is constructed of reinforced concrete and structural steel with a masonry exterior, built-up membrane roof, central chilled water HVAC, 2,500 kVA electrical service, emergency diesel generator, and full wet-pipe sprinkler fire protection.\nStatement of Values (SOV):\n- Total Insurable Value (TIV): $895,000 (residential); $100,000,000 (hotel)\n- Building Limit: $895,000 (residential); $6,750,000 (hotel, primary limit requested)\n- Contents/BPP Limit: Not Present (residential); included in TIV allocation (hotel), specific value not present\n- Business Income: Not Present (residential); $40,000,000 limit requested with 24 months indemnity (hotel)\nFinancials:\n- Not Present (residential)\n- Annual gross revenue: $40,000,000 (hotel)\n- Annual payroll: $6,500,000 (hotel)\nCAT Worksheets / Specialty Schedules:\n- Not Present\nAdditional Exposure Details:\n- Total Locations: 2 (one residential, one hotel)\n- Main Operations: Residential occupancy with home office; full-service hospitality resort\n- Property Details: Residential property includes detached garage, decks, retaining walls; hotel includes guest rooms, restaurants, bars, banquet/meeting facilities, spa, fitness center, retail, pools, landscaping, and marina structures\n- Deductible Requested: Not Present', 'individualized_summary': [{'file_name': '19CDC8AB7BCC5E85_attachment_Tower_Insurance_-_Home_Submission_Report', 'summary': 'The submission concerns a residential property at 28 Seaview Terrace, Sumner, Christchurch, owned and occupied by Alex and Jordan Taylor, with two adults and one child residing. The home, built in 1998 and renovated in 2019 and 2023, is a two-storey timber-framed structure with monolithic (EIFS) cladding and a Colorsteel roof, both recently maintained and certified. The rebuild sum insured is $895,000, based on a recent Quantity Surveyorâ\x80\x99s estimate including demolition and fees, and covers additional structures such as a detached garage, decks, and retaining walls. The property is owner-occupied with a small administrative home office and has a strong maintenance history, recent upgrades to electrical, plumbing, and heating, and no deferred maintenance. Notable risks include the presence of monolithic cladding (with recent weathertightness reporting), but there is no known earthquake, flood, or landslip damage, and security features include a monitored alarm, deadbolts, window stays, and CCTV. Only one settled water damage claim is noted in the past five years.', 'document_type': None, 'processed_summary': 'DOCUMENT SUMMARY\n\nINSURED DETAILS\n- Named Insured: Alex and Jordan Taylor\n- Address: Unit 12, 15 Market Road, Epsom, Auckland 1051\n- Business Type: Not Present\n- Operations: Residential; small home office (administrative; no clients on-site)\n\nPROPERTY DETAILS\n- Number of Locations: 1\n- Construction: Timber frame with monolithic (EIFS) cladding; timber weatherboard to rear extension; Colorsteel longrun roof (re-roofed 2019); concrete slab with perimeter footings\n- Year Built: 1998 (renovations 2019, 2023)\n- Square Footage: 185 m2 (floor area); land area 612 m2\n- Occupancy: Owner-occupied; 2 adults, 1 child\n- Protection Systems: Monitored alarm with perimeter sensors; deadbolts to exterior doors; keyed window stays on ground floor; 2 exterior CCTV cameras\n\nCOVERAGE DETAILS\n- Line of Business: Home Insurance (Tower House Plus cover requested)\n- Effective Date: Not Present\n- Expiry Date: Not Present\n- Limits: Rebuild Sum Insured $895,000 (QS estimate 12 Feb 2026, includes demolition and professional fees)\n- Valuation: Quantity Surveyor rebuild estimate\n\nFINANCIAL DETAILS\n- Total Insured Value: $895,000 (main dwelling); includes detached single garage (24 m2), timber decks (30 m2), retaining walls (approx. 25 m cumulative length)\n- Revenue: Not Present\n- Payroll: Not Present\n- Business Income: Not Present\n\nLOSS DETAILS\n- Loss History: One claim in past 5 years (14 Jun 2022, water damage from burst flexi hose, $2,480, settled)\n- Major Losses: None reported\n- Trends: No adverse trends; single minor settled claim\n\nRISK CONSIDERATIONS\n- Key Exposures:\n- Monolithic (EIFS) cladding to main elevations (non-standard risk)\n- Proximity to coast (approx. 600 m; wind-driven rain exposure)\n- Small home office (administrative only, no client visits)\n- CAT Exposure:\n- Earthquake: Christchurch location; post-1990s construction; standard foundation; no known EQ damage\n- Flood: Elevated above street level; council maps indicate low risk\n- Coastal/Storm Surge: 600 m from coast; maintenance considers wind-driven rain\n- Land Slip/Erosion: No known slip history; 2020 geotechnical note for retaining walls\n- Dependencies: Not Present\n\nUNDERWRITER NOTES\n- Key observations:\n- All renovations and upgrades are documented and consented (2019, 2020, 2023)\n- Proactive maintenance regime in place; maintenance log and inspection schedule provided\n- Monolithic cladding professionally maintained; 2023 weathertightness report with acceptable moisture readings\n- Security features include monitored alarm, deadbolts, keyed window stays, and CCTV\n- No deferred maintenance; recent servicing of gutters and downpipes (Nov 2025)\n- Risk quality indicators:\n- Recent renovations and upgrades (roof, electrical, plumbing, cladding, decks)\n- Supporting compliance certificates and professional reports attached\n- Low flood and land slip risk per council'}, {'file_name': '19CDC8AB7BCC5E85_attachment_SunflowerHotels_Submission_Document', 'summary': 'The submission is for commercial property coverage on the Sunflower Hotel Group LLC (dba Cruise Resort), an eight-story, full-service resort located in Daytona Beach, Florida, with a total insured value of $100,000,000 and a requested primary limit of $6,750,000 on a replacement cost basis. The property, built in 2008 and partially renovated in 2019, comprises 240 guest rooms, multiple restaurants, bars, banquet facilities, spa, fitness center, retail, and a private marina with eight guest berths, spanning a 4.2-acre site and 198,240 square feet of building area. Construction is reinforced concrete and structural steel with a masonry exterior, concrete slab-on-grade, and a built-up membrane roof with a partial overlay completed in 2019. Major building systems include a central chilled water HVAC plant (with 2019 upgrades), a 2,500 kVA electrical service, emergency diesel generator, and full wet-pipe sprinkler fire protection. Average annual occupancy is 68%, with higher rates during the Novemberâ\x80\x93April high season. Insured values are allocated across buildings, contents, FF&E, public areas, mechanical systems, pools, landscaping, and marina structures.', 'document_type': None, 'processed_summary': 'DOCUMENT SUMMARY\n\nINSURED DETAILS\n- Named Insured: Sunflower Hotel Group LLC (dba Cruise Resort)\n- Address: 100 Harbor View Drive, Seabreeze, Daytona Beach, Volusia, FL 32118, USA\n- Business Type: LLC\n- Operations: Full-service resort including accommodation, food & beverage, banquets/meetings, spa, fitness, retail, and limited marina services\n\nPROPERTY DETAILS\n- Number of Locations: 1\n- Construction: Reinforced concrete and structural steel frame with masonry exterior finish; concrete slab-on-grade and reinforced concrete floor decks; built-up membrane roofing system (partial overlay in 2019)\n- Year Built: 2008\n- Square Footage: 198,240 sq ft (building area); 4.2 acres (site area)\n- Occupancy: 240 guest rooms (standard suites, one- and two-bedroom suites, select executive suites); average annual occupancy 68%\n- Protection Systems:\n- Full wet-pipe sprinkler system\n- Addressable fire alarm with central station monitoring\n- On-site fire pump\n- Two hydrants within 100 ft\n- Commercial kitchen hood suppression\n- Emergency lighting, illuminated exit signage, ADA egress, posted evacuation plans\n\nCOVERAGE DETAILS\n- Line of Business: Commercial Property\n- Effective Date: 01/01/2026\n- Expiry Date: 01/01/2027\n- Limits: $6,750,000 (Primary Layer)\n- Valuation: Replacement Cost\n\nFINANCIAL DETAILS\n- Total Insured Value: $100,000,000\n- Revenue: Not Present\n- Payroll: Not Present\n- Business Income: Not Present\n\nLOSS DETAILS\n- Loss History: Not Present\n- Major Losses: Not Present\n- Trends: Not Present\n\nRISK CONSIDERATIONS\n- Key Exposures:\n- Hospitality operations with guest accommodations, F&B, banquets/events, spa, fitness, retail, and marina services\n- Seasonal occupancy variation with higher exposure during November-April\n- On-site pools and marina (docks, guest berths)\n- Commercial kitchens\n- CAT Exposure:\n- Not Present\n- Dependencies:\n- Power provider: Seabreeze Utilit (incomplete information)\n\nUNDERWRITER NOTES\n- Key observations:\n- Modern construction (2008) with major renovations in 2019 (lobby, HVAC, pool decking)\n- Comprehensive fire protection and life-safety systems in place\n- 24/7 on-site security and electronic access controls\n- Documented maintenance and testing schedules for critical systems\n- Risk quality indicators:\n- Routine maintenance program for roof and building systems\n- Central station fire alarm monitoring and regular fire protection servicing\n- Security staff and CCTV coverage\n- Important underwriting considerations:\n- Absence of loss history and financial performance data\n- CAT exposure not specified; location in Daytona Beach, FL may indicate wind/flood exposure\n- Business income and payroll values not provided\n- Power provider information incomplete; further details on utility dependencies may be required'}]}
-INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://agenticai1.blob.core.windows.net/fetched-emails-data/Fetched_emails_data_new.xlsx'
-Request method: 'GET'
-Request headers:
-    'x-ms-range': 'REDACTED'
-    'x-ms-version': 'REDACTED'
-    'Accept': 'application/xml'
-    'User-Agent': 'azsdk-python-storage-blob/12.20.0 Python/3.11.2 (Linux-6.1.0-44-cloud-amd64-x86_64-with-glibc2.36)'
-    'x-ms-date': 'REDACTED'
-    'x-ms-client-request-id': '62d4a2ee-290c-11f1-be6e-7c1e52ff7339'
-    'Authorization': 'REDACTED'
-No body was attached to the request
-INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 206
-Response headers:
-    'Content-Length': '8520'
-    'Content-Type': 'application/octet-stream'
-    'Content-Range': 'REDACTED'
-    'Last-Modified': 'Thu, 26 Mar 2026 12:05:03 GMT'
-    'Accept-Ranges': 'REDACTED'
-    'ETag': '"0x8DE8B2FE9818079"'
-    'Vary': 'REDACTED'
-    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
-    'x-ms-request-id': 'a8c3e4dc-301e-0050-1719-bd71ec000000'
-    'x-ms-client-request-id': '62d4a2ee-290c-11f1-be6e-7c1e52ff7339'
-    'x-ms-version': 'REDACTED'
-    'x-ms-creation-time': 'REDACTED'
-    'x-ms-blob-content-md5': 'REDACTED'
-    'x-ms-lease-status': 'REDACTED'
-    'x-ms-lease-state': 'REDACTED'
-    'x-ms-blob-type': 'REDACTED'
-    'x-ms-server-encrypted': 'REDACTED'
-    'x-ms-access-tier': 'REDACTED'
-    'x-ms-access-tier-inferred': 'REDACTED'
-    'Date': 'Thu, 26 Mar 2026 12:07:39 GMT'
-[connect_to_blob] reference not found in Excel, skipping: 19CDC8AB7BCC5E85
-INFO:azure.core.pipeline.policies.http_logging_policy:Request URL: 'https://agenticai1.blob.core.windows.net/fetched-emails-data/Fetched_emails_data_new.xlsx'
-Request method: 'PUT'
-Request headers:
-    'Content-Length': '8520'
-    'x-ms-blob-type': 'REDACTED'
-    'x-ms-version': 'REDACTED'
-    'Content-Type': 'application/octet-stream'
-    'Accept': 'application/xml'
-    'User-Agent': 'azsdk-python-storage-blob/12.20.0 Python/3.11.2 (Linux-6.1.0-44-cloud-amd64-x86_64-with-glibc2.36)'
-    'x-ms-date': 'REDACTED'
-    'x-ms-client-request-id': '62d4a2ef-290c-11f1-be6e-7c1e52ff7339'
-    'Authorization': 'REDACTED'
-A body is sent with the request
-INFO:azure.core.pipeline.policies.http_logging_policy:Response status: 201
-Response headers:
-    'Content-Length': '0'
-    'Content-MD5': 'REDACTED'
-    'Last-Modified': 'Thu, 26 Mar 2026 12:07:40 GMT'
-    'ETag': '"0x8DE8B30471D2703"'
-    'Server': 'Windows-Azure-Blob/1.0 Microsoft-HTTPAPI/2.0'
-    'x-ms-request-id': 'a8c3e500-301e-0050-3619-bd71ec000000'
-    'x-ms-client-request-id': '62d4a2ef-290c-11f1-be6e-7c1e52ff7339'
-    'x-ms-version': 'REDACTED'
-    'x-ms-content-crc64': 'REDACTED'
-    'x-ms-request-server-encrypted': 'REDACTED'
-    'Date': 'Thu, 26 Mar 2026 12:07:39 GMT'
-Blob Data Processed Successfully.
-Blob Data Processed Successfully and Excel Updated.
-INFO:     127.0.0.1:56514 - "POST /api/v1/email_intent_agent/attachment_summary_mcp HTTP/1.1" 200 OK
+
+INPUT_FOLDER = "input"
+OUTPUT_FOLDER = "output"
+EMAIL_BODY = "email_body"
+
+def clean_result_for_api(result: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Build a compact, clean dictionary response from the full 'result' dict.
+
+    Output shape:
+    {
+      "combined_summary": "<string or None>",
+      "individualized_summary": [
+         { "file_name": ..., "summary": ..., "document_type": ..., "processed_summary": ... },
+         ...
+      ]
+    }
+
+    This removes raw 'text' and error details from the per-file items.
+    """
+    combined = result.get("combined_summary")
+
+    raw_individualized = result.get("individualized_summary", [])
+    cleaned_list: List[Dict[str, Any]] = []
+
+    if isinstance(raw_individualized, list):
+        for item in raw_individualized:
+            cleaned_item = {
+                "file_name": item.get("file_name"),
+                "summary": item.get("summary"),
+                "document_type": item.get("document_type"),
+                "processed_summary": item.get("processed_summary"),
+            }
+            cleaned_list.append(cleaned_item)
+
+    return {
+        "combined_summary": combined,
+        "individualized_summary": cleaned_list,
+    }
+
+
+async def summarize_blob_pdfs_layout(blob_urls: List[str]) -> Dict[str, Any]:
+    """
+    For each Blob URL:
+      - Download PDF into input/
+      - Use Form Recognizer to extract text (all pages)
+      - Use LLM to summarize the FIRST PAGE
+
+    Saves the full detailed JSON (including raw text) to ./output/layout_summaries_result.json
+    but RETURNS a cleaned dictionary suitable for API responses (no raw 'text').
+    """
+    try:
+        summary_require_env()
+    except Exception as e:
+        # Return a clean, empty-shaped response on environment failure
+        return {"combined_summary": None, "individualized_summary": []}
+
+    summaries: List[Dict[str, Any]] = []
+
+    for blob_url in blob_urls:
+        file_name = None
+
+        try:
+            container, filename, reference_number =  await extract_filename_referencenumber_container_name(blob_url)
+            file_name = filename
+
+
+            # parsed = urlparse(blob_url)
+            # file_name_with_ext = os.path.basename(parsed.path)
+            # file_name = os.path.splitext(file_name_with_ext)[0]
+            # reference_number = file_name.split("_")[0]
+            # container = parsed.path.split("/")[1]
+
+
+            # parsed = urlparse(blob_url)
+            # path_parts = parsed.path.lstrip("/").split("/")
+            # container = path_parts[0]
+            # file_name_with_ext = path_parts[-1]
+            # file_name = os.path.splitext(file_name_with_ext)[0]
+            # reference_number = file_name.split("_")[0]
+            # file_name = filename
+            
+            print("Container ", container)
+            print("Reference number", reference_number)
+            print("filename", filename)
+        except Exception as e:
+            summaries.append(
+                {
+                    "blob_url": blob_url,
+                    "file_name": file_name,
+                    "summary": None,
+                    "text": None,
+                    "error": f"Failed to read filename: {e}",
+                }
+            )            
+            continue
+
+        # try:
+        #     text = await read_text_file_from_container(filename)
+        # except Exception as e:
+        #     summaries.append(
+        #         {
+        #             "blob_url": blob_url,
+        #             "file_name": file_name,
+        #             "summary": None,
+        #             "text": text,
+        #             "error": f"Failed to read filename: {e}",
+        #         }
+        #     )            
+        #     continue
+
+        try:
+            text = await read_text_file_from_container(filename,container)
+        except Exception as e:
+            summaries.append(
+                {
+                    "blob_url": blob_url,
+                    "file_name": file_name,
+                    "reference_number": reference_number,
+                    "summary": None,
+                    "text": None,
+                    "error": f"TEXT_FILE_MISSING: {e}",
+                }
+            )            
+            continue
 
 
 
-are you able to find this
-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁
+        # 1) Download PDF
+        # try:
+        #     local_pdf = await download_blob_to_input_folder(
+        #         blob_url, input_folder=INPUT_FOLDER
+        #     )
+        #     file_name = os.path.basename(local_pdf)
+        # except Exception as e:
+        #     summaries.append(
+        #         {
+        #             "blob_url": blob_url,
+        #             "file_name": file_name,
+        #             "summary": None,
+        #             "text": None,
+        #             "error": f"Failed to download blob: {e}",
+        #         }
+        #     )
+        #     continue
+
+        # # 2) Use Form Recognizer to analyze the document
+        # try:
+        #     document_content = load_summary_document(local_pdf)
+        # except Exception as e:
+        #     summaries.append(
+        #         {
+        #             "blob_url": blob_url,
+        #             "file_name": file_name,
+        #             "summary": None,
+        #             "text": None,
+        #             "error": f"Form Recognizer failed: {e}",
+        #         }
+        #     )
+        #     continue
+
+        # Extract raw text (stored in first_page_text key by loader)
+        # text_content = document_content.get("text", "")
+
+        # 3) Summarize FIRST PAGE using LLM (short summary)
+        try:
+            summary_text = summarize_first_page({"first_page_text":text}, file_name=file_name)
+        except Exception as e:
+            summaries.append(
+                {
+                    "blob_url": blob_url,
+                    "file_name": file_name,
+                    "summary": None,
+                    "text": text_content,
+                    "error": f"Summarization failed: {e}",
+                }
+            )
+            continue
+
+        # 4) Success case for this document — include raw text for audit on disk
+        summaries.append(
+            {
+                "blob_url": blob_url,
+                "file_name": file_name,
+                "reference_number":reference_number,
+                "summary": summary_text,
+                "text": text,
+                "error": None,
+            }
+        )
+
+    result: Dict[str, Any] = {"status": True, "summaries": summaries}
+
+    # 5) Save result to ./output (retain 'text' on disk for audit)
+    try:
+        os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+        out_path = os.path.join(OUTPUT_FOLDER, "layout_summaries_result.json")
+        with open(out_path, "w", encoding="utf-8") as f:
+            json.dump(result, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        result["save_error"] = str(e)
+
+    # 6) Beautify and optionally write to Excel (unchanged; uses only file_name + summary)
+    try:
+        extracted_data = extract_filenames_and_summaries(OUTPUT_FOLDER)
+        print("Beautified Extracted Data:\n")
+        beautify_data = beautify_extracted_data(extracted_data)
+        print(beautify_data)
+
+    #     DATA_URL = os.getenv("Data_URL")
+    #     if DATA_URL:
+    #         try:
+    #             updated_data = connect_to_blob(DATA_URL, beautify_data)
+    #             print("Blob Data Processed Successfully.")
+    #             if isinstance(updated_data, pd.DataFrame):
+    #                 print("Blob Data Processed Successfully and Excel Updated.")
+    #             else:
+    #                 # updated_data may be an error dict
+    #                 print(f"Error: {updated_data.get('error')}")
+    #         except Exception as e:
+    #             print(f"Error processing blob data: {e}")
+    #     else:
+    #         print("Data_URL environment variable is not set.")
+    except Exception as e:
+        print(f"Error in beautify / blob step: {e}")
+
+
+    try:
+        download_results = await download_blob_to_input_folder_by_reference(
+            beautify_data,
+            output_folder=EMAIL_BODY,
+            container_name="attachment-downloader",
+            blob_name_template="body_{ref}.txt",
+        )
+        print("Email body download results:", download_results)
+    except Exception as e:
+        print("Failed to download email bodies by reference:", e)
+
+#Working code friday night 7:20 pm
+    # 7) Combined submission summary (uses file_name + summary only)
+    combined_summary_text = None
+    filenamesummary_extracted_beautified: List[Dict[str, Any]] = []
+    try:
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        output_folder = "output"
+
+        json_path = os.path.join(base_dir, output_folder, "layout_summaries_result.json")
+        with open(json_path, "r", encoding="utf-8") as f:
+            layout_json = json.load(f)
+
+        # filenamesummary_extracted_beautified = extract_filenames_and_summaries(output_folder)
+       
+        #Commented this 
+        # filenamesummary_extracted_beautified = summaries
+        #Added below two things after commenting
+        valid_documents = [
+            doc for doc in summaries
+            if doc.get("text") and not doc.get("error")
+            ]
+
+        filenamesummary_extracted_beautified = valid_documents
+
+        print("Per-document summaries (with text):")
+        print(filenamesummary_extracted_beautified)
+        
+        
+        #HERE WE CAN CALL THE EXTRACT REFS FROM ATTACHMENTS AND LOAD RAW EMAIL BODIES FOR REFS FUNCTIONS AND KEEP THE CALLING OF SUMMARIZE_ATTACHMENTS SAME AS BELOW 
+
+        # reference_number_extracted = extract_refs_from_attachments(beautify_data)
+
+        # load_raw_email_bodies_for_refs(reference_extracted,"email_body")
+
+        combined_summary_text = summarize_attachments(filenamesummary_extracted_beautified)
+        print("Combined Submission Summary:")
+        print(combined_summary_text)
+
+        result["combined_summary"] = combined_summary_text
+    except Exception as e:
+        print(f"Error generating combined submission summary: {e}")
+        result["combined_summary_error"] = str(e)
+        combined_summary_text = None
+
+    # 8) Individual typed summaries (ACORD / Loss Run / SOV)
+    try:
+        # individual_summary expects attachments each having 'file_name','summary','text'
+        individualized_summary = individual_summary(filenamesummary_extracted_beautified)
+        # print("Individualized Summary Output (raw):")
+        print(individualized_summary)
+        result["individualized_summary"] = individualized_summary
+    except Exception as e:
+        print(f"Error generating Individual summary: {e}")
+        result["individualized_summary_error"] = str(e)
+        result["individualized_summary"] = []
+
+
+    # 9) CLEAN the result for the API and return only the compact payload (no raw text)
+    cleaned_payload = clean_result_for_api(result)
+
+
+    
+    try:
+        beautified = beautify_api_response(cleaned_payload)
+        print("This is beautified for  response : ", beautified)
+
+        # print("\n----- COMBINED SUBMISSION SUMMARY (beautified) -----\n")
+        # if beautified["combined_summary"]:
+        #     print(beautified["combined_summary"])
+        # else:
+        #     print("No combined summary available.")
+
+        DATA_URL = os.getenv("Data_URL")
+        if DATA_URL:
+            try:
+                updated_data = connect_to_blob(DATA_URL, beautified)
+                print("Blob Data Processed Successfully.")
+                if isinstance(updated_data, pd.DataFrame):
+                    print("Blob Data Processed Successfully and Excel Updated.")
+                    excel_update_status = "Excel Opened"
+                else:
+                    # updated_data may be an error dict
+                    error_msg = updated_data.get("error", "Excel update failed")
+                    # print(f"Error: {updated_data.get('error')}")
+                    print(f"Error: {error_msg}")
+                    excel_update_status = error_msg
+            except Exception as e:
+                print(f"Error processing blob data: {e}")
+                excel_update_status = str(e)
+        else:
+            print("Data_URL environment variable is not set.")
+            excel_update_status = "DATA_URL not configured"
+    except Exception as e:
+        print(f"Error in beautify / blob step: {e}")
+
+
+
+
+
+
+
+
+        # DATA_URL = os.getenv("Data_URL")
+
+        # excel_update_status = "Not attempted"
+
+        # if DATA_URL:
+        #     try:
+        #         updated_data = connect_to_blob(DATA_URL, beautified)
+        #         print("Blob Data Processed Successfully.")
+
+        #         if isinstance(updated_data, pd.DataFrame):
+        #             print("Blob Data Processed Successfully and Excel Updated.")
+        #             excel_update_status = "Excel updated successfully"
+        #         else:
+        #             error_msg = updated_data.get("error", "Excel update failed")
+        #             print(f"Error: {error_msg}")
+        #             excel_update_status = error_msg
+
+        #     except Exception as e:
+        #         print(f"Error processing blob data: {e}")
+        #         excel_update_status = str(e)
+
+        # else:
+        #     print("Data_URL environment variable is not set.")
+        #     excel_update_status = "DATA_URL not configured"
+
+
+        # # ADD THIS LINE (important)
+        # beautified["excel_update_status"] = excel_update_status
+
+
+
+
+
+
+
+    # try:
+    #     email_body = download_blob_to_input_folder_by_reference(beautify_data)
+    #     from summary_storage_utils import download_blob_to_input_folder_by_reference
+
+# ensure EMAIL_BODY = "email_body" at top of summary_handler.py
+
+# call it (since it's async, await it)
+    # try:
+    #     download_results = await download_blob_to_input_folder_by_reference(
+    #         beautify_data,
+    #         output_folder=EMAIL_BODY,
+    #         container_name="attachment-downloader",
+    #         blob_name_template="body_{ref}.txt",
+    #     )
+    #     print("Email body download results:", download_results)
+    # except Exception as e:
+    #     print("Failed to download email bodies by reference:", e)
+
+
+    # return cleaned_payload
+    beautified["excel_update_status"] = excel_update_status
+    return beautified
+
+
+
+
+
+
