@@ -1,55 +1,95 @@
-also this is my router currently
-
-
-class ProcessRiskRequest(BaseModel):
-    """
-    Accept/Reject Risk Functionality MCP
-    Input (fixed):
-      - Container: risk-score-output
-      - The latest blob (by last_modified) will be selected automatically.
-    Output (timestamped per run):
-      - Container: accept-reject-riskfunctionality-output
-      - Blob: accept-reject-riskfunctionality-output_<UTC timestamp>.json
-    """
-    input_blob_url: str = Field(..., description="Azure Blob URL pointing to the risk-score-output container (any blob path within it is acceptable).")
-    acceptance_threshold: float = Field(40.0, description="Optional acceptance threshold (default 75.0).")
-    rejection_threshold: float = Field(75.0, description="Optional rejection threshold (default 40.0).")
-    earthquake_count: int = Field(description="earthquake count provided by risk_data_capture_mcp.")
-    flood_zone: bool = Field(description="flood zone provided by risk_data_capture_mcp.")
-    construction_type: str = Field(description="construction type provided by risk_data_capture_mcp.")
-    distance_to_fire_hydrant: str = Field(description="distance to fire hydrant provided by risk_data_capture_mcp.")
-    distance_to_fire_station: str = Field(description="distance to fire station provided by risk_data_capture_mcp.")
-    year_built: int = Field(description="year built provided by risk_data_capture_mcp.")
-
-@router.post(
-    "/Accept_Reject_Risk_Functionality_MCP",
-    operation_id="accept_reject_risk_functionality_mcp",
-    summary="Process latest risk submissions from risk-score-output and write timestamped results to accept-reject-riskfunctionality-output"
-)
-async def accept_reject_risk_mcp(request: ProcessRiskRequest):
-    """
-    Evaluates accept/reject decisions, saves local output/results.json,
-    and uploads to accept-reject-riskfunctionality-output/<timestamp>.json.
-    Returns a JSON-RPC envelope.
-    """
-    thresholds = RiskThresholds(
-        acceptance_threshold=request.acceptance_threshold,
-        rejection_threshold=request.rejection_threshold,
-    )
- 
-
-    result = await process_risk_from_blob(
-        input_blob_url=request.input_blob_url,
-        construction_type=request.construction_type,
-        thresholds=thresholds,
-        earthquake_count=request.earthquake_count,
-        flood_zone=request.flood_zone,
-        distance_to_fire_hydrant=request.distance_to_fire_hydrant,
-        distance_to_fire_station=request.distance_to_fire_station,
-        year_built=request.year_built,
-    )
-    return JSONResponse(
-        content={"jsonrpc": "2.0", "id": 1, "result": result},
-        status_code=200
-    )
- 
+Hi everyone. Let's dive into the demo of the Intelligent Product Factory. Here is the landing page of the IPF that shows us a high level gist of the main core features of the Intelligent Product Factory. Now let's log in and start building products.
+Amaan Shaikh 0 minutes 26 seconds
+We will be logging in as the designer.
+Amaan Shaikh 0 minutes 31 seconds
+Here you will see the designer's dashboard, which gives us a few visuals to understand to understand the usage and performance of products created in the Intelligent Product Factory. A total of 4 new products were designed with a code to bind ratio of 12.5%.
+Amaan Shaikh 0 minutes 50 seconds
+As many policies being created with an average DOS ratio, 58% product production over time is shown in a multiple line chart. Total premium by product line is shown here in a bar chart. Feature and module usage by each product is also shown in a visual and also.
+Amaan Shaikh 1 minute 10 seconds
+The AI powered market insights is a visual that basically in which an in which an AI agent basically.
+Amaan Shaikh 1 minute 19 seconds
+Studies market data, does research and suggests the kind of insurance products that would require that would require to be created over over an incoming time frame.
+Amaan Shaikh 1 minute 35 seconds
+So that in the future. So that is that is the gist of the Intelligent Product Factory Designer's dashboard.
+OK, now let's go to the designer tab that where the magic actually happened. So now in the designer we have three ways to create a product. One is starting using a blank template, the other is using starting from scratch that is from blank the the other is using.
+Amaan Shaikh 2 minutes 27 seconds
+A pretty.
+Amaan Shaikh 2 minutes 29 seconds
+The other is using a pre-created template like the two that we're seeing here. The 3rd and final one here is to create an insurance product using a prompt with our Intelligent Designer Ally. Let me start with a blank template first, uh a product in the Intelligent.
+Amaan Shaikh 2 minutes 49 seconds
+Product Factory is categorized under three under three main categories. The 1st is a chapter, so.
+Amaan Shaikh 3 minutes 1 second
+Sorry, a product in the Intelligent Product Factory is divided into 3 main categories. One is chapters. Now under chapters, the subsections are called modules and modules are composed of fields where individual settings can be taken care of.
+Amaan Shaikh 3 minutes 17 seconds
+So uh, let me create. Uh, let me just show you a gist of how this looks.
+Amaan Shaikh 3 minutes 34 seconds
+We will then choose the type of insurance. We will add the first chapter, name the first chapter.
+Amaan Shaikh 3 minutes 49 seconds
+Under our under our chapter we will add the first module name that module.
+Amaan Shaikh 4 minutes 2 seconds
+And under our module we will add fields. So let's let's create our first field here. We will first take in the insured name.
+Amaan Shaikh 4 minutes 18 seconds
+We will choose the data type for the in short name to be text. Here you can choose the data type for the field that you're configuring. You have text number, currency, text area, toggle switch, drop-down, radio group and date available as data types. You can enter placeholder text here.
+Amaan Shaikh 4 minutes 38 seconds
+You can say ABC company.
+Amaan Shaikh 4 minutes 43 seconds
+You can give it a default value. A rule can be configured saying that this field is required or has to be greater or lesser than a particular value. So that's that's that's how that's how insurance products can be configured using a blank template. So.
+Amaan Shaikh 5 minutes
+Since this is a demo, let's quickly move to the other. Since this is a demo, let's quickly move to the other method. The second method is to create products from a blank from predefined templates. Now creating products from predefined template templates means the chapters, modules and.
+Amaan Shaikh 5 minutes 20 seconds
+Actions are predefined to an extent from where which can be used as a head start for the OR designer from where they can pick up and make make the in depth actual insurance product.
+Amaan Shaikh 5 minutes 38 seconds
+Now for our final, now for our final way of and now for our final and most intuitive way of building products, we will create a marine cargo insurance product using the intelligent designer ally with just a prompt.
+Amaan Shaikh 6 minutes 1 second
+Here it is. I am putting in my prompt to create a marine cargo and stock throughput insurance product with a few specifications and I will now hit generate with AI.
+As we can see, a marine carbon stock throughput product has been generated with a total of 7 chapters, each of them include each of them predefined with their related modules and fields. So let's check out a few of the chapters.
+Amaan Shaikh 7 minutes 15 seconds
+The 1st is the insured and business profile copy identity where I see the full legal entity name that as you can see the field labels, placeholder, text, default values, rules and data types have already been configured.
+Amaan Shaikh 7 minutes 31 seconds
+Principle trade description, years of experience in the industry, website URL if any. It also asks for a loss history or record of the last five years.
+Amaan Shaikh 7 minutes 46 seconds
+On the next section as on the on the next on the next sections lists out the subject matter. In short, what commodities need to be included. As you can see the toggle switch has been included for all of these. The cargo details have been asked for in the next module.
+Amaan Shaikh 8 minutes 3 seconds
+Packing and conveyance. How, what packing materials are used for this cargo, transit exposure and geography? What is the exposure of cargo being carried or geographical scope and exposure of the cargo being carried by the ships associated with this company?
+Amaan Shaikh 8 minutes 23 seconds
+Stock throughput, Stock throughput data has also been modularized over here where storage locations, physical protection and security analysis fields have also been included. Coverage frameworks are also present and.
+Amaan Shaikh 8 minutes 43 seconds
+The deductible and limit values are being asked for over here. So this can be this can be taken up as a very strong head start for insurance product development. Product designers can product designers can use this to speed up their product creation and roll out cycles.
+Amaan Shaikh 9 minutes 2 seconds
+Right after creation, we then move to the test phase. So in the test phase, the user in the user can the user can enter dummy data and test out whether the the user can enter dummy data and test out whether their rules and configurations are working out correctly.
+Amaan Shaikh 9 minutes 23 seconds
+We have a neat AI feature here which since since since insurance product definitions are quite lengthy and complicated, so our AI feature generate the test cases wherein it it gives you test cases with the kind of values that you must enter.
+Amaan Shaikh 9 minutes 43 seconds
+To to validate whether your rules are working correctly or not.
+Amaan Shaikh 9 minutes 49 seconds
+Here it generates a bunch of test cases for for the ease of the user so that they can they can just follow this list and easily, you know, easily test their product to figure out whether it is working correctly. Now we will validate our rules.
+Amaan Shaikh 10 minutes 5 seconds
+And move to the review and save phase. Now in the review and save phase we have an AI based analysis. First we have a read only version of the product available which gives us a holistic overview of the product's configuration, the data types, any rules if configured.
+Amaan Shaikh 10 minutes 25 seconds
+and the entire chapter module and field, chapter module and field structure in a read-only manner.
+Amaan Shaikh 10 minutes 39 seconds
+Now the AI based analysis gives us an overall assessment and executive summary of the product structure. It also gives us a strengths and weaknesses analysis. It it lists out all the strengths and weaknesses and finally it gives us suggestions for improvement of the product structure like.
+Amaan Shaikh 10 minutes 59 seconds
+We can see introduce a select field for Incoterms applicable, add a currency selection for origin countries and destination countries. Replace free text with multi selection dropdown. So these these are all suggestions created using the Intelligent AI designer.
+Amaan Shaikh 11 minutes 18 seconds
+Let's now go on to save our product. We will give it a name V1 inception since this is the first creation version of this.
+Amaan Shaikh 11 minutes 33 seconds
+And then we will hit create product. We can now see that a marine cargo and stock throughput product has been created with basic product details which can be seen on the top right. At a glance we can see what configurations have been given inside the product now.
+Amaan Shaikh 11 minutes 53 seconds
+Within Within version history we have product version tracking. Since this is the first version of a product, we see version 1.0.0. Now from here a product can be activated, unpublished, archived if it's not needed or deleted entirely.
+Amaan Shaikh 12 minutes 10 seconds
+From here we have two more features. We can review the product TAI based analysis features available here as well. We can review the latest version of the product in a read only manner or you can use the latest version of a product as a template.
+Amaan Shaikh 12 minutes 25 seconds
+Can use the latest version of a product as a template and build from there. Add any fields if you would like and let's say I add a new field here, test review and save. Give this version a name V2.
+Amaan Shaikh 12 minutes 44 seconds
+Edited version.
+Amaan Shaikh 12 minutes 50 seconds
+And save. So you can now see that a new draft version of the product with version 1.0.1 has been created and audit trail is also maintained of whatever changes have been made. We can publish this product.
+Amaan Shaikh 13 minutes 6 seconds
+ohh Each and every activity of the user is tracked here in the Intelligent Product Factory for every version of the product. As you can see, version 1.0.1 was created, version 1.01 was changed to active. So that that is the current functionality of the Insurance Intelligent Product Factory.
+Amaan Shaikh 13 minutes 25 seconds
+The AI features is how the AI features and the intuitive testing, reviewing and modeling is how the intelligent product factory enables users to.
+Amaan Shaikh 13 minutes 41 seconds
+To to ensure faster product creation, management and rollout cycles, thereby saving a lot of time and putting AI to actual use.
+Amaan Shaikh 14 minutes 2 seconds
+Speaker.
