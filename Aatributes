@@ -1,31 +1,49 @@
-Yes 👍 you can professionally combine loading + formatting + validation into one clean function. This is actually common in agent systems when prompt usage is simple.
+/home/Jarvis/Musaddique/venv/lib/python3.11/site-packages/phoenix/otel/otel.py:799: UserWarning: No OpenInference instrumentors found. Maybe you need to update your OpenInference version? Skipping auto-instrumentation.
+  warnings.warn(
+🔭 OpenTelemetry Tracing Details 🔭
+|  Phoenix Project: jarvis_deployed
+|  Span Processor: SimpleSpanProcessor
+|  Collector Endpoint: phoenix-app-1772100950.eastus.azurecontainer.io:4317
+|  Transport: gRPC
+|  Transport Headers: {'authorization': '****'}
+|  
+|  Using a default SpanProcessor. `add_span_processor` will overwrite this default.
+|  
+|  ⚠️ WARNING: It is strongly advised to use a BatchSpanProcessor in production environments.
+|  
+|  `register` has set this TracerProvider as the global OpenTelemetry default.
+|  To disable this behavior, call `register` with `set_global_tracer_provider=False`.
 
-We will make one function:
 
-get_final_prompt(text)
+FINAL PROMPT:
 
-which will:
-	1.	Connect Phoenix
-	2.	Load prompt
-	3.	Validate template
-	4.	Inject text
-	5.	Return final prompt
+Read the text and generate 6 question-and-answer pairs that test comprehension. Include: question (clear), answer (concise), difficulty ("easy"/"medium"/"hard"). Avoid trivial yes/no questions. Output as a JSON array.
+Text:
+    Artificial Intelligence helps computers learn from data.
+    
+(venv) Jarvis@JarvisPhase2:~/Musaddique$ 
 
-⸻
 
-Clean professional single-function version
 
-File: phoenix_prompt_manager.py
+
+
+
 
 import os
 from phoenix.client import Client
 from phoenix.otel import register
 from functools import lru_cache
+from openinference.instrumentation.langchain import LangChainInstrumentor
 
 
-PHOENIX_API_KEY = os.getenv("PHOENIX_API_KEY")
-PHOENIX_ENDPOINT = os.getenv("PHOENIX_ENDPOINT")
+# PHOENIX_API_KEY = os.getenv("PHOENIX_API_KEY")
+# PHOENIX_ENDPOINT = os.getenv("PHOENIX_ENDPOINT")
 
+
+PHOENIX_API_KEY = ("3CQ")
+PHOENIX_ENDPOINT =  ("ht6")
+
+print(PHOENIX_ENDPOINT)
 
 os.environ["PHOENIX_COLLECTOR_ENDPOINT"] = PHOENIX_ENDPOINT
 os.environ["OTEL_EXPORTER_OTLP_ENDPOINT"] = PHOENIX_ENDPOINT
@@ -37,8 +55,9 @@ tracer_provider = register(
     auto_instrument=True
 )
 
+LangChainInstrumentor(tracer_provider=tracer_provider).instrument(skip_dep_check=True)
 
-@lru_cache
+
 def get_final_prompt(text: str) -> str:
     """
     Loads Phoenix prompt template and injects runtime text.
@@ -64,7 +83,7 @@ def get_final_prompt(text: str) -> str:
 
     # Fetch prompt
     prompt = client.prompts.get(
-        prompt_version_id="UHJv"
+        prompt_version_id="UHJvbXB0VmVyc2lvbjoxMw=="
     )
 
     # Extract messages
@@ -116,163 +135,3 @@ if __name__ == "__main__":
     print("\nFINAL PROMPT:\n")
 
     print(prompt)
-
-
-⸻
-
-Important improvement I added (very professional)
-
-Prompt caching:
-
-@lru_cache
-
-This means:
-
-First call:
-
-Phoenix API called
-
-Next calls:
-
-Uses memory cache (no API call)
-
-This is very important in AI agent systems because Phoenix calls are slow.
-
-⸻
-
-Small correction (VERY IMPORTANT)
-
-Actually text should NOT be cached, only the prompt template should.
-
-So the true professional version is this:
-
-@lru_cache
-def load_prompt_template():
-
-    client = Client(
-        base_url=PHOENIX_ENDPOINT,
-        api_key=PHOENIX_API_KEY
-    )
-
-    prompt = client.prompts.get(
-        prompt_version_id="UHJv"
-    )
-
-    prompt_messages = prompt._template["messages"]
-
-    system_prompt = next(
-
-        (
-            item["content"][0]["text"]
-            for item in prompt_messages
-            if item.get("role") == "system"
-        ),
-
-        None
-    )
-
-    return system_prompt
-
-
-
-def get_final_prompt(text:str)->str:
-
-    system_prompt = load_prompt_template()
-
-    return system_prompt.format(
-        text=text
-    )
-
-This is the correct enterprise design.
-
-Why?
-
-Because:
-	•	Template rarely changes → cache
-	•	Text always changes → don’t cache
-
-This is how Microsoft PromptFlow / LangChain prompt registries are structured.
-
-⸻
-
-Final recommended version (clean + correct)
-
-Use this:
-
-import os
-from phoenix.client import Client
-from functools import lru_cache
-
-
-PHOENIX_API_KEY = os.getenv("PHOENIX_API_KEY")
-PHOENIX_ENDPOINT = os.getenv("PHOENIX_ENDPOINT")
-
-
-@lru_cache
-def load_prompt_template():
-
-    client = Client(
-        base_url=PHOENIX_ENDPOINT,
-        api_key=PHOENIX_API_KEY
-    )
-
-    prompt = client.prompts.get(
-        prompt_version_id="UHJv"
-    )
-
-    prompt_messages = prompt._template["messages"]
-
-    system_prompt = next(
-
-        (
-            item["content"][0]["text"]
-            for item in prompt_messages
-            if item.get("role") == "system"
-        ),
-
-        None
-    )
-
-    if not system_prompt:
-        raise ValueError("Prompt missing")
-
-    return system_prompt
-
-
-
-def get_final_prompt(text:str)->str:
-
-    template = load_prompt_template()
-
-    try:
-
-        return template.format(
-            text=text
-        )
-
-    except KeyError as e:
-
-        raise ValueError(
-            f"Prompt variable missing {e}"
-        )
-
-
-⸻
-
-Why this version is best ⭐
-
-Because it follows correct separation:
-
-Phoenix → Template Loader (cached)
-                ↓
-Prompt Formatter
-                ↓
-LLM
-
-This matches real AI agent architecture.
-
-⸻
-
-If you want next improvement (very useful for your Jarvis project)
-
-I can show how to make a PromptManager class (this is what real AI teams use instead of functions).
