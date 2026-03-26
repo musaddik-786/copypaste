@@ -1,3 +1,5 @@
+Below is the transcript
+
 Hi everyone. Let's dive into the demo of the Intelligent Product Factory. Here is the landing page of the IPF that shows us a high level gist of the main core features of the Intelligent Product Factory. Now let's log in and start building products.
 Amaan Shaikh 0 minutes 26 seconds
 We will be logging in as the designer.
@@ -93,3 +95,58 @@ Amaan Shaikh 13 minutes 41 seconds
 To to ensure faster product creation, management and rollout cycles, thereby saving a lot of time and putting AI to actual use.
 Amaan Shaikh 14 minutes 2 seconds
 Speaker.
+
+
+
+Below is sample scripts 1 
+What if every claims KPI, every dashboard, and every insight you need was right here, in one cockpit? No more switching tabs, no more searching. Just simple, dynamic and completely transparent. 
+
+Context 
+
+Insurers today face a fundamental challenge - fragmented claims systems that slow processes, create inefficiencies, and erode customer satisfaction. The Claims Cockpit addresses these issues by consolidating all KPIs and OKRs into a single, intelligent platform. The items highlighted in deep blue represent active KPIs, while teams can easily select or deselect metrics to view the dashboards most relevant to their goals. Built for flexibility, it ensures clarity at every step of the claims journey. 
+
+The Executive Summary dashboard provides an immediate view of claim volumes, pending tasks, and key metrics. Users can toggle between chart and data views and apply filters by selecting ‘Zone’, ‘line of business’, etc. The experience is clean, streamlined, and role-based, ensuring every user sees what is most important to their function. 
+
+ Considering the Important OKR’s panel. Our claims satisfaction target is 95% - current performance stands at 97%, exceeding expectations. Average settlement time is targeted at 15 days, while the actual is 18.6, signaling an area for improvement. First-call resolution, with a 90% target, is tracked at 87%, flagged as amber. The panel color-codes outcomes to indicate which metrics are on track, behind, or at risk, providing executives with a snapshot of overall performance at a glance. 
+
+ The Cockpit includes a dynamic dashboard powered by a prompt library. Now as per the selected zone immediate insights are generated: the Northeast reports the highest claim volume, the Midwest remains stable, and the South leads overall. Comparative analysis by month highlights patterns and emerging risks, eliminating the need for manual reporting. 
+
+ At the management level, the system compares settlement ratios across claim managers. With a single selection, it reveals the Best performers, Highest Volume leaders, and areas requiring support - an invaluable tool for reviews and coaching. 
+
+ Filters applied from one view are retained across others. For example, if a zone filter is applied in the Executive Summary, it remains active when navigating to Financial Performance, ensuring continuity of context. 
+
+Metrics can be configured to match organizational priorities. For example, from the List of KPI’s and OKR’s Loss Ratio can be replaced with Combined Ratio, Expense Ratio, or Reserve Adequacy. The dashboard refreshes immediately, ensuring leadership teams monitor exactly what matters most. 
+
+ Moving on to Turn around and Processing Time section Selecting a specific manager, such as Emily, reveals details on her team - average processing times, average settlement time, First Notice to Closure Rate and Reopened Claims Processing Time. Clearing the filter collapses the view, but the data remains available for deeper exploration. This provides actionable insights at both the macro and micro level. 
+
+The Cockpit extends across multiple dimensions, including Legal, Actuarial, Customer Experience, Recovery Efficiency, Claim Quality, Delegated Authority, and File Management KPIs. The framework is fully customizable, ensuring alignment with evolving business needs. 
+
+The Claims Cockpit is more than a dashboard - it is a performance transformation platform. By enabling faster settlements, clear visibility, and stronger customer experiences, it empowers insurers to elevate claims management from an operational necessity to a competitive differentiator. 
+
+
+Below is sample script 2
+What if every claims KPI, every dashboard, and every insight you need was right here, in one cockpit? No more switching tabs, no more searching. Just simple, dynamic and completely transparent. 
+
+Context 
+
+Insurers today face a fundamental challenge - fragmented claims systems that slow processes, create inefficiencies, and erode customer satisfaction. The Claims Cockpit addresses these issues by consolidating all KPIs and OKRs into a single, intelligent platform. The items highlighted in deep blue represent active KPIs, while teams can easily select or deselect metrics to view the dashboards most relevant to their goals. Built for flexibility, it ensures clarity at every step of the claims journey. 
+
+The Executive Summary dashboard provides an immediate view of claim volumes, pending tasks, and key metrics. Users can toggle between chart and data views and apply filters by selecting ‘Zone’, ‘line of business’, etc. The experience is clean, streamlined, and role-based, ensuring every user sees what is most important to their function. 
+
+ Considering the Important OKR’s panel. Our claims satisfaction target is 95% - current performance stands at 97%, exceeding expectations. Average settlement time is targeted at 15 days, while the actual is 18.6, signaling an area for improvement. First-call resolution, with a 90% target, is tracked at 87%, flagged as amber. The panel color-codes outcomes to indicate which metrics are on track, behind, or at risk, providing executives with a snapshot of overall performance at a glance. 
+
+ The Cockpit includes a dynamic dashboard powered by a prompt library. Now as per the selected zone immediate insights are generated: the Northeast reports the highest claim volume, the Midwest remains stable, and the South leads overall. Comparative analysis by month highlights patterns and emerging risks, eliminating the need for manual reporting. 
+
+ At the management level, the system compares settlement ratios across claim managers. With a single selection, it reveals the Best performers, Highest Volume leaders, and areas requiring support - an invaluable tool for reviews and coaching. 
+
+ Filters applied from one view are retained across others. For example, if a zone filter is applied in the Executive Summary, it remains active when navigating to Financial Performance, ensuring continuity of context. 
+
+Metrics can be configured to match organizational priorities. For example, from the List of KPI’s and OKR’s Loss Ratio can be replaced with Combined Ratio, Expense Ratio, or Reserve Adequacy. The dashboard refreshes immediately, ensuring leadership teams monitor exactly what matters most. 
+
+ Moving on to Turn around and Processing Time section Selecting a specific manager, such as Emily, reveals details on her team - average processing times, average settlement time, First Notice to Closure Rate and Reopened Claims Processing Time. Clearing the filter collapses the view, but the data remains available for deeper exploration. This provides actionable insights at both the macro and micro level. 
+
+The Cockpit extends across multiple dimensions, including Legal, Actuarial, Customer Experience, Recovery Efficiency, Claim Quality, Delegated Authority, and File Management KPIs. The framework is fully customizable, ensuring alignment with evolving business needs. 
+
+The Claims Cockpit is more than a dashboard - it is a performance transformation platform. By enabling faster settlements, clear visibility, and stronger customer experiences, it empowers insurers to elevate claims management from an operational necessity to a competitive differentiator. 
+
+ 
