@@ -1,425 +1,110 @@
-This is my handler.py now 
-
-
-import os
-import json
-from typing import Dict, Any, List
-import pandas as pd
-
-from summary_service import summary_require_env
-# from summary_storage_utils import download_blob_to_input_folder
-from summary_loader import load_summary_document
-from summary_classifier import summarize_first_page
-from Data_Filler import extract_filenames_and_summaries
-from Data_Filler import connect_to_blob, beautify_extracted_data
-from newsummary import summarize_attachments
-from separate_summary import individual_summary
-from Data_Filler import beautify_api_response
-from summary_storage_utils import download_blob_to_input_folder_by_reference, read_text_file_from_container,extract_filename_referencenumber_container_name
-# from newsummary import extract_refs_from_attachments, load_raw_email_bodies_for_refs, summarize_attachments
-
-
-INPUT_FOLDER = "input"
-OUTPUT_FOLDER = "output"
-EMAIL_BODY = "email_body"
-
-def clean_result_for_api(result: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Build a compact, clean dictionary response from the full 'result' dict.
-
-    Output shape:
-    {
-      "combined_summary": "<string or None>",
-      "individualized_summary": [
-         { "file_name": ..., "summary": ..., "document_type": ..., "processed_summary": ... },
-         ...
-      ]
-    }
-
-    This removes raw 'text' and error details from the per-file items.
-    """
-    combined = result.get("combined_summary")
-
-    raw_individualized = result.get("individualized_summary", [])
-    cleaned_list: List[Dict[str, Any]] = []
-
-    if isinstance(raw_individualized, list):
-        for item in raw_individualized:
-            cleaned_item = {
-                "file_name": item.get("file_name"),
-                "summary": item.get("summary"),
-                "document_type": item.get("document_type"),
-                "processed_summary": item.get("processed_summary"),
-            }
-            cleaned_list.append(cleaned_item)
-
-    return {
-        "combined_summary": combined,
-        "individualized_summary": cleaned_list,
-    }
-
-
-async def summarize_blob_pdfs_layout(blob_urls: List[str]) -> Dict[str, Any]:
-    """
-    For each Blob URL:
-      - Download PDF into input/
-      - Use Form Recognizer to extract text (all pages)
-      - Use LLM to summarize the FIRST PAGE
-
-    Saves the full detailed JSON (including raw text) to ./output/layout_summaries_result.json
-    but RETURNS a cleaned dictionary suitable for API responses (no raw 'text').
-    """
-    try:
-        summary_require_env()
-    except Exception as e:
-        # Return a clean, empty-shaped response on environment failure
-        return {"combined_summary": None, "individualized_summary": []}
-
-    summaries: List[Dict[str, Any]] = []
-
-    for blob_url in blob_urls:
-        file_name = None
-
-        try:
-            container, filename, reference_number =  await extract_filename_referencenumber_container_name(blob_url)
-            file_name = filename
-            print("Container ", container)
-            print("Reference number", reference_number)
-            print("filename", filename)
-        except Exception as e:
-            summaries.append(
-                {
-                    "blob_url": blob_url,
-                    "file_name": file_name,
-                    "summary": None,
-                    "text": None,
-                    "error": f"Failed to read filename: {e}",
-                }
-            )            
-            continue
-
-        # try:
-        #     text = await read_text_file_from_container(filename)
-        # except Exception as e:
-        #     summaries.append(
-        #         {
-        #             "blob_url": blob_url,
-        #             "file_name": file_name,
-        #             "summary": None,
-        #             "text": text,
-        #             "error": f"Failed to read filename: {e}",
-        #         }
-        #     )            
-        #     continue
-
-        try:
-            text = await read_text_file_from_container(filename)
-        except Exception as e:
-            summaries.append(
-                {
-                    "blob_url": blob_url,
-                    "file_name": file_name,
-                    "reference_number": reference_number,
-                    "summary": None,
-                    "text": None,
-                    "error": f"TEXT_FILE_MISSING: {e}",
-                }
-            )            
-            continue
-
-
-
-        # 1) Download PDF
-        # try:
-        #     local_pdf = await download_blob_to_input_folder(
-        #         blob_url, input_folder=INPUT_FOLDER
-        #     )
-        #     file_name = os.path.basename(local_pdf)
-        # except Exception as e:
-        #     summaries.append(
-        #         {
-        #             "blob_url": blob_url,
-        #             "file_name": file_name,
-        #             "summary": None,
-        #             "text": None,
-        #             "error": f"Failed to download blob: {e}",
-        #         }
-        #     )
-        #     continue
-
-        # # 2) Use Form Recognizer to analyze the document
-        # try:
-        #     document_content = load_summary_document(local_pdf)
-        # except Exception as e:
-        #     summaries.append(
-        #         {
-        #             "blob_url": blob_url,
-        #             "file_name": file_name,
-        #             "summary": None,
-        #             "text": None,
-        #             "error": f"Form Recognizer failed: {e}",
-        #         }
-        #     )
-        #     continue
-
-        # Extract raw text (stored in first_page_text key by loader)
-        # text_content = document_content.get("text", "")
-
-        # 3) Summarize FIRST PAGE using LLM (short summary)
-        try:
-            summary_text = summarize_first_page({"first_page_text":text}, file_name=file_name)
-        except Exception as e:
-            summaries.append(
-                {
-                    "blob_url": blob_url,
-                    "file_name": file_name,
-                    "summary": None,
-                    "text": text_content,
-                    "error": f"Summarization failed: {e}",
-                }
-            )
-            continue
-
-        # 4) Success case for this document — include raw text for audit on disk
-        summaries.append(
-            {
-                "blob_url": blob_url,
-                "file_name": file_name,
-                "reference_number":reference_number,
-                "summary": summary_text,
-                "text": text,
-                "error": None,
-            }
-        )
-
-    result: Dict[str, Any] = {"status": True, "summaries": summaries}
-
-    # 5) Save result to ./output (retain 'text' on disk for audit)
-    try:
-        os.makedirs(OUTPUT_FOLDER, exist_ok=True)
-        out_path = os.path.join(OUTPUT_FOLDER, "layout_summaries_result.json")
-        with open(out_path, "w", encoding="utf-8") as f:
-            json.dump(result, f, indent=2, ensure_ascii=False)
-    except Exception as e:
-        result["save_error"] = str(e)
-
-    # 6) Beautify and optionally write to Excel (unchanged; uses only file_name + summary)
-    try:
-        extracted_data = extract_filenames_and_summaries(OUTPUT_FOLDER)
-        print("Beautified Extracted Data:\n")
-        beautify_data = beautify_extracted_data(extracted_data)
-        print(beautify_data)
-
-    #     DATA_URL = os.getenv("Data_URL")
-    #     if DATA_URL:
-    #         try:
-    #             updated_data = connect_to_blob(DATA_URL, beautify_data)
-    #             print("Blob Data Processed Successfully.")
-    #             if isinstance(updated_data, pd.DataFrame):
-    #                 print("Blob Data Processed Successfully and Excel Updated.")
-    #             else:
-    #                 # updated_data may be an error dict
-    #                 print(f"Error: {updated_data.get('error')}")
-    #         except Exception as e:
-    #             print(f"Error processing blob data: {e}")
-    #     else:
-    #         print("Data_URL environment variable is not set.")
-    except Exception as e:
-        print(f"Error in beautify / blob step: {e}")
-
-
-    try:
-        download_results = await download_blob_to_input_folder_by_reference(
-            beautify_data,
-            output_folder=EMAIL_BODY,
-            container_name="attachment-downloader",
-            blob_name_template="body_{ref}.txt",
-        )
-        print("Email body download results:", download_results)
-    except Exception as e:
-        print("Failed to download email bodies by reference:", e)
-
-#Working code friday night 7:20 pm
-    # 7) Combined submission summary (uses file_name + summary only)
-    combined_summary_text = None
-    filenamesummary_extracted_beautified: List[Dict[str, Any]] = []
-    try:
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        output_folder = "output"
-
-        json_path = os.path.join(base_dir, output_folder, "layout_summaries_result.json")
-        with open(json_path, "r", encoding="utf-8") as f:
-            layout_json = json.load(f)
-
-        # filenamesummary_extracted_beautified = extract_filenames_and_summaries(output_folder)
-       
-        #Commented this 
-        # filenamesummary_extracted_beautified = summaries
-        #Added below two things after commenting
-        valid_documents = [
-            doc for doc in summaries
-            if doc.get("text") and not doc.get("error")
-            ]
-
-        filenamesummary_extracted_beautified = valid_documents
-
-        print("Per-document summaries (with text):")
-        print(filenamesummary_extracted_beautified)
-        
-        
-        #HERE WE CAN CALL THE EXTRACT REFS FROM ATTACHMENTS AND LOAD RAW EMAIL BODIES FOR REFS FUNCTIONS AND KEEP THE CALLING OF SUMMARIZE_ATTACHMENTS SAME AS BELOW 
-
-        # reference_number_extracted = extract_refs_from_attachments(beautify_data)
-
-        # load_raw_email_bodies_for_refs(reference_extracted,"email_body")
-
-        combined_summary_text = summarize_attachments(filenamesummary_extracted_beautified)
-        print("Combined Submission Summary:")
-        print(combined_summary_text)
-
-        result["combined_summary"] = combined_summary_text
-    except Exception as e:
-        print(f"Error generating combined submission summary: {e}")
-        result["combined_summary_error"] = str(e)
-        combined_summary_text = None
-
-    # 8) Individual typed summaries (ACORD / Loss Run / SOV)
-    try:
-        # individual_summary expects attachments each having 'file_name','summary','text'
-        individualized_summary = individual_summary(filenamesummary_extracted_beautified)
-        # print("Individualized Summary Output (raw):")
-        print(individualized_summary)
-        result["individualized_summary"] = individualized_summary
-    except Exception as e:
-        print(f"Error generating Individual summary: {e}")
-        result["individualized_summary_error"] = str(e)
-        result["individualized_summary"] = []
-
-
-    # 9) CLEAN the result for the API and return only the compact payload (no raw text)
-    cleaned_payload = clean_result_for_api(result)
-
-
-    
-    try:
-        beautified = beautify_api_response(cleaned_payload)
-        print("This is beautified for  response : ", beautified)
-
-        # print("\n----- COMBINED SUBMISSION SUMMARY (beautified) -----\n")
-        # if beautified["combined_summary"]:
-        #     print(beautified["combined_summary"])
-        # else:
-        #     print("No combined summary available.")
-
-        DATA_URL = os.getenv("Data_URL")
-        if DATA_URL:
-            try:
-                updated_data = connect_to_blob(DATA_URL, beautified)
-                print("Blob Data Processed Successfully.")
-                if isinstance(updated_data, pd.DataFrame):
-                    print("Blob Data Processed Successfully and Excel Updated.")
-                    excel_update_status = "Excel updated successfully"
-                else:
-                    # updated_data may be an error dict
-                    error_msg = updated_data.get("error", "Excel update failed")
-                    # print(f"Error: {updated_data.get('error')}")
-                    print(f"Error: {error_msg}")
-                    excel_update_status = error_msg
-            except Exception as e:
-                print(f"Error processing blob data: {e}")
-                excel_update_status = str(e)
-        else:
-            print("Data_URL environment variable is not set.")
-            excel_update_status = "DATA_URL not configured"
-    except Exception as e:
-        print(f"Error in beautify / blob step: {e}")
-
-
-
-
-
-
-
-
-        # DATA_URL = os.getenv("Data_URL")
-
-        # excel_update_status = "Not attempted"
-
-        # if DATA_URL:
-        #     try:
-        #         updated_data = connect_to_blob(DATA_URL, beautified)
-        #         print("Blob Data Processed Successfully.")
-
-        #         if isinstance(updated_data, pd.DataFrame):
-        #             print("Blob Data Processed Successfully and Excel Updated.")
-        #             excel_update_status = "Excel updated successfully"
-        #         else:
-        #             error_msg = updated_data.get("error", "Excel update failed")
-        #             print(f"Error: {error_msg}")
-        #             excel_update_status = error_msg
-
-        #     except Exception as e:
-        #         print(f"Error processing blob data: {e}")
-        #         excel_update_status = str(e)
-
-        # else:
-        #     print("Data_URL environment variable is not set.")
-        #     excel_update_status = "DATA_URL not configured"
-
-
-        # # ADD THIS LINE (important)
-        # beautified["excel_update_status"] = excel_update_status
-
-    beautified["excel_update_status"] = excel_update_status
-    return beautified
-
-
-
-(venv) Jarvis@JarvisPhase2:~/Musaddique/Ultimate_summary_pract_Excel$ python3 test_script.py 
-Testing /api/v1/summary_agent/attachment_summary_mcp ...
-
-HTTP Status: 200
-
-Response JSON:
-{
-    "jsonrpc": "2.0",
-    "id": 1,
-    "result": {
-        "combined_summary": "SUBMISSION SUMMARY\nClient: Sunflower Hotel Group LLC (dba Cruise Resort)\nDate: Not Present\n1. SUBMISSION COVER LETTER / NARRATIVE\nExposure Description:\n- Sunflower Hotel Group LLC operates as Cruise Resort, an eight-story, 240-room full-service resort located in Daytona Beach, Florida.\n- Main operations include guest accommodations, food & beverage, banquets/events, spa services, marina guest fees, and retail. The property features landscaped grounds, two outdoor pools, a spa, fitness center, paved driveways, and a private dock with eight guest berths.\n- The site covers 4.2 acres and includes reinforced concrete and structural steel construction, masonry exterior, and a built-up membrane roof. The property was built in 2008 and partially renovated in 2019 (lobby, HVAC, pool decking).\nPlacement Strategy:\n- The submission seeks coverage for Business Interruption and Contingent Business Interruption (including Extra Expense and Civil Authority where available), with a requested limit of $40,000,000 and a 24-month indemnity period. The broker is open to insurer presentation on indemnity basis and waiting period options.\nRenewal Highlights:\n- Not Present\nChanges YOY:\n- Not Present\nAdditional Overview Details:\n- Effective Date: 2026-01-01\n- Submission Type: New Business\n- Current Situation: Submission is for Business Interruption and Contingent Business Interruption coverage in support of the property\u00e2\u0080\u0099s operations and exposures.\n2. LOSS HISTORY PACKAGE\n5\u00e2\u0080\u009310 Year Loss Runs:\n- Not Present\nLarge Loss Details:\n- Not Present\nTrends Analysis:\n- Not Present\nSummary of Loss History:\n- Status: Not Present\n- Summary: Not Present\n- Major Incidents: Not Present\n3. EXPOSURE DATA\nCOPE Information (Construction, Occupancy, Protection, Exposure):\n- Construction: Reinforced concrete and structural steel, masonry exterior, built-up membrane roof.\n- Occupancy: Full-service resort with 240 rooms, F&B, spa, events, marina, and retail.\n- Protection: Full wet-pipe sprinkler fire protection, 2,500 kVA electrical service with emergency generator backup, central chilled water HVAC plant (major components replaced in 2019).\n- Exposure: Coastal location with marina and guest dock, landscaped grounds, and multiple amenities.\nStatement of Values (SOV):\n- Total Insurable Value (TIV): $100,000,000\n- Building Limit: Not Present\n- Contents/BPP Limit: Not Present\n- Business Income: $40,000,000 limit requested with 24 months indemnity\nFinancials:\n- Annual gross revenue: $40,000,000\n- Annual payroll: $6,500,000\nCAT Worksheets / Specialty Schedules:\n- Not Present\nAdditional Exposure Details:\n- Total Locations: 1\n- Main Operations: Resort hospitality, including accommodations, F&B, events, spa, marina, and retail\n- Property Details: Eight-story, 240-room resort on 4.2 acres, built 2008, partial renovation 2019, includes pools, spa, fitness center, marina, and site improvements\n- Deductible Requested: Not Present",
-        "individualized_summary": [
-            {
-                "file_name": "19CDC8AB7BCC5E85_attachment_SunflowerHotels_Submission_Document",
-                "summary": "The submission is for a commercial property policy on Sunflower Hotel Group LLC (dba Cruise Resort), an eight-story, 240-room full-service resort located in Daytona Beach, Florida, with a total insured value of $100,000,000 and a requested primary layer limit of $6,750,000 on a replacement cost basis. The property, built in 2008 and partially renovated in 2019 (including lobby, HVAC, and pool decking), is constructed with reinforced concrete and structural steel, masonry exterior, and a built-up membrane roof. The site covers 4.2 acres with landscaped grounds, two outdoor pools, spa, fitness center, paved driveways, and a private dock with eight guest berths. Major revenue streams include accommodations, F&B, banquets/events, spa, marina guest fees, and retail, with an average annual occupancy of 68% and seasonal peaks from November to April. Critical building systems include a central chilled water HVAC plant (major components replaced in 2019), a 2,500 kVA electrical service with emergency generator backup, and full wet-pipe sprinkler fire protection. Insured values are allocated across buildings, FF&E, public areas, mechanical systems, site improvements, and marina structures.",
-                "document_type": null,
-                "processed_summary": "DOCUMENT SUMMARY\n\nINSURED DETAILS\n- Named Insured: Sunflower Hotel Group LLC (dba Cruise Resort)\n- Address: 100 Harbor View Drive, Seabreeze, Daytona Beach, Volusia, FL 32118, USA\n- Business Type: LLC\n- Operations: Full-service resort including accommodation, food & beverage, banquets/meetings, spa, fitness, retail, and limited marina services\n\nPROPERTY DETAILS\n- Number of Locations: 1\n- Construction: Reinforced concrete and structural steel frame with masonry exterior finish; concrete slab-on-grade and reinforced concrete floor decks; built-up membrane roof system (partial overlay in 2019)\n- Year Built: 2008\n- Square Footage: 198,240 sq ft (building area); 4.2 acres (site area)\n- Occupancy: 240 guest rooms (standard, one- and two-bedroom suites, executive suites); average annual occupancy 68%\n- Protection Systems:\n- Full wet-pipe sprinkler system\n- Addressable fire alarm with central station monitoring\n- On-site fire pump\n- Two hydrants within 100 ft\n- Commercial kitchen hood suppression\n- Emergency lighting and illuminated exit signage\n- 24/7 on-site security staff\n- Key-card access and CCTV surveillance\n\nCOVERAGE DETAILS\n- Line of Business: Commercial Property\n- Effective Date: 01/01/2026\n- Expiry Date: 01/01/2027\n- Limits: $6,750,000 (Primary Layer)\n- Valuation: Replacement Cost\n\nFINANCIAL DETAILS\n- Total Insured Value: $100,000,000\n- Revenue: Not Present\n- Payroll: Not Present\n- Business Income: Not Present\n\nLOSS DETAILS\n- Loss History: Not Present\n- Major Losses: Not Present\n- Trends: Not Present\n\nRISK CONSIDERATIONS\n- Key Exposures:\n- Hospitality operations with guest accommodations, restaurants, bars, banquets, spa, retail, and marina\n- High seasonal occupancy (peak Nov-Apr)\n- On-site pools and marina facilities\n- Significant values in FF&E and public areas\n- CAT Exposure: Not Present\n- Dependencies:\n- Power provider: Seabreeze Utilit\n- Emergency generator supports life-safety and essential loads\n\nUNDERWRITER NOTES\n- Key observations:\n- Modern construction (2008) with major renovations in 2019 (lobby, HVAC, pool decking)\n- Comprehensive fire protection and life-safety systems in place\n- Robust security protocols including 24/7 staff, electronic access, and CCTV\n- No guest rooms below grade; mechanical and service areas located in lower levels\n- Risk quality indicators:\n- Routine maintenance programs for critical systems\n- Documented fire protection testing and maintenance\n- Emergency power with weekly test schedule\n- Pool lifeguard program and compliance with aquatic codes\n- Important underwriting considerations:\n- High insured values concentrated in a single location\n- Exposure to hospitality-related risks (guest safety, food & beverage, events)\n- No loss history provided; further claims history review recommended\n- CAT exposure details not provided; further assessment required"
-            }
-        ],
-        "excel_update_status": "Excel updated successfully"
-    }
-}
-
-
-
-below is json{
-  "status": true,
-  "summaries": [
-    {
-      "blob_url": "https://agenticai1.blob.core.windows.net/quote-extraction-results/19CDC8AB7BCC5E85_attachment_SunflowerHotels_Submission_Document.pdf",
-      "file_name": "19CDC8AB7BCC5E85_attachment_SunflowerHotels_Submission_Document",
-      "reference_number": "19CDC8AB7BCC5E85",
-      "summary": "The submission is for a commercial property policy on Sunflower Hotel Group LLC (dba Cruise Resort), an eight-story, 240-room full-service resort located in Daytona Beach, Florida, with a total insured value of $100,000,000 and a requested primary layer limit of $6,750,000 on a replacement cost basis. The property, built in 2008 and partially renovated in 2019 (including lobby, HVAC, and pool decking), is constructed with reinforced concrete and structural steel, masonry exterior, and a built-up membrane roof. The site covers 4.2 acres with landscaped grounds, two outdoor pools, spa, fitness center, paved driveways, and a private dock with eight guest berths. Major revenue streams include accommodations, F&B, banquets/events, spa, marina guest fees, and retail, with an average annual occupancy of 68% and seasonal peaks from November to April. Critical building systems include a central chilled water HVAC plant (major components replaced in 2019), a 2,500 kVA electrical service with emergency generator backup, and full wet-pipe sprinkler fire protection. Insured values are allocated across buildings, FF&E, public areas, mechanical systems, site improvements, and marina structures.",
-      "text": "Commercial Property - Underwriting\nSubmission Cruise Resort\nBroker Name: Olivia Park\nOrganization Name: Armstrong and Company\nProducer Code: 100-002541\nUnderwriting Company: Acme Low Hazard Insurance\nName And Mailing Address: Sunflower Hotel Group LLC, 100 Harbor View Drive,\nSeabreeze, Daytona Beach, Volusia, FL 32118, USA\nOrganization Type: LLC\n1. Program Structure & Requested\nTerms\nLine of Business: Commercial Property\nTotal Insured Value (TIV):$100,000,000\nEffective Date: 01/01/2026\nExpiration Date: 01/01/2027\nTerm Type: Annual\nLimit of Liability: $6,750,000\nLayer: Primary\nValuation: Replacement Cost\nCoverage Currency: USD\nSettlement Currency: USD\n2. Executive Summary\nProperty Description: The property is an eight-story, full-service resort constructed in\n2008 with a reinforced concrete and structural steel frame and a masonry exterior finish. It\nfeatures concrete slab-on-grade and reinforced concrete floor decks, along with a built-up\nmembrane roofing system that received a partial overlay in 2019. The site spans 4.2 acres\nand includes landscaped areas, two outdoor pools, spa and fitness facilities, paved\ndriveways, walkways, and a private dock with eight guest berths. Mechanical rooms,\nstorage, and service corridors are located in the lower levels, with no guest rooms below\ngrade.\n3. Property Identification\nNamed Insured (Company Name):\nSunflower Hotel Group LLC (dba Cruise\nResort)\nAddress Line 1: 100 Harbor View Drive,\nSeabreeze\nCity: Daytona Beach\nState: Florida\nZip Code: 32118\nCountry: United States\nAddress Type: Business\nProperty Size: 4.2 acres (site area with\nlandscaped grounds, beach access, and\nprivate dock)\nBuilding Area (sq ft): 198240\nYear Constructed: 2008\nClass Code: 0585\nMajor Renovation: 2019 (lobby, HVAC\nreplacement, pool decking)\nNumber of Floors: 8\nNumber of Guest Rooms: 240\nGuest Room Mix: standard suites, one-\nand two-bedroom suites, select executive\nsuites\n4. Property Description & Construction\n· Primary construction: reinforced concrete and structural steel frame with masonry\nexterior finish\n· Floor construction: concrete slab-on-grade and reinforced concrete decks\n· Roof: built-up membrane roof system (2019 partial overlay) with routine maintenance\nprogram\n· Basements/lower levels: mechanical rooms, dry storage, service corridors; no guest\nlodging below grade\n· Site improvements: pool decks, two outdoor pools, spa, fitness center, paved driveways\n& drop-off, landscaped areas, walkways, private dock (8 guest berths)\n· Accessibility: main vehicular access from Harbor View Drive; service drive from Marina\nWay\n5. Occupancy & Operations\n· Primary use: full-service resort: accommodation, F&B, banquet/meeting, spa, fitness,\nretail, limited marina services\n· Revenue drivers: rooms; three restaurants; two bars; banquets/events; spa; marina\nguest fees; retail\n· Average annual occupancy: 68% (rolling 12-month average)\n· Seasonal variation: higher occupancy in high season (Nov-Apr) with peak banquets\nNov-Mar\n6. Insured Values (Summary)\nContents / FF&E: $15,000,000\nBuildings & structural improvements:\n$85,000,000\nTotal Insured Value (TIV):\n$100,000,000\nHigh-level itemization (for underwriting reference):\n· Guest suites & structural improvements: $62,000,000\n· Public areas, lobby, F&B & back-of-house structures: $12,500,000\n· Building services & mechanical systems: $3,500,000\n· Pool, decks, site improvements & landscaping: $2,000,000\n· Dock & marina structures: $1,000,000\n· FF&E (furniture, fixtures & equipment): $12,000,000\n· Misc contents, small tools, operating supplies: $6,000,000\n7. Critical Building Systems\n· HVAC: central chilled water plant; packaged rooftop units for public spaces; major\ncomponents replaced 2019; PM via CMMS\n· Electrical: main service 2,500 kVA; emergency circuits for life-safety; ATS for generator\ntie-in\n· Emergency power: diesel generator supports life-safety, fire pumps, selected essential\nloads and partial POS/IT; weekly test schedule\n· Fire protection: full wet-pipe sprinklers; addressable fire alarm with central station\nmonitoring; on-site fire pump; two hydrants within 100 ft; quarterly & annual test logs\n· Kitchen fire protection: commercial kitchen hood suppression with regular servicing\n· Plumbing: domestic hot water plant and booster pumps; backflow prevention devices\ninstalled\n· Elevators: two passenger elevators; one service elevator; annual inspections and\nmaintenance contracts\n· Life-safety: emergency lighting, illuminated exit signage, ADA egress, posted evacuation\nplans\n8. Security & Monitoring\n· Security staff: 24/7 on-site security team\n· Electronic access: key-card access for guest room floors and restricted staff areas\n· CCTV: integrated digital video surveillance across public areas, front-drive, perimeter\nand service yards; retention policy documented\n· Guest safety measures: pool lifeguard program (seasonal); signage & compliance with\naquatic facility codes\n9. Utilities & Third-party\nDependencies (CBI relevance)\nPower provider: Seabreeze Utilities\nAuthority\nWater & sewer: Seabreeze Water &\nWaste (municipal)\nPrimary ISP / CRS & POS connectivity:\nMaritime Communications Inc. (primary\nISP for booking/PMS/POS)\nRedundant ISP: Redundant ISP vendor\ncontract under review\nLaundry/Linens: Seabreeze Linen Co.\n(off-site)\nF&B suppliers: regional distributors;\nmultiple vendor relationships for key\nitems\nExcursion vendors / marina operators:\nlicensed third-party operators; vendor\nagreements in place\n10. Marina Specifics\n· Dock: fixed dock with eight guest berths; owned & maintained by resort; no on-site\nfueling (adjacent marina for fuel)\n· Marine operations: third-party licensed operators run excursions; hull/boat PD not\nunder property program (vendor responsibility in contracts)\n11. Maintenance, Inspections & Risk Controls\n· Preventive maintenance: CMMS logs for HVAC, kitchen hood, sprinkler, generator\ntesting\n· Life-safety testing: quarterly sprinklers; annual fire pump; monthly fire alarm tests;\nannual full alarm inspection; vendor certificates on file\n· Vendor controls: contractor insurance requirement min $2M GL; certificate\nmanagement process\n· Business continuity: documented BCP & EAP; off-site backups for reservations & guest\nrecords; periodic tabletop exercises with local emergency services\n· Staff training: annual fire/evacuation drills; F&B managers with food safety cert; first-\naid/CPR for supervisors\n12. Recent Loss History (Time-Element & Property)\n· 2024: kitchen exhaust grease fire - smoke damage; limited kitchen closure; BI & partial\nEE paid for 7 days; time-element approx. $250,000.\n· 2022: failed domestic line water intrusion (lower-level storage) - contents damage; BI\n3 days approx. $120,000.\n. 2025 (YTD): pool area slip & fall remediation with temporary closure; minor BI approx.\n$15,000.\nLoss-run reports and claim detail files available on request (attached in submission packet).\n13. Exposures & Underwriting Considerations\n· Time-element sensitivity: reliance on room revenue and banquet/event income; peak-\nseason outages materially impact revenue.\n· Third-party dependency: booking engine/CRS and primary ISP are key contingent BI\nexposures.\n· Marina & vendor risk: dock and excursion vendors introduce potential liability and\nservice interruption considerations.\n· Flood & windstorm: coastal location elevates storm surge and named storm exposure;\nflood zone/elevation certificate review recommended.\n· Utility interruption: municipal power/telecom failures may trigger service interruption\nclaims; redundancy & SLAs relevant.\n17. Broker & Property Contacts\nBroker: Olivia Park - Senior Hospitality\nBroker, Meridian Shoreline Insurance\nPartners\nBroker Email:\nolivia.park@meridianship.com\n18. Underwriter Notes\nNotes:\nFollow-ups:\nPrepared for submission - Cruise Resort\nBroker Phone: +1 (555) 214-7802\nProperty Contact: Marcus Reyes -\nGeneral Manager, Cruise Resort\nProperty Email:\nm.reyes@cruiseresort.com\nProperty Phone: +1 (555) 321-4400",
-      "error": null
-    },
-    {
-      "blob_url": "https://agenticai1.blob.core.windows.net/quote-extraction-results/19CDC8AB7BCC5E85_attachment_Tower_Insurance_-_Home_Submission_Report.pdf",
-      "file_name": "19CDC8AB7BCC5E85_attachment_Tower_Insurance_-_Home_Submission_Report",
-      "reference_number": "19CDC8AB7BCC5E85",
-      "summary": null,
-      "text": null,
-      "error": "TEXT_FILE_MISSING: Blob not found in container 'layout-detection-text-of-document': 19CDC8AB7BCC5E85_attachment_Tower_Insurance_-_Home_Submission_Report.txt"
-    }
-  ]
-}
-
-but i did not got this text file missing error in response it seems
+Understood. You want your raw transcript converted into a professional, polished voice-over script similar to your sample scripts (smooth narration, structured flow, no filler words, presentation style). I will remove repetitions, improve flow, add transitions, and make it sound natural for narration while keeping your actual demo content intact.
+
+Here is your professional voice-over script:
+
+⸻
+
+Intelligent Product Factory – Voice Over Script
+
+What if insurance products could be designed faster, tested smarter, and launched with confidence using the power of AI?
+
+Welcome to the Intelligent Product Factory, a platform designed to transform how insurance products are created, tested, and managed.
+
+Let’s begin with the landing page.
+This provides a high-level overview of the core capabilities of the Intelligent Product Factory. From here, product designers can quickly access tools required to build and manage insurance products efficiently.
+
+After logging in as a Designer, we arrive at the Designer Dashboard.
+
+This dashboard provides key insights into product usage and performance. We can see that four new products have been designed, with a code-to-bind ratio of 12.5%. Policy creation trends and product adoption over time are displayed through interactive visualizations. Premium distribution by product line is shown through bar charts, while feature and module usage is also presented visually.
+
+One of the most powerful features here is AI-powered market insights.
+This AI capability analyzes market data, performs research, and recommends insurance products that may be relevant for future market demands, helping insurers stay ahead of emerging opportunities.
+
+Now let’s move to the Designer workspace, where product creation actually happens.
+
+The Intelligent Product Factory provides three ways to create a product:
+
+• Starting from a blank template
+• Using predefined templates
+• Or generating a product using AI through the Intelligent Designer Ally
+
+Let’s first look at creating a product from a blank template.
+
+In the Intelligent Product Factory, every product is structured into three main layers:
+
+Chapters, which represent major sections
+Modules, which are subsections within chapters
+And Fields, where individual data configurations are defined
+
+To begin, we select the insurance type, create a chapter, then define modules within that chapter, and finally configure fields.
+
+For example, we can create a field such as Insured Name, select its data type as text, and configure additional properties like placeholder values, default values, and validation rules.
+
+The platform supports multiple field types including text, number, currency, text area, toggle switches, dropdowns, radio buttons, and date fields. Validation rules can also be applied, such as making fields mandatory or defining value limits.
+
+This demonstrates how flexible product configuration can be when starting from scratch.
+
+Now let’s look at the second method — using predefined templates.
+
+Predefined templates provide a head start by offering preconfigured chapters, modules, and fields. Designers can then extend these templates to build complete insurance products faster and more efficiently.
+
+Finally, let’s explore the most intuitive approach — creating a product using the Intelligent Designer Ally.
+
+Here, we simply provide a prompt describing the product we want to create. In this example, we generate a Marine Cargo and Stock Throughput Insurance Product using AI.
+
+With a single prompt, the system automatically generates a complete product structure consisting of seven chapters, each containing relevant modules and fields.
+
+For example, within the Insured and Business Profile section, we see fields such as legal entity name, trade description, years of experience, website details, and loss history. All field properties including labels, placeholders, rules, and data types are automatically configured.
+
+Other sections include cargo details, packing and conveyance information, transit exposure, geographic coverage, stock throughput data, storage locations, protection measures, and coverage frameworks including deductibles and limits.
+
+This AI-generated structure provides a strong foundation, significantly accelerating the product development lifecycle.
+
+Once the product structure is ready, we move into the Testing Phase.
+
+Here, users can enter sample data to verify whether configurations and rules behave as expected.
+
+To simplify this process further, the platform includes an AI feature that automatically generates test cases. Since insurance product definitions can be complex, this feature suggests appropriate test values that help validate rules quickly and efficiently.
+
+After testing, we move into the Review and Save Phase.
+
+Here, we first see a read-only version of the product, providing a complete structural overview including chapters, modules, fields, data types, and validation rules.
+
+Additionally, the AI analysis feature provides an executive summary of the product, highlighting strengths, identifying potential weaknesses, and suggesting improvements.
+
+For example, it may recommend adding Incoterm selections, introducing currency fields for origin and destination countries, or replacing free text inputs with structured dropdown selections.
+
+These insights help designers further refine their products before launch.
+
+Once finalized, we save the product and assign a version name. The product is now created and visible with its key configuration details.
+
+The platform also maintains version history, allowing designers to track changes, manage versions, activate products, archive outdated versions, or delete products when necessary.
+
+Additional capabilities include reviewing AI analysis for any version, using an existing version as a template, and creating updated versions by adding or modifying fields.
+
+For example, after adding a new field and saving changes, a new draft version is automatically created with version tracking and a complete audit trail of modifications.
+
+Every action performed within the Intelligent Product Factory is recorded, ensuring complete transparency and governance across product versions.
+
+In summary, the Intelligent Product Factory combines AI-driven design, intelligent testing, automated reviews, and structured product management into a single platform.
+
+By enabling faster product creation, simplified testing, and streamlined rollout cycles, it helps insurers save time, improve quality, and truly put AI into practical use.
+
+The Intelligent Product Factory is not just a product configuration tool — it is a platform that accelerates innovation in insurance product development.
+
+⸻
+
+If you want, I can also make this even better by:
+	•	Adding scene-by-scene narration format (like your Claims Cockpit example)
+	•	Adding pause indicators for voice artist
+	•	Making it more cinematic / storytelling style
+	•	Making it shorter (10 min → 6–7 min crisp version)
+
+Just tell which style you want.
+
+
+
+
+
+
+
