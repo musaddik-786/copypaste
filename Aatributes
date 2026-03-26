@@ -1,8 +1,30 @@
-Error generating combined submission summary: 'AzureOpenAI' object has no attribute 'prompts'
-Processing summary for 19CDC8AB7BCC5E85_attachment_Tower_Insurance_-_Home_Submission_Report
-INFO:httpx:HTTP Request: POST https://agenticinsuranceopenai.openai.azure.com/openai/deployments/gpt-4.1-jarvis/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+here this is my folder struncture
+Jarvis_Agent_1.0 inside this fodler there is Jarvis folder inside it there is MCP folder under MCP fodler there is attachmnet_summary_mcp fodler under it there is newsummary.py and email_body folder where email bodies have to be stored but there are no email bodies getting stored in it 
+check below code is email_body folder getting pointed to correct folder taht i am referring to ??
 
 
+
+belos is some code of newsummary.py
+def load_raw_email_bodies_for_refs(refs: List[str], email_body_folder: str = "email_body") -> Dict[str, Dict]:
+    """
+    Load raw files named `body_<ref>.txt` from email_body_folder.
+    Returns dict: ref -> {"status": "ok", "path": ..., "raw": "<full text>"} or {"status":"missing"}.
+    """
+    base = os.path.dirname(os.path.abspath(__file__))
+    out = {}
+    for ref in refs or []:
+        fname = f"body_{ref}.txt"
+        path = os.path.join(base, email_body_folder, fname)
+        if not os.path.exists(path):
+            out[ref] = {"status": "missing", "path": path}
+            continue
+        try:
+            with open(path, "r", encoding="utf-8", errors="ignore") as f:
+                raw = f.read()
+            out[ref] = {"status": "ok", "path": path, "raw": raw}
+        except Exception as e:
+            out[ref] = {"status": "error", "path": path, "error": str(e)}
+    return out
 
 
 def summarize_attachments(
@@ -159,7 +181,7 @@ def summarize_attachments(
 #ADDED FOR PHOENIX ----------------------------------------------------------------------------
 
    # Fetch prompt
-    prompt_stored = client.prompts.get(
+    prompt_stored = phoenix_client.prompts.get(
         # prompt_version_id="UHJvbXB0VmVyc2lvbjoxMw=="
         #  prompt_version_id= "UHJvbXB0VmVyc2lvbjoxNA=="
           prompt_version_id= "UHJvbXB0VmVyc2lvbjoxNQ=="
@@ -192,7 +214,7 @@ def summarize_attachments(
             attachments_text = attachments_text,
             email_bodies_text = email_bodies_text
         )
-
+        print(prompt)
     except KeyError as e:
 
         raise ValueError(
