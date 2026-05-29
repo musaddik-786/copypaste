@@ -1,0 +1,1 @@
+DATABASE_URL="postgresql://Jarvisuwexceladmin:Work3@jarvis-uw-excel.postgres.database.azure.com:5432/postgres?sslmode=require"
