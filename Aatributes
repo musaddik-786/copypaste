@@ -2134,4 +2134,4 @@ async def health():
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=AGENT_PORT)
 
-
+─────────────[ JARVIS ASKS — Human Assistance Required ]──────────────   {'next_agent': 'triage_agent'} ────────────────────────────────────────────────────────────────────── ──────────────────────────────[ JARVIS ]──────────────────────────────   Thank you for confirming. Your fire incident report and claim have been successfully submitted. Your FNOL number is FNOL-2026-1780481781072 and your Claim Number is CLM-2026-MPXWVWEYQV17. An adjuster will contact you soon to assist further. If you find any evidence or documents later, you can share them at any time. ────────────────────────────────────────────────────────────────────── ───────────────────────────[ STREAM ERROR ]───────────────────────────   Error code: 400 - {'error': {'message': "Invalid parameter: messages with role 'tool' must be a response to a preceeding message with 'tool_calls'.", 'type': 'invalid_request_error', 'param': 'messages.[1].role', 'code': None}}
