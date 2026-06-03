@@ -1559,3 +1559,579 @@ error is that FNOL Intake Agent is able to connect with front end but Traiging A
 
 if __name__ == "__main__":
     asyncio.run(main())
+
+trainging agent
+client.py
+"""
+Jarvis Claims Agent — Interactive CLI Client
+
+Usage:
+    python client.py
+    Type 'exit' or 'quit' to end the session.
+"""
+
+import asyncio
+import httpx
+import uuid
+import json
+import os
+from dotenv import load_dotenv
+
+load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
+
+AGENT_URL = os.getenv("AGENT_URL", "http://localhost:8002")
+
+W = 70  # display width
+
+# ── Colours ───────────────────────────────────────────────────────────────────
+C = {
+    "reset":    "\033[0m",
+    "bold":     "\033[1m",
+    "dim":      "\033[2m",
+    "user":     "\033[94m",   # blue
+    "ai":       "\033[92m",   # green
+    "tool_call":"\033[95m",   # magenta
+    "tool_ok":  "\033[96m",   # cyan
+    "tool_err": "\033[91m",   # red
+    "interrupt":"\033[93m",   # yellow
+    "error":    "\033[91m",   # red
+    "rule":     "\033[90m",   # dark grey
+}
+
+def rule(char="─"):
+    print(f"{C['rule']}{char * W}{C['reset']}")
+
+def header(label: str, colour: str):
+    pad = W - len(label) - 4
+    left = pad // 2
+    right = pad - left
+    print(f"{colour}{'─' * left}[ {label} ]{'─' * right}{C['reset']}")
+
+def block(label: str, colour: str, body: str):
+    header(label, colour)
+    for line in body.strip().splitlines():
+        print(f"  {colour}{line}{C['reset']}")
+    rule()
+
+# ── Content extractor ─────────────────────────────────────────────────────────
+
+def extract_text(content) -> str:
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts = []
+        for item in content:
+            if isinstance(item, dict):
+                parts.append(item.get("text") or item.get("content") or json.dumps(item))
+            else:
+                parts.append(str(item))
+        return "\n".join(p for p in parts if p)
+    return str(content) if content else ""
+
+# ── Stream Handler ────────────────────────────────────────────────────────────
+
+async def stream_chat(query: str, thread_id: str, endpoint: str = "/chat"):
+    payload  = {"query": query, "thread_id": thread_id}
+    final_state = {"state": ""}
+
+    async with httpx.AsyncClient(timeout=None) as client:
+        async with client.stream("POST", f"{AGENT_URL}{endpoint}", json=payload) as response:
+            async for line in response.aiter_lines():
+                if not line.startswith("data: "):
+                    continue
+                raw = line.removeprefix("data: ").strip()
+                if not raw:
+                    continue
+                try:
+                    parsed = json.loads(raw)
+                except json.JSONDecodeError:
+                    continue
+
+                # ── Stream-level error ────────────────────────────────────────
+                if "error" in parsed:
+                    block("STREAM ERROR", C["error"], parsed["error"])
+                    yield parsed
+
+                # ── Agent message ─────────────────────────────────────────────
+                elif "message" in parsed:
+                    msg      = parsed["message"]
+                    msg_type = msg.get("type", "") if isinstance(msg, dict) else ""
+                    content  = msg.get("content", "") if isinstance(msg, dict) else str(msg)
+
+                    if msg_type == "ai":
+                        tool_calls = msg.get("tool_calls") or []
+
+                        # Tool-call invocations
+                        for tc in tool_calls:
+                            name = tc.get("name", "?")
+                            args = tc.get("args") or tc.get("input") or {}
+                            body = json.dumps(args, indent=2, ensure_ascii=False)
+                            block(f"TOOL CALL → {name}", C["tool_call"], body)
+
+                        # Plain AI text (no tool call)
+                        if not tool_calls:
+                            text = extract_text(content)
+                            if text:
+                                block("JARVIS", C["ai"], text)
+
+                    elif msg_type == "tool":
+                        name = msg.get("name", "tool")
+                        text = extract_text(content)
+                        is_err = "error" in text.lower() or "failed" in text.lower()
+                        colour = C["tool_err"] if is_err else C["tool_ok"]
+                        label  = f"TOOL ERROR ← {name}" if is_err else f"TOOL RESULT ← {name}"
+                        block(label, colour, text[:600] + ("…" if len(text) > 600 else ""))
+
+                    elif msg_type == "human":
+                        text = extract_text(content)
+                        if text:
+                            block("YOU", C["user"], text)
+
+                    yield parsed
+
+                # ── Human-in-the-loop interrupt ───────────────────────────────
+                elif "interrupt" in parsed:
+                    data = parsed["interrupt"]
+                    query_text = data.get("query", str(data))
+                    block("JARVIS ASKS — Human Assistance Required", C["interrupt"], query_text)
+                    final_state = {"state": "interrupt", "content": parsed}
+                    yield parsed
+
+    yield final_state
+
+# ── Main Loop ─────────────────────────────────────────────────────────────────
+
+async def main():
+    session_id = str(uuid.uuid4())
+    state = {"state": ""}
+
+    print()
+    print(f"{C['ai']}{C['bold']}{'═' * W}{C['reset']}")
+    print(f"{C['ai']}{C['bold']}{'  Jarvis Triage & Routing Agent':^{W}}{C['reset']}")
+    print(f"{C['rule']}{'  Session: ' + session_id:^{W}}{C['reset']}")
+    print(f"{C['rule']}{'  Type exit to quit':^{W}}{C['reset']}")
+    print(f"{C['ai']}{C['bold']}{'═' * W}{C['reset']}")
+    print()
+
+    while True:
+        try:
+            user_input = input(f"{C['user']}{C['bold']}You:{C['reset']} ").strip()
+        except (EOFError, KeyboardInterrupt):
+            print("\nSession ended.")
+            break
+
+        if user_input.lower() in ("exit", "quit", "q"):
+            print("Session ended.")
+            break
+
+        if not user_input:
+            continue
+
+        # Echo the user message in the same block style
+        rule("─")
+        header("YOU", C["user"])
+        print(f"  {C['user']}{user_input}{C['reset']}")
+        rule("─")
+        print()
+
+        endpoint  = "/continue_chat" if state.get("state") == "interrupt" else "/chat"
+        new_state = {"state": ""}
+
+        async for resp in stream_chat(user_input, session_id, endpoint):
+            if isinstance(resp, dict):
+                if resp.get("state") == "interrupt":
+                    new_state = resp
+                elif resp.get("state") == "":
+                    new_state = {"state": ""}
+
+        state = new_state
+        print()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+
+graph.py
+import os
+from dotenv import load_dotenv
+
+load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
+
+import asyncio
+from typing import Annotated, Optional
+from typing_extensions import TypedDict
+
+from langgraph.graph import StateGraph, START, END
+from langgraph.graph.message import add_messages
+from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.prebuilt import ToolNode, tools_condition
+from langgraph.types import interrupt
+from langchain_core.tools import tool
+from langchain_core.messages import SystemMessage
+from langchain_mcp_adapters.client import MultiServerMCPClient
+
+# ── Config ────────────────────────────────────────────────────────────────────
+
+MCP_GATEWAY  = os.getenv("MCP_GATEWAY_URL", "http://localhost:8001")
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "anthropic")
+
+MCP_SERVERS = {
+    "claims_core": {"url": f"{MCP_GATEWAY}/api/v1/claims_core_mcp/mcp", "transport": "streamable_http"},
+    "stp":         {"url": f"{MCP_GATEWAY}/api/v1/stp_mcp/mcp",         "transport": "streamable_http"},
+    "fraud":       {"url": f"{MCP_GATEWAY}/api/v1/fraud_mcp/mcp",       "transport": "streamable_http"},
+}
+
+# ── System Prompt ─────────────────────────────────────────────────────────────
+
+SYSTEM_PROMPT = """You are Jarvis, an AI-powered insurance claims triage specialist. Your role is to
+assess every new claim, compute its complexity and fraud risk, classify its STP category, and route it
+to the correct downstream workflow — auto-adjudication, standard adjuster assignment, or SIU escalation.
+
+## Your Tools
+
+### claims_core_mcp
+  get_claim_by_number          — fetch the full claim record by claim number (e.g. "CLM-2024-001")
+  get_claim_by_id              — fetch the full claim record by numeric claim ID
+  run_intake_validation        — trigger intake completeness and data-quality checks for a claim
+  get_intake_validation_result — retrieve the latest intake validation result for a claim
+  get_segmentation_result      — fetch the claim segmentation output (complexity tier, loss category)
+  get_risk_evaluation_snapshot — retrieve the latest risk evaluation snapshot for a claim
+  get_claim_journey            — pull the full stage-by-stage claim journey for a claim
+  get_interaction_timeline     — retrieve all logged interactions for a claim
+
+### stp_mcp
+  get_stp_category_rules            — retrieve the STP scoring thresholds and category definitions
+                                      (call this first to understand what scores mean)
+  write_stp_score_factors           — REQUIRED before compute_stp_score. Seeds the input factor row
+                                      for this claim. Derive values from the claim record:
+                                        claimId          = claimNumber string (e.g. "CLM-2026-4821")
+                                        fnolCompleteness = intake validation completenessScore (or 80)
+                                        readinessScore   = 50 base + evidence(+10) + cost(+10) + no-fraud(+20)
+                                        coverageConfidence = "High" if coverage=true and policy active
+                                        severityLevel    = claim severity field value
+                                        fraudAmbiguity   = "Low" if no flags, "Medium" if 1-2 low flags,
+                                                           "High" if any high-severity flag
+                                        subrogationRisk  = "Low" for accidental losses
+                                        vis              = 0 (no vendor assigned yet)
+                                        similarityIndex  = 0.0
+  compute_stp_score                 — run the STP scoring engine; pass claim_number (string).
+                                      Returns 404 if write_stp_score_factors was not called first.
+  get_stp_classification            — fetch the STP classification after compute_stp_score runs;
+                                      pass claim_number (string)
+  get_stp_score_factors             — retrieve the seeded input factors; pass claim_number (string)
+  get_stp_calculation_result        — retrieve the full STP calculation output; pass claim_number (string)
+  get_auto_adjudication_thresholds  — fetch the configured thresholds for auto-adjudication eligibility
+  run_auto_adjudication             — execute the auto-adjudication engine (only for Fast Track / Full STP
+                                      claims with no fraud flags); pass claim_number (string)
+  get_auto_adjudication_result      — retrieve the auto-adjudication output for a claim
+  get_ai_decision_recommendation    — fetch any existing AI recommendation for a claim
+  write_ai_decision_recommendation  — persist the triage agent's routing recommendation
+  log_auto_assignment               — record the final routing assignment in the audit log.
+                                      Required: assignmentId ("ASGN-<claimNumber>-<epoch>"),
+                                      claimId (claim number string), vendorId ("N/A" if no vendor)
+  get_auto_assignment_log           — retrieve prior routing assignments for a claim
+
+### fraud_mcp
+  get_fraud_flags             — list all active fraud flags on a claim
+  get_ai_fraud_signals        — retrieve AI-detected fraud signals for a claim
+  get_fraud_risk_snapshot     — fetch the current composite fraud risk snapshot for a claim
+  get_drone_authenticity      — check drone-image authenticity analysis results for a claim
+  get_weather_alignment       — fetch weather-vs-reported-loss alignment check for a claim
+  calculate_aggregate_fraud_score — compute the weighted aggregate fraud score from all signals
+                                    (use this to get a single authoritative fraud risk number)
+
+## Triage Workflow
+
+1. get_stp_category_rules
+   — Load the STP thresholds first so every scoring decision is rule-based, not guessed.
+
+2. get_claim_by_number (or get_claim_by_id)
+   — Load the full claim record. If the claim cannot be found, use human_assistance to ask for
+     the correct claim number.
+
+3. run_intake_validation  →  get_intake_validation_result
+   — Ensure the claim data is complete and consistent before scoring.
+   — If critical fields are missing, use human_assistance to flag the gap and stop routing until
+     the FNOL intake agent resolves it.
+
+4. write_stp_score_factors
+   — Derive and seed the STP input factors from the claim data before scoring.
+   — Use claimNumber (string) as claimId. Derive all values from the claim record
+     and the intake validation result obtained in step 3.
+
+5. compute_stp_score  →  get_stp_score_factors  →  get_stp_classification
+   — Compute the STP score and retrieve the factor breakdown.
+   — Pass claim_number (string) to all three tools.
+
+6. calculate_aggregate_fraud_score  →  get_fraud_flags  →  get_ai_fraud_signals  →  get_fraud_risk_snapshot
+   — Gather all fraud signals. A single active high-severity fraud flag overrides the STP score
+     and forces SIU escalation regardless of STP tier.
+
+7. get_drone_authenticity  +  get_weather_alignment
+   — Pull ancillary verification results if they exist. Include them in the routing rationale.
+
+8. get_auto_adjudication_thresholds
+   — Confirm the eligibility threshold for auto-adjudication before invoking the engine.
+
+9. Route based on combined STP + fraud signals:
+
+   ┌─────────────────────────────────────────────────────────────────────┐
+   │ ROUTE A — Auto-adjudicate (STP_FAST)                                │
+   │   • STP score ≥ auto-adjudication threshold                         │
+   │   • No active fraud flags                                           │
+   │   • No failed drone authenticity or weather alignment checks        │
+   │   → run_auto_adjudication                                           │
+   │   → write_ai_decision_recommendation (action: "auto_adjudicate")    │
+   │   → log_auto_assignment (assignedTo: "auto_adjudication_engine")    │
+   ├─────────────────────────────────────────────────────────────────────┤
+   │ ROUTE B — Assign to adjuster (STP_STANDARD or STP_COMPLEX)          │
+   │   • STP score below auto threshold but above SIU threshold          │
+   │   • Low/medium fraud risk (score < 60)                              │
+   │   → write_ai_decision_recommendation (action: "assign_adjuster")    │
+   │   → log_auto_assignment (assignedTo: "adjuster_queue")              │
+   ├─────────────────────────────────────────────────────────────────────┤
+   │ ROUTE C — Escalate to SIU                                           │
+   │   • Any active high-severity fraud flag, OR                         │
+   │   • Aggregate fraud score ≥ 60, OR                                  │
+   │   • STP score falls in the "refer" band per category rules          │
+   │   → write_ai_decision_recommendation (action: "escalate_siu",       │
+   │       rationale: full fraud evidence summary)                        │
+   │   → log_auto_assignment (assignedTo: "siu_queue")                   │
+   └─────────────────────────────────────────────────────────────────────┘
+
+10. human_assistance
+   — Notify the adjuster supervisor of the routing decision, including:
+     • Claim number and loss type
+     • STP score and category
+     • Aggregate fraud score and any active flags
+     • Final routing action and rationale
+     • Any anomalies or data gaps found during intake validation
+
+## Critical Rules
+1. ALWAYS call get_stp_category_rules first — never guess STP thresholds.
+2. ALWAYS compute the aggregate fraud score before routing — never route solely on STP.
+3. NEVER run auto-adjudication if ANY active fraud flag exists, regardless of STP score.
+4. NEVER skip writing the AI decision recommendation — every routed claim needs an audit record.
+5. NEVER skip log_auto_assignment — every routing decision must be logged.
+6. If intake validation finds missing mandatory fields, stop and escalate via human_assistance.
+7. If any tool returns {"error": "..."}, log it and continue with the data you have; note the
+   gap in your routing rationale.
+8. Be concise — one sentence on what you found, one on what you will do next.
+
+## Tone
+Professional, precise, and audit-ready. You are speaking to an adjuster supervisor reviewing
+your routing decision. Every recommendation must be traceable to specific scores and rules."""
+
+# ── Human-in-the-loop tool ────────────────────────────────────────────────────
+
+@tool
+def human_assistance(query: str) -> str:
+    """Pause and request input from a human — adjuster supervisor or claims manager.
+    Use when critical data is missing, an intake validation fails, or a routing decision
+    requires human sign-off. Be specific about what you need."""
+    response = interrupt({"query": query})
+    if isinstance(response, dict) and "messages" in response:
+        messages = response["messages"]
+        if messages and isinstance(messages[-1], dict):
+            return messages[-1].get("content", str(response))
+    return str(response)
+
+# ── LLM ───────────────────────────────────────────────────────────────────────
+
+if LLM_PROVIDER == "azure" or os.getenv("AZURE_INFERENCE_ENDPOINT"):
+    from langchain_openai import AzureChatOpenAI
+    llm = AzureChatOpenAI(
+        azure_endpoint=os.getenv("AZURE_INFERENCE_ENDPOINT"),
+        azure_deployment=os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT_NAME", "gpt-4o"),
+        api_key=os.getenv("AZURE_INFERENCE_CREDENTIAL"),
+        api_version=os.getenv("AZURE_OPENAI_API_VERSION", "2025-01-01-preview"),
+        temperature=0.0,
+        max_tokens=4096,
+    )
+else:
+    from langchain_anthropic import ChatAnthropic
+    llm = ChatAnthropic(
+        model=os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
+        temperature=0.0,
+        max_tokens=4096,
+    )
+
+# ── MCP Tool Loading ──────────────────────────────────────────────────────────
+
+async def _load_mcp_tools() -> list:
+    client = MultiServerMCPClient(MCP_SERVERS)
+    return await client.get_tools()
+
+mcp_tools = asyncio.run(_load_mcp_tools())
+tools = [human_assistance] + mcp_tools
+
+print("=" * 60)
+print(f"  Triage & Routing Agent — {len(tools)} tools loaded")
+print("=" * 60)
+for i, t in enumerate(tools, 1):
+    print(f"  {i:3}. {t.name}")
+print("=" * 60)
+
+llm_with_tools = llm.bind_tools(tools)
+
+def _handle_tool_errors(e: Exception) -> str:
+    return f"Tool call failed: {e}. Fix the inputs and try again."
+
+tool_node = ToolNode(tools=tools, handle_tool_errors=_handle_tool_errors)
+
+# ── Graph State ───────────────────────────────────────────────────────────────
+
+class State(TypedDict):
+    messages: Annotated[list, add_messages]
+
+memory = InMemorySaver()
+
+# ── Graph Nodes ───────────────────────────────────────────────────────────────
+
+async def chatbot(state: State) -> dict:
+    messages = [SystemMessage(content=SYSTEM_PROMPT)] + state["messages"]
+    message  = await llm_with_tools.ainvoke(messages)
+    return {"messages": [message]}
+
+# ── Graph Definition ──────────────────────────────────────────────────────────
+
+graph_builder = StateGraph(State)
+graph_builder.add_node("chatbot", chatbot)
+graph_builder.add_node("tools",   tool_node)
+
+graph_builder.add_edge(START, "chatbot")
+graph_builder.add_conditional_edges("chatbot", tools_condition)
+graph_builder.add_edge("tools", "chatbot")
+
+graph = graph_builder.compile(checkpointer=memory)
+
+server.py
+import os
+from dotenv import load_dotenv
+
+load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
+
+import sys
+sys.path.insert(0, os.path.dirname(__file__))
+
+from graph import graph
+from langgraph.types import Command
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
+import uvicorn
+import json
+
+AGENT_PORT = int(os.getenv("AGENT_PORT", "8002"))
+
+# ── SSE Streaming Helpers ─────────────────────────────────────────────────────
+
+async def _stream_graph(input_data, thread_id: str):
+    """Shared generator for both /chat and /continue_chat."""
+    config = {"configurable": {"thread_id": thread_id}, "recursion_limit": 100}
+    try:
+        async for event in graph.astream(input_data, config):
+            for value in event.values():
+                if "messages" in value:
+                    msg = value["messages"][-1]
+                    if hasattr(msg, "model_dump"):
+                        data = {"message": msg.model_dump()}
+                    elif hasattr(msg, "dict"):
+                        data = {"message": msg.dict()}
+                    else:
+                        data = {"message": str(msg)}
+                    yield f"data: {json.dumps(data)}\n\n"
+                else:
+                    # LangGraph interrupt — human assistance required
+                    try:
+                        interrupt_payload = {
+                            "query":   value[0].value["query"],
+                            "id":      value[0].id,
+                            "session": thread_id,
+                        }
+                        yield f"data: {json.dumps({'interrupt': interrupt_payload})}\n\n"
+                    except (IndexError, KeyError, TypeError):
+                        yield f"data: {json.dumps({'interrupt': {'query': str(value), 'session': thread_id}})}\n\n"
+    except Exception as exc:
+        yield f"data: {json.dumps({'error': str(exc)})}\n\n"
+
+
+async def stream(message: str, thread_id: str):
+    input_data = {"messages": [{"role": "user", "content": message}]}
+    async for chunk in _stream_graph(input_data, thread_id):
+        yield chunk
+
+
+async def continue_stream(message: str, thread_id: str):
+    input_data = Command(resume={"messages": [{"role": "user", "content": message}]})
+    async for chunk in _stream_graph(input_data, thread_id):
+        yield chunk
+
+# ── FastAPI App ───────────────────────────────────────────────────────────────
+
+app = FastAPI(
+    title="Jarvis Triage & Routing Agent",
+    description="Autonomous AI claims triage agent powered by LangGraph. Scores complexity, classifies STP category, and routes claims to auto-adjudication, adjuster queue, or SIU.",
+    version="1.0.0",
+    docs_url="/docs",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# ── Request Schema ────────────────────────────────────────────────────────────
+
+class ChatInput(BaseModel):
+    query: str
+    thread_id: str
+
+# ── Routes ────────────────────────────────────────────────────────────────────
+
+@app.post(
+    "/chat",
+    summary="Start or continue a claim session",
+    description="Send a message to Jarvis. Returns a server-sent event stream. "
+                "Each event is either `{message: {...}}` (agent output) or "
+                "`{interrupt: {query, id, session}}` (human assistance required).",
+)
+async def chat(input: ChatInput):
+    return StreamingResponse(
+        stream(input.query, input.thread_id),
+        media_type="text/event-stream",
+    )
+
+
+@app.post(
+    "/continue_chat",
+    summary="Resume after a human-assistance interrupt",
+    description="Called after the agent emits an `interrupt` event. "
+                "Pass the same `thread_id` and the human's response as `query`.",
+)
+async def continue_chat(input: ChatInput):
+    return StreamingResponse(
+        continue_stream(input.query, input.thread_id),
+        media_type="text/event-stream",
+    )
+
+
+@app.get("/health", summary="Health check")
+async def health():
+    return {
+        "status": "ok",
+        "agent": "Jarvis Triage & Routing Agent",
+        "port": AGENT_PORT,
+    }
+
+# ── Entry Point ───────────────────────────────────────────────────────────────
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=AGENT_PORT)
+
+
