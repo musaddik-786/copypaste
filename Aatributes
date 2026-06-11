@@ -1,2642 +1,497 @@
-Good catch. I was reading the image at a zoomed-out level and some of the labels were difficult to make out. If your actual Policyholder flow is:
+Yes, you’re absolutely right.
 
-1. Voice FNOL Agent
-2. Police Verification Agent
-3. Evidence Collection Agent
-4. Claim Segmentation Agent
-5. Claim Submission Agent
-6. Claim Status Agent
-7. Customer Communication Agent
-8. Feedback Agent
+In my earlier explanation, I only covered:
 
-then let’s understand what each one is doing and why it exists.
-
-⸻
-
-Policyholder Journey
-
-The policyholder section is the customer-facing side of the entire claims process.
-
-Think:
-
-Customer
-   ↓
-Reports Loss
-   ↓
-Submits Evidence
-   ↓
-Claim Created
-   ↓
-Claim Processed
-   ↓
-Gets Updates
-   ↓
-Provides Feedback
-
-⸻
-
-1. Voice FNOL Agent
-
-FNOL = First Notice of Loss
-
-This is the first AI agent the customer interacts with.
-
-Example:
-
-Customer calls:
-
-“There was a storm last night and my roof is damaged.”
-
-Instead of a human call-center agent, the AI Voice FNOL Agent handles the conversation.
-
-⸻
-
-Responsibilities
-
-It asks:
-
-What happened?
-When did it happen?
-Where did it happen?
-Any injuries?
-Any immediate danger?
-
-It extracts:
-
-{
-  "claim_type": "Storm Damage",
-  "date": "2026-06-10",
-  "location": "Dallas",
-  "severity": "Medium"
-}
-
-⸻
-
-AI Perspective
-
-This agent needs:
-
-* Speech-to-Text
-* LLM
-* Conversation Memory
-* Claim Intake Logic
-
-In Azure:
-
-Customer Voice
-      ↓
-Speech Service
-      ↓
-LLM
-      ↓
-Claim Data
-
-⸻
-
-2. Police Verification Agent
-
-Now the system checks whether a police report is needed.
-
-This is common for:
-
-* Theft
-* Burglary
-* Vandalism
-* Arson
-
-⸻
-
-Example
-
-Customer says:
-
-“Someone broke into my house.”
-
-Agent asks:
-
-Was a police report filed?
-
-If yes:
-
-Upload report
-
-⸻
-
-What the AI does
-
-It verifies:
-
-* Police report exists
-* Report number is valid
-* Incident details match the claim
-
-⸻
-
-Why Important?
-
-Prevents fraud.
-
-Example:
-
-Claim says:
-
-Burglary on June 1
-
-Police report says:
-
-Burglary on May 15
-
-Mismatch detected.
-
-⸻
-
-3. Evidence Collection Agent
-
-This is one of the most important agents.
-
-It gathers all supporting evidence.
-
-⸻
-
-Evidence Examples
-
-Photos
-
-Roof damage photo
-
-Videos
-
-Storm damage video
-
-Documents
-
-Repair estimate
-Police report
-Invoice
-
-⸻
-
-Agent Responsibilities
-
-Checks:
-
-Are photos uploaded?
-Are documents uploaded?
-Is anything missing?
-
-If missing:
-
-Please upload additional evidence
-
-⸻
-
-AI Capabilities
-
-Can also classify:
-
-Photo 1 = Roof Damage
-Photo 2 = Water Damage
-Photo 3 = Interior Damage
-
-⸻
-
-4. Claim Segmentation Agent
-
-This is very interesting.
-
-Not all claims are equal.
-
-The system categorizes the claim.
-
-⸻
-
-Example 1
-
-Broken window
-
-Low Complexity
-
-⸻
-
-Example 2
-
-Entire roof destroyed
-
-Medium Complexity
-
-⸻
-
-Example 3
-
-House fire
-
-High Complexity
-
-⸻
-
-Example 4
-
-Suspicious theft claim
-
-Fraud Risk
-
-⸻
-
-Why Segmentation?
-
-Because different claims need different workflows.
-
-Simple Claim:
-
-Fast Track
-
-Complex Claim:
-
-Assign Adjuster
-
-Fraud Risk:
-
-Send to SIU
-
-⸻
-
-5. Claim Submission Agent
-
-Now everything collected so far gets converted into an official claim.
-
-Think:
-
-Draft Claim
-       ↓
-Validation
-       ↓
-Official Claim
-
-⸻
-
-Responsibilities
-
-Checks:
-
-Required fields complete?
-Evidence present?
-Policy active?
-
-If everything passes:
-
-Claim Created
-Claim Number Generated
-
-Example:
-
-CLM-2026-45678
-
-⸻
-
-Why Separate from FNOL?
-
-FNOL only captures the loss.
-
-Claim Submission officially creates the claim record.
-
-⸻
-
-6. Claim Status Agent
-
-Customers constantly ask:
-
-“What’s happening with my claim?”
-
-Instead of calling support, they talk to this agent.
-
-⸻
-
-Example
-
-Customer asks:
-
-What is the status?
-
-Agent checks:
-
-Investigation
-
-and responds:
-
-Your claim is currently under investigation.
-
-⸻
-
-Data Sources
-
-Could read from:
-
-* Claim Management System
-* Database
-* Workflow Engine
-
-⸻
-
-7. Customer Communication Agent
-
-This agent proactively communicates.
-
-Not waiting for customer questions.
-
-⸻
-
-Sends
-
-SMS
-
-Claim Received
-
-Email
-
-Adjuster Assigned
-
-Notification
-
-Payment Issued
-
-⸻
-
-Why Separate from Status Agent?
-
-Status Agent = customer asks.
-
-Communication Agent = system informs automatically.
-
-⸻
-
-8. Feedback Agent
-
-Final step.
-
-After claim completion:
-
-How satisfied were you?
-
-⸻
-
-Collects
-
-Customer rating:
-
-1-5 Stars
-
-Comments:
-
-Adjuster was helpful
-
-⸻
-
-Business Value
-
-Insurer measures:
-
-* Customer satisfaction
-* Agent performance
-* Process quality
-
-⸻
-
-One Complete Example
-
-Imagine a theft claim.
-
-Step 1
-
-Voice FNOL Agent
-
-Customer reports burglary
-
-↓
-
-Step 2
-
-Police Verification Agent
-
-Police report verified
-
-↓
-
-Step 3
-
-Evidence Collection Agent
-
-Photos uploaded
-Documents uploaded
-
-↓
-
-Step 4
-
-Claim Segmentation Agent
-
-Medium Complexity
-
-↓
-
-Step 5
-
-Claim Submission Agent
-
-Claim #12345 created
-
-↓
-
-Step 6
-
-Customer Communication Agent
-
-Claim received successfully
-
-↓
-
-Step 7
-
-Claim Status Agent
-
-Investigation in progress
-
-↓
-
-Step 8
-
-Feedback Agent
-
-Rate your experience
-
-⸻
-
-The interesting thing is that this Policyholder lane is not actually making claim decisions. Its main job is:
-
-Collect Information
-Validate Information
-Submit Claim
-Keep Customer Informed
-
-The actual claim decision-making starts in the Claims Adjuster lane, which is where the insurer begins analyzing whether the claim should be paid and how much should be paid. That section is the heart of the claims process.
-
-
-
-Excellent. Now we’re entering the real adjuster work. Everything in the Policyholder section was mostly about collecting information. The Claim Adjuster section is where the insurance company starts asking:
-
-“Is this claim genuine?”
-
-“How much damage actually occurred?”
-
-“How much should we pay?”
-
-Let’s go agent by agent.
-
-⸻
-
-CLAIM ADJUSTER
-
-Section 1: Claim Intake & Triage
-
-This is the first stage after the claim is submitted.
-
-Think of it as:
-
-Claim Arrives
-      ↓
-Understand Claim
-      ↓
-Assess Risk
-      ↓
-Send to Correct Team
-
-⸻
+Claim Intake & Triage
 
 1. Claim Triage Agent
-
-Purpose
-
-Assess severity and complexity of the claim.
-
-Think of a hospital emergency room.
-
-When patients arrive, doctors first decide:
-
-Minor
-Moderate
-Critical
-
-Claims work the same way.
-
-⸻
-
-Example 1
-
-Customer reports:
-
-Small crack in a window
-
-Triage Agent decides:
-
-Low Severity
-Low Complexity
-
-⸻
-
-Example 2
-
-Customer reports:
-
-Entire roof destroyed after storm
-
-Triage Agent decides:
-
-High Severity
-Medium Complexity
-
-⸻
-
-Example 3
-
-Customer reports:
-
-House completely burned
-
-Triage Agent decides:
-
-Critical Severity
-High Complexity
-
-⸻
-
-Inputs Used
-
-The agent may analyze:
-
-* FNOL transcript
-* Photos
-* Videos
-* Property information
-* Policy information
-* Estimated loss amount
-
-⸻
-
-Outputs
-
-Example:
-
-{
-  "severity": "High",
-  "complexity": "Medium",
-  "priority": "Urgent"
-}
-
-⸻
-
-Why Important?
-
-Because the entire workflow depends on it.
-
-Example:
-
-Low Severity
-    ↓
-Fast Track
-High Severity
-    ↓
-Senior Adjuster
-Critical Severity
-    ↓
-Emergency Response Team
-
-⸻
-
 2. Fraud Screening Agent
-
-Purpose
-
-Perform initial fraud screening.
-
-Notice the word:
-
-Initial
-
-This is NOT the SIU investigation yet.
-
-This is simply a quick risk check.
-
-⸻
-
-Example
-
-Claim says:
-
-Storm damage
-
-Agent checks:
-
-* Prior claims
-* Claim frequency
-* Customer history
-* Location history
-* Policy age
-
-⸻
-
-Suspicious Example
-
-Policy purchased:
-2 weeks ago
-Claim amount:
-₹50 lakh
-Claim type:
-Total loss
-
-This looks suspicious.
-
-⸻
-
-Output
-
-Example:
-
-{
-  "fraud_score": 78,
-  "risk": "High"
-}
-
-⸻
-
-What Happens Next?
-
-Low Fraud Risk:
-
-Continue Processing
-
-High Fraud Risk:
-
-Escalate to SIU
-
-⸻
-
-Important Difference
-
-Fraud Screening Agent
-
-Detects Suspicion
-
-SIU Investigator
-
-Proves or disproves fraud
-
-⸻
-
 3. Routing Agent
 
-Purpose
-
-Route claim to correct destination.
-
-Think of it as a traffic controller.
-
-⸻
-
-Example 1
-
-Simple claim.
-
-Broken Window
-
-Route:
-
-Auto Adjudication
-
-No human adjuster needed.
-
-⸻
-
-Example 2
-
-Roof damage.
-
-Route:
-
-Property Damage Team
-
-⸻
-
-Example 3
-
-Fire loss.
-
-Route:
-
-Senior Adjuster
-
-⸻
-
-Example 4
-
-Fraud Score = 95
-
-Route:
-
-SIU Team
-
-⸻
-
-Inputs
-
-Uses:
-
-* Triage result
-* Fraud score
-* Claim type
-* Severity
-* Workload balancing
-
-⸻
-
-Why Needed?
-
-Without routing:
-
-Every claim
-      ↓
-Human Adjuster
-
-Very expensive.
-
-With routing:
-
-Simple Claims
-     ↓
-Automation
-Complex Claims
-     ↓
-Adjusters
-
-⸻
-
-Section 2: Loss Investigation
-
-Now the adjuster begins investigating the actual loss.
-
-Question changes from:
-
-What happened?
-
-to
-
-What is the truth?
-
-⸻
+Loss Investigation
 
 4. Evidence Review Agent
-
-Purpose
-
-Review all submitted evidence.
-
-This agent acts like a digital investigator.
-
-⸻
-
-Reviews
-
-Documents
-
-Invoices
-Receipts
-Police Reports
-Repair Estimates
-
-Photos
-
-Roof Images
-Water Damage Images
-Fire Damage Images
-
-Videos
-
-Property Walkthrough Videos
-
-Statements
-
-Customer Statements
-Witness Statements
-
-⸻
-
-Example
-
-Customer says:
-
-Roof heavily damaged
-
-Photo analysis shows:
-
-Minor damage only
-
-Mismatch detected.
-
-⸻
-
-Output
-
-{
-  "evidence_quality": "High",
-  "consistency": "Medium"
-}
-
-⸻
-
 5. Historical Comparison Agent
+6. Damage Assessment Agent
+7. Additional Info Agent
+8. Inspection Recommendation Agent
+
+Then I stopped.
+
+But your architecture continues with two additional sections:
+
+⸻
+
+SECTION 3: Loss Assessment
+
+At this point the system already knows:
+
+✅ What happened
+
+✅ What was damaged
+
+✅ Whether evidence is sufficient
+
+✅ Whether inspection is required
+
+Now the question becomes:
+
+“How much money are we talking about?”
+
+⸻
+
+9. Loss Estimation Agent
 
 Purpose
 
-Compare current claim with historical claims.
+Estimate repair and replacement costs.
 
-This is one of the smartest agents.
+This is where the claim starts becoming financial.
 
 ⸻
 
 Question Asked
 
-Has something similar happened before?
+How much will it cost
+to restore the property?
 
 ⸻
 
 Example
 
-Current claim:
-
-Roof damage
-Storm
-Texas
-$20,000
-
-Agent searches:
-
-Previous roof claims
-Previous storm claims
-Similar property claims
-
-⸻
-
-Benefits
-
-Detect Outliers
-
-Normal:
-
-$20,000
-
-Current Claim:
-
-$200,000
-
-Suspicious.
-
-⸻
-
-Improve Estimates
-
-Historical average:
-
-$18,500
-
-Current estimate:
-
-$19,200
-
-Looks reasonable.
-
-⸻
-
-Output
-
-{
-  "similar_claims_found": 57,
-  "confidence": 92
-}
-
-⸻
-
-6. Damage Assessment Agent
-
-Purpose
-
-Determine actual damage and scope of loss.
-
-This is one of the most valuable agents.
-
-⸻
-
-Example
-
-AI examines images.
-
-Identifies:
+Damage Assessment Agent says:
 
 Roof Damage
-Ceiling Damage
-Wall Damage
-Floor Damage
+65% affected
 
 ⸻
 
-Scope of Loss
+Inspection Report says:
 
-Not just:
-
-Damage Exists
-
-but
-
-How much damage exists?
+Shingles destroyed
+Water intrusion detected
 
 ⸻
 
-Example
-
-Agent concludes:
-
-40% roof damage
-Water intrusion
-Interior ceiling damage
-
-⸻
-
-Output
-
-{
-  "damage_type": "Roof",
-  "severity": "High",
-  "affected_areas": 4
-}
-
-⸻
-
-Technologies
-
-Could use:
-
-* Computer Vision
-* Multimodal LLM
-* Satellite Images
-* Drone Images
-
-⸻
-
-7. Additional Info Agent
-
-Purpose
-
-Request missing information.
-
-This agent acts like an intelligent follow-up specialist.
-
-⸻
-
-Example
-
-Claim submitted.
-
-But:
-
-No repair estimate
-
-Agent requests:
-
-Please upload repair estimate.
-
-⸻
-
-Another Example
-
-Customer reports theft.
-
-No police report attached.
-
-Agent requests:
-
-Please upload police report.
-
-⸻
-
-Benefit
-
-Reduces adjuster workload.
-
-Instead of:
-
-Human sends email
-
-AI automatically requests information.
-
-⸻
-
-8. Inspection Recommendation Agent
-
-Purpose
-
-Decide whether inspection is needed and what type.
-
-This is a decision-support agent.
-
-⸻
-
-Question
-
-Can we settle using existing evidence?
-
-Or do we need inspection?
-
-⸻
-
-Possible Recommendations
-
-Option 1
-
-No Inspection
-
-Enough evidence available.
-
-⸻
-
-Option 2
-
-Virtual Inspection
-
-Customer joins video call.
-
-Show damaged area.
-
-⸻
-
-Option 3
-
-Field Inspection
-
-Send adjuster.
-
-Adjuster visits property.
-
-⸻
-
-Option 4
-
-Drone Inspection
-
-Useful after:
-
-Storm
-Hurricane
-Roof Damage
-Flood
-
-⸻
-
-Example Output
-
-{
-  "inspection_type": "Drone",
-  "reason": "Roof inaccessible"
-}
-
-⸻
-
-How These Agents Work Together
-
-Claim Submitted
-       ↓
-Claim Triage Agent
-       ↓
-Fraud Screening Agent
-       ↓
-Routing Agent
-       ↓
-Evidence Review Agent
-       ↓
-Historical Comparison Agent
-       ↓
-Damage Assessment Agent
-       ↓
-Additional Info Agent
-       ↓
-Inspection Recommendation Agent
-
-Notice the progression:
-
-Triage
-   ↓
-Risk Check
-   ↓
-Routing
-   ↓
-Evidence Review
-   ↓
-Historical Validation
-   ↓
-Damage Analysis
-   ↓
-Missing Information Collection
-   ↓
-Inspection Decision
-
-This section’s goal is not yet to decide payment.
-
-Its goal is to answer:
-
-1. Is the claim genuine?
-2. What exactly was damaged?
-3. How severe is the damage?
-4. Do we have enough evidence?
-5. Do we need an inspection?
-
-Only after these questions are answered does the next stage—Loss Assessment and Settlement Recommendation—begin. That is where the system starts calculating reserves, repair costs, and the final payout amount.
-
-
-
-
-Perfect. Now we are entering the SIU (Special Investigation Unit) part of the architecture.
-
-This section only gets involved when the claim looks suspicious. The Claims Adjuster section asks:
-
-“Should we pay this claim?”
-
-The SIU section asks:
-
-“Is someone trying to deceive us?”
-
-Think of SIU as the insurance company’s detective department.
-
-⸻
-
-SIU Investigator
-
-When Does SIU Get Involved?
-
-Usually after:
-
-Fraud Screening Agent
-       ↓
-High Fraud Score
-       ↓
-SIU Investigation
-
-Example:
-
-Policy bought 10 days ago
-         +
-Total loss claim
-         +
-Very little evidence
-
-This may trigger SIU.
-
-⸻
-
-Section 1: Fraud Intake
-
-Before investigation begins, the case must enter the SIU workflow.
-
-⸻
-
-1. Fraud Escalation Agent
-
-Purpose
-
-Decides whether a claim should be escalated to SIU.
-
-Think of this as the gatekeeper of the fraud department.
+Loss Estimation Agent calculates:
+
+Roof Repair = ₹1,80,000
+Interior Repair = ₹70,000
+Total Estimate = ₹2,50,000
 
 ⸻
 
 Inputs
 
-Receives:
-
-* Fraud score
-* Business rules
-* Claim history
-* Risk indicators
-
-⸻
-
-Example
-
-Claim has:
-
-Fraud Score = 92
-
-Agent decides:
-
-Escalate to SIU
-
-⸻
-
-Another Example
-
-Business Rule:
-
-Any arson claim
-
-Automatically send to SIU.
-
-Even if fraud score is low.
+* Damage Assessment Report
+* Inspection Report
+* Drone Findings
+* Historical Repair Costs
+* Vendor Estimates
+* Property Information
 
 ⸻
 
 Output
 
 {
-  "escalate": true,
-  "reason": "High fraud score"
-}
-
-⸻
-
-Why Needed?
-
-Without this:
-
-Every claim
-    ↓
-SIU
-
-Impossible to manage.
-
-The escalation agent ensures only suspicious claims reach SIU.
-
-⸻
-
-2. Fraud Risk Scoring Agent
-
-Purpose
-
-Generate a detailed fraud score.
-
-This is more advanced than the initial screening done by the adjuster workflow.
-
-⸻
-
-Inputs
-
-May analyze:
-
-* Claim history
-* Customer history
-* Location
-* Timing
-* Evidence quality
-* Policy age
-* Repair estimates
-
-⸻
-
-Example
-
-Indicators:
-
-Policy purchased:
-15 days ago
-Claim:
-$150,000
-Evidence:
-Limited
-Prior Claims:
-3
-
-⸻
-
-Output
-
-{
-  "fraud_score": 94,
-  "risk_level": "Very High"
-}
-
-⸻
-
-Important
-
-This agent doesn’t say:
-
-Fraud confirmed
-
-It only says:
-
-Fraud appears likely
-
-The actual investigation still has to happen.
-
-⸻
-
-3. Case Assignment Agent
-
-Purpose
-
-Assign case to the right SIU investigator.
-
-Think of it as workload management.
-
-⸻
-
-Example
-
-Claim Type:
-
-Vendor Fraud
-
-Assign to:
-
-Vendor Fraud Specialist
-
-⸻
-
-Example
-
-Claim Type:
-
-Organized Fraud Ring
-
-Assign to:
-
-Senior Investigator
-
-⸻
-
-Inputs
-
-Uses:
-
-* Claim type
-* Fraud category
-* Investigator expertise
-* Current workload
-
-⸻
-
-Output
-
-{
-  "assigned_to": "Investigator_23"
-}
-
-⸻
-
-Section 2: Fraud Investigation
-
-Now the actual detective work begins.
-
-This is the most interesting part.
-
-⸻
-
-4. Behavioral Analytics Agent
-
-Purpose
-
-Analyze claimant behavior anomalies.
-
-Key word:
-
-Anomalies
-
-Meaning:
-
-Something unusual.
-
-⸻
-
-Example
-
-Normal Customer:
-
-1 claim in 8 years
-
-⸻
-
-Suspicious Customer
-
-5 claims in 18 months
-
-⸻
-
-Another Example
-
-Customer reports:
-
-Total loss
-
-But:
-
-Very slow response
-Avoids providing documents
-Changes story repeatedly
-
-Behavioral anomaly detected.
-
-⸻
-
-Output
-
-{
-  "behavior_risk": "High"
-}
-
-⸻
-
-Think Like a Detective
-
-The question is:
-
-Does this person's behavior look unusual?
-
-⸻
-
-5. Network Analysis Agent
-
-Purpose
-
-Detect related claims, parties, and fraud networks.
-
-This is one of the most powerful SIU agents.
-
-⸻
-
-Example
-
-Claim A:
-
-John
-Contractor ABC
-
-⸻
-
-Claim B:
-
-Sarah
-Contractor ABC
-
-⸻
-
-Claim C:
-
-Mike
-Contractor ABC
-
-⸻
-
-Agent discovers:
-
-Same contractor appears
-in dozens of suspicious claims
-
-Possible fraud ring.
-
-⸻
-
-Another Example
-
-Same:
-
-* Phone number
-* Address
-* Bank account
-
-appears across multiple claims.
-
-⸻
-
-Output
-
-{
-  "network_risk": "High"
-}
-
-⸻
-
-Why Powerful?
-
-Humans may miss patterns across thousands of claims.
-
-AI can find them instantly.
-
-⸻
-
-6. Entity Relationship Agent
-
-Purpose
-
-Map relationships between entities.
-
-Think of this as building a fraud relationship graph.
-
-⸻
-
-Entities Could Be
-
-* Customer
-* Vendor
-* Adjuster
-* Witness
-* Property
-* Bank Account
-
-⸻
-
-Example
-
-The agent discovers:
-
-Claimant
-    ↓
-Uses Vendor A
-Vendor A
-    ↓
-Connected to Witness B
-Witness B
-    ↓
-Related to Claimant
-
-This relationship may indicate collusion.
-
-⸻
-
-Output
-
-Could create:
-
-Customer
-   ↓
-Vendor
-   ↓
-Repair Company
-   ↓
-Prior Fraud Case
-
-⸻
-
-In AI Terms
-
-This is often implemented using:
-
-Knowledge Graph
-Graph Database
-Relationship Analysis
-
-⸻
-
-7. Vendor Fraud Agent
-
-Purpose
-
-Investigate vendors involved in claims.
-
-Remember:
-
-Fraud isn’t always committed by customers.
-
-Sometimes vendors commit fraud.
-
-⸻
-
-Example
-
-Vendor consistently submits:
-
-Repair Estimate:
-₹10 lakh
-
-Industry average:
-
-₹3 lakh
-
-Suspicious.
-
-⸻
-
-Another Example
-
-Vendor appears in:
-
-150 claims
-
-and
-
-80 fraud investigations
-
-Major red flag.
-
-⸻
-
-Checks
-
-* Fraud history
-* Prior investigations
-* Overbilling patterns
-* Compliance violations
-* Complaint history
-
-⸻
-
-Output
-
-{
-  "vendor_risk": "High"
-}
-
-⸻
-
-Section 3: Fraud Resolution
-
-Now SIU has completed its investigation.
-
-Next question:
-
-What should we do?
-
-⸻
-
-8. Fraud Decision Agent
-
-Purpose
-
-Recommend outcome.
-
-This is the SIU recommendation engine.
-
-⸻
-
-Possible Outcomes
-
-Legitimate Claim
-
-No Fraud Detected
-
-Return to normal processing.
-
-⸻
-
-Suspicious Claim
-
-Further Investigation Needed
-
-⸻
-
-Fraudulent Claim
-
-Fraud Confirmed
-
-⸻
-
-Output
-
-{
-  "recommendation": "Fraud Confirmed",
+  "repair_cost": 250000,
+  "replacement_cost": 350000,
   "confidence": 91
 }
 
 ⸻
 
-Important
+Why Important?
 
-Usually a human investigator still reviews this recommendation.
+Without this agent:
+
+Damage Found
+     ↓
+???
+     ↓
+Settlement
+
+Impossible.
+
+You must know the value of the loss.
 
 ⸻
 
-9. Legal Escalation Agent
+10. Coverage Application Agent
 
 Purpose
 
-Escalate serious cases to legal teams.
+Apply policy terms, limits, deductibles, and exclusions.
+
+This is one of the most important insurance agents.
+
+⸻
+
+Important Concept
+
+Damage ≠ Payment
+
+Just because damage exists does not mean the insurer pays everything.
 
 ⸻
 
 Example
 
-SIU discovers:
+Loss Estimation Agent says:
 
-Organized fraud ring
-
-or
-
-Forged documents
-
-or
-
-Insurance scam network
+Total Damage = ₹2,50,000
 
 ⸻
 
-Agent Action
+Policy says:
 
-Creates:
+Deductible = ₹25,000
+Coverage Limit = ₹2,00,000
+Flood Exclusion
 
-* Evidence package
-* Investigation summary
-* Legal recommendation
+⸻
 
-and sends it to legal counsel.
+Coverage Application Agent calculates:
+
+Covered Amount = ₹2,00,000
+Deductible = ₹25,000
+Net Eligible Amount = ₹1,75,000
+
+⸻
+
+Inputs
+
+* Policy Document
+* Coverage Rules
+* Exclusions
+* Deductibles
+* Loss Estimate
 
 ⸻
 
 Output
 
 {
-  "legal_review_required": true
+  "covered_amount": 200000,
+  "deductible": 25000,
+  "payable_amount": 175000
 }
-
-⸻
-
-10. Watchlist Update Agent
-
-Purpose
-
-Update fraud intelligence databases.
-
-This is how the company learns from investigations.
-
-⸻
-
-Example
-
-Vendor confirmed fraudulent.
-
-Add:
-
-Vendor ABC
-
-to watchlist.
-
-⸻
-
-Example
-
-Claimant involved in confirmed fraud.
-
-Update:
-
-Risk Profile
 
 ⸻
 
 Why Important?
 
-Future fraud detection becomes smarter.
+This agent answers:
+
+How much of the damage
+is actually covered?
 
 ⸻
 
-Output
-
-Fraud Database Updated
-
-⸻
-
-11. SIU Closure Agent
+11. Reserve Recommendation Agent
 
 Purpose
 
-Close the investigation.
-
-This is the final step.
+Recommend claim reserve amount.
 
 ⸻
 
-Responsibilities
+What is Reserve?
 
-Document:
+A reserve is money the insurer sets aside.
 
-* Findings
-* Evidence
-* Decision
-* Recommendations
-* Investigator Notes
+Think:
+
+Expected Future Payment
 
 ⸻
 
 Example
 
-Final Report:
+Coverage Application Agent says:
 
-Fraud Not Confirmed
-Evidence Reviewed:
-24 Documents
+Expected Payout
+₹1,75,000
+
+⸻
+
+Reserve Recommendation Agent says:
+
+Reserve
+₹1,80,000
+
+to account for uncertainty.
+
+⸻
+
+Inputs
+
+* Loss Estimate
+* Coverage Analysis
+* Claim Complexity
+* Historical Settlements
+
+⸻
+
+Output
+
+{
+  "reserve_amount": 180000,
+  "reason": "High severity roof claim"
+}
+
+⸻
+
+Why Important?
+
+Finance teams use reserves for:
+
+* Financial planning
+* Regulatory reporting
+* Claim liabilities
+
+⸻
+
+SECTION 4: Claim Decision & Settlement
+
+Now the claim is almost complete.
+
+The question becomes:
+
+“Should we pay?”
+
+“How much should we pay?”
+
+“Can payment be triggered?”
+
+⸻
+
+12. Settlement Recommendation Agent
+
+Purpose
+
+Recommend settlement amount and options.
+
+⸻
+
+Example
+
+Coverage Application Agent says:
+
+Eligible Amount
+₹1,75,000
+
+⸻
+
+Agent may recommend:
+
+Option A
+
+Cash Settlement
+₹1,75,000
+
+⸻
+
+Option B
+
+Repair Through Network Vendor
+
+⸻
+
+Inputs
+
+* Coverage Analysis
+* Reserve Recommendation
+* Loss Estimate
+* Vendor Estimates
+
+⸻
+
+Output
+
+{
+  "recommended_settlement": 175000,
+  "option": "Cash Settlement"
+}
+
+⸻
+
+Why Important?
+
+This is the first agent that actually recommends money.
+
+⸻
+
+13. Approval Recommendation Agent
+
+Purpose
+
+Recommend approval or rejection.
+
+⸻
+
+Example 1
+
+Everything looks good:
+
+Evidence Valid
+Coverage Exists
+No Fraud
+
 Recommendation:
-Continue Claim Processing
+
+Approve
 
 ⸻
 
-Or
+Example 2
 
-Fraud Confirmed
-Claim Denied
-Legal Escalation Completed
+Fraud confirmed:
 
-⸻
-
-Output
-
-{
-  "case_status": "Closed"
-}
+Reject
 
 ⸻
 
-Complete SIU Flow
+Example 3
 
-Fraud Escalation Agent
-          ↓
-Fraud Risk Scoring Agent
-          ↓
-Case Assignment Agent
-          ↓
-Behavioral Analytics Agent
-          ↓
-Network Analysis Agent
-          ↓
-Entity Relationship Agent
-          ↓
-Vendor Fraud Agent
-          ↓
-Fraud Decision Agent
-          ↓
-Legal Escalation Agent
-          ↓
-Watchlist Update Agent
-          ↓
-SIU Closure Agent
+Missing documentation:
 
-If you compare this with your underwriting project, the closest equivalent would be:
-
-Underwriting
---------------
-Risk Detection
-Risk Analysis
-Decision
-Claims SIU
---------------
-Fraud Detection
-Fraud Investigation
-Fraud Decision
-
-The SIU lane is essentially a specialized fraud-investigation workflow that runs in parallel with the normal claims process whenever a claim becomes suspicious.
-
-
-
-Excellent. The Vendor Manager lane is often overlooked, but in real insurance companies it is extremely important because after the insurer decides that damage exists, someone must actually inspect, repair, restore, or replace the damaged property.
-
-Think of it this way:
-
-Policyholder
-     ↓
-Reports Damage
-     ↓
-Adjuster
-     ↓
-Confirms Damage
-     ↓
-Vendor Manager
-     ↓
-Finds Experts & Repair Vendors
-     ↓
-Repairs Property
-
-Without vendors, the claim cannot be fully resolved.
-
-⸻
-
-Vendor Manager
-
-This lane has 4 major sections:
-
-Vendor Discovery
-        ↓
-Drone Verification
-        ↓
-Expert Dispatch
-        ↓
-Vendor Management
-
-⸻
-
-SECTION 1: Vendor Discovery
-
-Goal:
-
-Find the right vendor
-Verify vendor quality
-Estimate cost
-Estimate availability
-
-⸻
-
-1. Vendor Discovery Agent
-
-Purpose
-
-Find qualified vendors for the loss type.
-
-Imagine the claim is:
-
-Roof Damage
-
-The system needs:
-
-Roofing Contractor
-
-not
-
-Plumber
-
-⸻
-
-Example
-
-Claim Type:
-
-Water Damage
-
-Agent searches vendor network:
-
-Vendor A
-Vendor B
-Vendor C
-
-specialized in water restoration.
+Pending
 
 ⸻
 
 Inputs
 
-* Damage type
-* Location
-* Severity
-* Vendor availability
+* Settlement Recommendation
+* SIU Findings
+* Coverage Analysis
+* Investigation Results
 
 ⸻
 
 Output
 
 {
-  "recommended_vendors": [
-    "Vendor A",
-    "Vendor B"
-  ]
+  "decision": "Approve",
+  "confidence": 95
 }
-
-⸻
-
-2. Vendor Qualification Agent
-
-Purpose
-
-Verify vendor credentials.
-
-Finding a vendor is not enough.
-
-The insurer must trust them.
-
-⸻
-
-Checks
-
-License
-
-Is the contractor licensed?
-
-⸻
-
-Insurance
-
-Does vendor have liability insurance?
-
-⸻
-
-Certifications
-
-Roofing Certification
-Water Restoration Certification
-
-⸻
-
-Ratings
-
-Customer Reviews
-Past Performance
-
-⸻
-
-Example
-
-Vendor A:
-
-License Valid
-Insurance Active
-Rating 4.8
-
-Approved.
-
-⸻
-
-Vendor B:
-
-License Expired
-
-Rejected.
 
 ⸻
 
 Why Important?
 
-Prevents:
-
-* Poor quality work
-* Fraud
-* Legal issues
+This is the final business decision recommendation.
 
 ⸻
 
-3. Cost Benchmark Agent
+14. Payment Trigger Agent
 
 Purpose
 
-Compare pricing and estimate cost.
-
-This is a very valuable AI agent.
+Trigger payment or subrogation workflow.
 
 ⸻
 
 Example
 
-Vendor Quote:
+Approval Recommendation Agent says:
 
-₹5,00,000
-
-Agent compares against:
-
-Historical Claims
-Market Rates
-Regional Pricing
+Approved
 
 ⸻
 
-Result
+Payment Trigger Agent:
 
-AI discovers:
+Creates Payment Request
 
-Expected Cost:
-₹2,80,000
+⸻
 
-Vendor Quote:
+Finance receives:
 
-₹5,00,000
-
-Potential overpricing.
+Pay ₹1,75,000
 
 ⸻
 
 Another Example
 
-Vendor Quote:
+Third party responsible.
 
-₹2,90,000
+Instead of payment only:
 
-Industry Average:
+Subrogation Workflow
 
-₹2,85,000
-
-Looks reasonable.
+gets started.
 
 ⸻
 
-Output
+What is Subrogation?
 
-{
-  "benchmark_result": "Within Range"
-}
+Example:
 
-⸻
+Neighbor's tree
+falls on insured house.
 
-4. ETA Prediction Agent
+Insurance company pays customer first.
 
-Purpose
+Later:
 
-Predict availability and completion time.
+Insurance company
+recovers money
+from responsible party.
 
-ETA = Estimated Time of Arrival/Completion
+That recovery process is called:
 
-⸻
-
-Example
-
-Vendor A:
-
-Available Tomorrow
-
-Vendor B:
-
-Available After 3 Weeks
-
-⸻
-
-Agent Predicts
-
-Inspection ETA
-Repair Start Date
-Repair Completion Date
-
-⸻
-
-Why Important?
-
-Customer asks:
-
-When will repairs begin?
-
-This agent provides the answer.
-
-⸻
-
-Output
-
-{
-  "eta": "3 days"
-}
-
-⸻
-
-SECTION 2: Drone Verification
-
-This section becomes extremely useful after:
-
-* Storms
-* Hurricanes
-* Floods
-* Roof Damage
-
-⸻
-
-5. Drone Image Analysis Agent
-
-Purpose
-
-Analyze drone images.
-
-Instead of sending people to every roof:
-
-Drone
-   ↓
-Photos
-   ↓
-AI Analysis
-
-⸻
-
-Detects
-
-* Missing shingles
-* Roof holes
-* Structural damage
-* Water pooling
-
-⸻
-
-Example
-
-AI identifies:
-
-35% roof damage
-
-⸻
-
-Technologies
-
-Could use:
-
-* Computer Vision
-* Azure AI Vision
-* GPT-4o Vision
-* Custom ML Models
-
-⸻
-
-6. Property Comparison Agent
-
-Purpose
-
-Compare drone findings with historical property data.
-
-Question:
-
-Did this damage already exist?
-
-⸻
-
-Example
-
-Last year’s property image:
-
-Roof already damaged
-
-Current claim:
-
-Customer says storm caused all damage
-
-Mismatch detected.
-
-⸻
-
-Data Sources
-
-* Prior inspections
-* Satellite imagery
-* Previous claims
-* Property records
-
-⸻
-
-Output
-
-{
-  "historical_damage_detected": true
-}
-
-⸻
-
-7. Anomaly Detection Agent
-
-Purpose
-
-Find inconsistencies.
-
-⸻
-
-Example
-
-Drone Analysis:
-
-Minor roof damage
-
-Claim:
-
-Total roof loss
-
-Anomaly detected.
-
-⸻
-
-Another Example
-
-Repair Estimate:
-
-₹8 lakh
-
-Drone Analysis:
-
-₹2 lakh damage
-
-Potential issue.
-
-⸻
-
-Output
-
-{
-  "anomaly_score": 87
-}
-
-⸻
-
-SECTION 3: Expert Dispatch
-
-Sometimes AI and drone evidence are not enough.
-
-A human expert must visit.
-
-⸻
-
-8. Expert Assignment Agent
-
-Purpose
-
-Assign the correct expert.
-
-⸻
-
-Example
-
-Claim Type:
-
-Roof Damage
-
-Assign:
-
-Roof Expert
-
-⸻
-
-Example
-
-Claim Type:
-
-Fire Damage
-
-Assign:
-
-Fire Investigation Expert
+Subrogation
 
 ⸻
 
 Inputs
 
-* Damage type
-* Location
-* Expertise
-* Availability
+* Approved Claim
+* Settlement Amount
+* Payment Details
+* Beneficiary Details
 
 ⸻
 
-Output
+Outputs
 
 {
-  "assigned_expert": "Roof Specialist"
+  "payment_status": "Initiated",
+  "payment_reference": "PAY12345"
 }
 
 ⸻
 
-9. Inspection Recommendation Agent
-
-Purpose
-
-Determine inspection type.
-
-This is similar to the Adjuster-side inspection recommendation, but focused on vendor/expert operations.
-
-⸻
-
-Possible Outcomes
-
-No Inspection
-
-Evidence sufficient
-
-⸻
-
-Virtual Inspection
-
-Video Call
-
-⸻
-
-Physical Inspection
-
-Site Visit
-
-⸻
-
-Example
-
-Roof inaccessible.
-
-Recommend:
-
-Drone Inspection
-
-⸻
-
-10. Dispatch Coordination Agent
-
-Purpose
-
-Manage expert deployment.
-
-⸻
-
-Responsibilities
-
-Track:
-
-Expert Assigned
-Expert Traveling
-Inspection Started
-Inspection Completed
-
-⸻
-
-Think of It Like
-
-Uber for insurance experts.
-
-⸻
-
-Output
-
-{
-  "status": "Expert En Route"
-}
-
-⸻
-
-SECTION 4: Vendor Management
-
-Once vendors are selected, the insurer must manage them.
-
-⸻
-
-11. Vendor Onboarding Agent
-
-Purpose
-
-Add new vendors into the ecosystem.
-
-⸻
-
-Collects
-
-* Licenses
-* Certifications
-* Insurance Documents
-* Tax Documents
-* Contracts
-
-⸻
-
-Verifies
-
-Everything before activation.
-
-⸻
-
-Output
-
-Vendor Approved
-
-⸻
-
-12. Vendor Performance Agent
-
-Purpose
-
-Monitor vendor quality.
-
-This is basically a vendor scorecard.
-
-⸻
-
-Tracks
-
-SLA Performance
-
-Did vendor meet deadlines?
-
-⸻
-
-Quality
-
-Were repairs acceptable?
-
-⸻
-
-Customer Feedback
-
-How satisfied was the policyholder?
-
-⸻
-
-Example
-
-Vendor Score:
-
-92/100
-
-⸻
-
-Why Important?
-
-Poor-performing vendors can be removed.
-
-⸻
-
-13. Vendor Risk & Compliance Agent
-
-Purpose
-
-Manage vendor risk.
-
-⸻
-
-Checks
-
-* Regulatory compliance
-* Insurance validity
-* Licensing validity
-* Fraud concerns
-
-⸻
-
-Example
-
-Vendor license expires.
-
-Agent alerts insurer.
-
-⸻
-
-Example
-
-Vendor involved in SIU investigations.
-
-Risk increases.
-
-⸻
-
-Output
-
-{
-  "risk_level": "Medium"
-}
-
-⸻
-
-14. Capacity Management Agent
-
-Purpose
-
-Balance workload across vendors.
-
-⸻
-
-Example
-
-Vendor A:
-
-200 active jobs
-
-Vendor B:
-
-20 active jobs
-
-Instead of assigning more work to Vendor A:
-
-Assign Vendor B
-
-⸻
-
-Benefits
-
-* Faster repairs
-* Better customer experience
-* Balanced workload
-
-⸻
-
-Complete Vendor Manager Flow
-
-Vendor Discovery Agent
-          ↓
-Vendor Qualification Agent
-          ↓
-Cost Benchmark Agent
-          ↓
-ETA Prediction Agent
-          ↓
-Drone Image Analysis Agent
-          ↓
-Property Comparison Agent
-          ↓
-Anomaly Detection Agent
-          ↓
-Expert Assignment Agent
-          ↓
+Complete Claim Adjuster Flow
+
+Claim Triage Agent
+        ↓
+Fraud Screening Agent
+        ↓
+Routing Agent
+        ↓
+Evidence Review Agent
+        ↓
+Historical Comparison Agent
+        ↓
+Damage Assessment Agent
+        ↓
+Additional Info Agent
+        ↓
 Inspection Recommendation Agent
-          ↓
-Dispatch Coordination Agent
-          ↓
-Vendor Onboarding Agent
-          ↓
-Vendor Performance Agent
-          ↓
-Vendor Risk & Compliance Agent
-          ↓
-Capacity Management Agent
+        ↓
+Loss Estimation Agent
+        ↓
+Coverage Application Agent
+        ↓
+Reserve Recommendation Agent
+        ↓
+Settlement Recommendation Agent
+        ↓
+Approval Recommendation Agent
+        ↓
+Payment Trigger Agent
 
-Now if you step back and look at the entire architecture you’ve explained so far, you have three major operational departments:
-
-Policyholder Lane
-     ↓
-Collect Claim
-Claim Adjuster Lane
-     ↓
-Investigate & Assess Claim
-SIU Lane
-     ↓
-Investigate Fraud
-Vendor Manager Lane
-     ↓
-Inspect, Repair & Manage Vendors
-
-And all four of these are coordinated by the Claims Orchestration / Brain Agent sitting in the middle of the diagram. That Brain Agent is the equivalent of your “Mera Brain” in the underwriting project. It decides which agent should run next, shares context between agents, and manages the entire end-to-end claims workflow.
+This is the complete Adjuster journey from claim intake → investigation → valuation → coverage determination → reserve calculation → settlement → approval → payment. These last six agents are where the actual financial decision-making of the claim happens.
