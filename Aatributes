@@ -1,497 +1,178 @@
-Yes, you’re absolutely right.
+Ah, that makes much more sense from a claims workflow perspective.
 
-In my earlier explanation, I only covered:
+For a homeowners claim, the sequence is usually:
 
-Claim Intake & Triage
+Voice FNOL Agent
+        ↓
+Policy Verification Agent
+        ↓
+Evidence Collection Agent
+        ↓
+Claim Segmentation Agent
+        ↓
+Claim Submission Agent
 
-1. Claim Triage Agent
-2. Fraud Screening Agent
-3. Routing Agent
+A Police Verification Agent would only be needed for specific claim types like:
 
-Loss Investigation
+* Theft
+* Burglary
+* Vandalism
+* Arson
 
-4. Evidence Review Agent
-5. Historical Comparison Agent
-6. Damage Assessment Agent
-7. Additional Info Agent
-8. Inspection Recommendation Agent
-
-Then I stopped.
-
-But your architecture continues with two additional sections:
-
-⸻
-
-SECTION 3: Loss Assessment
-
-At this point the system already knows:
-
-✅ What happened
-
-✅ What was damaged
-
-✅ Whether evidence is sufficient
-
-✅ Whether inspection is required
-
-Now the question becomes:
-
-“How much money are we talking about?”
+But a Policy Verification Agent is needed for almost every claim.
 
 ⸻
 
-9. Loss Estimation Agent
+Policy Verification Agent
 
 Purpose
 
-Estimate repair and replacement costs.
+Verify policy, coverage, and eligibility before investing time and resources in processing the claim.
 
-This is where the claim starts becoming financial.
+The insurance company first wants to answer:
 
-⸻
-
-Question Asked
-
-How much will it cost
-to restore the property?
+Is this person insured?
+Is the policy active?
+Does the policy cover this loss?
+Is the claimant eligible?
 
 ⸻
 
-Example
+Example 1 — Valid Claim
 
-Damage Assessment Agent says:
+Customer reports:
 
-Roof Damage
-65% affected
+Storm damaged my roof.
+
+Policy Verification Agent checks:
+
+Policy Status = Active
+Coverage = Homeowners
+Storm Coverage = Included
+Premium Status = Paid
+
+Result:
+
+Eligible for claim processing
 
 ⸻
 
-Inspection Report says:
+Example 2 — Lapsed Policy
 
-Shingles destroyed
-Water intrusion detected
+Customer reports:
+
+Water damage claim
+
+Agent finds:
+
+Policy expired 3 months ago
+
+Result:
+
+Coverage not active
 
 ⸻
 
-Loss Estimation Agent calculates:
+Example 3 — Excluded Loss
 
-Roof Repair = ₹1,80,000
-Interior Repair = ₹70,000
-Total Estimate = ₹2,50,000
+Customer reports:
+
+Flood damage
+
+Policy states:
+
+Flood excluded
+
+Result:
+
+Coverage exclusion identified
 
 ⸻
 
 Inputs
 
-* Damage Assessment Report
-* Inspection Report
-* Drone Findings
-* Historical Repair Costs
-* Vendor Estimates
-* Property Information
+The Policy Verification Agent typically receives:
+
+Input Type	Examples
+Policy Number	POL123456
+Claimant Information	Name, Address
+FNOL Summary	Incident details
+Date of Loss	Loss occurrence date
+Policy Data	Coverage, limits, endorsements
+Premium Status	Paid, unpaid, cancelled
+Coverage Rules	Policy wording
 
 ⸻
 
-Output
+Processing
 
-{
-  "repair_cost": 250000,
-  "replacement_cost": 350000,
-  "confidence": 91
-}
+The agent verifies:
 
-⸻
+Policy Validation
 
-Why Important?
+Does policy exist?
 
-Without this agent:
+Policy Status
 
-Damage Found
-     ↓
-???
-     ↓
-Settlement
+Active?
+Expired?
+Cancelled?
 
-Impossible.
+Eligibility Check
 
-You must know the value of the loss.
+Named insured?
+Authorized claimant?
 
-⸻
+Coverage Check
 
-10. Coverage Application Agent
+Is this loss covered?
 
-Purpose
+Date Validation
 
-Apply policy terms, limits, deductibles, and exclusions.
-
-This is one of the most important insurance agents.
-
-⸻
-
-Important Concept
-
-Damage ≠ Payment
-
-Just because damage exists does not mean the insurer pays everything.
-
-⸻
-
-Example
-
-Loss Estimation Agent says:
-
-Total Damage = ₹2,50,000
-
-⸻
-
-Policy says:
-
-Deductible = ₹25,000
-Coverage Limit = ₹2,00,000
-Flood Exclusion
-
-⸻
-
-Coverage Application Agent calculates:
-
-Covered Amount = ₹2,00,000
-Deductible = ₹25,000
-Net Eligible Amount = ₹1,75,000
-
-⸻
-
-Inputs
-
-* Policy Document
-* Coverage Rules
-* Exclusions
-* Deductibles
-* Loss Estimate
-
-⸻
-
-Output
-
-{
-  "covered_amount": 200000,
-  "deductible": 25000,
-  "payable_amount": 175000
-}
-
-⸻
-
-Why Important?
-
-This agent answers:
-
-How much of the damage
-is actually covered?
-
-⸻
-
-11. Reserve Recommendation Agent
-
-Purpose
-
-Recommend claim reserve amount.
-
-⸻
-
-What is Reserve?
-
-A reserve is money the insurer sets aside.
-
-Think:
-
-Expected Future Payment
-
-⸻
-
-Example
-
-Coverage Application Agent says:
-
-Expected Payout
-₹1,75,000
-
-⸻
-
-Reserve Recommendation Agent says:
-
-Reserve
-₹1,80,000
-
-to account for uncertainty.
-
-⸻
-
-Inputs
-
-* Loss Estimate
-* Coverage Analysis
-* Claim Complexity
-* Historical Settlements
-
-⸻
-
-Output
-
-{
-  "reserve_amount": 180000,
-  "reason": "High severity roof claim"
-}
-
-⸻
-
-Why Important?
-
-Finance teams use reserves for:
-
-* Financial planning
-* Regulatory reporting
-* Claim liabilities
-
-⸻
-
-SECTION 4: Claim Decision & Settlement
-
-Now the claim is almost complete.
-
-The question becomes:
-
-“Should we pay?”
-
-“How much should we pay?”
-
-“Can payment be triggered?”
-
-⸻
-
-12. Settlement Recommendation Agent
-
-Purpose
-
-Recommend settlement amount and options.
-
-⸻
-
-Example
-
-Coverage Application Agent says:
-
-Eligible Amount
-₹1,75,000
-
-⸻
-
-Agent may recommend:
-
-Option A
-
-Cash Settlement
-₹1,75,000
-
-⸻
-
-Option B
-
-Repair Through Network Vendor
-
-⸻
-
-Inputs
-
-* Coverage Analysis
-* Reserve Recommendation
-* Loss Estimate
-* Vendor Estimates
-
-⸻
-
-Output
-
-{
-  "recommended_settlement": 175000,
-  "option": "Cash Settlement"
-}
-
-⸻
-
-Why Important?
-
-This is the first agent that actually recommends money.
-
-⸻
-
-13. Approval Recommendation Agent
-
-Purpose
-
-Recommend approval or rejection.
-
-⸻
-
-Example 1
-
-Everything looks good:
-
-Evidence Valid
-Coverage Exists
-No Fraud
-
-Recommendation:
-
-Approve
-
-⸻
-
-Example 2
-
-Fraud confirmed:
-
-Reject
-
-⸻
-
-Example 3
-
-Missing documentation:
-
-Pending
-
-⸻
-
-Inputs
-
-* Settlement Recommendation
-* SIU Findings
-* Coverage Analysis
-* Investigation Results
-
-⸻
-
-Output
-
-{
-  "decision": "Approve",
-  "confidence": 95
-}
-
-⸻
-
-Why Important?
-
-This is the final business decision recommendation.
-
-⸻
-
-14. Payment Trigger Agent
-
-Purpose
-
-Trigger payment or subrogation workflow.
-
-⸻
-
-Example
-
-Approval Recommendation Agent says:
-
-Approved
-
-⸻
-
-Payment Trigger Agent:
-
-Creates Payment Request
-
-⸻
-
-Finance receives:
-
-Pay ₹1,75,000
-
-⸻
-
-Another Example
-
-Third party responsible.
-
-Instead of payment only:
-
-Subrogation Workflow
-
-gets started.
-
-⸻
-
-What is Subrogation?
-
-Example:
-
-Neighbor's tree
-falls on insured house.
-
-Insurance company pays customer first.
-
-Later:
-
-Insurance company
-recovers money
-from responsible party.
-
-That recovery process is called:
-
-Subrogation
-
-⸻
-
-Inputs
-
-* Approved Claim
-* Settlement Amount
-* Payment Details
-* Beneficiary Details
+Did the loss occur during policy period?
 
 ⸻
 
 Outputs
 
+Output	Description
+Policy Status	Active / Expired / Cancelled
+Coverage Verification	Covered / Not Covered
+Eligibility Status	Eligible / Ineligible
+Coverage Summary	Applicable coverages
+Coverage Gaps	Exclusions identified
+Verification Result	Pass / Fail
+
+⸻
+
+Example Output
+
 {
-  "payment_status": "Initiated",
-  "payment_reference": "PAY12345"
+  "policy_status": "Active",
+  "eligibility": "Eligible",
+  "coverage_status": "Covered",
+  "covered_perils": ["Storm Damage"],
+  "verification_result": "Pass"
 }
 
 ⸻
 
-Complete Claim Adjuster Flow
+Updated FNOL Intake Flow
 
-Claim Triage Agent
+Voice FNOL Agent
         ↓
-Fraud Screening Agent
+Policy Verification Agent
         ↓
-Routing Agent
+Evidence Collection Agent
         ↓
-Evidence Review Agent
+Claim Segmentation Agent
         ↓
-Historical Comparison Agent
+Claim Submission Agent
         ↓
-Damage Assessment Agent
+Claim Status Agent
         ↓
-Additional Info Agent
+Customer Communication Agent
         ↓
-Inspection Recommendation Agent
-        ↓
-Loss Estimation Agent
-        ↓
-Coverage Application Agent
-        ↓
-Reserve Recommendation Agent
-        ↓
-Settlement Recommendation Agent
-        ↓
-Approval Recommendation Agent
-        ↓
-Payment Trigger Agent
+Feedback Agent
 
-This is the complete Adjuster journey from claim intake → investigation → valuation → coverage determination → reserve calculation → settlement → approval → payment. These last six agents are where the actual financial decision-making of the claim happens.
+This agent is actually one of the most important early-stage agents because it prevents the company from spending money investigating claims that are clearly not covered or not eligible under the policy.
