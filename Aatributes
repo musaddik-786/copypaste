@@ -1,24 +1,37 @@
 def parse_policy_from_search(gw_response: dict) -> Optional[dict]:
+    """
+    Extracts a flat, normalised policy dict from a Guidewire search response.
 
-    data_list = gw_response.get("data", [])
+    Returns None if no policies were found.
+    """
+    try:
+        data_list = gw_response.get("data", [])
 
-    if not data_list:
-        log.warning("No policies returned from Guidewire")
-        return None
+        if not data_list:
+            log.warning("No policy data returned from Guidewire")
+            return None
 
-    policy = data_list[0]
+        policy = data_list[0]
+        attrs = policy.get("attributes", {})
 
-    attrs = policy.get("attributes", {})
+        parsed = {
+            "gw_policy_id": attrs.get("policyId", ""),
+            "policy_number": attrs.get("policyNumber", ""),
+            "status": attrs.get("status", "Unknown"),
+            "effective_date": attrs.get("effectiveDate", ""),
+            "expiration_date": attrs.get("expirationDate", ""),
+            "coverage_types": attrs.get("coverageTypes", []),
+            "insured_name": attrs.get("insuredName", ""),
+            "account_number": attrs.get("accountNumber", ""),
+            "raw": gw_response,
+        }
 
-    return {
-        "gw_policy_id": attrs.get("policyId", ""),
-        "policy_number": attrs.get("policyNumber", ""),
-        "status": attrs.get("status", "Unknown"),
-        "effective_date": attrs.get("effectiveDate", ""),
-        "expiration_date": attrs.get("expirationDate", ""),
-        "coverage_types": attrs.get("coverageTypes", []),
-        "insured_name": attrs.get("insuredName", ""),
-        "account_number": attrs.get("accountNumber", ""),
-        "raw": gw_response,
-    }
+        log.info("Parsed policy data: %s", parsed)
 
+        return parsed
+
+    except Exception as exc:
+        log.exception("Failed to parse Guidewire policy response")
+        raise ValueError(
+            f"Unable to parse Guidewire response structure: {str(exc)}"
+        )
