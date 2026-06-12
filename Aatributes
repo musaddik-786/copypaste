@@ -1,37 +1,593 @@
-def parse_policy_from_search(gw_response: dict) -> Optional[dict]:
-    """
-    Extracts a flat, normalised policy dict from a Guidewire search response.
+"""
+main.py
+───────
+MCP server entry point — hosts multiple agent MCP sub-apps.
 
-    Returns None if no policies were found.
+Currently registered sub-apps:
+  /api/v1/voice_text_intake   — Voice/Text Intake (FNOL)
+  /api/v1/policy_coverage     — Policy Coverage Verification
+
+Run:
+    source mcp_venv/bin/activate
+    python main.py
+"""
+
+from dotenv import load_dotenv
+load_dotenv()
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi_mcp import FastApiMCP
+
+from fnol_intake_router import router as fnol_router
+from policy_coverage_router import policy_coverage_app
+
+import uvicorn
+
+
+app = FastAPI(docs_url="/docs", title="Jarvis Claims MCP Server")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+# ── Sub-app: voice_text_intake_agent ─────────────────────────────────────────
+
+def _make_cors_app(title: str, description: str = "") -> FastAPI:
+    sub = FastAPI(title=title, description=description)
+    sub.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    return sub
+
+
+voice_intake_app = _make_cors_app(
+    title="voice_text_intake_agent_mcps",
+    description="MCP tools for FNOL Voice/Text Intake: transcription, "
+                "field extraction, submission management, and audit logging.",
+)
+voice_intake_app.include_router(fnol_router)
+
+FastApiMCP(
+    voice_intake_app,
+    include_operations=[
+        "create_fnol_submission",
+        "get_fnol_submission",
+        "get_fnol_by_policy",
+        "update_fnol_submission",
+        "submit_fnol",
+        "get_mandatory_fields",
+        "save_voice_text_extraction",
+        "get_voice_text_extractions",
+        "save_ai_inferences",
+        "log_question_answer",
+        "get_question_log",
+        "save_field_attribution",
+        "transcribe_voice_input",
+        "extract_fnol_fields_from_text",
+        "save_voice_recording",
+    ],
+).mount_http()
+
+app.mount("/api/v1/voice_text_intake", voice_intake_app)
+
+
+# ── Sub-app: policy_coverage_verification_agent ───────────────────────────────
+
+policy_coverage_app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+FastApiMCP(
+    policy_coverage_app,
+    include_operations=[
+        "gw_search_policy",
+        "gw_get_policy_coverages",
+        "verify_coverage_against_loss",
+        "report_loss_to_guidewire",
+        "save_coverage_verification_result",
+        "get_local_policy_details",
+        "get_claim_for_verification",
+        "get_intake_validation_result",
+        "update_claim_coverage_status",
+    ],
+).mount_http()
+
+app.mount("/api/v2/policy_coverage", policy_coverage_app)
+
+
+# ── Health ────────────────────────────────────────────────────────────────────
+
+@app.get("/health")
+def health():
+    return {
+        "status": "healthy",
+        "service": "jarvis_claims_mcp",
+        "sub_apps": ["voice_text_intake", "policy_coverage"],
+    }
+
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=8700)
+
+
+server.py
+"""
+server.py — Policy Coverage Verification Agent
+───────────────────────────────────────────────
+LangGraph agent that:
+  1. Searches Guidewire PolicyCenter for the policyholder
+  2. Verifies whether the reported loss is covered under the policy
+  3. Reports the verified loss to Guidewire ClaimCenter
+  4. Persists results to the local database
+
+Port: 8711
+MCP : http://0.0.0.0:8700/api/v1/policy_coverage/mcp
+
+Run:
+    source agent_venv/bin/activate
+    python server.py
+"""
+
+import os
+import json
+import asyncio
+import logging
+from datetime import timedelta
+from typing import Annotated, AsyncGenerator
+
+from dotenv import load_dotenv
+load_dotenv()
+
+import uvicorn
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
+
+from langchain_core.messages import HumanMessage, AIMessage
+from langchain_openai import AzureChatOpenAI
+from langgraph.graph import StateGraph, END
+from langgraph.graph.message import add_messages
+from langchain_mcp_adapters.client import MultiServerMCPClient
+from typing_extensions import TypedDict
+
+from openinference.instrumentation.langchain import LangChainInstrumentor
+from phoenix.otel import register
+from arize.phoenix.client import Client as PhoenixClient
+
+logging.basicConfig(level=logging.INFO)
+log = logging.getLogger(__name__)
+
+# ── Environment ───────────────────────────────────────────────────────────────
+
+AZURE_OPENAI_ENDPOINT   = os.environ["AZURE_OPENAI_ENDPOINT"]
+AZURE_OPENAI_API_KEY    = os.environ["AZURE_OPENAI_API_KEY"]
+AZURE_OPENAI_DEPLOYMENT = os.environ.get("AZURE_OPENAI_DEPLOYMENT_NAME", "gpt-4.1-jarvis-demo")
+AZURE_OPENAI_API_VERSION = os.environ.get("AZURE_OPENAI_API_VERSION", "2025-01-01-preview")
+
+MCP_URL = os.environ.get(
+    "MCP_URL",
+    "http://0.0.0.0:8700/api/v1/policy_coverage/mcp",
+)
+
+PHOENIX_ENDPOINT = os.environ.get("PHOENIX_ENDPOINT", "")
+PHOENIX_API_KEY  = os.environ.get("PHOENIX_API_KEY", "")
+
+AGENT_PORT = int(os.environ.get("AGENT_PORT", "8711"))
+
+# ── Phoenix / OTEL instrumentation ───────────────────────────────────────────
+
+if PHOENIX_ENDPOINT:
+    try:
+        tracer_provider = register(
+            project_name="policy-coverage-verification-agent",
+            endpoint=f"{PHOENIX_ENDPOINT}/v1/traces",
+            headers={"api_key": PHOENIX_API_KEY} if PHOENIX_API_KEY else {},
+        )
+        LangChainInstrumentor().instrument(tracer_provider=tracer_provider)
+        log.info("Phoenix instrumentation active: %s", PHOENIX_ENDPOINT)
+    except Exception as exc:
+        log.warning("Phoenix instrumentation failed (non-fatal): %s", exc)
+
+# ── System prompt ─────────────────────────────────────────────────────────────
+
+_FALLBACK_PROMPT = """You are the Policy Coverage Verification Agent for an insurance claims platform.
+
+Your workflow for EVERY coverage verification request:
+
+STEP 1 — LOOK UP POLICYHOLDER IN GUIDEWIRE
+  Call gw_search_policy with the policy number provided.
+  If found=false, immediately inform the user that the policy was not found in Guidewire
+  and stop. Do NOT proceed with verification for a non-existent policy.
+
+STEP 2 — VERIFY COVERAGE
+  Call verify_coverage_against_loss with the claim_id, policy_number, reported_loss_type,
+  loss_description, loss_date, and the policy_data returned from Step 1.
+  The tool uses AI to analyse whether the reported loss falls under the policy terms.
+
+STEP 3 — SAVE VERIFICATION RESULT
+  Call save_coverage_verification_result with all fields from Step 2 (coverage_decision,
+  coverage_status, coverage_type_matched, deductible, coverage_limit, exclusion_reason).
+
+STEP 4 — REPORT LOSS TO GUIDEWIRE (only if Covered or Conditionally Covered)
+  If coverage_decision is "Covered" or "Conditionally Covered":
+    Call report_loss_to_guidewire with the policy_number, claim_number, loss_type,
+    loss_date, loss_description, insured_name, and estimated_amount.
+  If coverage_decision is "Not Covered":
+    Explain clearly to the user why the loss is not covered, citing the exclusion reason.
+    Do NOT call report_loss_to_guidewire.
+
+STEP 5 — UPDATE LOCAL CLAIM RECORD
+  Call update_claim_coverage_status with the claim_number and:
+    coverage = true (if Covered / Conditionally Covered) or false (if Not Covered)
+    ai_confidence = the confidence score from Step 2
+
+FINAL RESPONSE
+  Summarise the outcome clearly:
+  - Policy found / not found
+  - Coverage decision and reasoning
+  - Guidewire FNOL created (yes/no, with GW claim ID if yes)
+  - Any conditions or exclusions the policyholder should know about
+
+Always be professional, clear, and empathetic. When coverage is denied, acknowledge
+the policyholder's situation and recommend they contact their agent for a review.
+
+TOOLS AVAILABLE:
+- gw_search_policy               : Search Guidewire PolicyCenter for a policy
+- gw_get_policy_coverages        : Retrieve full coverage detail from Guidewire
+- verify_coverage_against_loss   : AI-based coverage determination (loss vs policy)
+- report_loss_to_guidewire       : Create FNOL in Guidewire ClaimCenter
+- save_coverage_verification_result : Persist verification result to local DB
+- get_local_policy_details       : Read locally cached policy details
+- get_claim_for_verification     : Retrieve a claim record for verification
+- get_intake_validation_result   : Read the latest verification result for a claim
+- update_claim_coverage_status   : Update claim record with coverage outcome
+"""
+
+
+def _load_system_prompt() -> str:
+    if not PHOENIX_ENDPOINT:
+        return _FALLBACK_PROMPT
+    try:
+        client = PhoenixClient(endpoint=PHOENIX_ENDPOINT, api_key=PHOENIX_API_KEY or None)
+        prompt_obj = client.prompts.get(
+            name="policy-coverage-verification-agent",
+            label="production",
+        )
+        text = prompt_obj.format()
+        log.info("Loaded system prompt from Phoenix")
+        return text
+    except Exception as exc:
+        log.warning("Could not load Phoenix prompt — using fallback: %s", exc)
+        return _FALLBACK_PROMPT
+
+
+# ── MCP client config ─────────────────────────────────────────────────────────
+
+MCP_SERVER_CONFIG = {
+    "policy_coverage_mcp": {
+        "url": MCP_URL,
+        "transport": "streamable_http",
+        "timeout": timedelta(seconds=120),
+        "sse_read_timeout": timedelta(seconds=600),
+    }
+}
+
+# ── LangGraph state ───────────────────────────────────────────────────────────
+
+class State(TypedDict):
+    messages: Annotated[list, add_messages]
+
+
+def router(state: State):
+    last = state["messages"][-1]
+    if isinstance(last, AIMessage):
+        if getattr(last, "tool_calls", None):
+            return "tools"
+        content = last.content or ""
+        if "Continue" in content:
+            return "tools"
+        if "End" in content:
+            return END
+    return END
+
+
+# ── Graph builder ─────────────────────────────────────────────────────────────
+
+async def build_graph(tools: list, system_prompt: str):
+    llm = AzureChatOpenAI(
+        azure_endpoint=AZURE_OPENAI_ENDPOINT,
+        api_key=AZURE_OPENAI_API_KEY,
+        azure_deployment=AZURE_OPENAI_DEPLOYMENT,
+        api_version=AZURE_OPENAI_API_VERSION,
+        streaming=True,
+        temperature=0,
+    ).bind_tools(tools)
+
+    from langgraph.prebuilt import ToolNode
+
+    async def agent_node(state: State):
+        msgs = [{"role": "system", "content": system_prompt}] + state["messages"]
+        response = await llm.ainvoke(msgs)
+        return {"messages": [response]}
+
+    tool_node = ToolNode(tools)
+
+    graph = StateGraph(State)
+    graph.add_node("agent", agent_node)
+    graph.add_node("tools", tool_node)
+    graph.set_entry_point("agent")
+    graph.add_conditional_edges("agent", router, {"tools": "tools", END: END})
+    graph.add_edge("tools", "agent")
+
+    return graph.compile()
+
+
+# ── FastAPI app ───────────────────────────────────────────────────────────────
+
+app = FastAPI(
+    title="Policy Coverage Verification Agent",
+    description="LangGraph agent for Guidewire policy lookup and coverage verification",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+class ChatRequest(BaseModel):
+    message: str
+    session_id: str = "default"
+
+
+@app.post("/chat")
+async def chat(req: ChatRequest):
+    system_prompt = _load_system_prompt()
+
+    async def event_stream() -> AsyncGenerator[str, None]:
+        async with MultiServerMCPClient(MCP_SERVER_CONFIG) as mcp_client:
+            tools = mcp_client.get_tools()
+            graph = await build_graph(tools, system_prompt)
+
+            state = {"messages": [HumanMessage(content=req.message)]}
+
+            async for event in graph.astream(state, stream_mode="messages"):
+                if isinstance(event, tuple) and len(event) == 2:
+                    msg, metadata = event
+                    if (
+                        isinstance(msg, AIMessage)
+                        and msg.content
+                        and metadata.get("langgraph_node") == "agent"
+                    ):
+                        chunk = json.dumps({"content": msg.content, "type": "agent"})
+                        yield f"data: {chunk}\n\n"
+
+            yield "data: [DONE]\n\n"
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
+
+
+@app.get("/health")
+def health():
+    return {
+        "status": "healthy",
+        "agent": "policy_coverage_verification",
+        "mcp_url": MCP_URL,
+    }
+
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=AGENT_PORT)
+
+
+
+
+
+policy coverage router.py
+"""
+policy_coverage_router.py
+──────────────────────────
+FastAPI sub-app exposing all Policy Coverage Verification MCP tools.
+Mounted at /api/v1/policy_coverage in main.py.
+FastApiMCP exposes each endpoint as a tool via its operation_id.
+"""
+
+from fastapi import FastAPI, HTTPException
+
+from policy_coverage_mcp.models import (
+    GwSearchPolicyRequest,
+    GwReportLossRequest,
+    SaveCoverageVerificationRequest,
+    SaveLocalPolicyRequest,
+    UpdateClaimCoverageRequest,
+    VerifyCoverageRequest,
+)
+from policy_coverage_mcp import coverage_handler
+
+policy_coverage_app = FastAPI(title="Policy Coverage Verification MCP")
+
+
+# ── 1. Guidewire: Search policy ───────────────────────────────────────────────
+
+@policy_coverage_app.post(
+    "/gw_search_policy",
+    operation_id="gw_search_policy",
+    summary="Search Guidewire PolicyCenter for a policy by policy number",
+)
+def gw_search_policy(req: GwSearchPolicyRequest):
+    """
+    Looks up a policy in Guidewire PolicyCenter using the policy number.
+    Returns found=True with the policy details if the policy exists,
+    or found=False with an error message if it does not.
+    Use this before any coverage verification to confirm the policyholder exists.
+    """
+    result = coverage_handler.gw_search_policy(req.policy_number)
+    return result
+
+
+# ── 2. Guidewire: Get full coverage detail ────────────────────────────────────
+
+@policy_coverage_app.post(
+    "/gw_get_policy_coverages",
+    operation_id="gw_get_policy_coverages",
+    summary="Retrieve full coverage details for a policy from Guidewire",
+)
+def gw_get_policy_coverages(req: GwSearchPolicyRequest):
+    """
+    Fetches the detailed policy record from Guidewire PolicyCenter,
+    including all lines of business and coverage clauses.
+    First searches by policy number, then fetches the full policy record.
+    """
+    result = coverage_handler.gw_get_policy_coverages(req.policy_number)
+    return result
+
+
+# ── 3. Coverage Verification (LLM) ───────────────────────────────────────────
+
+@policy_coverage_app.post(
+    "/verify_coverage_against_loss",
+    operation_id="verify_coverage_against_loss",
+    summary="Verify whether the reported loss is covered under the policy",
+)
+def verify_coverage_against_loss(req: VerifyCoverageRequest):
+    """
+    Uses Azure OpenAI to compare the reported loss type and description
+    against the policy's coverage terms retrieved from Guidewire.
+
+    If policy_data is not provided in the request, the tool will automatically
+    call Guidewire to retrieve it.
+
+    Returns coverage_decision ('Covered', 'Not Covered', 'Conditionally Covered'),
+    coverage_status, confidence score, and detailed reasoning.
+    """
+    result = coverage_handler.verify_coverage_against_loss(req)
+    return result
+
+
+# ── 4. Guidewire: Report loss (FNOL) ─────────────────────────────────────────
+
+@policy_coverage_app.post(
+    "/report_loss_to_guidewire",
+    operation_id="report_loss_to_guidewire",
+    summary="Report the loss to Guidewire ClaimCenter and create an FNOL record",
+)
+def report_loss_to_guidewire(req: GwReportLossRequest):
+    """
+    Creates a new FNOL (First Notice of Loss) record in Guidewire ClaimCenter.
+    Should be called after coverage is confirmed (Covered or Conditionally Covered).
+    Returns success=True and the Guidewire-assigned claim ID on success.
+    """
+    result = coverage_handler.report_loss_to_guidewire(req)
+    return result
+
+
+# ── 5. Save coverage verification result (local DB) ──────────────────────────
+
+@policy_coverage_app.post(
+    "/save_coverage_verification_result",
+    operation_id="save_coverage_verification_result",
+    summary="Save the coverage verification outcome to the local database",
+)
+def save_coverage_verification_result(req: SaveCoverageVerificationRequest):
+    """
+    Persists the coverage verification decision to intake_validation_result_output
+    and upserts the policy details into policy_details. Call this after
+    verify_coverage_against_loss to record the result for auditing.
     """
     try:
-        data_list = gw_response.get("data", [])
-
-        if not data_list:
-            log.warning("No policy data returned from Guidewire")
-            return None
-
-        policy = data_list[0]
-        attrs = policy.get("attributes", {})
-
-        parsed = {
-            "gw_policy_id": attrs.get("policyId", ""),
-            "policy_number": attrs.get("policyNumber", ""),
-            "status": attrs.get("status", "Unknown"),
-            "effective_date": attrs.get("effectiveDate", ""),
-            "expiration_date": attrs.get("expirationDate", ""),
-            "coverage_types": attrs.get("coverageTypes", []),
-            "insured_name": attrs.get("insuredName", ""),
-            "account_number": attrs.get("accountNumber", ""),
-            "raw": gw_response,
-        }
-
-        log.info("Parsed policy data: %s", parsed)
-
-        return parsed
-
+        result = coverage_handler.save_coverage_verification_result(req)
+        return result
     except Exception as exc:
-        log.exception("Failed to parse Guidewire policy response")
-        raise ValueError(
-            f"Unable to parse Guidewire response structure: {str(exc)}"
-        )
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+# ── 6. Get local policy details ───────────────────────────────────────────────
+
+@policy_coverage_app.get(
+    "/get_local_policy_details/{policy_id}",
+    operation_id="get_local_policy_details",
+    summary="Retrieve locally cached policy details from the database",
+)
+def get_local_policy_details(policy_id: str):
+    """
+    Retrieves the policy record from the local policy_details table
+    (populated from previous Guidewire lookups). Returns null if not found.
+    """
+    result = coverage_handler.get_local_policy_details(policy_id)
+    if result is None:
+        return {"found": False, "policy": None}
+    return {"found": True, "policy": result}
+
+
+# ── 7. Get claim for verification ─────────────────────────────────────────────
+
+@policy_coverage_app.get(
+    "/get_claim_for_verification/{claim_number}",
+    operation_id="get_claim_for_verification",
+    summary="Retrieve a claim record needed for coverage verification",
+)
+def get_claim_for_verification(claim_number: str):
+    """
+    Fetches the claim record from the local claims table by claim number.
+    Returns the loss type, description, date, and current coverage status
+    needed to initiate the coverage verification workflow.
+    """
+    result = coverage_handler.get_claim_for_verification(claim_number)
+    if result is None:
+        return {"found": False, "claim": None}
+    return {"found": True, "claim": result}
+
+
+# ── 8. Get intake validation result ──────────────────────────────────────────
+
+@policy_coverage_app.get(
+    "/get_intake_validation_result/{claim_id}",
+    operation_id="get_intake_validation_result",
+    summary="Retrieve the latest coverage verification result for a claim",
+)
+def get_intake_validation_result(claim_id: str):
+    """
+    Returns the most recent coverage verification record from
+    intake_validation_result_output for the given claim ID.
+    """
+    result = coverage_handler.get_intake_validation_result(claim_id)
+    if result is None:
+        return {"found": False, "result": None}
+    return {"found": True, "result": result}
+
+
+# ── 9. Update claim coverage status ──────────────────────────────────────────
+
+@policy_coverage_app.patch(
+    "/update_claim_coverage_status/{claim_number}",
+    operation_id="update_claim_coverage_status",
+    summary="Update the coverage status on the claims record after verification",
+)
+def update_claim_coverage_status(claim_number: str, req: UpdateClaimCoverageRequest):
+    """
+    Updates the claims table with the coverage determination and AI confidence.
+    Call this as the final step to record the verified coverage status on the claim.
+    """
+    try:
+        result = coverage_handler.update_claim_coverage_status(claim_number, req)
+        if result is None:
+            raise HTTPException(status_code=404, detail=f"Claim {claim_number} not found")
+        return result
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
