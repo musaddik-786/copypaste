@@ -1,22 +1,10 @@
 async def upload_layout_document_output(
     source_blob_url: str,
-    matched_document_type: str,
+    result: dict,
 ) -> str:
-    """
-    Creates an output blob in the 'layout-document-output' container.
-
-    Example input:
-        19FDC4A7758A1C40_attachment_Sample_Report_Inspected_Residential_NZ.txt
-
-    Example output:
-        19FDC4A7758A1C40_layout_Inspection_Report
-    """
 
     OUTPUT_CONTAINER = "layout-document-output"
 
-    # ---------------------------------------------------------
-    # 1. Extract original blob filename
-    # ---------------------------------------------------------
     parsed_url = urlparse(source_blob_url)
 
     original_filename = os.path.basename(parsed_url.path)
@@ -26,86 +14,76 @@ async def upload_layout_document_output(
             f"Unable to determine filename from blob URL: {source_blob_url}"
         )
 
-    # Remove .txt
     filename_without_extension = os.path.splitext(
         original_filename
     )[0]
 
     # ---------------------------------------------------------
-    # 2. Extract reference number
-    #
-    # Example:
-    # 19FDC4A7758A1C40_attachment_Sample_Report...
-    #
-    # Result:
-    # 19FDC4A7758A1C40
+    # Extract reference number and original document name
     # ---------------------------------------------------------
     if "_attachment_" in filename_without_extension:
 
-        reference_number = filename_without_extension.split(
-            "_attachment_",
-            1
-        )[0]
+        reference_number, document_name = (
+            filename_without_extension.split(
+                "_attachment_",
+                1
+            )
+        )
 
     else:
 
         reference_number = filename_without_extension
+        document_name = filename_without_extension
 
     # ---------------------------------------------------------
-    # 3. Create output filename
+    # Output filename
     # ---------------------------------------------------------
     output_filename = (
-        f"{reference_number}_layout_{matched_document_type}"
+        f"{reference_number}_layout_{document_name}.json"
     )
 
     # ---------------------------------------------------------
-    # 4. Create Azure Blob Service client
+    # Create Azure Blob client
     # ---------------------------------------------------------
     async with BlobServiceClient.from_connection_string(
         AZURE_STORAGE_CONNECTION_STRING
-    ) as service:
+    ) as blob_service:
 
-        # -----------------------------------------------------
-        # 5. Get output container
-        # -----------------------------------------------------
-        container_client = service.get_container_client(
+        container_client = blob_service.get_container_client(
             OUTPUT_CONTAINER
         )
 
-        # -----------------------------------------------------
-        # 6. Create container if it doesn't exist
-        # -----------------------------------------------------
         try:
-
             await container_client.create_container()
-
         except ResourceExistsError:
-
             pass
 
-        # -----------------------------------------------------
-        # 7. Get output blob client
-        # -----------------------------------------------------
         blob_client = container_client.get_blob_client(
             output_filename
         )
 
         # -----------------------------------------------------
-        # 8. Upload matched document type as blob content
+        # Store COMPLETE classification response
         # -----------------------------------------------------
+        response_json = json.dumps(
+            result,
+            indent=2,
+            ensure_ascii=False
+        )
+
         await blob_client.upload_blob(
-            matched_document_type,
+            response_json,
             overwrite=True,
             content_settings=ContentSettings(
-                content_type="text/plain"
+                content_type="application/json"
             ),
         )
 
         output_url = blob_client.url
 
-    logger.info(
-        "Layout document output uploaded: %s",
-        output_url
-    )
+        logger.info(
+            "Layout document output uploaded: %s",
+            output_url
+        )
 
-    return output_url
+        return output_url
