@@ -1,341 +1,111 @@
-
-# Working code
-# storage_utils.py
-import os
-import logging
-import aiofiles
-from azure.storage.blob.aio import BlobServiceClient
-from azure.core.exceptions import ResourceNotFoundError, ResourceExistsError
-from service import AZURE_STORAGE_CONNECTION_STRING, _parse_blob_url
-from urllib.parse import urlparse
-
-
-from urllib.parse import urlparse
-from azure.storage.blob import ContentSettings
-import os
-import logging
-
-
-logger = logging.getLogger(__name__)
-
-TEXT_CONTAINER = "layout-detection-text-of-document"
-
-
-async def download_blob_bytes(blob_url: str):
-   container, blob_path = _parse_blob_url(blob_url)
-   async with BlobServiceClient.from_connection_string(
-       AZURE_STORAGE_CONNECTION_STRING
-   ) as service:
-       container_client = service.get_container_client(container)
-       blob_client = container_client.get_blob_client(blob_path)
-       try:
-           await blob_client.get_blob_properties()
-       except ResourceNotFoundError:
-           raise FileNotFoundError("Blob not found")
-       stream = await blob_client.download_blob()
-       data = await stream.readall()
-   return data
-
-
-async def upload_text_to_blob(blob_url: str, text: str):
-   parsed = urlparse(blob_url)
-   path = parsed.path.lstrip("/")
-   container, blob_path = path.split("/", 1)
-   filename = os.path.basename(blob_path)
-   base_name = os.path.splitext(filename)[0]
-   new_blob_name = f"{base_name}.txt"
-   async with BlobServiceClient.from_connection_string(
-       AZURE_STORAGE_CONNECTION_STRING
-   ) as blob_service:
-       # create container if not exists
-       container_client = blob_service.get_container_client(TEXT_CONTAINER)
-       try:
-           await container_client.create_container()
-       except ResourceExistsError:
-           pass
-       blob_client = container_client.get_blob_client(new_blob_name)
-       await blob_client.upload_blob(text, overwrite=True)
-   return f"{parsed.scheme}://{parsed.netloc}/{TEXT_CONTAINER}/{new_blob_name}"
-
-
-# async def read_text_blob(text_blob_url: str) -> str:
-#    """
-#    NEW: Read a text blob DIRECTLY from Azure Blob Storage into memory,
-#    for the new lob + text_blob_url flow. The upstream LOB Detection MCP
-#    already stores raw extracted text in Blob Storage, so this deliberately
-#    does NOT write anything to local disk - it just downloads the blob
-#    bytes and decodes them.
-
-#    Reuses the same AZURE_STORAGE_CONNECTION_STRING / _parse_blob_url
-#    helpers as the rest of this module rather than duplicating storage
-#    connection logic.
-#    """
-#    container, blob_path = _parse_blob_url(text_blob_url)
-#    async with BlobServiceClient.from_connection_string(
-#        AZURE_STORAGE_CONNECTION_STRING
-#    ) as service:
-#        container_client = service.get_container_client(container)
-#        blob_client = container_client.get_blob_client(blob_path)
-#        try:
-#            await blob_client.get_blob_properties()
-#        except ResourceNotFoundError:
-#            raise FileNotFoundError(
-#                f"Text blob not found: container={container} blob={blob_path}"
-#            )
-#        stream = await blob_client.download_blob()
-#        data = await stream.readall()
-
-#    try:
-#        return data.decode("utf-8")
-#    except UnicodeDecodeError:
-#        return data.decode("latin-1")
-
-async def read_text_blob(blob_url: str) -> str:
-
-    container, blob_path = _parse_blob_url(blob_url)
-
-    parsed = urlparse(blob_url)
-
-    logger.info(
-        "========== READ TEXT BLOB =========="
-    )
-
-    logger.info(
-        "URL account: %s",
-        parsed.netloc
-    )
-
-    logger.info(
-        "Container: %s",
-        container
-    )
-
-    logger.info(
-        "Blob path: %s",
-        blob_path
-    )
-
-    async with BlobServiceClient.from_connection_string(
-        AZURE_STORAGE_CONNECTION_STRING
-    ) as service:
-
-        account_url = service.url
-
-        logger.info(
-            "Connection string account URL: %s",
-            account_url
-        )
-
-        container_client = service.get_container_client(container)
-        blob_client = container_client.get_blob_client(blob_path)
-
-        try:
-
-            properties = await blob_client.get_blob_properties()
-
-            logger.info(
-                "Blob FOUND! Size=%s bytes",
-                properties.size
-            )
-
-        except ResourceNotFoundError:
-
-            logger.error(
-                "BLOB NOT FOUND"
-            )
-
-            logger.error(
-                "Expected account: %s",
-                parsed.netloc
-            )
-
-            logger.error(
-                "Actual connection account: %s",
-                account_url
-            )
-
-            logger.error(
-                "Container: %s",
-                container
-            )
-
-            logger.error(
-                "Blob: %s",
-                blob_path
-            )
-
-            raise FileNotFoundError(
-                f"Text blob not found: "
-                f"container={container} "
-                f"blob={blob_path}"
-            )
-
-        stream = await blob_client.download_blob()
-        data = await stream.readall()
-
-    try:
-        text = data.decode("utf-8")
-    except UnicodeDecodeError:
-        text = data.decode("latin-1")
-
-    logger.info(
-        "Text blob successfully read: %d chars",
-        len(text)
-    )
-
-    logger.info(
-        "========== READ TEXT BLOB END =========="
-    )
-
-    return text
-
-
-
-
-# logger = logging.getLogger(__name__)
-
 async def upload_layout_document_output(
-   source_blob_url: str,
-   matched_document_type: str,
+    source_blob_url: str,
+    matched_document_type: str,
 ) -> str:
     """
     Creates an output blob in the 'layout-document-output' container.
-    Input:
-        source_blob_url:
-            Original input text blob URL.
-        matched_document_type:
-            Final canonical document type returned by the fuzzy matcher.
-    Example input blob:
-        https://<account>.blob.core.windows.net/
-        layout-detection-text-of-document/
+
+    Example input:
         19FDC4A7758A1C40_attachment_Sample_Report_Inspected_Residential_NZ.txt
-    Output blob:
-        layout-document-output/
-        19FDC4A7758A1C40_refd_Inspection_Report
-    Returns:
-        Full URL of the created output blob.
+
+    Example output:
+        19FDC4A7758A1C40_layout_Inspection_Report
     """
+
     OUTPUT_CONTAINER = "layout-document-output"
+
     # ---------------------------------------------------------
     # 1. Extract original blob filename
     # ---------------------------------------------------------
     parsed_url = urlparse(source_blob_url)
+
     original_filename = os.path.basename(parsed_url.path)
+
     if not original_filename:
         raise ValueError(
             f"Unable to determine filename from blob URL: {source_blob_url}"
         )
+
     # Remove .txt
     filename_without_extension = os.path.splitext(
         original_filename
     )[0]
+
     # ---------------------------------------------------------
     # 2. Extract reference number
     #
-    # Expected:
+    # Example:
     # 19FDC4A7758A1C40_attachment_Sample_Report...
     #
-    # We take everything before "_attachment_"
+    # Result:
+    # 19FDC4A7758A1C40
     # ---------------------------------------------------------
     if "_attachment_" in filename_without_extension:
+
         reference_number = filename_without_extension.split(
             "_attachment_",
             1
         )[0]
+
     else:
-        # Fallback if "_attachment_" is not present
+
         reference_number = filename_without_extension
+
     # ---------------------------------------------------------
     # 3. Create output filename
     # ---------------------------------------------------------
     output_filename = (
-        f"{reference_number}_refd_{matched_document_type}"
+        f"{reference_number}_layout_{matched_document_type}"
     )
+
     # ---------------------------------------------------------
-    # 4. Get output container client
+    # 4. Create Azure Blob Service client
     # ---------------------------------------------------------
-    container_client = service.get_container_client(
-        OUTPUT_CONTAINER
-    )
-    # ---------------------------------------------------------
-    # 5. Create container if it doesn't exist
-    # ---------------------------------------------------------
-    try:
-        container_client.create_container()
-    except Exception:
-        # Container already exists
-        pass
-    # ---------------------------------------------------------
-    # 6. Upload the classification result
-    #
-    # We store the matched document type as the blob content.
-    # ---------------------------------------------------------
-    blob_client = container_client.get_blob_client(
-        output_filename
-    )
-    blob_client.upload_blob(
-        matched_document_type,
-        overwrite=True,
-        content_settings=ContentSettings(
-            content_type="text/plain"
-        ),
-    )
-    output_url = blob_client.url
+    async with BlobServiceClient.from_connection_string(
+        AZURE_STORAGE_CONNECTION_STRING
+    ) as service:
+
+        # -----------------------------------------------------
+        # 5. Get output container
+        # -----------------------------------------------------
+        container_client = service.get_container_client(
+            OUTPUT_CONTAINER
+        )
+
+        # -----------------------------------------------------
+        # 6. Create container if it doesn't exist
+        # -----------------------------------------------------
+        try:
+
+            await container_client.create_container()
+
+        except ResourceExistsError:
+
+            pass
+
+        # -----------------------------------------------------
+        # 7. Get output blob client
+        # -----------------------------------------------------
+        blob_client = container_client.get_blob_client(
+            output_filename
+        )
+
+        # -----------------------------------------------------
+        # 8. Upload matched document type as blob content
+        # -----------------------------------------------------
+        await blob_client.upload_blob(
+            matched_document_type,
+            overwrite=True,
+            content_settings=ContentSettings(
+                content_type="text/plain"
+            ),
+        )
+
+        output_url = blob_client.url
+
     logger.info(
         "Layout document output uploaded: %s",
         output_url
     )
+
     return output_url
-
-
-
-
-
-
-
-
-
-
-below is service.py
-
-# service.py
-# Working code
-
-import os
-from urllib.parse import urlparse, unquote
-from dotenv import load_dotenv
-
-load_dotenv()
-
-AZURE_STORAGE_CONNECTION_STRING = os.environ.get("AZURE_STORAGE_CONNECTION_STRING", "")
-
-def _require_env() -> None:
-    """Ensure required environment variables exist."""
-    if not AZURE_STORAGE_CONNECTION_STRING:
-        raise RuntimeError("Missing AZURE_STORAGE_CONNECTION_STRING in environment/.env")
-
-def _parse_blob_url(url: str) -> tuple[str, str]:
-    """
-    Parse an Azure Blob URL and return (container_name, blob_path).
-    Example URL:
-      https://account.blob.core.windows.net/output-results/folder/name.pdf
-    Returns:
-      ("output-results", "folder/name.pdf")
-    """
-    parsed = urlparse(url)
-    if not parsed.scheme.startswith("http"):
-        raise ValueError("url must be a valid http(s) Azure Blob URL.")
-
-    path = parsed.path.lstrip("/")
-    if "/" not in path:
-        raise ValueError("url must include both container and blob path.")
-    parts = path.split("/", 1)
-    container = parts[0]
-    blob_path = parts[1]
-    return unquote(container), unquote(blob_path)
-
-
-
-
-
-
