@@ -1,5 +1,14 @@
-hostname -I
-
-cat /etc/os-release
-
-ss -ltn | grep 3306
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/cedera/MCP$ hostname -I
+10.0.0.4 172.17.0.1 
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/cedera/MCP$ cat /etc/os-release
+PRETTY_NAME="Debian GNU/Linux 12 (bookworm)"
+NAME="Debian GNU/Linux"
+VERSION_ID="12"
+VERSION="12 (bookworm)"
+VERSION_CODENAME=bookworm
+ID=debian
+HOME_URL="https://www.debian.org/"
+SUPPORT_URL="https://www.debian.org/support"
+BUG_REPORT_URL="https://bugs.debian.org/"
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/cedera/MCP$ ss -ltn | grep 3306
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/cedera/MCP$ 
