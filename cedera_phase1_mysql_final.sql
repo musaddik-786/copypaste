@@ -1,14 +1,8 @@
-(venv) JarvisClaims@JarvisClaims:~/Musaddique/cedera/MCP$ hostname -I
-10.0.0.4 172.17.0.1 
-(venv) JarvisClaims@JarvisClaims:~/Musaddique/cedera/MCP$ cat /etc/os-release
-PRETTY_NAME="Debian GNU/Linux 12 (bookworm)"
-NAME="Debian GNU/Linux"
-VERSION_ID="12"
-VERSION="12 (bookworm)"
-VERSION_CODENAME=bookworm
-ID=debian
-HOME_URL="https://www.debian.org/"
-SUPPORT_URL="https://www.debian.org/support"
-BUG_REPORT_URL="https://bugs.debian.org/"
-(venv) JarvisClaims@JarvisClaims:~/Musaddique/cedera/MCP$ ss -ltn | grep 3306
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/cedera/MCP$ ip route
+default via 10.0.0.1 dev eth0 proto dhcp src 10.0.0.4 metric 100 
+10.0.0.0/24 dev eth0 proto kernel scope link src 10.0.0.4 metric 100 
+10.0.0.1 dev eth0 proto dhcp scope link src 10.0.0.4 metric 100 
+168.63.129.16 via 10.0.0.1 dev eth0 proto dhcp src 10.0.0.4 metric 100 
+169.254.169.254 via 10.0.0.1 dev eth0 proto dhcp src 10.0.0.4 metric 100 
+172.17.0.0/16 dev docker0 proto kernel scope link src 172.17.0.1 linkdown 
 (venv) JarvisClaims@JarvisClaims:~/Musaddique/cedera/MCP$ 
