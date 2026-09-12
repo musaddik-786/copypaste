@@ -1,1 +1,2 @@
-python3 -c "import socket; s=socket.socket(); s.settimeout(5); s.connect(('10.0.0.1',3306)); print('CONNECTED')"
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/cedera/MCP$ python3 -c "import socket; s=socket.socket(); s.settimeout(3); print(s.connect_ex(('172.20.10.2',3306)))"
+11
