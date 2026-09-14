@@ -553,7 +553,7 @@ INSERT INTO discrepancies (discrepancy_ref, bordereau_id, row_number, discrepanc
 
 -- Useful indexes
 CREATE INDEX idx_treaty_terms_treaty ON treaty_terms(treaty_ref);
-CREATE INDEX idx_policies_treaty ON policies(treaty_ref);
+CREATE INDEX idx_policies_treaty ON cedera_policies(treaty_ref);
 CREATE INDEX idx_cessions_policy ON cessions(policy_ref);
 CREATE INDEX idx_cessions_treaty ON cessions(treaty_ref);
 CREATE INDEX idx_event_losses_event ON event_losses(event_ref);
