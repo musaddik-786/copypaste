@@ -147,7 +147,7 @@ CREATE TABLE discrepancies (
     row_number INTEGER NOT NULL,
     discrepancy_type VARCHAR(100) NOT NULL,
     expected_value TEXT NOT NULL,
-    reported_value TEXT numeric (18,2),
+    reported_value TEXT,
     severity VARCHAR(20) NOT NULL CHECK (severity IN ('high','medium','low')),
     description TEXT NOT NULL
 );
