@@ -1,36 +1,69 @@
-/v1/duplicate_check/mcp HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43208 - "DELETE /api/v1/duplicate_check/mcp HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43206 - "GET /api/v1/duplicate_check/mcp HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43212 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43212 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 202 Accepted
-INFO:     127.0.0.1:43224 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43224 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43224 - "DELETE /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43214 - "GET /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
-No claim found for claim_number=73-300676
-INFO:     127.0.0.1:49892 - "POST /api/v1/document_submission/api/documents/upload HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43048 - "OPTIONS /api/v1/voice_text_intake/api/fnol/update_submission/4 HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43048 - "PATCH /api/v1/voice_text_intake/api/fnol/update_submission/4 HTTP/1.1" 200 OK
-Guidewire CC POST /claim/v1/claims → HTTP 400: {"status":400,"errorCode":"gw.api.rest.exceptions.BadInputException","userMessage":"The request parameters or body had issues","developerMessage":"The request parameters or body had issues. See the details elements for exact details of the problems.","details":[{"message":"The value 'collision' was not a valid element of the 'typekey.LossCause' typelist","properties":{"parameterName":"body","parameterLocation":"body","lineNumber":1}}]}
-submit_fnol error
-Traceback (most recent call last):
-  File "/home/JarvisClaims/Musaddique/Jarvis_claims_agents_v3_copy_new_latest/PolicyholderAgents/MCP/voice_text_intake_router.py", line 139, in submit_fnol
-    return fnol_handler.submit_fnol(fnol_id)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/JarvisClaims/Musaddique/Jarvis_claims_agents_v3_copy_new_latest/PolicyholderAgents/MCP/voice_text_intake_mcp/fnol_handler.py", line 2757, in submit_fnol
-    claim_number = _create_claim_in_guidewire(fnol, pd_row)
-                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/JarvisClaims/Musaddique/Jarvis_claims_agents_v3_copy_new_latest/PolicyholderAgents/MCP/voice_text_intake_mcp/fnol_handler.py", line 2712, in _create_claim_in_guidewire
-    draft = guidewire_client.create_claim(payload)
-            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/JarvisClaims/Musaddique/Jarvis_claims_agents_v3_copy_new_latest/PolicyholderAgents/MCP/policy_coverage_mcp/guidewire_client.py", line 177, in create_claim
-    return _cc_post("/claim/v1/claims", payload)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/JarvisClaims/Musaddique/Jarvis_claims_agents_v3_copy_new_latest/PolicyholderAgents/MCP/policy_coverage_mcp/guidewire_client.py", line 62, in _cc_post
-    _raise_for_status(resp, "CC POST", uri)
-  File "/home/JarvisClaims/Musaddique/Jarvis_claims_agents_v3_copy_new_latest/PolicyholderAgents/MCP/policy_coverage_mcp/guidewire_client.py", line 72, in _raise_for_status
-    resp.raise_for_status()
-  File "/home/JarvisClaims/Musaddique/Jarvis_claims_agents_v3_copy_new_latest/PolicyholderAgents/venv/lib/python3.11/site-packages/requests/models.py", line 1167, in raise_for_status
-    raise HTTPError(http_error_msg, response=self)
-requests.exceptions.HTTPError: 400 Client Error:  for url: https://cc-sandbox-gwcpdev.hexaware.zeta1-andromeda.guidewire.net/rest/claim/v1/claims
-INFO:     127.0.0.1:43048 - "POST /api/v1/voice_text_intake/api/fnol/submit/4 HTTP/1.1" 500 Internal Server Error
+below is the testing guife given to me 
+4 terminals, in order:
+T1 — MCP Server
+ 
+Plain Text
+cd /home/JarvisClaims/Ramakrishna/ITC_Vegas_SLM/MotorTriageAgents
+VENV=/home/JarvisClaims/Ramakrishna/ITC_Vegas_SLM/Jarvis_claims_agents_v3/AdjusterAgents/venv
+$VENV/bin/python MCP/main.py
+ 
+ 
+T2 — Intake Validation Agent
+ 
+Plain Text
+$VENV/bin/python MotorIntakeValidationAgent/server.py
+ 
+ 
+T3 — Motor Triage Agent
+ 
+Plain Text
+$VENV/bin/python MotorTriageAgent/server.py
+ 
+ 
+T4 — Claims App
+ 
+Plain Text
+cd /home/JarvisClaims/Ramakrishna/ITC_Vegas_SLM/app
+node_modules/.bin/cross-env NODE_ENV=development node_modules/.bin/tsx server/index.ts
+ 
+ 
+Then open http://localhost:5000, file a Motor claim with Severity=Severe, Rear collision, 1 vehicle, Authorized Driver=No, 0 photos. Within ~60 seconds (two 30 s poll cycles) you'll see in T2 and T3 the agents picking it up and in the browser the status will flip to Loss Investigation with routing SIU (fraud score 100).
+The guide also covers the DB verification query, all health checks, and the one-line SLM swap point for when Qwen 3B is ready.
+
+i did run the first terminal 
+JarvisClaims@JarvisClaims:~/Ramakrishna/ITC_Vegas_SLM/MotorTriageAgents$ VENV=/home/JarvisClaims/Ramakrishna/ITC_Vegas_SLM/Jarvis_claims_agents_v3/AdjusterAgents/venv
+$VENV/bin/python MCP/main.py
+2026-09-15 10:21:22,814 | INFO | No auth config provided, skipping auth setup
+2026-09-15 10:21:22,814 | INFO | MCP HTTP server listening at /mcp
+2026-09-15 10:21:22,817 | INFO | No auth config provided, skipping auth setup
+2026-09-15 10:21:22,817 | INFO | MCP HTTP server listening at /mcp
+/home/JarvisClaims/Ramakrishna/ITC_Vegas_SLM/MotorTriageAgents/MCP/main.py:85: DeprecationWarning: 
+        on_event is deprecated, use lifespan event handlers instead.
+
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+        
+  @app.on_event("startup")
+INFO:     Started server process [240042]
+INFO:     Waiting for application startup.
+2026-09-15 10:21:25,253 | INFO | init_db: all tables created / verified OK
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8500 (Press CTRL+C to quit)
+INFO:     127.0.0.1:42484 - "GET /api/v1/slm_triage/poll HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39064 - "GET /api/v1/intake_validation/poll HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41804 - "GET /api/v1/slm_triage/poll HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41820 - "GET /api/v1/intake_validation/poll HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58436 - "GET /api/v1/slm_triage/poll HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49838 - "GET /api/v1/intake_validation/poll HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50102 - "GET /api/v1/slm_triage/poll HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53438 - "GET /api/v1/intake_validation/poll HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57900 - "GET /api/v1/slm_triage/poll HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57806 - "GET /api/v1/intake_validation/poll HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60442 - "GET /api/v1/slm_triage/poll HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60450 - "GET /api/v1/intake_validation/poll HTTP/1.1" 200 OK
+
+
+but the second one is giving some error
+
+JarvisClaims@JarvisClaims:~/Ramakrishna/ITC_Vegas_SLM/MotorTriageAgents$ $VENV/bin/python MotorIntakeValidationAgent/server.py
+bash: /bin/python: No such file or directory
