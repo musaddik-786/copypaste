@@ -1,7 +1,318 @@
-{
-  "message": "My policy number is POL-1001",
-  "history": [
-    { "role": "user", "content": "Hi, I want to report a car accident" },
-    { "role": "assistant", "content": "<paste the agent's previous reply here>" }
-  ]
-}
+data: [Tool: get_fnol_by_policy] Starting...
+
+data: [Tool: get_fnol_by_policy] Done
+
+data: [Tool: create_fnol_submission] Starting...
+
+data: [Tool: create_fnol_submission] Done
+
+data: [Tool: get_mandatory_fields] Starting...
+
+data: [Tool: get_mandatory_fields] Done
+
+data: Thank
+
+data:  you
+
+data: .
+
+data:  I
+
+data: ’ve
+
+data:  started
+
+data:  your
+
+data:  accident
+
+data:  report
+
+data:  for
+
+data:  policy
+
+data:  number
+
+data:  POL
+
+data: -
+
+data: 100
+
+data: 2
+
+data: .
+
+
+
+data: To
+
+data:  proceed
+
+data: ,
+
+data:  I
+
+data:  need
+
+data:  some
+
+data:  more
+
+data:  details
+
+data:  about
+
+data:  the
+
+data:  incident
+
+data: :
+
+
+
+data: 1
+
+data: .
+
+data:  What
+
+data:  type
+
+data:  of
+
+data:  motor
+
+data:  loss
+
+data:  occurred
+
+data: ?
+
+data:  (
+
+data: e
+
+data: .g
+
+data: .
+
+data:  Collision
+
+data: ,
+
+data:  Theft
+
+data: ,
+
+data:  V
+
+data: andal
+
+data: ism
+
+data: ,
+
+data:  Fire
+
+data: ,
+
+data:  Natural
+
+data:  Disaster
+
+data: )
+
+
+data: 2
+
+data: .
+
+data:  What
+
+data:  caused
+
+data:  the
+
+data:  accident
+
+data:  or
+
+data:  loss
+
+data: ?
+
+data:  Please
+
+data:  briefly
+
+data:  describe
+
+data:  what
+
+data:  happened
+
+data: .
+
+
+data: 3
+
+data: .
+
+data:  On
+
+data:  what
+
+data:  date
+
+data:  did
+
+data:  the
+
+data:  accident
+
+data:  or
+
+data:  loss
+
+data:  occur
+
+data: ?
+
+
+data: 4
+
+data: .
+
+data:  Approximately
+
+data:  what
+
+data:  time
+
+data:  did
+
+data:  it
+
+data:  happen
+
+data: ?
+
+
+data: 5
+
+data: .
+
+data:  Where
+
+data:  did
+
+data:  the
+
+data:  accident
+
+data:  or
+
+data:  loss
+
+data:  occur
+
+data: ?
+
+data:  (
+
+data: address
+
+data: ,
+
+data:  city
+
+data: ,
+
+data:  or
+
+data:  landmark
+
+data: )
+
+
+data: 6
+
+data: .
+
+data:  How
+
+data:  severe
+
+data:  would
+
+data:  you
+
+data:  say
+
+data:  the
+
+data:  damage
+
+data:  is
+
+data:  —
+
+data:  minor
+
+data: ,
+
+data:  moderate
+
+data: ,
+
+data:  or
+
+data:  severe
+
+data: ?
+
+
+
+data: Please
+
+data:  provide
+
+data:  as
+
+data:  much
+
+data:  detail
+
+data:  as
+
+data:  you
+
+data:  can
+
+data:  for
+
+data:  each
+
+data:  question
+
+data: ,
+
+data:  and
+
+data:  we
+
+data: ’ll
+
+data:  take
+
+data:  it
+
+data:  step
+
+data:  by
+
+data:  step
+
+data: .
