@@ -1,12 +1,515 @@
-{
-  "message": "It was a collision. I was driving through Hinjewadi Phase 1 in Pune when another car suddenly changed lanes and hit the left side of my vehicle. The accident happened yesterday, September 14, 2026, at around 6:30 PM. The damage is severe, especially to the left front door and rear door. There were 3 passengers in my car including me. The vehicle had to be towed and the police were called. I was shaken and a little distressed after the accident, and I would consider the situation urgent because the car is not drivable.",
-  "history": [
-    { "role": "user", "content": "Hi, I want to report a car accident" },
-    { "role": "assistant", "content": "<turn 1 reply>" },
-    { "role": "user", "content": "My policy number is POL-1002" },
-    { "role": "assistant", "content": "<turn 2 reply>" },
-    { "role": "user", "content": "It was a collision. I was driving through Hinjewadi Phase 1 in Pune when another car suddenly changed lanes and hit the left side of my vehicle. The accident happened yesterday, September 14, 2026, at around 6:30 PM. The damage is severe, especially to the left front door and rear door. There were 3 passengers in my car including me. The vehicle had to be towed and the police were called. I was shaken and a little distressed after the accident, and I would consider the situation urgent because the car is not drivable.",
-      "assistant": "Please ask me for the six mandatory FNOL details."
-    }
-  ]
-}
+data: [Tool: get_fnol_by_policy] Starting...
+
+data: [Tool: get_fnol_by_policy] Done
+
+data: [Tool: extract_fnol_fields_from_text] Starting...
+
+data: [Tool: get_mandatory_fields] Starting...
+
+data: [Tool: get_mandatory_fields] Done
+
+data: [Tool: extract_fnol_fields_from_text] Done
+
+data: [Tool: update_fnol_submission] Starting...
+
+data: [Tool: update_fnol_submission] Done
+
+data: [Tool: update_fnol_submission] Starting...
+
+data: [Tool: update_fnol_submission] Done
+
+data: [Tool: save_field_attribution] Starting...
+
+data: [Tool: log_question_answer] Starting...
+
+data: [Tool: log_question_answer] Starting...
+
+data: [Tool: log_question_answer] Starting...
+
+data: [Tool: log_question_answer] Starting...
+
+data: [Tool: log_question_answer] Starting...
+
+data: [Tool: log_question_answer] Starting...
+
+data: [Tool: log_question_answer] Done
+
+data: [Tool: log_question_answer] Done
+
+data: [Tool: log_question_answer] Done
+
+data: [Tool: log_question_answer] Done
+
+data: [Tool: log_question_answer] Done
+
+data: [Tool: log_question_answer] Done
+
+data: [Tool: save_field_attribution] Done
+
+data: [Tool: update_fnol_submission] Starting...
+
+data: [Tool: update_fnol_submission] Done
+
+data: [Tool: submit_fnol] Starting...
+
+data: [Tool: submit_fnol] Done
+
+data: Thank
+
+data:  you
+
+data:  for
+
+data:  providing
+
+data:  all
+
+data:  the
+
+data:  details
+
+data:  of
+
+data:  your
+
+data:  car
+
+data:  accident
+
+data: .
+
+data:  Here
+
+data: ’s
+
+data:  a
+
+data:  summary
+
+data:  of
+
+data:  what
+
+data:  I
+
+data:  have
+
+data:  recorded
+
+data: :
+
+
+
+data: -
+
+data:  Policy
+
+data:  Number
+
+data: :
+
+data:  POL
+
+data: -
+
+data: 100
+
+data: 2
+
+data: 
+
+
+data: -
+
+data:  Type
+
+data:  of
+
+data:  Loss
+
+data: :
+
+data:  Collision
+
+data: 
+
+
+data: -
+
+data:  Cause
+
+data:  of
+
+data:  Loss
+
+data: :
+
+data:  Collision
+
+data:  with
+
+data:  another
+
+data:  car
+
+data:  (
+
+data: another
+
+data:  car
+
+data:  suddenly
+
+data:  changed
+
+data:  lanes
+
+data:  and
+
+data:  hit
+
+data:  the
+
+data:  left
+
+data:  side
+
+data:  of
+
+data:  your
+
+data:  vehicle
+
+data: )
+
+
+data: -
+
+data:  Date
+
+data:  of
+
+data:  Loss
+
+data: :
+
+data:  September
+
+data:  
+
+data: 14
+
+data: ,
+
+data:  
+
+data: 202
+
+data: 6
+
+data: 
+
+
+data: -
+
+data:  Time
+
+data:  of
+
+data:  Loss
+
+data: :
+
+data:  Around
+
+data:  
+
+data: 6
+
+data: :
+
+data: 30
+
+data:  PM
+
+data: 
+
+
+data: -
+
+data:  Accident
+
+data:  Location
+
+data: :
+
+data:  Hin
+
+data: j
+
+data: ew
+
+data: adi
+
+data:  Phase
+
+data:  
+
+data: 1
+
+data: ,
+
+data:  Pune
+
+data: 
+
+
+data: -
+
+data:  Severity
+
+data: :
+
+data:  High
+
+data:  (
+
+data: se
+
+data: vere
+
+data:  damage
+
+data: ,
+
+data:  vehicle
+
+data:  not
+
+data:  dr
+
+data: ivable
+
+data: )
+
+
+data: -
+
+data:  Vehicle
+
+data: :
+
+data:  Volkswagen
+
+data:  J
+
+data: etta
+
+data:  (
+
+data: 202
+
+data: 0
+
+data: ),
+
+data:  Registration
+
+data:  MH
+
+data: -
+
+data: 02
+
+data: -CD
+
+data: -
+
+data: 567
+
+data: 8
+
+data: 
+
+
+data: -
+
+data:  Your
+
+data:  vehicle
+
+data:  had
+
+data:  to
+
+data:  be
+
+data:  to
+
+data: wed
+
+data: ;
+
+data:  the
+
+data:  police
+
+data:  were
+
+data:  called
+
+data: .
+
+
+
+data: If
+
+data:  any
+
+data:  of
+
+data:  this
+
+data:  information
+
+data:  needs
+
+data:  correction
+
+data: ,
+
+data:  please
+
+data:  let
+
+data:  me
+
+data:  know
+
+data: .
+
+data:  Otherwise
+
+data: ,
+
+data:  your
+
+data:  claim
+
+data:  submission
+
+data:  is
+
+data:  complete
+
+data: .
+
+
+
+data: Your
+
+data:  claim
+
+data:  has
+
+data:  been
+
+data:  successfully
+
+data:  submitted
+
+data: ,
+
+data:  and
+
+data:  your
+
+data:  claim
+
+data:  number
+
+data:  is
+
+data: :
+
+data:  CL
+
+data: M
+
+data: -
+
+data: 202
+
+data: 6
+
+data: -
+
+data: 023
+
+data: 4
+
+data: .
+
+
+
+data: Thank
+
+data:  you
+
+data:  for
+
+data:  reporting
+
+data:  the
+
+data:  incident
+
+data: .
+
+data:  If
+
+data:  you
+
+data:  need
+
+data:  urgent
+
+data:  assistance
+
+data: ,
+
+data:  please
+
+data:  contact
+
+data:  our
+
+data:  support
+
+data:  line
+
+data: .
+
+data:  We
+
+data: ’re
+
+data:  here
+
+data:  to
+
+data:  help
+
+data:  you
+
+data:  through
+
+data:  the
+
+data:  process
+
+data: .
+
+
+
+data: End
