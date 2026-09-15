@@ -1,8 +1,4 @@
-def list_treaties(
-    status: str | None = None,
-    class_of_business: str | None = None,
-    as_at: str | None = None
-):
+def get_treaty_terms(treaty_ref: str):
     connection = get_db_connection()
 
     try:
@@ -10,34 +6,25 @@ def list_treaties(
 
         query = """
             SELECT *
-            FROM treaties
-            WHERE 1=1
+            FROM treaty_terms
+            WHERE treaty_ref = %s
+            ORDER BY layer_number
         """
 
-        params = []
+        cursor.execute(query, (treaty_ref,))
+        terms = cursor.fetchall()
 
-        if status:
-            query += " AND status = %s"
-            params.append(status)
-
-        if class_of_business:
-            query += " AND class_of_business = %s"
-            params.append(class_of_business)
-
-        if as_at:
-            query += " AND inception_date <= %s"
-            params.append(as_at)
-
-        query += " ORDER BY treaty_ref"
-
-        cursor.execute(query, params)
-
-        treaties = cursor.fetchall()
+        if not terms:
+            return {
+                "status": "not_found",
+                "message": f"No terms found for treaty {treaty_ref}"
+            }
 
         return {
             "status": "success",
-            "count": len(treaties),
-            "data": [dict(treaty) for treaty in treaties]
+            "treaty_ref": treaty_ref,
+            "count": len(terms),
+            "data": [dict(term) for term in terms]
         }
 
     finally:
@@ -53,21 +40,10 @@ def list_treaties(
 
 
 
+class TreatyTermsRequest(BaseModel):
+    treaty_ref: str
 
 
-
-
-
-class TreatyListRequest(BaseModel):
-    status: str | None = None
-    class_of_business: str | None = None
-    as_at: str | None = None
-
-
-@router.post("/list_treaties", operation_id="list_treaties")
-def list_treaties(req: TreatyListRequest):
-    return handler.list_treaties(
-        req.status,
-        req.class_of_business,
-        req.as_at
-    )
+@router.post("/get_treaty_terms", operation_id="get_treaty_terms")
+def get_treaty_terms(req: TreatyTermsRequest):
+    return handler.get_treaty_terms(req.treaty_ref)
