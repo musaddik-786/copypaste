@@ -1,2 +1,3 @@
 VENV=/home/JarvisClaims/Ramakrishna/ITC_Vegas_SLM/Jarvis_claims_agents_v3/AdjusterAgents/venv
-$VENV/bin/python MotorIntakeValidationAgent/server.py
+
+$VENV/bin/python MotorTriageAgent/server.py
