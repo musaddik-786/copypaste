@@ -1,54 +1,208 @@
-Step 3 — ingestion/loaders.py
+I was tessting
+http://localhost:7701/docs#/default/chat_stream_chat_post
 
-Keep the first version intentionally simple. We want to establish the baseline PDF extraction before we get clever with clause-aware parsing.
-
-from pathlib import Path
-from pypdf import PdfReader
-
-
-def load_pdf(file_path: str) -> list[dict]:
-    """
-    Extract text from a treaty PDF page by page.
-    """
-
-    path = Path(file_path)
-
-    if not path.exists():
-        raise FileNotFoundError(f"PDF not found: {file_path}")
-
-    reader = PdfReader(str(path))
-
-    documents = []
-
-    for page_number, page in enumerate(reader.pages, start=1):
-        text = page.extract_text() or ""
-
-        documents.append({
-            "source": path.name,
-            "page_number": page_number,
-            "text": text.strip()
-        })
-
-    return documents
-Step 4 — Add a quick test
-
-Create:
-
-Cedera/
-└── ingestion/
-    ├── loaders.py
-    └── test_loader.py
-from loaders import load_pdf
+{
+  "message": "Hi my policy number is POL-1001",
+  "input_type": "string",
+  "history": []
+}
 
 
-PDF_PATH = r"/mnt/data/cedera-data/treaties/TRT-2026-003_Property_Catastrophe_XoL.pdf"
+data: [Tool: get_fnol_by_policy] Starting...
+
+data: [Tool: get_fnol_by_policy] Done
+
+data: [Tool: create_fnol_submission] Starting...
+
+data: [Tool: create_fnol_submission] Done
+
+data: I'm
+
+data:  here
+
+data:  to
+
+data:  help
+
+data:  you
+
+data:  file
+
+data:  your
+
+data:  claim
+
+data: .
+
+data:  It
+
+data:  looks
+
+data:  like
+
+data:  there
+
+data:  was
+
+data:  a
+
+data:  technical
+
+data:  issue
+
+data:  trying
+
+data:  to
+
+data:  start
+
+data:  your
+
+data:  submission
+
+data: .
+
+data:  Let
+
+data:  me
+
+data:  try
+
+data:  again
+
+data:  to
+
+data:  ensure
+
+data:  your
+
+data:  claim
+
+data:  is
+
+data:  properly
+
+data:  recorded
+
+data: .
 
 
-documents = load_pdf(PDF_PATH)
 
-print(f"Pages: {len(documents)}")
+data: Can
 
-for document in documents[:3]:
-    print("\n" + "=" * 80)
-    print(f"Page: {document['page_number']}")
-    print(document["text"][:1000])
+data:  you
+
+data:  please
+
+data:  describe
+
+data:  what
+
+data:  happened
+
+data:  and
+
+data:  when
+
+data:  the
+
+data:  loss
+
+data:  occurred
+
+data: ?
+
+data:  Any
+
+data:  details
+
+data:  you
+
+data:  provide
+
+data:  will
+
+data:  help
+
+data:  get
+
+data:  your
+
+data:  claim
+
+data:  started
+
+data: .
+
+
+
+
+
+
+
+
+
+
+
+
+
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/ultimateJarivs_Motor_LOB/PolicyholderAgents/MCP$ python3 main.py 
+/home/JarvisClaims/Musaddique/ultimateJarivs_Motor_LOB/PolicyholderAgents/MCP/main.py:303: DeprecationWarning: 
+        on_event is deprecated, use lifespan event handlers instead.
+
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+        
+  @app.on_event("startup")
+INFO:     Started server process [180550]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:7720 (Press CTRL+C to quit)
+INFO:     127.0.0.1:58032 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58032 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:58048 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58048 - "DELETE /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58034 - "GET /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+
+
+
+
+
+
+
+
+INFO:     127.0.0.1:58050 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58050 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:58070 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58070 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58070 - "DELETE /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58056 - "GET /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58074 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58074 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 202 Accepted
+create_fnol_submission failed
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Musaddique/ultimateJarivs_Motor_LOB/PolicyholderAgents/MCP/voice_text_intake_mcp/fnol_handler.py", line 2409, in create_fnol_submission
+    req.accident_location,
+    ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/ultimateJarivs_Motor_LOB/PolicyholderAgents/venv/lib/python3.11/site-packages/pydantic/main.py", line 1042, in __getattr__
+    raise AttributeError(f'{type(self).__name__!r} object has no attribute {item!r}')
+AttributeError: 'CreateFnolSubmissionRequest' object has no attribute 'accident_location'
+create_fnol_submission error
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Musaddique/ultimateJarivs_Motor_LOB/PolicyholderAgents/MCP/voice_text_intake_router.py", line 63, in create_fnol_submission
+    return fnol_handler.create_fnol_submission(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/ultimateJarivs_Motor_LOB/PolicyholderAgents/MCP/voice_text_intake_mcp/fnol_handler.py", line 2409, in create_fnol_submission
+    req.accident_location,
+    ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/ultimateJarivs_Motor_LOB/PolicyholderAgents/venv/lib/python3.11/site-packages/pydantic/main.py", line 1042, in __getattr__
+    raise AttributeError(f'{type(self).__name__!r} object has no attribute {item!r}')
+AttributeError: 'CreateFnolSubmissionRequest' object has no attribute 'accident_location'
+Error calling create_fnol_submission
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Musaddique/ultimateJarivs_Motor_LOB/PolicyholderAgents/venv/lib/python3.11/site-packages/fastapi_mcp/server.py", line 559, in _execute_api_tool
+    raise Exception(
+Exception: Error calling create_fnol_submission. Status code: 500. Response: {"detail":"'CreateFnolSubmissionRequest' object has no attribute 'accident_location'"}
+INFO:     127.0.0.1:58086 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58086 - "DELETE /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58084 - "GET /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
