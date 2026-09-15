@@ -1,3 +1,5 @@
+this is how i am testing it 
+
 {
   "message": "I was rear-ended at a traffic signal on MG Road yesterday at around 3pm. The damage is pretty bad, front and rear bumper both destroyed.",
   "history": [
@@ -7,3 +9,305 @@
     { "role": "assistant", "content": "<turn 2 reply>" }
   ]
 }
+this is what it gave
+data: [Tool: get_fnol_by_policy] Starting...
+
+data: [Tool: get_fnol_by_policy] Done
+
+data: [Tool: extract_fnol_fields_from_text] Starting...
+
+data: [Tool: get_mandatory_fields] Starting...
+
+data: [Tool: get_mandatory_fields] Done
+
+data: [Tool: extract_fnol_fields_from_text] Done
+
+data: Thank
+
+data:  you
+
+data:  for
+
+data:  sharing
+
+data:  those
+
+data:  details
+
+data: .
+
+data:  I
+
+data:  am
+
+data:  sorry
+
+data:  to
+
+data:  hear
+
+data:  about
+
+data:  your
+
+data:  accident
+
+data: .
+
+
+
+data: To
+
+data:  proceed
+
+data: ,
+
+data:  I
+
+data:  need
+
+data:  to
+
+data:  confirm
+
+data:  a
+
+data:  few
+
+data:  more
+
+data:  details
+
+data: :
+
+
+
+data: 1
+
+data: .
+
+data:  What
+
+data:  type
+
+data:  of
+
+data:  motor
+
+data:  loss
+
+data:  occurred
+
+data: ?
+
+data:  (
+
+data: e
+
+data: .g
+
+data: .
+
+data:  Collision
+
+data: ,
+
+data:  Theft
+
+data: ,
+
+data:  V
+
+data: andal
+
+data: ism
+
+data: ,
+
+data:  Fire
+
+data: ,
+
+data:  Natural
+
+data:  Disaster
+
+data: )
+
+
+data: 2
+
+data: .
+
+data:  Can
+
+data:  you
+
+data:  please
+
+data:  confirm
+
+data:  the
+
+data:  precise
+
+data:  location
+
+data:  where
+
+data:  the
+
+data:  accident
+
+data:  happened
+
+data: ?
+
+data:  (
+
+data: address
+
+data: ,
+
+data:  city
+
+data: ,
+
+data:  or
+
+data:  landmark
+
+data: )
+
+
+data: 3
+
+data: .
+
+data:  Would
+
+data:  you
+
+data:  say
+
+data:  the
+
+data:  damage
+
+data:  is
+
+data:  minor
+
+data: ,
+
+data:  medium
+
+data: ,
+
+data:  high
+
+data: ,
+
+data:  or
+
+data:  critical
+
+data: ?
+
+
+data: 4
+
+data: .
+
+data:  On
+
+data:  the
+
+data:  date
+
+data:  of
+
+data:  the
+
+data:  accident
+
+data:  (
+
+data: y
+
+data: esterday
+
+data: ),
+
+data:  were
+
+data:  there
+
+data:  any
+
+data:  other
+
+data:  people
+
+data:  in
+
+data:  your
+
+data:  vehicle
+
+data: ?
+
+data:  If
+
+data:  so
+
+data: ,
+
+data:  how
+
+data:  many
+
+data: ?
+
+
+
+data: Once
+
+data:  I
+
+data:  have
+
+data:  these
+
+data:  details
+
+data: ,
+
+data:  I
+
+data: ’ll
+
+data:  summar
+
+data: ise
+
+data:  everything
+
+data:  for
+
+data:  your
+
+data:  confirmation
+
+data:  and
+
+data:  submit
+
+data:  your
+
+data:  claim
+
+data: .
+
+
+niw i want to further test i t so give the same way i was testing  earlier 
