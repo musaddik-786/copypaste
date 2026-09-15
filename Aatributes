@@ -1,30 +1,9 @@
-# Motor LOB — user-supplied
-accident_location: Optional[str] = None
-passenger_count: Optional[str] = None
-tow_required: Optional[str] = None
-police_fir_number: Optional[str] = None
-telematics_consent: Optional[str] = None
-# Motor LOB — pre-populated from motor_vehicle_details
-driver_license: Optional[str] = None
-vin: Optional[str] = None
-registration_number: Optional[str] = None
-vehicle_make: Optional[str] = None
-vehicle_model: Optional[str] = None
-vehicle_year: Optional[str] = None
-
-
-
-# Motor LOB — user-supplied
-accident_location: Optional[str] = None
-accident_location_source: Optional[str] = None
-passenger_count: Optional[str] = None
-tow_required: Optional[str] = None
-police_fir_number: Optional[str] = None
-telematics_consent: Optional[str] = None
-# Motor LOB — pre-populated from motor_vehicle_details
-driver_license: Optional[str] = None
-vin: Optional[str] = None
-registration_number: Optional[str] = None
-vehicle_make: Optional[str] = None
-vehicle_model: Optional[str] = None
-vehicle_year: Optional[str] = None
+{
+  "message": "I was rear-ended at a traffic signal on MG Road yesterday at around 3pm. The damage is pretty bad, front and rear bumper both destroyed.",
+  "history": [
+    { "role": "user", "content": "Hi, I want to report a car accident" },
+    { "role": "assistant", "content": "<turn 1 reply>" },
+    { "role": "user", "content": "My policy number is POL-1001" },
+    { "role": "assistant", "content": "<turn 2 reply>" }
+  ]
+}
