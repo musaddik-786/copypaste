@@ -1,4 +1,4 @@
-def get_treaty_terms(treaty_ref: str):
+def get_clause(clause_ref: str, treaty_ref: str):
     connection = get_db_connection()
 
     try:
@@ -6,25 +6,26 @@ def get_treaty_terms(treaty_ref: str):
 
         query = """
             SELECT *
-            FROM treaty_terms
-            WHERE treaty_ref = %s
-            ORDER BY layer_number
+            FROM treaty_clauses
+            WHERE clause_ref = %s
+              AND treaty_ref = %s
         """
 
-        cursor.execute(query, (treaty_ref,))
-        terms = cursor.fetchall()
+        cursor.execute(query, (clause_ref, treaty_ref))
+        clause = cursor.fetchone()
 
-        if not terms:
+        if not clause:
             return {
                 "status": "not_found",
-                "message": f"No terms found for treaty {treaty_ref}"
+                "message": (
+                    f"Clause {clause_ref} was not found "
+                    f"for treaty {treaty_ref}"
+                )
             }
 
         return {
             "status": "success",
-            "treaty_ref": treaty_ref,
-            "count": len(terms),
-            "data": [dict(term) for term in terms]
+            "data": dict(clause)
         }
 
     finally:
@@ -40,10 +41,14 @@ def get_treaty_terms(treaty_ref: str):
 
 
 
-class TreatyTermsRequest(BaseModel):
+class GetClauseRequest(BaseModel):
+    clause_ref: str
     treaty_ref: str
 
 
-@router.post("/get_treaty_terms", operation_id="get_treaty_terms")
-def get_treaty_terms(req: TreatyTermsRequest):
-    return handler.get_treaty_terms(req.treaty_ref)
+@router.post("/get_clause", operation_id="get_clause")
+def get_clause(req: GetClauseRequest):
+    return handler.get_clause(
+        req.clause_ref,
+        req.treaty_ref
+    )
