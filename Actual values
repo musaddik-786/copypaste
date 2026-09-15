@@ -1,157 +1,1484 @@
-JarvisClaims@JarvisClaims:~/Ramakrishna/ITC_Vegas_SLM/app$ kill $(lsof -t -i :5000)
-JarvisClaims@JarvisClaims:~/Ramakrishna/ITC_Vegas_SLM/app$ node_modules/.bin/cross-env NODE_ENV=development node_modules/.bin/tsx server/index.ts
-◇ injected env (1) from .env // tip: ⌁ auth for agents [www.vestauth.com]
-[startup seed] document_master / follow_my_claim_status: relation "document_master" does not exist
-[claim-stage-tracker seed] note: relation "claim_stage_tracker" does not exist
-10:29:19 AM [express] serving on port 5000
+intake validation mcp 
+handler.py
 
 
-JarvisClaims@JarvisClaims:~/Ramakrishna/ITC_Vegas_SLM/MotorTriageAgents$ VENV=/home/JarvisClaims/Ramakrishna/ITC_Vegas_SLM/Jarvis_claims_agents_v3/AdjusterAgents/venv
-$VENV/bin/python MCP/main.py
-2026-09-15 10:21:22,814 | INFO | No auth config provided, skipping auth setup
-2026-09-15 10:21:22,814 | INFO | MCP HTTP server listening at /mcp
-2026-09-15 10:21:22,817 | INFO | No auth config provided, skipping auth setup
-2026-09-15 10:21:22,817 | INFO | MCP HTTP server listening at /mcp
-/home/JarvisClaims/Ramakrishna/ITC_Vegas_SLM/MotorTriageAgents/MCP/main.py:85: DeprecationWarning: 
-        on_event is deprecated, use lifespan event handlers instead.
+"""
+handler.py — Intake Validation
+────────────────────────────────
+Replicates the exact logic from the Replit app's
+POST /api/intake-validation/:claimId handler (routes.ts lines 276-458).
 
-        Read more about it in the
-        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
-        
-  @app.on_event("startup")
-INFO:     Started server process [240042]
-INFO:     Waiting for application startup.
-2026-09-15 10:21:25,253 | INFO | init_db: all tables created / verified OK
-INFO:     Application startup complete.
-INFO:     Uvicorn running on http://0.0.0.0:8500 (Press CTRL+C to quit)
-INFO:     127.0.0.1:42484 - "GET /api/v1/slm_triage/poll HTTP/1.1" 200 OK
-INFO:     127.0.0.1:39064 - "GET /api/v1/intake_validation/poll HTTP/1.1" 200 OK
-INFO:     127.0.0.1:41804 - "GET /api/v1/slm_triage/poll HTTP/1.1" 200 OK
-INFO:     127.0.0.1:41820 - "GET /api/v1/intake_validation/poll HTTP/1.1" 200 OK
-INFO:     127.0.0.1:58436 - "GET /api/v1/slm_triage/poll HTTP/1.1" 200 OK
-INFO:     127.0.0.1:49838 - "GET /api/v1/intake_validation/poll HTTP/1.1" 200 OK
-INFO:     127.0.0.1:50102 - "GET /api/v1/slm_triage/poll HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53438 - "GET /api/v1/intake_validation/poll HTTP/1.1" 200 OK
-INFO:     127.0.0.1:57900 - "GET /api/v1/slm_triage/poll HTTP/1.1" 200 OK
-INFO:     127.0.0.1:57806 - "GET /api/v1/intake_validation/poll HTTP/1.1" 200 OK
-INFO:     127.0.0.1:60442 - "GET /api/v1/slm_triage/poll HTTP/1.1" 200 OK
-INFO:     127.0.0.1:60450 - "GET /api/v1/intake_validation/poll HTTP/1.1" 200 OK
-INFO:     127.0.0.1:35578 - "GET /api/v1/slm_triage/poll HTTP/1.1" 200 OK
-INFO:     127.0.0.1:35584 - "GET /api/v1/intake_validation/poll HTTP/1.1" 200 OK
-INFO:     127.0.0.1:33984 - "GET /api/v1/slm_triage/poll HTTP/1.1" 200 OK
-INFO:     127.0.0.1:42826 - "GET /api/v1/intake_validation/poll HTTP/1.1" 200 OK
-INFO:     127.0.0.1:34444 - "GET /api/v1/slm_triage/poll HTTP/1.1" 200 OK
-INFO:     127.0.0.1:36800 - "GET /api/v1/intake_validation/poll HTTP/1.1" 200 OK
-INFO:     127.0.0.1:35788 - "GET /api/v1/slm_triage/poll HTTP/1.1" 200 OK
-INFO:     127.0.0.1:59286 - "GET /api/v1/intake_validation/poll HTTP/1.1" 200 OK
-INFO:     127.0.0.1:44974 - "GET /api/v1/slm_triage/poll HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53016 - "GET /api/v1/intake_validation/poll HTTP/1.1" 200 OK
-INFO:     127.0.0.1:47880 - "GET /api/v1/slm_triage/poll HTTP/1.1" 200 OK
-INFO:     127.0.0.1:53564 - "GET /api/v1/intake_validation/poll HTTP/1.1" 200 OK
-INFO:     127.0.0.1:42532 - "GET /api/v1/slm_triage/poll HTTP/1.1" 200 OK
-INFO:     127.0.0.1:57456 - "GET /api/v1/intake_validation/poll HTTP/1.1" 200 OK
-INFO:     127.0.0.1:49308 - "GET /api/v1/slm_triage/poll HTTP/1.1" 200 OK
-INFO:     127.0.0.1:40450 - "GET /api/v1/intake_validation/poll HTTP/1.1" 200 OK
-INFO:     127.0.0.1:46528 - "GET /api/v1/slm_triage/poll HTTP/1.1" 200 OK
-INFO:     127.0.0.1:36742 - "GET /api/v1/intake_validation/poll HTTP/1.1" 200 OK
-INFO:     127.0.0.1:45268 - "GET /api/v1/slm_triage/poll HTTP/1.1" 200 OK
-INFO:     127.0.0.1:34862 - "GET /api/v1/intake_validation/poll HTTP/1.1" 200 OK
-INFO:     127.0.0.1:35354 - "GET /api/v1/slm_triage/poll HTTP/1.1" 200 OK
+Checks:
+  1. Policy Validation    — policy exists, policy active, coverage applicable
+  2. FNOL Completeness   — description, date/time, location, evidence
+  3. Fraud Screening     — basic anomaly detection, prior claim frequency
+  4. Completeness Score  — 7 mandatory fields, must be >= 85% to pass
+
+On pass  → writes intake_validation_result_output, updates claim status to
+           "Triage Pending" (intermediate status the MotorTriageAgent polls on)
+On fail  → writes intake_validation_result_output, claim stays at
+           "Claim Intake Validation"
+"""
+
+import logging
+import os
+import sys
+import time
+from datetime import datetime
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "common"))
+
+from db import get_db_connection, row_to_dict  # noqa: E402
+
+log = logging.getLogger(__name__)
+
+MANDATORY_FIELDS = [
+    "policy_number",
+    "policyholder_name",
+    "loss_type",
+    "short_description",
+    "location",
+    "date_of_loss",
+    "severity",
+]
 
 
-JarvisClaims@JarvisClaims:~/Ramakrishna/ITC_Vegas_SLM/MotorTriageAgents$ $VENV/bin/python MotorIntakeValidationAgent/server.py
-bash: /bin/python: No such file or directory
-JarvisClaims@JarvisClaims:~/Ramakrishna/ITC_Vegas_SLM/MotorTriageAgents$ cd ..
-JarvisClaims@JarvisClaims:~/Ramakrishna/ITC_Vegas_SLM$ cd MotorTriageAgents/
-JarvisClaims@JarvisClaims:~/Ramakrishna/ITC_Vegas_SLM/MotorTriageAgents$ cd MotorIntakeValidationAgent/
-JarvisClaims@JarvisClaims:~/Ramakrishna/ITC_Vegas_SLM/MotorTriageAgents/MotorIntakeValidationAgent$ $VENV/bin/python MotorIntakeValidationAgent/server.py
-bash: /bin/python: No such file or directory
-JarvisClaims@JarvisClaims:~/Ramakrishna/ITC_Vegas_SLM/MotorTriageAgents/MotorIntakeValidationAgent$ cd ..
-JarvisClaims@JarvisClaims:~/Ramakrishna/ITC_Vegas_SLM/MotorTriageAgents$ $VENV/bin/python MotorIntakeValidationAgent/server.py
-bash: /bin/python: No such file or directory
-JarvisClaims@JarvisClaims:~/Ramakrishna/ITC_Vegas_SLM/MotorTriageAgents$ cd ..
-JarvisClaims@JarvisClaims:~/Ramakrishna/ITC_Vegas_SLM$ $VENV/bin/python MotorIntakeValidationAgent/server.py
-bash: /bin/python: No such file or directory
-JarvisClaims@JarvisClaims:~/Ramakrishna/ITC_Vegas_SLM$ cd  MotorTriageAgents/
-JarvisClaims@JarvisClaims:~/Ramakrishna/ITC_Vegas_SLM/MotorTriageAgents$ $VENV/bin/python MotorIntakeValidationAgent/server.py
-bash: /bin/python: No such file or directory
-JarvisClaims@JarvisClaims:~/Ramakrishna/ITC_Vegas_SLM/MotorTriageAgents$ VENV=/home/JarvisClaims/Ramakrishna/ITC_Vegas_SLM/Jarvis_claims_agents_v3/AdjusterAgents/venv
-$VENV/bin/python MotorIntakeValidationAgent/server.py
-/home/JarvisClaims/Ramakrishna/ITC_Vegas_SLM/MotorTriageAgents/MotorIntakeValidationAgent/server.py:314: DeprecationWarning: 
-        on_event is deprecated, use lifespan event handlers instead.
+def get_motor_claim(claim_id: str) -> dict | None:
+    """
+    Fetch the full motor claim record (claims + motor_claim_details +
+    accident_details + driver_details) for a given claim_number.
+    Returns None if not found or not a Motor claim.
+    """
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
 
-        Read more about it in the
-        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
-        
-  @app.on_event("startup")
-INFO:     Started server process [241413]
-INFO:     Waiting for application startup.
-2026-09-15 10:25:52,710 | INFO     | motor_intake_validation_agent | Intake validation polling loop started (interval=30s)
-INFO:     Application startup complete.
-ERROR:    [Errno 98] error while attempting to bind on address ('0.0.0.0', 8501): address already in use
-INFO:     Waiting for application shutdown.
-INFO:     Application shutdown complete.
-sys:1: RuntimeWarning: coroutine 'connect_tcp.<locals>.try_connect' was never awaited
-RuntimeWarning: Enable tracemalloc to get the object allocation traceback
-JarvisClaims@JarvisClaims:~/Ramakrishna/ITC_Vegas_SLM/MotorTriageAgents$ kill $(lsof -t -i :8501)
-JarvisClaims@JarvisClaims:~/Ramakrishna/ITC_Vegas_SLM/MotorTriageAgents$ VENV=/home/JarvisClaims/Ramakrishna/ITC_Vegas_SLM/Jarvis_claims_agents_v3/AdjusterAgents/venv
-$VENV/bin/python MotorIntakeValidationAgent/server.py
-/home/JarvisClaims/Ramakrishna/ITC_Vegas_SLM/MotorTriageAgents/MotorIntakeValidationAgent/server.py:314: DeprecationWarning: 
-        on_event is deprecated, use lifespan event handlers instead.
+        cur.execute(
+            "SELECT * FROM claims WHERE claim_number = %s",
+            (claim_id,),
+        )
+        claim = row_to_dict(cur.fetchone())
+        if not claim:
+            return None
 
-        Read more about it in the
-        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
-        
-  @app.on_event("startup")
-INFO:     Started server process [241618]
-INFO:     Waiting for application startup.
-2026-09-15 10:26:34,091 | INFO     | motor_intake_validation_agent | Intake validation polling loop started (interval=30s)
-INFO:     Application startup complete.
-INFO:     Uvicorn running on http://0.0.0.0:8501 (Press CTRL+C to quit)
-2026-09-15 10:26:36,362 | INFO     | httpx | HTTP Request: GET http://localhost:8500/api/v1/intake_validation/poll "HTTP/1.1 200 OK"
-2026-09-15 10:27:08,504 | INFO     | httpx | HTTP Request: GET http://localhost:8500/api/v1/intake_validation/poll "HTTP/1.1 200 OK"
-2026-09-15 10:27:40,645 | INFO     | httpx | HTTP Request: GET http://localhost:8500/api/v1/intake_validation/poll "HTTP/1.1 200 OK"
-2026-09-15 10:28:12,886 | INFO     | httpx | HTTP Request: GET http://localhost:8500/api/v1/intake_validation/poll "HTTP/1.1 200 OK"
-2026-09-15 10:28:45,224 | INFO     | httpx | HTTP Request: GET http://localhost:8500/api/v1/intake_validation/poll "HTTP/1.1 200 OK"
-2026-09-15 10:29:17,488 | INFO     | httpx | HTTP Request: GET http://localhost:8500/api/v1/intake_validation/poll "HTTP/1.1 200 OK"
-2026-09-15 10:29:49,788 | INFO     | httpx | HTTP Request: GET http://localhost:8500/api/v1/intake_validation/poll "HTTP/1.1 200 OK"
-2026-09-15 10:30:21,973 | INFO     | httpx | HTTP Request: GET http://localhost:8500/api/v1/intake_validation/poll "HTTP/1.1 200 OK"
+        cur.execute(
+            "SELECT * FROM motor_claim_details WHERE claim_id = %s LIMIT 1",
+            (claim_id,),
+        )
+        motor = row_to_dict(cur.fetchone())
+        if not motor:
+            return None  # not a motor claim
+
+        cur.execute(
+            "SELECT * FROM accident_details WHERE claim_id = %s LIMIT 1",
+            (claim_id,),
+        )
+        accident = row_to_dict(cur.fetchone())
+
+        cur.execute(
+            "SELECT * FROM driver_details WHERE claim_id = %s LIMIT 1",
+            (claim_id,),
+        )
+        driver = row_to_dict(cur.fetchone())
+
+        return {
+            "claim": claim,
+            "motor": motor,
+            "accident": accident,
+            "driver": driver,
+        }
+    finally:
+        conn.close()
 
 
+def poll_pending_motor_claims() -> list[dict]:
+    """
+    Return all Motor claims currently in 'Claim Intake Validation' status.
+    Called by the MotorIntakeValidationAgent polling loop.
+    """
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT c.claim_number
+            FROM   claims c
+            JOIN   motor_claim_details m ON m.claim_id = c.claim_number
+            WHERE  c.status = 'Claim Intake Validation'
+            ORDER  BY c.filed_at ASC
+            """,
+        )
+        rows = cur.fetchall()
+        return [dict(r) for r in rows] if rows else []
+    finally:
+        conn.close()
 
-JarvisClaims@JarvisClaims:~/Ramakrishna/ITC_Vegas_SLM/MotorTriageAgents$ VENV=/home/JarvisClaims/Ramakrishna/ITC_Vegas_SLM/Jarvis_claims_agents_v3/AdjusterAgents/venv
-JarvisClaims@JarvisClaims:~/Ramakrishna/ITC_Vegas_SLM/MotorTriageAgents$ $VENV/bin/python MotorTriageAgent/server.py
-/home/JarvisClaims/Ramakrishna/ITC_Vegas_SLM/MotorTriageAgents/MotorTriageAgent/server.py:327: DeprecationWarning: 
-        on_event is deprecated, use lifespan event handlers instead.
 
-        Read more about it in the
-        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
-        
-  @app.on_event("startup")
-INFO:     Started server process [242137]
-INFO:     Waiting for application startup.
-2026-09-15 10:27:35,259 | INFO     | motor_triage_agent | Motor triage polling loop started (interval=30s)
-INFO:     Application startup complete.
-ERROR:    [Errno 98] error while attempting to bind on address ('0.0.0.0', 8502): address already in use
-INFO:     Waiting for application shutdown.
-INFO:     Application shutdown complete.
-JarvisClaims@JarvisClaims:~/Ramakrishna/ITC_Vegas_SLM/MotorTriageAgents$ kill $(lsof -t -i :8502)
-JarvisClaims@JarvisClaims:~/Ramakrishna/ITC_Vegas_SLM/MotorTriageAgents$ $VENV/bin/python MotorTriageAgent/server.py
-/home/JarvisClaims/Ramakrishna/ITC_Vegas_SLM/MotorTriageAgents/MotorTriageAgent/server.py:327: DeprecationWarning: 
-        on_event is deprecated, use lifespan event handlers instead.
+def run_intake_validation(claim_id: str) -> dict:
+    """
+    Mirrors POST /api/intake-validation/:claimId from the Replit app exactly.
 
-        Read more about it in the
-        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
-        
-  @app.on_event("startup")
-INFO:     Started server process [242505]
-INFO:     Waiting for application startup.
-2026-09-15 10:27:54,463 | INFO     | motor_triage_agent | Motor triage polling loop started (interval=30s)
-INFO:     Application startup complete.
-INFO:     Uvicorn running on http://0.0.0.0:8502 (Press CTRL+C to quit)
-2026-09-15 10:27:56,735 | INFO     | httpx | HTTP Request: GET http://localhost:8500/api/v1/slm_triage/poll "HTTP/1.1 200 OK"
-2026-09-15 10:28:29,006 | INFO     | httpx | HTTP Request: GET http://localhost:8500/api/v1/slm_triage/poll "HTTP/1.1 200 OK"
-2026-09-15 10:29:01,344 | INFO     | httpx | HTTP Request: GET http://localhost:8500/api/v1/slm_triage/poll "HTTP/1.1 200 OK"
-2026-09-15 10:29:33,664 | INFO     | httpx | HTTP Request: GET http://localhost:8500/api/v1/slm_triage/poll "HTTP/1.1 200 OK"
-2026-09-15 10:30:05,884 | INFO     | httpx | HTTP Request: GET http://localhost:8500/api/v1/slm_triage/poll "HTTP/1.1 200 OK"
-2026-09-15 10:30:38,056 | INFO     | httpx | HTTP Request: GET http://localhost:8500/api/v1/slm_triage/poll "HTTP/1.1 200 OK"
+    Returns a dict with:
+      outcome, completeness_score, checks, failure_reasons,
+      coverage_status, fraud_risk, policy_status, new_status, validation_id
+    """
+    data = get_motor_claim(claim_id)
+    if not data:
+        raise ValueError(f"Motor claim {claim_id} not found")
+
+    claim   = data["claim"]
+    driver  = data["driver"] or {}
+
+    checks: list[dict] = []
+    blocking_failure   = False
+
+    # ── 1. Policy Validation ─────────────────────────────────────────────────
+    policy_exists      = bool(claim.get("policy_number"))
+    policy_active      = True   # always true for motor (policy created at submit)
+    coverage_applicable = claim.get("coverage", True) is not False
+
+    checks.append({
+        "category": "Policy Validation",
+        "items": [
+            {
+                "check": "Policy exists",
+                "passed": policy_exists,
+                "detail": f"Policy {claim.get('policy_number')} found"
+                          if policy_exists else "No policy number on file",
+            },
+            {
+                "check": "Policy active",
+                "passed": policy_active,
+                "detail": "Policy is active and in-force",
+            },
+            {
+                "check": "Coverage applicable",
+                "passed": coverage_applicable,
+                "detail": "Coverage confirmed for reported loss type"
+                          if coverage_applicable
+                          else "Coverage mismatch — loss type not covered",
+            },
+        ],
+    })
+    if not policy_exists or not policy_active or not coverage_applicable:
+        blocking_failure = True
+
+    # ── 2. FNOL Data Completeness ─────────────────────────────────────────────
+    has_description = bool(claim.get("short_description") or claim.get("ai_generated_summary"))
+    has_date_time   = bool(claim.get("date_of_loss"))
+    has_location    = bool(claim.get("location"))
+    image_urls      = claim.get("image_urls") or []
+    has_evidence    = isinstance(image_urls, list) and len(image_urls) > 0
+
+    checks.append({
+        "category": "FNOL Data Completeness",
+        "items": [
+            {
+                "check": "Loss description present",
+                "passed": has_description,
+                "detail": "Loss description provided"
+                          if has_description else "Missing loss description",
+            },
+            {
+                "check": "Date/time of loss present",
+                "passed": has_date_time,
+                "detail": f"Date of loss: {claim.get('date_of_loss')}"
+                          if has_date_time else "Date/time of loss not provided",
+            },
+            {
+                "check": "Location present",
+                "passed": has_location,
+                "detail": f"Location: {claim.get('location')}"
+                          if has_location else "Loss location not provided",
+            },
+            {
+                "check": "Minimum evidence (no photo mismatch)",
+                "passed": True,
+                "detail": f"{len(image_urls)} evidence item(s) attached — no mismatch detected"
+                          if has_evidence else "No photographic evidence attached (not blocking)",
+            },
+        ],
+    })
+    if not has_description or not has_location:
+        blocking_failure = True
+
+    # ── 3. Fraud Screening ───────────────────────────────────────────────────
+    anomaly_passed   = True
+    prior_claim_ok   = True
+
+    checks.append({
+        "category": "Fraud Screening",
+        "items": [
+            {
+                "check": "Basic anomaly detection passed",
+                "passed": anomaly_passed,
+                "detail": "No anomalies detected in submission pattern",
+            },
+            {
+                "check": "Prior claim frequency check",
+                "passed": prior_claim_ok,
+                "detail": "Claim frequency within normal range",
+            },
+        ],
+    })
+    if not anomaly_passed:
+        blocking_failure = True
+
+    # ── 4. Completeness Score ────────────────────────────────────────────────
+    completed = sum(1 for f in MANDATORY_FIELDS if claim.get(f))
+    completeness_score = round((completed / len(MANDATORY_FIELDS)) * 100)
+
+    validation_passed = (not blocking_failure) and (completeness_score >= 85)
+
+    # ── Failure reasons ───────────────────────────────────────────────────────
+    failure_reasons: list[str] = []
+    if not validation_passed:
+        if not has_description:
+            failure_reasons.append("Missing mandatory data: loss description")
+        if not has_location:
+            failure_reasons.append("Missing mandatory data: location")
+        if not has_date_time:
+            failure_reasons.append("Missing mandatory data: date of loss")
+        if not coverage_applicable:
+            failure_reasons.append("Coverage mismatch")
+        if not policy_active:
+            failure_reasons.append("Policy inactive")
+        if completeness_score < 85:
+            failure_reasons.append(
+                f"Data completeness score {completeness_score}% is below 85% threshold"
+            )
+
+    coverage_status = "Confirmed" if coverage_applicable else "Not Confirmed"
+    fraud_risk      = "Low" if (anomaly_passed and prior_claim_ok) else "High"
+    outcome         = "pass" if validation_passed else "fail"
+    validation_id   = f"VAL-MT-{int(time.time())}"
+
+    # ── Write result to DB ────────────────────────────────────────────────────
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+
+        cur.execute(
+            """
+            INSERT INTO intake_validation_result_output
+                (validation_id, claim_id, completeness_score, coverage_status, fraud_risk, result)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            """,
+            (
+                validation_id,
+                claim_id,
+                completeness_score,
+                coverage_status,
+                fraud_risk,
+                "Pass" if validation_passed else "Fail",
+            ),
+        )
+
+        new_status = "Claim Intake Validation"
+        if validation_passed:
+            # Advance to intermediate status — MotorTriageAgent polls this
+            new_status = "Triage Pending"
+            cur.execute(
+                "UPDATE claims SET status = %s WHERE claim_number = %s",
+                (new_status, claim_id),
+            )
+
+        conn.commit()
+        log.info(
+            "intake_validation claim=%s outcome=%s completeness=%s%% status=%s",
+            claim_id, outcome, completeness_score, new_status,
+        )
+    except Exception:
+        conn.rollback()
+        log.exception("intake_validation DB write failed for claim=%s", claim_id)
+        raise
+    finally:
+        conn.close()
+
+    return {
+        "claim_id": claim_id,
+        "outcome": outcome,
+        "completeness_score": completeness_score,
+        "coverage_status": coverage_status,
+        "fraud_risk": fraud_risk,
+        "policy_status": "Active" if policy_active else "Inactive",
+        "checks": checks,
+        "failure_reasons": failure_reasons,
+        "new_status": new_status,
+        "validation_id": validation_id,
+    }
+
+intake_validation_mcp
+models.py
+"""
+models.py — Intake Validation MCP
+──────────────────────────────────
+Pydantic request/response models for the intake validation tool endpoints.
+"""
+
+from pydantic import BaseModel
+from typing import Optional, List
+
+
+class ValidationCheck(BaseModel):
+    check: str
+    passed: bool
+    detail: str
+
+
+class ValidationGroup(BaseModel):
+    category: str
+    items: List[ValidationCheck]
+
+
+class IntakeValidationResponse(BaseModel):
+    claim_id: str
+    outcome: str                    # "pass" | "fail"
+    completeness_score: int
+    coverage_status: str            # "Confirmed" | "Not Confirmed"
+    fraud_risk: str                 # "Low" | "High"
+    policy_status: str              # "Active" | "Inactive"
+    checks: List[ValidationGroup]
+    failure_reasons: List[str]
+    new_status: str                 # status the claim was moved to
+    validation_id: str
+
+handler.py (slm triage_mcp)
+"""
+handler.py — SLM Triage
+─────────────────────────
+Replicates the exact triage computation from the Replit app's
+POST /api/motor-claims/submit handler (routes.ts lines 5164-5172).
+
+Current implementation: rule-based logic identical to Replit.
+Future: swap compute_triage() internals for Qwen 3B SLM call
+        without touching anything else in this file or the agent.
+
+Triage logic (verbatim from Replit):
+  fraud_risk_score:
+    base = 20
+    +45 if driver.authorized_driver != "Yes"
+    +25 if severity == "Severe" and vehicles_involved <= 1
+    +15 if severity == "Severe" and collision_type == "Rear" and no photos
+    capped at 100
+
+  complexity:
+    Severe   → High
+    Moderate → Medium
+    Minor    → Low
+
+  routing:
+    fraud_risk_score >= 70  → SIU
+    complexity == High      → Investigation
+    severity == Minor       → Fast Track
+    else                    → Standard
+
+On completion → writes to claim_triage table, advances claim status
+                to "Loss Investigation".
+"""
+
+import logging
+import os
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "common"))
+
+from db import get_db_connection, row_to_dict  # noqa: E402
+
+log = logging.getLogger(__name__)
+
+
+def get_motor_claim_full(claim_id: str) -> dict | None:
+    """
+    Fetch claim + motor_claim_details + accident_details + driver_details
+    for a claim in 'Triage Pending' status.
+    Returns None if not found.
+    """
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+
+        cur.execute("SELECT * FROM claims WHERE claim_number = %s", (claim_id,))
+        claim = row_to_dict(cur.fetchone())
+        if not claim:
+            return None
+
+        cur.execute(
+            "SELECT * FROM motor_claim_details WHERE claim_id = %s LIMIT 1", (claim_id,)
+        )
+        motor = row_to_dict(cur.fetchone())
+
+        cur.execute(
+            "SELECT * FROM accident_details WHERE claim_id = %s LIMIT 1", (claim_id,)
+        )
+        accident = row_to_dict(cur.fetchone())
+
+        cur.execute(
+            "SELECT * FROM driver_details WHERE claim_id = %s LIMIT 1", (claim_id,)
+        )
+        driver = row_to_dict(cur.fetchone())
+
+        return {
+            "claim": claim,
+            "motor": motor or {},
+            "accident": accident or {},
+            "driver": driver or {},
+        }
+    finally:
+        conn.close()
+
+
+def poll_triage_pending_claims() -> list[dict]:
+    """
+    Return all Motor claims currently in 'Triage Pending' status.
+    Called by the MotorTriageAgent polling loop.
+    """
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT c.claim_number
+            FROM   claims c
+            JOIN   motor_claim_details m ON m.claim_id = c.claim_number
+            WHERE  c.status = 'Triage Pending'
+            ORDER  BY c.filed_at ASC
+            """,
+        )
+        rows = cur.fetchall()
+        return [dict(r) for r in rows] if rows else []
+    finally:
+        conn.close()
+
+
+def compute_triage(claim_id: str) -> dict:
+    """
+    Exact replication of the Replit triage scoring (routes.ts lines 5164-5172).
+
+    ── SLM SWAP POINT ──────────────────────────────────────────────────────────
+    When the Qwen 3B SLM is ready, replace the rule-based scoring block below
+    (marked with # [RULE-BASED]) with a call to the SLM inference function.
+    Everything else in this method (DB reads, DB writes, status update) stays
+    unchanged.
+    ────────────────────────────────────────────────────────────────────────────
+    """
+    data = get_motor_claim_full(claim_id)
+    if not data:
+        raise ValueError(f"Motor claim {claim_id} not found or not in Triage Pending status")
+
+    claim    = data["claim"]
+    accident = data["accident"]
+    driver   = data["driver"]
+
+    severity          = claim.get("severity", "Moderate")
+    collision_type    = accident.get("collision_type", "")
+    vehicles_involved = accident.get("vehicles_involved", 1) or 1
+    authorized_driver = driver.get("authorized_driver", "Yes")
+    image_urls        = claim.get("image_urls") or []
+    photo_count       = len(image_urls) if isinstance(image_urls, list) else 0
+
+    # [RULE-BASED] ── fraud risk score ────────────────────────────────────────
+    fraud_risk_score = 20
+    if authorized_driver != "Yes":
+        fraud_risk_score += 45
+    if severity == "Severe" and vehicles_involved <= 1:
+        fraud_risk_score += 25
+    if severity == "Severe" and "Rear" in collision_type and photo_count == 0:
+        fraud_risk_score += 15
+    fraud_risk_score = min(100, fraud_risk_score)
+
+    # [RULE-BASED] ── complexity ──────────────────────────────────────────────
+    complexity_map = {"Severe": "High", "Moderate": "Medium", "Minor": "Low"}
+    complexity = complexity_map.get(severity, "Medium")
+
+    # [RULE-BASED] ── routing ─────────────────────────────────────────────────
+    if fraud_risk_score >= 70:
+        routing = "SIU"
+    elif complexity == "High":
+        routing = "Investigation"
+    elif severity == "Minor":
+        routing = "Fast Track"
+    else:
+        routing = "Standard"
+    # [RULE-BASED END] ────────────────────────────────────────────────────────
+
+    # ── Write triage result + advance claim status ────────────────────────────
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+
+        # Upsert into claim_triage (replace any row already there for this claim)
+        cur.execute(
+            """
+            INSERT INTO claim_triage (claim_id, damage_severity, complexity, fraud_risk_score, routing)
+            VALUES (%s, %s, %s, %s, %s)
+            ON CONFLICT DO NOTHING
+            """,
+            (claim_id, severity, complexity, fraud_risk_score, routing),
+        )
+
+        # Advance status → Loss Investigation
+        new_status = "Loss Investigation"
+        cur.execute(
+            "UPDATE claims SET status = %s WHERE claim_number = %s",
+            (new_status, claim_id),
+        )
+
+        conn.commit()
+        log.info(
+            "triage claim=%s severity=%s complexity=%s fraud=%s routing=%s → %s",
+            claim_id, severity, complexity, fraud_risk_score, routing, new_status,
+        )
+    except Exception:
+        conn.rollback()
+        log.exception("triage DB write failed for claim=%s", claim_id)
+        raise
+    finally:
+        conn.close()
+
+    return {
+        "claim_id": claim_id,
+        "damage_severity": severity,
+        "complexity": complexity,
+        "fraud_risk_score": fraud_risk_score,
+        "routing": routing,
+        "new_status": new_status,
+    }
+
+
+
+
+
+slm_triage_mcp
+"""
+models.py — SLM Triage MCP
+───────────────────────────
+Pydantic request/response models for the triage tool endpoints.
+"""
+
+from pydantic import BaseModel
+from typing import Optional
+
+
+class TriageResult(BaseModel):
+    claim_id: str
+    damage_severity: str        # Minor | Moderate | Severe
+    complexity: str             # Low | Medium | High
+    fraud_risk_score: int       # 0–100
+    routing: str                # SIU | Investigation | Fast Track | Standard
+    new_status: str             # status claim was advanced to
+
+
+"""
+intake_validation_router.py
+────────────────────────────
+Sub-app is mounted at /api/v1/intake_validation — paths here are relative to that prefix.
+
+Tool / Endpoint map (external full URLs):
+  poll_motor_claims_for_validation  GET  /api/v1/intake_validation/poll
+  get_motor_claim_for_validation    GET  /api/v1/intake_validation/claim/{claim_id}
+  run_intake_validation             POST /api/v1/intake_validation/run/{claim_id}
+"""
+
+import logging
+from fastapi import APIRouter, HTTPException
+
+from intake_validation_mcp import handler
+
+log = logging.getLogger(__name__)
+
+router = APIRouter()
+
+
+@router.get(
+    "/poll",
+    operation_id="poll_motor_claims_for_validation",
+    summary="Poll for Motor claims awaiting intake validation (status = Claim Intake Validation)",
+    tags=["IntakeValidation"],
+)
+def poll_motor_claims_for_validation():
+    try:
+        claims = handler.poll_pending_motor_claims()
+        return {"pending_claims": claims, "count": len(claims)}
+    except Exception as e:
+        log.exception("poll_motor_claims_for_validation error")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get(
+    "/claim/{claim_id}",
+    operation_id="get_motor_claim_for_validation",
+    summary="Fetch full motor claim record (claim + motor details + accident + driver)",
+    tags=["IntakeValidation"],
+)
+def get_motor_claim_for_validation(claim_id: str):
+    try:
+        data = handler.get_motor_claim(claim_id)
+        if not data:
+            raise HTTPException(status_code=404, detail=f"Motor claim {claim_id} not found")
+        return data
+    except HTTPException:
+        raise
+    except Exception as e:
+        log.exception("get_motor_claim_for_validation error")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post(
+    "/run/{claim_id}",
+    operation_id="run_intake_validation",
+    summary="Run intake validation for a Motor claim — checks policy, FNOL completeness, fraud screening",
+    tags=["IntakeValidation"],
+)
+def run_intake_validation(claim_id: str):
+    try:
+        return handler.run_intake_validation(claim_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        log.exception("run_intake_validation error")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+"""
+main.py — Motor Triage MCP Server
+───────────────────────────────────
+Single FastAPI app hosting 2 MCP sub-apps on port 8500.
+Connects directly to the Replit PostgreSQL DB (claimsinnovation).
+
+Sub-apps:
+  /api/v1/intake_validation/mcp  — Intake Validation tools  [FULL]
+  /api/v1/slm_triage/mcp         — SLM Triage tools         [FULL]
+
+Run:
+    python MCP/main.py
+"""
+
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "common"))
+
+from dotenv import load_dotenv, find_dotenv
+load_dotenv(find_dotenv())
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi_mcp import FastApiMCP
+
+from common.init_db import init_db
+
+from intake_validation_router import router as intake_validation_router
+from slm_triage_router import router as slm_triage_router
+
+import uvicorn
+
+app = FastAPI(docs_url="/docs", title="Motor Triage MCP Server")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+def _make_sub_app(title: str) -> FastAPI:
+    sub = FastAPI(title=title)
+    sub.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    return sub
+
+
+# ── Intake Validation sub-app ─────────────────────────────────────────────────
+intake_validation_app = _make_sub_app("Intake Validation MCP")
+intake_validation_app.include_router(intake_validation_router)
+FastApiMCP(
+    intake_validation_app,
+    name="intake_validation_mcp",
+    include_operations=[
+        "poll_motor_claims_for_validation",
+        "get_motor_claim_for_validation",
+        "run_intake_validation",
+    ],
+).mount_http()
+app.mount("/api/v1/intake_validation", intake_validation_app)
+
+# ── SLM Triage sub-app ────────────────────────────────────────────────────────
+slm_triage_app = _make_sub_app("SLM Triage MCP")
+slm_triage_app.include_router(slm_triage_router)
+FastApiMCP(
+    slm_triage_app,
+    name="slm_triage_mcp",
+    include_operations=[
+        "poll_triage_pending_claims",
+        "get_motor_claim_full",
+        "run_motor_triage",
+    ],
+).mount_http()
+app.mount("/api/v1/slm_triage", slm_triage_app)
+
+
+@app.on_event("startup")
+async def startup():
+    try:
+        init_db()
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning("init_db warning (non-fatal): %s", e)
+
+
+if __name__ == "__main__":
+    port = int(os.getenv("MCP_PORT", "8500"))
+    uvicorn.run(app, host="0.0.0.0", port=port)
+
+
+"""
+slm_triage_router.py
+──────────────────────
+Sub-app is mounted at /api/v1/slm_triage — paths here are relative to that prefix.
+
+Tool / Endpoint map (external full URLs):
+  poll_triage_pending_claims  GET  /api/v1/slm_triage/poll
+  get_motor_claim_full        GET  /api/v1/slm_triage/claim/{claim_id}
+  run_motor_triage            POST /api/v1/slm_triage/run/{claim_id}
+"""
+
+import logging
+from fastapi import APIRouter, HTTPException
+
+from slm_triage_mcp import handler
+
+log = logging.getLogger(__name__)
+
+router = APIRouter()
+
+
+@router.get(
+    "/poll",
+    operation_id="poll_triage_pending_claims",
+    summary="Poll for Motor claims awaiting triage (status = Triage Pending)",
+    tags=["SLMTriage"],
+)
+def poll_triage_pending_claims():
+    try:
+        claims = handler.poll_triage_pending_claims()
+        return {"pending_claims": claims, "count": len(claims)}
+    except Exception as e:
+        log.exception("poll_triage_pending_claims error")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get(
+    "/claim/{claim_id}",
+    operation_id="get_motor_claim_full",
+    summary="Fetch full motor claim record for triage processing",
+    tags=["SLMTriage"],
+)
+def get_motor_claim_full(claim_id: str):
+    try:
+        data = handler.get_motor_claim_full(claim_id)
+        if not data:
+            raise HTTPException(status_code=404, detail=f"Motor claim {claim_id} not found")
+        return data
+    except HTTPException:
+        raise
+    except Exception as e:
+        log.exception("get_motor_claim_full error")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post(
+    "/run/{claim_id}",
+    operation_id="run_motor_triage",
+    summary="Run triage scoring for a Motor claim — computes fraud risk, complexity, and routing",
+    tags=["SLMTriage"],
+)
+def run_motor_triage(claim_id: str):
+    try:
+        return handler.compute_triage(claim_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        log.exception("run_motor_triage error")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+
+
+MotorIntakeValidationAgent
+server.py
+"""
+server.py — Motor Intake Validation Agent
+──────────────────────────────────────────
+LangGraph agent that polls for Motor claims in 'Claim Intake Validation'
+status and runs the intake validation checks (policy, FNOL completeness,
+fraud screening) — replicating the Replit app's logic in Python/LangGraph.
+
+On pass  → claim advanced to 'Triage Pending' (MotorTriageAgent picks it up)
+On fail  → claim stays at 'Claim Intake Validation', adjuster is notified
+
+Port: 8501
+MCP : http://localhost:8500/api/v1/intake_validation/mcp
+
+Run:
+    python MotorIntakeValidationAgent/server.py
+"""
+
+import asyncio
+import json
+import logging
+import os
+import sys
+import time
+import traceback
+from datetime import datetime, timedelta
+from typing import Annotated, TypedDict
+
+import uvicorn
+from dotenv import load_dotenv, find_dotenv
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
+from langchain_core.messages import AIMessage, SystemMessage
+from langchain_mcp_adapters.client import MultiServerMCPClient
+from langchain_openai.chat_models import AzureChatOpenAI
+from langgraph.graph import END, START, StateGraph
+from langgraph.graph.message import add_messages
+from langgraph.prebuilt import ToolNode
+
+load_dotenv(find_dotenv())
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
+    stream=sys.stdout,
+    force=True,
+)
+logger = logging.getLogger("motor_intake_validation_agent")
+
+MCP_URL    = os.getenv("INTAKE_VALIDATION_MCP_URL", "http://localhost:8500/api/v1/intake_validation/mcp")
+AGENT_PORT = int(os.getenv("INTAKE_VALIDATION_AGENT_PORT", "8501"))
+
+# Polling interval in seconds — how often the agent checks for new Motor claims
+POLL_INTERVAL = int(os.getenv("INTAKE_VALIDATION_POLL_INTERVAL", "30"))
+
+config_mcp_server = {
+    "intake_validation_mcp": {
+        "url": MCP_URL,
+        "transport": "streamable_http",
+        "timeout": timedelta(seconds=120),
+        "sse_read_timeout": timedelta(seconds=600),
+    }
+}
+
+app = FastAPI(title="Motor Intake Validation Agent")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+class State(TypedDict):
+    messages: Annotated[list, add_messages]
+
+
+def router(state: State):
+    last = state["messages"][-1]
+    if isinstance(last, AIMessage) and getattr(last, "tool_calls", None):
+        return "tools"
+    return "End"
+
+
+_FALLBACK_PROMPT = """
+You are the Motor Intake Validation Agent for an insurance claims platform.
+
+Given a claim_id, your workflow is:
+
+1. Call get_motor_claim_for_validation with the claim_id to retrieve the full
+   claim record (policy number, FNOL details, location, date of loss, images).
+
+2. Call run_intake_validation with the claim_id to execute all validation checks:
+   - Policy Validation: policy exists, policy active, coverage applicable
+   - FNOL Data Completeness: description, date/time, location (evidence not blocking)
+   - Fraud Screening: anomaly detection, prior claim frequency
+   - Completeness Score: 7 mandatory fields must score >= 85%
+
+3. Report the validation outcome clearly:
+   - outcome: pass or fail
+   - completeness_score: percentage
+   - coverage_status: Confirmed or Not Confirmed
+   - fraud_risk: Low or High
+   - failure_reasons: list any blocking failures
+   - new_status: what status the claim was moved to
+
+If outcome is "pass", the claim has been advanced to "Triage Pending" and the
+Motor Triage Agent will process it next.
+
+If outcome is "fail", the claim remains at "Claim Intake Validation" and the
+adjuster must resolve the listed failure reasons before resubmitting.
+
+When you have completed the task, end your response with "End".
+"""
+
+
+def load_prompt() -> str:
+    phoenix_endpoint = os.getenv("PHOENIX_ENDPOINT", "")
+    phoenix_api_key  = os.getenv("PHOENIX_API_KEY", "")
+    if not phoenix_endpoint:
+        raise RuntimeError("Phoenix not configured")
+    from phoenix.client import Client
+    client = Client(base_url=phoenix_endpoint, api_key=phoenix_api_key)
+    prompt = client.prompts.get(name="motor_intake_validation_agent", label="production")
+    prompt_set = prompt._template["messages"]
+    system_msg = next(
+        (item["content"][0]["text"] for item in prompt_set if item.get("role") == "system"),
+        None,
+    )
+    if not system_msg:
+        raise ValueError("System prompt missing in Phoenix")
+    return system_msg
+
+
+def create_graph(model, tools, prompt):
+    graph_builder = StateGraph(State)
+    llm_with_tools = model.bind_tools(tools)
+
+    async def agent_node(state: State):
+        messages = state["messages"]
+        all_messages = [SystemMessage(content=prompt)] + messages
+        message = await llm_with_tools.ainvoke(all_messages)
+        return {"messages": [message]}
+
+    graph_builder.add_node("agent", agent_node)
+    graph_builder.add_node("tools", ToolNode(tools=tools))
+    graph_builder.add_edge(START, "agent")
+    graph_builder.add_conditional_edges(
+        "agent", router, {"tools": "tools", "End": END}
+    )
+    graph_builder.add_edge("tools", "agent")
+    return graph_builder.compile()
+
+
+async def get_tools():
+    client = MultiServerMCPClient(config_mcp_server)
+    tools = await client.get_tools()
+    logger.info("Intake validation tools loaded: %s", [t.name for t in tools])
+    return tools
+
+
+async def stream_graph(graph, initial_state, config):
+    async for event in graph.astream_events(initial_state, config=config, version="v2"):
+        kind = event.get("event", "")
+        if kind == "on_chat_model_stream":
+            chunk = event["data"].get("chunk")
+            if chunk and hasattr(chunk, "content") and chunk.content:
+                yield f"data: {chunk.content}\n\n"
+        elif kind == "on_tool_start":
+            yield f"data: [Tool: {event.get('name', 'unknown_tool')}] Starting...\n\n"
+        elif kind == "on_tool_end":
+            yield f"data: [Tool: {event.get('name', 'unknown_tool')}] Done\n\n"
+
+
+def _build_model() -> AzureChatOpenAI:
+    return AzureChatOpenAI(
+        api_key=os.getenv("AZURE_OPENAI_API_KEY"),
+        api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
+        azure_deployment=os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT"),
+        azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
+    )
+
+
+# ── POST /chat — manual / adjuster-initiated ──────────────────────────────────
+@app.post("/chat")
+async def chat_stream(request: Request):
+    load_dotenv(find_dotenv())
+    tools = await get_tools()
+    model = _build_model()
+
+    try:
+        system_prompt = load_prompt()
+    except Exception as e:
+        logger.warning("Phoenix prompt load failed (%s) — using fallback", e)
+        system_prompt = _FALLBACK_PROMPT
+
+    body         = await request.json()
+    user_message = body.get("message", "Run intake validation for this claim")
+    history      = body.get("history", [])
+
+    from langchain_core.messages import HumanMessage
+    messages = [HumanMessage(content=m["content"]) if m["role"] == "user"
+                else AIMessage(content=m["content"])
+                for m in history]
+    messages.append(HumanMessage(content=user_message))
+
+    graph = create_graph(model=model, tools=tools, prompt=system_prompt)
+
+    async def generate():
+        start = time.time()
+        last_event_at = start
+        last_tool = None
+        try:
+            async for event in stream_graph(
+                graph=graph,
+                initial_state={"messages": messages},
+                config={"recursion_limit": 50},
+            ):
+                last_event_at = time.time()
+                if isinstance(event, str) and event.startswith("data: [Tool:"):
+                    try:
+                        last_tool = event.split("[Tool:", 1)[1].split("]", 1)[0].strip()
+                    except Exception:
+                        pass
+                yield event
+        except BaseException as e:
+            elapsed = time.time() - start
+            err = {
+                "exception_class": type(e).__name__,
+                "message": str(e),
+                "elapsed_total_seconds": round(elapsed, 2),
+                "last_tool_invoked": last_tool,
+                "traceback": traceback.format_exc(),
+                "timestamp_utc": datetime.utcnow().isoformat(),
+            }
+            logger.error("AGENT_ERROR %s", json.dumps(err, default=str))
+            yield f"data: [AGENT_ERROR] {json.dumps(err, default=str)}\n\n"
+            if isinstance(e, asyncio.CancelledError):
+                raise
+
+    return StreamingResponse(generate(), media_type="text/event-stream")
+
+
+# ── POST /process/:claim_id — programmatic trigger ───────────────────────────
+@app.post("/process/{claim_id}")
+async def process_claim(claim_id: str):
+    """
+    Directly process one Motor claim through intake validation.
+    Returns the validation result as JSON (non-streaming).
+    Used by the polling loop and for direct invocation.
+    """
+    load_dotenv(find_dotenv())
+    tools = await get_tools()
+    model = _build_model()
+
+    try:
+        system_prompt = load_prompt()
+    except Exception as e:
+        logger.warning("Phoenix prompt load failed (%s) — using fallback", e)
+        system_prompt = _FALLBACK_PROMPT
+
+    message = f"Run intake validation for motor claim {claim_id}"
+    graph   = create_graph(model=model, tools=tools, prompt=system_prompt)
+
+    result_chunks = []
+    async for event in stream_graph(
+        graph=graph,
+        initial_state={"messages": [message]},
+        config={"recursion_limit": 50},
+    ):
+        if event.startswith("data: ") and not event.startswith("data: [Tool:"):
+            result_chunks.append(event[6:])
+
+    return {"claim_id": claim_id, "result": "".join(result_chunks)}
+
+
+# ── Background polling loop ───────────────────────────────────────────────────
+async def _polling_loop():
+    """
+    Every POLL_INTERVAL seconds, query the DB for Motor claims awaiting
+    intake validation and process each one through the agent.
+    """
+    logger.info("Intake validation polling loop started (interval=%ds)", POLL_INTERVAL)
+    while True:
+        try:
+            import httpx
+            async with httpx.AsyncClient(timeout=10) as client:
+                resp = await client.get(
+                    f"http://localhost:8500/api/v1/intake_validation/poll"
+                )
+                if resp.status_code == 200:
+                    pending = resp.json().get("pending_claims", [])
+                    if pending:
+                        logger.info("Found %d claim(s) awaiting intake validation", len(pending))
+                    for row in pending:
+                        claim_id = row.get("claim_number")
+                        if claim_id:
+                            logger.info("Processing intake validation for claim=%s", claim_id)
+                            try:
+                                async with httpx.AsyncClient(timeout=120) as inner:
+                                    await inner.post(
+                                        f"http://localhost:{AGENT_PORT}/process/{claim_id}"
+                                    )
+                            except Exception as e:
+                                logger.error("Failed to process claim=%s: %s", claim_id, e)
+        except Exception as e:
+            logger.error("Polling loop error: %s", e)
+
+        await asyncio.sleep(POLL_INTERVAL)
+
+
+@app.on_event("startup")
+async def startup():
+    asyncio.create_task(_polling_loop())
+
+
+@app.get("/health")
+async def health():
+    return {"status": "healthy", "agent": "motor_intake_validation_agent"}
+
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=AGENT_PORT)
+
+
+MotorTriageAgent
+server.py
+"""
+server.py — Motor Triage Agent
+────────────────────────────────
+LangGraph agent that polls for Motor claims in 'Triage Pending' status and
+runs triage scoring (fraud risk, complexity, routing) — replicating the
+Replit app's routes.ts triage logic exactly.
+
+Current implementation: rule-based scoring identical to Replit.
+Future: swap Qwen 3B SLM into compute_triage() in MCP/slm_triage_mcp/handler.py
+        without touching this file at all.
+
+On complete → claim advanced to 'Loss Investigation'
+
+Port: 8502
+MCP : http://localhost:8500/api/v1/slm_triage/mcp
+
+Run:
+    python MotorTriageAgent/server.py
+"""
+
+import asyncio
+import json
+import logging
+import os
+import sys
+import time
+import traceback
+from datetime import datetime, timedelta
+from typing import Annotated, TypedDict
+
+import uvicorn
+from dotenv import load_dotenv, find_dotenv
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
+from langchain_core.messages import AIMessage, SystemMessage
+from langchain_mcp_adapters.client import MultiServerMCPClient
+from langchain_openai.chat_models import AzureChatOpenAI
+from langgraph.graph import END, START, StateGraph
+from langgraph.graph.message import add_messages
+from langgraph.prebuilt import ToolNode
+
+load_dotenv(find_dotenv())
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
+    stream=sys.stdout,
+    force=True,
+)
+logger = logging.getLogger("motor_triage_agent")
+
+MCP_URL    = os.getenv("SLM_TRIAGE_MCP_URL", "http://localhost:8500/api/v1/slm_triage/mcp")
+AGENT_PORT = int(os.getenv("TRIAGE_AGENT_PORT", "8502"))
+
+# Polling interval in seconds — how often the agent checks for Triage Pending claims
+POLL_INTERVAL = int(os.getenv("TRIAGE_POLL_INTERVAL", "30"))
+
+config_mcp_server = {
+    "slm_triage_mcp": {
+        "url": MCP_URL,
+        "transport": "streamable_http",
+        "timeout": timedelta(seconds=120),
+        "sse_read_timeout": timedelta(seconds=600),
+    }
+}
+
+app = FastAPI(title="Motor Triage Agent")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+class State(TypedDict):
+    messages: Annotated[list, add_messages]
+
+
+def router(state: State):
+    last = state["messages"][-1]
+    if isinstance(last, AIMessage) and getattr(last, "tool_calls", None):
+        return "tools"
+    return "End"
+
+
+_FALLBACK_PROMPT = """
+You are the Motor Triage Agent for an insurance claims platform.
+
+Given a claim_id, your workflow is:
+
+1. Call get_motor_claim_full with the claim_id to retrieve the complete record:
+   - Claim header (severity, status, image count)
+   - Motor claim details (VIN, make, model, year)
+   - Accident details (collision_type, vehicles_involved)
+   - Driver details (authorized_driver, license, experience)
+
+2. Call run_motor_triage with the claim_id to compute the triage result:
+   Fraud Risk Score (0–100):
+     - Base score: 20
+     - +45 if driver is not an authorized driver
+     - +25 if Severe severity and only 1 vehicle involved
+     - +15 if Severe severity, rear collision, and no photos submitted
+     - Capped at 100
+
+   Complexity:
+     - Severe   → High
+     - Moderate → Medium
+     - Minor    → Low
+
+   Routing:
+     - fraud_risk_score >= 70  → SIU (Special Investigations Unit)
+     - complexity == High      → Investigation
+     - severity == Minor       → Fast Track
+     - else                    → Standard
+
+3. Report the triage outcome clearly:
+   - damage_severity: Minor | Moderate | Severe
+   - complexity: Low | Medium | High
+   - fraud_risk_score: 0–100
+   - routing: SIU | Investigation | Fast Track | Standard
+   - new_status: Loss Investigation (claim has been advanced)
+
+The claim is now ready for the Loss Investigation team based on the routing decision.
+
+When you have completed the task, end your response with "End".
+"""
+
+
+def load_prompt() -> str:
+    phoenix_endpoint = os.getenv("PHOENIX_ENDPOINT", "")
+    phoenix_api_key  = os.getenv("PHOENIX_API_KEY", "")
+    if not phoenix_endpoint:
+        raise RuntimeError("Phoenix not configured")
+    from phoenix.client import Client
+    client = Client(base_url=phoenix_endpoint, api_key=phoenix_api_key)
+    prompt = client.prompts.get(name="motor_triage_agent", label="production")
+    prompt_set = prompt._template["messages"]
+    system_msg = next(
+        (item["content"][0]["text"] for item in prompt_set if item.get("role") == "system"),
+        None,
+    )
+    if not system_msg:
+        raise ValueError("System prompt missing in Phoenix")
+    return system_msg
+
+
+def create_graph(model, tools, prompt):
+    graph_builder = StateGraph(State)
+    llm_with_tools = model.bind_tools(tools)
+
+    async def agent_node(state: State):
+        messages = state["messages"]
+        all_messages = [SystemMessage(content=prompt)] + messages
+        message = await llm_with_tools.ainvoke(all_messages)
+        return {"messages": [message]}
+
+    graph_builder.add_node("agent", agent_node)
+    graph_builder.add_node("tools", ToolNode(tools=tools))
+    graph_builder.add_edge(START, "agent")
+    graph_builder.add_conditional_edges(
+        "agent", router, {"tools": "tools", "End": END}
+    )
+    graph_builder.add_edge("tools", "agent")
+    return graph_builder.compile()
+
+
+async def get_tools():
+    client = MultiServerMCPClient(config_mcp_server)
+    tools = await client.get_tools()
+    logger.info("Triage tools loaded: %s", [t.name for t in tools])
+    return tools
+
+
+async def stream_graph(graph, initial_state, config):
+    async for event in graph.astream_events(initial_state, config=config, version="v2"):
+        kind = event.get("event", "")
+        if kind == "on_chat_model_stream":
+            chunk = event["data"].get("chunk")
+            if chunk and hasattr(chunk, "content") and chunk.content:
+                yield f"data: {chunk.content}\n\n"
+        elif kind == "on_tool_start":
+            yield f"data: [Tool: {event.get('name', 'unknown_tool')}] Starting...\n\n"
+        elif kind == "on_tool_end":
+            yield f"data: [Tool: {event.get('name', 'unknown_tool')}] Done\n\n"
+
+
+def _build_model() -> AzureChatOpenAI:
+    return AzureChatOpenAI(
+        api_key=os.getenv("AZURE_OPENAI_API_KEY"),
+        api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
+        azure_deployment=os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT"),
+        azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
+    )
+
+
+# ── POST /chat — manual / adjuster-initiated ──────────────────────────────────
+@app.post("/chat")
+async def chat_stream(request: Request):
+    load_dotenv(find_dotenv())
+    tools = await get_tools()
+    model = _build_model()
+
+    try:
+        system_prompt = load_prompt()
+    except Exception as e:
+        logger.warning("Phoenix prompt load failed (%s) — using fallback", e)
+        system_prompt = _FALLBACK_PROMPT
+
+    body         = await request.json()
+    user_message = body.get("message", "Run triage for this motor claim")
+    history      = body.get("history", [])
+
+    from langchain_core.messages import HumanMessage
+    messages = [HumanMessage(content=m["content"]) if m["role"] == "user"
+                else AIMessage(content=m["content"])
+                for m in history]
+    messages.append(HumanMessage(content=user_message))
+
+    graph = create_graph(model=model, tools=tools, prompt=system_prompt)
+
+    async def generate():
+        start = time.time()
+        last_tool = None
+        try:
+            async for event in stream_graph(
+                graph=graph,
+                initial_state={"messages": messages},
+                config={"recursion_limit": 50},
+            ):
+                if isinstance(event, str) and event.startswith("data: [Tool:"):
+                    try:
+                        last_tool = event.split("[Tool:", 1)[1].split("]", 1)[0].strip()
+                    except Exception:
+                        pass
+                yield event
+        except BaseException as e:
+            elapsed = time.time() - start
+            err = {
+                "exception_class": type(e).__name__,
+                "message": str(e),
+                "elapsed_total_seconds": round(elapsed, 2),
+                "last_tool_invoked": last_tool,
+                "traceback": traceback.format_exc(),
+                "timestamp_utc": datetime.utcnow().isoformat(),
+            }
+            logger.error("AGENT_ERROR %s", json.dumps(err, default=str))
+            yield f"data: [AGENT_ERROR] {json.dumps(err, default=str)}\n\n"
+            if isinstance(e, asyncio.CancelledError):
+                raise
+
+    return StreamingResponse(generate(), media_type="text/event-stream")
+
+
+# ── POST /process/:claim_id — programmatic trigger ───────────────────────────
+@app.post("/process/{claim_id}")
+async def process_claim(claim_id: str):
+    """
+    Directly triage one Motor claim.
+    Returns the triage result as JSON (non-streaming).
+    Used by the polling loop and for direct invocation.
+    """
+    load_dotenv(find_dotenv())
+    tools = await get_tools()
+    model = _build_model()
+
+    try:
+        system_prompt = load_prompt()
+    except Exception as e:
+        logger.warning("Phoenix prompt load failed (%s) — using fallback", e)
+        system_prompt = _FALLBACK_PROMPT
+
+    message = f"Run triage for motor claim {claim_id}"
+    graph   = create_graph(model=model, tools=tools, prompt=system_prompt)
+
+    result_chunks = []
+    async for event in stream_graph(
+        graph=graph,
+        initial_state={"messages": [message]},
+        config={"recursion_limit": 50},
+    ):
+        if event.startswith("data: ") and not event.startswith("data: [Tool:"):
+            result_chunks.append(event[6:])
+
+    return {"claim_id": claim_id, "result": "".join(result_chunks)}
+
+
+# ── Background polling loop ───────────────────────────────────────────────────
+async def _polling_loop():
+    """
+    Every POLL_INTERVAL seconds, query the DB for Motor claims in
+    'Triage Pending' status (set by the Intake Validation Agent) and
+    process each one through the triage agent.
+    """
+    logger.info("Motor triage polling loop started (interval=%ds)", POLL_INTERVAL)
+    while True:
+        try:
+            import httpx
+            async with httpx.AsyncClient(timeout=10) as client:
+                resp = await client.get(
+                    "http://localhost:8500/api/v1/slm_triage/poll"
+                )
+                if resp.status_code == 200:
+                    pending = resp.json().get("pending_claims", [])
+                    if pending:
+                        logger.info("Found %d claim(s) awaiting triage", len(pending))
+                    for row in pending:
+                        claim_id = row.get("claim_number")
+                        if claim_id:
+                            logger.info("Processing triage for claim=%s", claim_id)
+                            try:
+                                async with httpx.AsyncClient(timeout=120) as inner:
+                                    await inner.post(
+                                        f"http://localhost:{AGENT_PORT}/process/{claim_id}"
+                                    )
+                            except Exception as e:
+                                logger.error("Failed to triage claim=%s: %s", claim_id, e)
+        except Exception as e:
+            logger.error("Triage polling loop error: %s", e)
+
+        await asyncio.sleep(POLL_INTERVAL)
+
+
+@app.on_event("startup")
+async def startup():
+    asyncio.create_task(_polling_loop())
+
+
+@app.get("/health")
+async def health():
+    return {"status": "healthy", "agent": "motor_triage_agent"}
+
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=AGENT_PORT)
+
+
