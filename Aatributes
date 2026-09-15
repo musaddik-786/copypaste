@@ -1,46 +1,169 @@
-SELECT
-    id,
-    fnol_number,
-    policy_number,
-    loss_type,
-    cause_of_loss,
-    date_of_loss,
-    time_of_loss,
-    accident_location,
-    severity,
-    passenger_count,
-    tow_required,
-    police_fir_number,
-    sudden_vs_gradual,
-    emotional_context,
-    urgency_indicator,
-    overall_confidence,
-    status,
-    submitted_at
-FROM motor_fnol_submissions
-WHERE policy_number = 'POL-1002'
-ORDER BY created_at DESC;
-
-
-SELECT
-    id,
-    fnol_id,
-    field_name,
-    inferred_value,
-    confidence,
-    source,
-    source_details
-FROM motor_fnol_ai_inferences
-WHERE fnol_id = <FNOL_ID>
-ORDER BY id;
-
-
-SELECT
-    question_order,
-    field_name,
-    question_text,
-    answer_text,
-    was_skipped
-FROM motor_fnol_mandatory_question_log
-WHERE fnol_id = <FNOL_ID>
-ORDER BY question_order;
+{
+    "count": 1,
+    "data": [
+        {
+            "attributes": {
+                "allValidationLevelsReached": [
+                    {
+                        "code": "newloss",
+                        "name": "New loss completion"
+                    },
+                    {
+                        "code": "loadsave",
+                        "name": "Load and save"
+                    }
+                ],
+                "assignedByUser": {
+                    "displayName": "Super User",
+                    "id": "default_data:1",
+                    "type": "User",
+                    "uri": "/admin/v1/users/default_data:1"
+                },
+                "assignedGroup": {
+                    "displayName": "Acme Insurance",
+                    "id": "systemTables:1",
+                    "type": "Group",
+                    "uri": "/admin/v1/groups/systemTables:1"
+                },
+                "assignedUser": {
+                    "displayName": "Super User",
+                    "id": "default_data:1",
+                    "type": "User",
+                    "uri": "/admin/v1/users/default_data:1"
+                },
+                "assignmentStatus": {
+                    "code": "assigned",
+                    "name": "Assigned"
+                },
+                "claimNumber": "000-00-003009",
+                "dateCompensabilityDecisionDue": "2026-07-17T12:41:00.000Z",
+                "dateReportedToEmployer": "2026-07-06T04:00:00.000Z",
+                "employmentData": {},
+                "flagged": {
+                    "code": "isflagged",
+                    "name": "Is flagged"
+                },
+                "howReported": {
+                    "code": "phone",
+                    "name": "Phone"
+                },
+                "id": "cc:SOq8Ugg59VmSPaKJt4pj8",
+                "incidentOnly": false,
+                "insured": {
+                    "displayName": "P&P Construction",
+                    "id": "cc:Se6Q14kImnKt4ecGNyK3x",
+                    "type": "ClaimContact",
+                    "uri": "/claim/v1/claims/cc:SOq8Ugg59VmSPaKJt4pj8/contacts/cc:Se6Q14kImnKt4ecGNyK3x"
+                },
+                "jurisdiction": {
+                    "code": "CA",
+                    "name": "California"
+                },
+                "lobCode": {
+                    "code": "WorkersCompLine",
+                    "name": "Workers' Comp Line"
+                },
+                "locationCode": {
+                    "displayName": "25 Commerce Way, Los Angeles, CA 91155",
+                    "id": "cc:Sbg9FBYN1nMxyAsBNQNlI",
+                    "policyLabel": "25 Commerce Way, Los Angeles, CA 91155",
+                    "type": "PolicyLocation",
+                    "uri": "/claim/v1/claims/cc:SOq8Ugg59VmSPaKJt4pj8/policy/locations/cc:Sbg9FBYN1nMxyAsBNQNlI"
+                },
+                "lossCause": {
+                    "code": "burn_scald",
+                    "name": "Burn or scald - heat or cold exposures - contact with"
+                },
+                "lossDate": "2026-07-12T12:20:00.000Z",
+                "lossType": {
+                    "code": "WC",
+                    "name": "Workers' Comp"
+                },
+                "mainContactType": {
+                    "code": "employee",
+                    "name": "Employee"
+                },
+                "policyNumber": "32-300869",
+                "reportedByType": {
+                    "code": "employee",
+                    "name": "Employee"
+                },
+                "reportedDate": "2026-07-12T12:41:00.000Z",
+                "reporter": {
+                    "displayName": "test kumar",
+                    "id": "cc:SWhOob8nmXXKH6CCBJSmD",
+                    "type": "ClaimContact",
+                    "uri": "/claim/v1/claims/cc:SOq8Ugg59VmSPaKJt4pj8/contacts/cc:SWhOob8nmXXKH6CCBJSmD"
+                },
+                "segment": {
+                    "code": "wc_lost_time",
+                    "name": "Workers' Comp - indemnity"
+                },
+                "siuStatus": {
+                    "code": "No_Referral",
+                    "name": "No referral"
+                },
+                "state": {
+                    "code": "open",
+                    "name": "Open"
+                },
+                "strategy": {
+                    "code": "unknown",
+                    "name": "Unknown"
+                },
+                "validationLevel": {
+                    "code": "newloss",
+                    "name": "New loss completion"
+                },
+                "workersCompInfo": {
+                    "deathReport": false,
+                    "id": "cc:S6RpT6I01SMrD28jkgg17",
+                    "medicalReport": false,
+                    "timeLossReport": true
+                }
+            },
+            "checksum": "23a12a27d97fb3c84e9d0e1211dfdfc5",
+            "links": {
+                "assign": {
+                    "href": "/claim/v1/claims/cc:SOq8Ugg59VmSPaKJt4pj8/assign",
+                    "methods": [
+                        "post"
+                    ]
+                },
+                "close": {
+                    "href": "/claim/v1/claims/cc:SOq8Ugg59VmSPaKJt4pj8/close",
+                    "methods": [
+                        "post"
+                    ]
+                },
+                "self": {
+                    "href": "/claim/v1/claims/cc:SOq8Ugg59VmSPaKJt4pj8",
+                    "methods": [
+                        "get",
+                        "patch"
+                    ]
+                },
+                "validate": {
+                    "href": "/claim/v1/claims/cc:SOq8Ugg59VmSPaKJt4pj8/validate",
+                    "methods": [
+                        "post"
+                    ]
+                }
+            }
+        }
+    ],
+    "links": {
+        "first": {
+            "href": "/claim/v1/claims",
+            "methods": [
+                "get"
+            ]
+        },
+        "self": {
+            "href": "/claim/v1/claims",
+            "methods": [
+                "get"
+            ]
+        }
+    }
+}
