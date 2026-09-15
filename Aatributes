@@ -1,169 +1,247 @@
-{
-    "count": 1,
-    "data": [
-        {
-            "attributes": {
-                "allValidationLevelsReached": [
-                    {
-                        "code": "newloss",
-                        "name": "New loss completion"
-                    },
-                    {
-                        "code": "loadsave",
-                        "name": "Load and save"
-                    }
-                ],
-                "assignedByUser": {
-                    "displayName": "Super User",
-                    "id": "default_data:1",
-                    "type": "User",
-                    "uri": "/admin/v1/users/default_data:1"
-                },
-                "assignedGroup": {
-                    "displayName": "Acme Insurance",
-                    "id": "systemTables:1",
-                    "type": "Group",
-                    "uri": "/admin/v1/groups/systemTables:1"
-                },
-                "assignedUser": {
-                    "displayName": "Super User",
-                    "id": "default_data:1",
-                    "type": "User",
-                    "uri": "/admin/v1/users/default_data:1"
-                },
-                "assignmentStatus": {
-                    "code": "assigned",
-                    "name": "Assigned"
-                },
-                "claimNumber": "000-00-003009",
-                "dateCompensabilityDecisionDue": "2026-07-17T12:41:00.000Z",
-                "dateReportedToEmployer": "2026-07-06T04:00:00.000Z",
-                "employmentData": {},
-                "flagged": {
-                    "code": "isflagged",
-                    "name": "Is flagged"
-                },
-                "howReported": {
-                    "code": "phone",
-                    "name": "Phone"
-                },
-                "id": "cc:SOq8Ugg59VmSPaKJt4pj8",
-                "incidentOnly": false,
-                "insured": {
-                    "displayName": "P&P Construction",
-                    "id": "cc:Se6Q14kImnKt4ecGNyK3x",
-                    "type": "ClaimContact",
-                    "uri": "/claim/v1/claims/cc:SOq8Ugg59VmSPaKJt4pj8/contacts/cc:Se6Q14kImnKt4ecGNyK3x"
-                },
-                "jurisdiction": {
-                    "code": "CA",
-                    "name": "California"
-                },
-                "lobCode": {
-                    "code": "WorkersCompLine",
-                    "name": "Workers' Comp Line"
-                },
-                "locationCode": {
-                    "displayName": "25 Commerce Way, Los Angeles, CA 91155",
-                    "id": "cc:Sbg9FBYN1nMxyAsBNQNlI",
-                    "policyLabel": "25 Commerce Way, Los Angeles, CA 91155",
-                    "type": "PolicyLocation",
-                    "uri": "/claim/v1/claims/cc:SOq8Ugg59VmSPaKJt4pj8/policy/locations/cc:Sbg9FBYN1nMxyAsBNQNlI"
-                },
-                "lossCause": {
-                    "code": "burn_scald",
-                    "name": "Burn or scald - heat or cold exposures - contact with"
-                },
-                "lossDate": "2026-07-12T12:20:00.000Z",
-                "lossType": {
-                    "code": "WC",
-                    "name": "Workers' Comp"
-                },
-                "mainContactType": {
-                    "code": "employee",
-                    "name": "Employee"
-                },
-                "policyNumber": "32-300869",
-                "reportedByType": {
-                    "code": "employee",
-                    "name": "Employee"
-                },
-                "reportedDate": "2026-07-12T12:41:00.000Z",
-                "reporter": {
-                    "displayName": "test kumar",
-                    "id": "cc:SWhOob8nmXXKH6CCBJSmD",
-                    "type": "ClaimContact",
-                    "uri": "/claim/v1/claims/cc:SOq8Ugg59VmSPaKJt4pj8/contacts/cc:SWhOob8nmXXKH6CCBJSmD"
-                },
-                "segment": {
-                    "code": "wc_lost_time",
-                    "name": "Workers' Comp - indemnity"
-                },
-                "siuStatus": {
-                    "code": "No_Referral",
-                    "name": "No referral"
-                },
-                "state": {
-                    "code": "open",
-                    "name": "Open"
-                },
-                "strategy": {
-                    "code": "unknown",
-                    "name": "Unknown"
-                },
-                "validationLevel": {
-                    "code": "newloss",
-                    "name": "New loss completion"
-                },
-                "workersCompInfo": {
-                    "deathReport": false,
-                    "id": "cc:S6RpT6I01SMrD28jkgg17",
-                    "medicalReport": false,
-                    "timeLossReport": true
-                }
-            },
-            "checksum": "23a12a27d97fb3c84e9d0e1211dfdfc5",
-            "links": {
-                "assign": {
-                    "href": "/claim/v1/claims/cc:SOq8Ugg59VmSPaKJt4pj8/assign",
-                    "methods": [
-                        "post"
-                    ]
-                },
-                "close": {
-                    "href": "/claim/v1/claims/cc:SOq8Ugg59VmSPaKJt4pj8/close",
-                    "methods": [
-                        "post"
-                    ]
-                },
-                "self": {
-                    "href": "/claim/v1/claims/cc:SOq8Ugg59VmSPaKJt4pj8",
-                    "methods": [
-                        "get",
-                        "patch"
-                    ]
-                },
-                "validate": {
-                    "href": "/claim/v1/claims/cc:SOq8Ugg59VmSPaKJt4pj8/validate",
-                    "methods": [
-                        "post"
-                    ]
-                }
-            }
-        }
-    ],
-    "links": {
-        "first": {
-            "href": "/claim/v1/claims",
-            "methods": [
-                "get"
-            ]
-        },
-        "self": {
-            "href": "/claim/v1/claims",
-            "methods": [
-                "get"
-            ]
-        }
-    }
-}
+Let me explore the UI codebase first to understand its structure.
+
+Now let me read the key files to understand exact lines to change.
+
+Now I have everything I need. Here is the complete, exact list of changes:
+
+---
+
+## Files to Change — Motor LOB UI Migration
+
+There are **4 files** to edit. Here's exactly what to change in each:
+
+---
+
+### File 1: `vite-plugins/fnol-submission.ts`
+
+This is the Vite dev-server middleware that reads FNOL data from the DB and serves it to the UI.
+
+**Two changes:**
+
+**Change 1 — table name** (line 47):
+```typescript
+// BEFORE:
+`SELECT * FROM fnol_submissions
+ WHERE policy_number = $1
+ ORDER BY id DESC
+ LIMIT 1`
+
+// AFTER:
+`SELECT * FROM motor_fnol_submissions
+ WHERE policy_number = $1
+ ORDER BY id DESC
+ LIMIT 1`
+```
+
+**Change 2 — FIELD_DEFS** (lines 12–24): Replace the entire array with Motor LOB fields:
+```typescript
+// BEFORE:
+const FIELD_DEFS: FieldDef[] = [
+  { field: "Type of Loss",              valueCol: "loss_type",         sourceCol: "loss_type_source",         required: true },
+  { field: "Cause of Loss",             valueCol: "cause_of_loss",     sourceCol: "cause_of_loss_source",     required: true },
+  { field: "Area Affected",             valueCol: "area_affected",     sourceCol: "area_affected_source",     required: true },
+  { field: "Date of Loss",              valueCol: "date_of_loss",      sourceCol: "date_of_loss_source",      required: true },
+  { field: "Time of Loss",              valueCol: "time_of_loss",      sourceCol: "time_of_loss_source",      required: false },
+  { field: "Sudden vs Gradual",         valueCol: "sudden_vs_gradual", sourceCol: "sudden_vs_gradual_source", required: true },
+  { field: "Occupancy at Time of Loss", valueCol: "occupancy_at_loss", sourceCol: "occupancy_at_loss_source", required: true },
+  { field: "Severity",                  valueCol: "severity",          sourceCol: "severity_source",          required: false },
+  { field: "Emotional Context",         valueCol: "emotional_context", sourceCol: "emotional_context_source", required: false },
+  { field: "Urgency Indicator",         valueCol: "urgency_indicator", sourceCol: "urgency_indicator_source", required: false },
+  { field: "Estimated Damage Amount",   valueCol: "estimated_cost",    sourceCol: null,                       required: false, staticSource: "You Provided" },
+];
+
+// AFTER:
+const FIELD_DEFS: FieldDef[] = [
+  { field: "Type of Loss",        valueCol: "loss_type",          sourceCol: "loss_type_source",          required: true },
+  { field: "Cause of Loss",       valueCol: "cause_of_loss",      sourceCol: "cause_of_loss_source",      required: true },
+  { field: "Accident Location",   valueCol: "accident_location",  sourceCol: "accident_location_source",  required: true },
+  { field: "Date of Loss",        valueCol: "date_of_loss",       sourceCol: "date_of_loss_source",       required: true },
+  { field: "Time of Loss",        valueCol: "time_of_loss",       sourceCol: "time_of_loss_source",       required: true },
+  { field: "Severity",            valueCol: "severity",           sourceCol: "severity_source",           required: true },
+  { field: "Emotional Context",   valueCol: "emotional_context",  sourceCol: "emotional_context_source",  required: false },
+  { field: "Urgency Indicator",   valueCol: "urgency_indicator",  sourceCol: "urgency_indicator_source",  required: false },
+  { field: "Vehicle Make",        valueCol: "vehicle_make",       sourceCol: null,                        required: false, staticSource: "Policy Record" },
+  { field: "Vehicle Model",       valueCol: "vehicle_model",      sourceCol: null,                        required: false, staticSource: "Policy Record" },
+  { field: "Vehicle Year",        valueCol: "vehicle_year",       sourceCol: null,                        required: false, staticSource: "Policy Record" },
+  { field: "Registration",        valueCol: "registration_number",sourceCol: null,                        required: false, staticSource: "Policy Record" },
+  { field: "Estimated Cost",      valueCol: "estimated_cost",     sourceCol: null,                        required: false, staticSource: "You Provided" },
+];
+```
+
+---
+
+### File 2: `vite-plugins/voice-extraction.ts`
+
+**Change — table names in SQL** (lines 32–34):
+```typescript
+// BEFORE:
+FROM fnol_voice_text_extraction v
+JOIN fnol_submissions f ON f.id = v.fnol_id
+
+// AFTER:
+FROM motor_fnol_voice_text_extraction v
+JOIN motor_fnol_submissions f ON f.id = v.fnol_id
+```
+
+---
+
+### File 3: `src/pages/smart-loss-reporting.tsx`
+
+**Change 1 — FIELD_TO_COLUMN map** (lines 13–25): Replace with Motor LOB fields:
+```typescript
+// BEFORE:
+const FIELD_TO_COLUMN: Record<string, string> = {
+  "Type of Loss":              "loss_type",
+  "Cause of Loss":             "cause_of_loss",
+  "Area Affected":             "area_affected",
+  "Date of Loss":              "date_of_loss",
+  "Time of Loss":              "time_of_loss",
+  "Sudden vs Gradual":         "sudden_vs_gradual",
+  "Occupancy at Time of Loss": "occupancy_at_loss",
+  "Severity":                  "severity",
+  "Emotional Context":         "emotional_context",
+  "Urgency Indicator":         "urgency_indicator",
+  "Estimated Damage Amount":   "estimated_cost",
+};
+
+// AFTER:
+const FIELD_TO_COLUMN: Record<string, string> = {
+  "Type of Loss":      "loss_type",
+  "Cause of Loss":     "cause_of_loss",
+  "Accident Location": "accident_location",
+  "Date of Loss":      "date_of_loss",
+  "Time of Loss":      "time_of_loss",
+  "Severity":          "severity",
+  "Emotional Context": "emotional_context",
+  "Urgency Indicator": "urgency_indicator",
+  "Estimated Cost":    "estimated_cost",
+};
+```
+
+**Change 2 — FIELD_TO_SOURCE_COLUMN map** (lines 28–39):
+```typescript
+// BEFORE:
+const FIELD_TO_SOURCE_COLUMN: Record<string, string> = {
+  "Type of Loss":              "loss_type_source",
+  "Cause of Loss":             "cause_of_loss_source",
+  "Area Affected":             "area_affected_source",
+  "Date of Loss":              "date_of_loss_source",
+  "Time of Loss":              "time_of_loss_source",
+  "Sudden vs Gradual":         "sudden_vs_gradual_source",
+  "Occupancy at Time of Loss": "occupancy_at_loss_source",
+  "Severity":                  "severity_source",
+  "Emotional Context":         "emotional_context_source",
+  "Urgency Indicator":         "urgency_indicator_source",
+};
+
+// AFTER:
+const FIELD_TO_SOURCE_COLUMN: Record<string, string> = {
+  "Type of Loss":      "loss_type_source",
+  "Cause of Loss":     "cause_of_loss_source",
+  "Accident Location": "accident_location_source",
+  "Date of Loss":      "date_of_loss_source",
+  "Time of Loss":      "time_of_loss_source",
+  "Severity":          "severity_source",
+  "Emotional Context": "emotional_context_source",
+  "Urgency Indicator": "urgency_indicator_source",
+};
+```
+
+---
+
+### File 4: `src/lib/fnol-data.ts`
+
+This file has **static/mock data** used for display — update it to show Motor LOB examples instead of homeowners.
+
+**Change 1 — `customerText`** (line 1–2):
+```typescript
+// BEFORE:
+export const customerText =
+  "There was a water leak in my sink last night. The water broker and damaged the floor.";
+
+// AFTER:
+export const customerText =
+  "I had a collision on MG Road this morning. Someone rear-ended my car at a traffic light. The damage looks severe.";
+```
+
+**Change 2 — `extractedRows`** (lines 37–43):
+```typescript
+// BEFORE:
+export const extractedRows: ExtractedRow[] = [
+  { element: "Loss Type",       value: "Water Damage",                       confidence: 90 },
+  { element: "Probable Cause",  value: "Unknown - needs clarification",       confidence: 85 },
+  { element: "Area Mentioned",  value: "Not specified",                       confidence: 87 },
+  { element: "Date of Loss",    value: 'June 21, 2026 (from "Last night")',   confidence: 75 },
+  { element: "Sudden vs Gradual", value: "Sudden",                            confidence: 70 },
+];
+
+// AFTER:
+export const extractedRows: ExtractedRow[] = [
+  { element: "Loss Type",         value: "Collision",                               confidence: 95 },
+  { element: "Probable Cause",    value: "Rear-end collision at traffic light",     confidence: 90 },
+  { element: "Accident Location", value: "MG Road, Bangalore",                     confidence: 88 },
+  { element: "Date of Loss",      value: 'Today (from "this morning")',             confidence: 80 },
+  { element: "Severity",          value: "Severe",                                 confidence: 85 },
+];
+```
+
+**Change 3 — `questions`** (lines 55–73): Replace homeowners questions with Motor LOB:
+```typescript
+// BEFORE:
+export const questions: Question[] = [
+  { question: 'You mentioned "Last night"...', options: ["Yes, June 21, 2026", "No, let me specify the correct date"] },
+  { question: "Which area of your home was affected?", options: ["Kitchen", "Bathroom", "Basement / Lower level", "Other / Not sure"] },
+  { question: "Were emergency services or a plumber contacted?", options: ["Yes", "No"] },
+  { question: "Was the damage sudden or did it develop gradually?", options: ["Sudden", "Gradual"] },
+];
+
+// AFTER:
+export const questions: Question[] = [
+  { question: 'You mentioned "this morning". We\'ve set the loss date as today. Is this correct?', options: ["Yes, that\'s correct", "No, let me specify the date"] },
+  { question: "How would you describe the severity of the damage?", options: ["Minor (cosmetic only)", "Moderate (drivable)", "Severe (not drivable)", "Total loss"] },
+  { question: "Were any other vehicles or people involved?", options: ["Yes, another vehicle", "Yes, a pedestrian/cyclist", "No, single vehicle", "Not sure"] },
+  { question: "Was a police report or FIR filed?", options: ["Yes", "No", "In progress"] },
+];
+```
+
+**Change 4 — `sectionB`** (lines 112–177): Replace all homeowners rows with Motor LOB:
+```typescript
+// BEFORE: (entire sectionB array with Water Damage, Area Affected, Sudden vs Gradual, Occupancy...)
+
+// AFTER:
+export const sectionB: LossRow[] = [
+  { field: "Type of Loss",       required: true,  value: "Collision",                           source: "AI-Inferred",       confidence: 95, extractedFrom: '"I had a collision on MG Road..."' },
+  { field: "Cause of Loss",      required: true,  value: "Rear-end collision at traffic light", source: "AI-Inferred",       confidence: 90, extractedFrom: '"Someone rear-ended my car..."' },
+  { field: "Accident Location",  required: true,  value: "MG Road, Bangalore",                  source: "AI-Inferred",       confidence: 88, extractedFrom: '"collision on MG Road..."' },
+  { field: "Time of Loss",       required: true,  value: "09:00",                               source: "AI-Inferred",       confidence: 75, extractedFrom: '"this morning"' },
+  { field: "Date of Loss",       required: true,  value: "September 15, 2026",                  source: "Customer-Confirmed", confidence: 100, extractedFrom: "Confirmed by you" },
+  { field: "Severity",           required: true,  value: "Severe",                              source: "AI-Inferred",       confidence: 85, extractedFrom: '"damage looks severe"' },
+];
+```
+
+**Change 5 — `aiFields`** (lines 187–230): Replace homeowners AI fields with Motor LOB:
+```typescript
+// BEFORE: (Water Damage, Area Affected, Sudden vs Gradual, Occupancy at Time of Loss...)
+
+// AFTER:
+export const aiFields: AiField[] = [
+  { label: "Type of Loss",       value: "Collision",                           confidence: 95,  required: true,  extractedFrom: '"I had a collision on MG Road this morning..."' },
+  { label: "Cause of Loss",      value: "Rear-end collision at traffic light", confidence: 90,  required: true,  extractedFrom: '"Someone rear-ended my car at a traffic light..."' },
+  { label: "Accident Location",  value: "MG Road, Bangalore",                  confidence: 88,  required: true,  extractedFrom: '"collision on MG Road..."' },
+  { label: "Time of Loss",       value: "09:00 AM",                            confidence: 75,  required: true,  extractedFrom: '"this morning"' },
+  { label: "Severity",           value: "Severe",                              confidence: 85,  required: true,  extractedFrom: '"the damage looks severe"' },
+];
+```
+
+---
+
+## Summary
+
+| File | What changes |
+|---|---|
+| `vite-plugins/fnol-submission.ts` | Table `fnol_submissions` → `motor_fnol_submissions`; FIELD_DEFS: remove `area_affected`, `sudden_vs_gradual`, `occupancy_at_loss`; add `accident_location`, vehicle fields |
+| `vite-plugins/voice-extraction.ts` | Tables `fnol_voice_text_extraction` → `motor_fnol_voice_text_extraction`, `fnol_submissions` → `motor_fnol_submissions` |
+| `src/pages/smart-loss-reporting.tsx` | FIELD_TO_COLUMN and FIELD_TO_SOURCE_COLUMN maps: remove property LOB fields, add `accident_location` |
+| `src/lib/fnol-data.ts` | Static/mock display data: replace homeowners examples with Motor LOB examples |
+
+Do you want me to apply all these changes directly to the files?
