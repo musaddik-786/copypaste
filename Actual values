@@ -4,3 +4,154 @@ JarvisClaims@JarvisClaims:~/Ramakrishna/ITC_Vegas_SLM/app$ node_modules/.bin/cro
 [startup seed] document_master / follow_my_claim_status: relation "document_master" does not exist
 [claim-stage-tracker seed] note: relation "claim_stage_tracker" does not exist
 10:29:19 AM [express] serving on port 5000
+
+
+JarvisClaims@JarvisClaims:~/Ramakrishna/ITC_Vegas_SLM/MotorTriageAgents$ VENV=/home/JarvisClaims/Ramakrishna/ITC_Vegas_SLM/Jarvis_claims_agents_v3/AdjusterAgents/venv
+$VENV/bin/python MCP/main.py
+2026-09-15 10:21:22,814 | INFO | No auth config provided, skipping auth setup
+2026-09-15 10:21:22,814 | INFO | MCP HTTP server listening at /mcp
+2026-09-15 10:21:22,817 | INFO | No auth config provided, skipping auth setup
+2026-09-15 10:21:22,817 | INFO | MCP HTTP server listening at /mcp
+/home/JarvisClaims/Ramakrishna/ITC_Vegas_SLM/MotorTriageAgents/MCP/main.py:85: DeprecationWarning: 
+        on_event is deprecated, use lifespan event handlers instead.
+
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+        
+  @app.on_event("startup")
+INFO:     Started server process [240042]
+INFO:     Waiting for application startup.
+2026-09-15 10:21:25,253 | INFO | init_db: all tables created / verified OK
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8500 (Press CTRL+C to quit)
+INFO:     127.0.0.1:42484 - "GET /api/v1/slm_triage/poll HTTP/1.1" 200 OK
+INFO:     127.0.0.1:39064 - "GET /api/v1/intake_validation/poll HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41804 - "GET /api/v1/slm_triage/poll HTTP/1.1" 200 OK
+INFO:     127.0.0.1:41820 - "GET /api/v1/intake_validation/poll HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58436 - "GET /api/v1/slm_triage/poll HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49838 - "GET /api/v1/intake_validation/poll HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50102 - "GET /api/v1/slm_triage/poll HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53438 - "GET /api/v1/intake_validation/poll HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57900 - "GET /api/v1/slm_triage/poll HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57806 - "GET /api/v1/intake_validation/poll HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60442 - "GET /api/v1/slm_triage/poll HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60450 - "GET /api/v1/intake_validation/poll HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35578 - "GET /api/v1/slm_triage/poll HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35584 - "GET /api/v1/intake_validation/poll HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33984 - "GET /api/v1/slm_triage/poll HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42826 - "GET /api/v1/intake_validation/poll HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34444 - "GET /api/v1/slm_triage/poll HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36800 - "GET /api/v1/intake_validation/poll HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35788 - "GET /api/v1/slm_triage/poll HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59286 - "GET /api/v1/intake_validation/poll HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44974 - "GET /api/v1/slm_triage/poll HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53016 - "GET /api/v1/intake_validation/poll HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47880 - "GET /api/v1/slm_triage/poll HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53564 - "GET /api/v1/intake_validation/poll HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42532 - "GET /api/v1/slm_triage/poll HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57456 - "GET /api/v1/intake_validation/poll HTTP/1.1" 200 OK
+INFO:     127.0.0.1:49308 - "GET /api/v1/slm_triage/poll HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40450 - "GET /api/v1/intake_validation/poll HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46528 - "GET /api/v1/slm_triage/poll HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36742 - "GET /api/v1/intake_validation/poll HTTP/1.1" 200 OK
+INFO:     127.0.0.1:45268 - "GET /api/v1/slm_triage/poll HTTP/1.1" 200 OK
+INFO:     127.0.0.1:34862 - "GET /api/v1/intake_validation/poll HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35354 - "GET /api/v1/slm_triage/poll HTTP/1.1" 200 OK
+
+
+JarvisClaims@JarvisClaims:~/Ramakrishna/ITC_Vegas_SLM/MotorTriageAgents$ $VENV/bin/python MotorIntakeValidationAgent/server.py
+bash: /bin/python: No such file or directory
+JarvisClaims@JarvisClaims:~/Ramakrishna/ITC_Vegas_SLM/MotorTriageAgents$ cd ..
+JarvisClaims@JarvisClaims:~/Ramakrishna/ITC_Vegas_SLM$ cd MotorTriageAgents/
+JarvisClaims@JarvisClaims:~/Ramakrishna/ITC_Vegas_SLM/MotorTriageAgents$ cd MotorIntakeValidationAgent/
+JarvisClaims@JarvisClaims:~/Ramakrishna/ITC_Vegas_SLM/MotorTriageAgents/MotorIntakeValidationAgent$ $VENV/bin/python MotorIntakeValidationAgent/server.py
+bash: /bin/python: No such file or directory
+JarvisClaims@JarvisClaims:~/Ramakrishna/ITC_Vegas_SLM/MotorTriageAgents/MotorIntakeValidationAgent$ cd ..
+JarvisClaims@JarvisClaims:~/Ramakrishna/ITC_Vegas_SLM/MotorTriageAgents$ $VENV/bin/python MotorIntakeValidationAgent/server.py
+bash: /bin/python: No such file or directory
+JarvisClaims@JarvisClaims:~/Ramakrishna/ITC_Vegas_SLM/MotorTriageAgents$ cd ..
+JarvisClaims@JarvisClaims:~/Ramakrishna/ITC_Vegas_SLM$ $VENV/bin/python MotorIntakeValidationAgent/server.py
+bash: /bin/python: No such file or directory
+JarvisClaims@JarvisClaims:~/Ramakrishna/ITC_Vegas_SLM$ cd  MotorTriageAgents/
+JarvisClaims@JarvisClaims:~/Ramakrishna/ITC_Vegas_SLM/MotorTriageAgents$ $VENV/bin/python MotorIntakeValidationAgent/server.py
+bash: /bin/python: No such file or directory
+JarvisClaims@JarvisClaims:~/Ramakrishna/ITC_Vegas_SLM/MotorTriageAgents$ VENV=/home/JarvisClaims/Ramakrishna/ITC_Vegas_SLM/Jarvis_claims_agents_v3/AdjusterAgents/venv
+$VENV/bin/python MotorIntakeValidationAgent/server.py
+/home/JarvisClaims/Ramakrishna/ITC_Vegas_SLM/MotorTriageAgents/MotorIntakeValidationAgent/server.py:314: DeprecationWarning: 
+        on_event is deprecated, use lifespan event handlers instead.
+
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+        
+  @app.on_event("startup")
+INFO:     Started server process [241413]
+INFO:     Waiting for application startup.
+2026-09-15 10:25:52,710 | INFO     | motor_intake_validation_agent | Intake validation polling loop started (interval=30s)
+INFO:     Application startup complete.
+ERROR:    [Errno 98] error while attempting to bind on address ('0.0.0.0', 8501): address already in use
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+sys:1: RuntimeWarning: coroutine 'connect_tcp.<locals>.try_connect' was never awaited
+RuntimeWarning: Enable tracemalloc to get the object allocation traceback
+JarvisClaims@JarvisClaims:~/Ramakrishna/ITC_Vegas_SLM/MotorTriageAgents$ kill $(lsof -t -i :8501)
+JarvisClaims@JarvisClaims:~/Ramakrishna/ITC_Vegas_SLM/MotorTriageAgents$ VENV=/home/JarvisClaims/Ramakrishna/ITC_Vegas_SLM/Jarvis_claims_agents_v3/AdjusterAgents/venv
+$VENV/bin/python MotorIntakeValidationAgent/server.py
+/home/JarvisClaims/Ramakrishna/ITC_Vegas_SLM/MotorTriageAgents/MotorIntakeValidationAgent/server.py:314: DeprecationWarning: 
+        on_event is deprecated, use lifespan event handlers instead.
+
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+        
+  @app.on_event("startup")
+INFO:     Started server process [241618]
+INFO:     Waiting for application startup.
+2026-09-15 10:26:34,091 | INFO     | motor_intake_validation_agent | Intake validation polling loop started (interval=30s)
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8501 (Press CTRL+C to quit)
+2026-09-15 10:26:36,362 | INFO     | httpx | HTTP Request: GET http://localhost:8500/api/v1/intake_validation/poll "HTTP/1.1 200 OK"
+2026-09-15 10:27:08,504 | INFO     | httpx | HTTP Request: GET http://localhost:8500/api/v1/intake_validation/poll "HTTP/1.1 200 OK"
+2026-09-15 10:27:40,645 | INFO     | httpx | HTTP Request: GET http://localhost:8500/api/v1/intake_validation/poll "HTTP/1.1 200 OK"
+2026-09-15 10:28:12,886 | INFO     | httpx | HTTP Request: GET http://localhost:8500/api/v1/intake_validation/poll "HTTP/1.1 200 OK"
+2026-09-15 10:28:45,224 | INFO     | httpx | HTTP Request: GET http://localhost:8500/api/v1/intake_validation/poll "HTTP/1.1 200 OK"
+2026-09-15 10:29:17,488 | INFO     | httpx | HTTP Request: GET http://localhost:8500/api/v1/intake_validation/poll "HTTP/1.1 200 OK"
+2026-09-15 10:29:49,788 | INFO     | httpx | HTTP Request: GET http://localhost:8500/api/v1/intake_validation/poll "HTTP/1.1 200 OK"
+2026-09-15 10:30:21,973 | INFO     | httpx | HTTP Request: GET http://localhost:8500/api/v1/intake_validation/poll "HTTP/1.1 200 OK"
+
+
+
+JarvisClaims@JarvisClaims:~/Ramakrishna/ITC_Vegas_SLM/MotorTriageAgents$ VENV=/home/JarvisClaims/Ramakrishna/ITC_Vegas_SLM/Jarvis_claims_agents_v3/AdjusterAgents/venv
+JarvisClaims@JarvisClaims:~/Ramakrishna/ITC_Vegas_SLM/MotorTriageAgents$ $VENV/bin/python MotorTriageAgent/server.py
+/home/JarvisClaims/Ramakrishna/ITC_Vegas_SLM/MotorTriageAgents/MotorTriageAgent/server.py:327: DeprecationWarning: 
+        on_event is deprecated, use lifespan event handlers instead.
+
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+        
+  @app.on_event("startup")
+INFO:     Started server process [242137]
+INFO:     Waiting for application startup.
+2026-09-15 10:27:35,259 | INFO     | motor_triage_agent | Motor triage polling loop started (interval=30s)
+INFO:     Application startup complete.
+ERROR:    [Errno 98] error while attempting to bind on address ('0.0.0.0', 8502): address already in use
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+JarvisClaims@JarvisClaims:~/Ramakrishna/ITC_Vegas_SLM/MotorTriageAgents$ kill $(lsof -t -i :8502)
+JarvisClaims@JarvisClaims:~/Ramakrishna/ITC_Vegas_SLM/MotorTriageAgents$ $VENV/bin/python MotorTriageAgent/server.py
+/home/JarvisClaims/Ramakrishna/ITC_Vegas_SLM/MotorTriageAgents/MotorTriageAgent/server.py:327: DeprecationWarning: 
+        on_event is deprecated, use lifespan event handlers instead.
+
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+        
+  @app.on_event("startup")
+INFO:     Started server process [242505]
+INFO:     Waiting for application startup.
+2026-09-15 10:27:54,463 | INFO     | motor_triage_agent | Motor triage polling loop started (interval=30s)
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8502 (Press CTRL+C to quit)
+2026-09-15 10:27:56,735 | INFO     | httpx | HTTP Request: GET http://localhost:8500/api/v1/slm_triage/poll "HTTP/1.1 200 OK"
+2026-09-15 10:28:29,006 | INFO     | httpx | HTTP Request: GET http://localhost:8500/api/v1/slm_triage/poll "HTTP/1.1 200 OK"
+2026-09-15 10:29:01,344 | INFO     | httpx | HTTP Request: GET http://localhost:8500/api/v1/slm_triage/poll "HTTP/1.1 200 OK"
+2026-09-15 10:29:33,664 | INFO     | httpx | HTTP Request: GET http://localhost:8500/api/v1/slm_triage/poll "HTTP/1.1 200 OK"
+2026-09-15 10:30:05,884 | INFO     | httpx | HTTP Request: GET http://localhost:8500/api/v1/slm_triage/poll "HTTP/1.1 200 OK"
+2026-09-15 10:30:38,056 | INFO     | httpx | HTTP Request: GET http://localhost:8500/api/v1/slm_triage/poll "HTTP/1.1 200 OK"
