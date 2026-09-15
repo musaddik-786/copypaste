@@ -1,3 +1,54 @@
-SELECT clause_ref, treaty_ref, clause_title, clause_text
-FROM treaty_clauses
-LIMIT 5;
+Step 3 — ingestion/loaders.py
+
+Keep the first version intentionally simple. We want to establish the baseline PDF extraction before we get clever with clause-aware parsing.
+
+from pathlib import Path
+from pypdf import PdfReader
+
+
+def load_pdf(file_path: str) -> list[dict]:
+    """
+    Extract text from a treaty PDF page by page.
+    """
+
+    path = Path(file_path)
+
+    if not path.exists():
+        raise FileNotFoundError(f"PDF not found: {file_path}")
+
+    reader = PdfReader(str(path))
+
+    documents = []
+
+    for page_number, page in enumerate(reader.pages, start=1):
+        text = page.extract_text() or ""
+
+        documents.append({
+            "source": path.name,
+            "page_number": page_number,
+            "text": text.strip()
+        })
+
+    return documents
+Step 4 — Add a quick test
+
+Create:
+
+Cedera/
+└── ingestion/
+    ├── loaders.py
+    └── test_loader.py
+from loaders import load_pdf
+
+
+PDF_PATH = r"/mnt/data/cedera-data/treaties/TRT-2026-003_Property_Catastrophe_XoL.pdf"
+
+
+documents = load_pdf(PDF_PATH)
+
+print(f"Pages: {len(documents)}")
+
+for document in documents[:3]:
+    print("\n" + "=" * 80)
+    print(f"Page: {document['page_number']}")
+    print(document["text"][:1000])
