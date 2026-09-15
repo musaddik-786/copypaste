@@ -1,21 +1,6 @@
-JarvisClaims@JarvisClaims:~/Ramakrishna/ITC_Vegas_SLM/MotorTriageAgents$ cd .
-JarvisClaims@JarvisClaims:~/Ramakrishna/ITC_Vegas_SLM/MotorTriageAgents$ cd ..
-JarvisClaims@JarvisClaims:~/Ramakrishna/ITC_Vegas_SLM$
-pp/          ac
+JarvisClaims@JarvisClaims:~/Ramakrishna/ITC_Vegas_SLM/app$ kill $(lsof -t -i :5000)
 JarvisClaims@JarvisClaims:~/Ramakrishna/ITC_Vegas_SLM/app$ node_modules/.bin/cross-env NODE_ENV=development node_modules/.bin/tsx server/index.ts
-◇ injected env (1) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (1) from .env // tip: ⌁ auth for agents [www.vestauth.com]
 [startup seed] document_master / follow_my_claim_status: relation "document_master" does not exist
 [claim-stage-tracker seed] note: relation "claim_stage_tracker" does not exist
-node:events:502
-      throw er; // Unhandled 'error' event
-      ^
-
-Error: listen EADDRINUSE: address already in use :::5000
-    at Server.setupListenHandle [as _listen2] (node:net:1908:16)
-    at listenInCluster (node:net:1965:12)
-    at Server.listen (node:net:2067:7)
-    at <anonymous> (/home/JarvisClaims/Ramakrishna/ITC_Vegas_SLM/app/server/index.ts:87:14)
-Emitted 'error' event on Server instance at:
-    at emitErrorNT (node:net:1944:8)
-    at process.processTicksAndRejections (node:internal/process/task_queues:82:21) {
-JarvisClaims@JarvisClaims:~/Ramakrishna/ITC_Vegas_SLM/app$ 
+10:29:19 AM [express] serving on port 5000
