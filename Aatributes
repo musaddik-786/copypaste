@@ -1,3 +1,40 @@
+def list_exclusions(treaty_ref: str):
+    connection = get_db_connection()
+
+    try:
+        cursor = connection.cursor(cursor_factory=RealDictCursor)
+
+        query = """
+            SELECT *
+            FROM treaty_exclusions
+            WHERE treaty_ref = %s
+            ORDER BY exclusion_ref
+        """
+
+        cursor.execute(query, (treaty_ref,))
+        exclusions = cursor.fetchall()
+
+        if not exclusions:
+            return {
+                "status": "not_found",
+                "message": f"No exclusions found for treaty {treaty_ref}"
+            }
+
+        return {
+            "status": "success",
+            "treaty_ref": treaty_ref,
+            "count": len(exclusions),
+            "data": [dict(exclusion) for exclusion in exclusions]
+        }
+
+    finally:
+        cursor.close()
+        connection.close()
+
+
+
+
+
 def get_clause(clause_ref: str, treaty_ref: str):
     connection = get_db_connection()
 
@@ -40,7 +77,13 @@ def get_clause(clause_ref: str, treaty_ref: str):
 
 
 
+class ListExclusionsRequest(BaseModel):
+    treaty_ref: str
 
+
+@router.post("/list_exclusions", operation_id="list_exclusions")
+def list_exclusions(req: ListExclusionsRequest):
+    return handler.list_exclusions(req.treaty_ref)
 class GetClauseRequest(BaseModel):
     clause_ref: str
     treaty_ref: str
