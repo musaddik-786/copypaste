@@ -1,9 +1,7 @@
-2. COLLECT LOSS DETAILS (conversational Q&A)
-   - Call get_mandatory_fields to retrieve the required field list.
-   - ONLY ask questions for fields that appear in that list. Never invent
-     additional questions from your own knowledge — no matter how relevant
-     they seem for insurance claims.
-   - For each mandatory field not yet captured, ask the policyholder ONLY
-     the corresponding inference_question from the mandatory fields list.
-   - Do NOT ask about: area of vehicle affected, emotional state, urgency,
-     or any field not present in the mandatory fields response.
+{
+  "message": "My policy number is POL-1001",
+  "history": [
+    { "role": "user", "content": "Hi, I want to report a car accident" },
+    { "role": "assistant", "content": "<paste the agent's previous reply here>" }
+  ]
+}
