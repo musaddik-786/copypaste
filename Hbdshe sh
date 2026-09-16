@@ -31,141 +31,69 @@ It brings together AI agents, domain intelligence, and modernization frameworks 
 0:59
 0 minutes 59 seconds
 To start with, legacy app understanding proceeds with defining a modern target state and results in a domain context in intact modernized application.
-6:59
-6 minutes 59 seconds
-Let's look at how Rapidix has done it.
-7:04
-7 minutes 4 seconds
-The capabilities section of Blueprinting helps you identify what your system is currently good at.
-7:09
-7 minutes 9 seconds
-For example, this applications capabilities include streamlining, insurance operations, code processing, user authentication, code life cycle, etc.
-7:21
-7 minutes 21 seconds
-Within each capability you will find sub capabilities and functionalities.
-7:27
-7 minutes 27 seconds
-Within the sub capabilities you also have a process flow visualizer which will be able to tell you the process end to end using a flow chart.
-7:36
-7 minutes 36 seconds
-For example, it starts with processing the e-mail queue, extracting the code, combining all the three codes, then storing and updating it.
-7:47
-7 minutes 47 seconds
-Rapidix will also be able to intelligently identify certain insights.
-7:52
-7 minutes 52 seconds
-For example, in this case there is a hard coded loop.
-7:57
-7 minutes 57 seconds
-It's like it's telling that it's like a bus that stops only at 3 predetermined locations even if the passengers are waiting at twenty others stops.
-8:06
-8 minutes 6 seconds
-These are important insights that comes handy and helpful while you are reimagining your system.
-8:13
-8 minutes 13 seconds
-The other insight here is the system is checking the patterns sequentially instead of a single pattern match.
-8:22
-8 minutes 22 seconds
-For example, it's going and checking with the person's name is John.
-8:25
-8 minutes 25 seconds
-Then it's going and checking if it's Jane instead of directly looking up into a directory.
-8:31
-8 minutes 31 seconds
-Moving on, every sub capability also has a detailed PDD.
-8:38
-8 minutes 38 seconds
-This captures and organizes the existing business goals in a simple structured way.
-8:44
-8 minutes 44 seconds
-It has detailed business workflow information.
-8:48
-8 minutes 48 seconds
-It has flow chart.
-8:52
-8 minutes 52 seconds
-It has the algorithmic comprehension.
-8:55
-8 minutes 55 seconds
-This is like the process DNA of your system.
-9:01
-9 minutes 1 second
-This can be downloaded.
-9:03
-9 minutes 3 seconds
-This can also be edited as per your requirement.
-9:09
-9 minutes 9 seconds
-The AS IS Business User story section gives you an understanding of the AS is functionality of how your business has been delivering value for multiple actors depending on the use case.
-9:22
-9 minutes 22 seconds
-In in this case, the insurance underwriter is the user persona.
-9:26
-9 minutes 26 seconds
-It gives the actors what they want, why they want it, and how it delivers value.
-9:32
-9 minutes 32 seconds
-Every user story has the business value.
-9:35
-9 minutes 35 seconds
-It also has the acceptance criteria and the boundary conditions.
-9:41
-9 minutes 41 seconds
-We also have a blueprinting assistant who is like an SME chat bot with whom you can interact, ask questions, and then take informed decisions for target state blueprint.
-9:52
-9 minutes 52 seconds
-SME can use blueprinting assistant to brain brainstorm solution options.
-9:57
-9 minutes 57 seconds
-Like for example, let's say in this case I'm asking a question like there is a new mandate where every customer interaction quote and insurer handoff must be digitally traceable and auditable.
-10:08
-10 minutes 8 seconds
-Now to execute this, what changes should I make to the current application?
-10:12
-10 minutes 12 seconds
-Which flows get affected, which business roles get affected and how should the architecture look like?
-10:22
-10 minutes 22 seconds
-The blueprinting assistant thought for a while and it is giving me a detailed analysis of the current system architecture, the changes required for digital traceability, what needs to be added.
-10:45
-10 minutes 45 seconds
-Which business rules and flows are getting affected and it has also neatly proposed the target architecture along with an implementation road map.
-10:59
-10 minutes 59 seconds
-This this is good, right?
-11:01
-11 minutes 1 second
-This is where you get a lot of assistance, which is also domain rich.
-11:06
-11 minutes 6 seconds
-It has the interior business knowledge of your existing application and then it is suggesting you how to proceed with the target state.
-11:16
-11 minutes 16 seconds
-This platform is more than just visualization.
-11:20
-11 minutes 20 seconds
-It's your knowledge companion giving SME's everything they need to analyze, optimize, and reimagine with confidence.
-11:28
-11 minutes 28 seconds
-We move to the final steps, which is the modernizing part.
-11:32
-11 minutes 32 seconds
-We call it the reinvent because this step isn't just about writing code, it is about using all the understanding we have until now to create a modern insurance platform.
-11:44
-11 minutes 44 seconds
-The SMEs shall refer to artifacts generated in the earlier steps and can also use a blueprinting assistant to define the future state approach.
-11:52
-11 minutes 52 seconds
-They can also perform additional analysis to generate custom outputs that helps support design decisions.
-11:59
-11 minutes 59 seconds
-All of these outputs, the architecture, the PDD inputs, service definitions, and tech stack mandates then get fed into Rapidx Agentic pipeline where the expert would be guiding the AI to make decisions that suit the app modernization requirement.
-12:20
-12 minutes 20 seconds
-Finally, we get the code in the to be or the target tech stack and the app will now be modernized.
-12:44
-12 minutes 44 seconds
-To conclude, Insurnova is a structured AI intelligence driven journey from a legacy insurance environment to a modernized insurance application.
-12:55
-12 minutes 55 seconds
-Thank you.
+1:11
+1 minute 11 seconds
+Insure Nova uses a legacy modernization platform platform named Rapidix and uses 4 different steps to achieve this.
+1:22
+1 minute 22 seconds
+Let me explain it to you through a demo.
+1:25
+1 minute 25 seconds
+For the purpose of this demo, we have taken an RPG application as input to Rapidix, which is here.
+1:31
+1 minute 31 seconds
+This is the source code that you're seeing on the screen, and this sample application is of a policy aggregator who helps with their insurance policy needs.
+1:52
+1 minute 52 seconds
+Let's move to the Rapidx output.
+1:55
+1 minute 55 seconds
+Once the source code is ingested, Rapidx will be able to parse it and the first step is to illuminate.
+2:01
+2 minutes 1 second
+Here you get to understand and isolate the complexity in the legacy estate and uncover the business logic.
+2:08
+2 minutes 8 seconds
+To start with, Rapidx will be able to give you an overall picture of the application, the hierarchy, and it also gives you some module level heuristics within the application as to the module with the highest number of rules, DB calls, service calls, lines of code, etc.
+2:25
+2 minutes 25 seconds
+For the ease of your understanding and decision making for you to understand the application one level deep, the functional flows have a visual representation of how each program flows are connected.
+2:40
+2 minutes 40 seconds
+For example, this functionality has about 5 RPG files being called.
+2:54
+2 minutes 54 seconds
+It also has a unified views of the number of programs, tables and rules connected to this functionality along with a simple vanilla English functional comprehension that even a BA or a PO would be able to understand.
+3:05
+3 minutes 5 seconds
+For example, this functionality is about processing the insurance codes.
+3:10
+3 minutes 10 seconds
+It clearly mentions the different inputs required and takes the reader through a step by step business process where it begins with identifying if the policy exists, then displays the codes based on different criteria and finally requests a code to the selected third party gives the business rules it's giving.
+3:32
+3 minutes 32 seconds
+The components involved like the packages, procedures and the final outputs are also being given for for a person who is reading, it is also making it easy for them to understand using a fictional example.
+3:49
+3 minutes 49 seconds
+Apart from this default view, you also have other views like an algorithmic view for step by step understanding.
+4:06
+4 minutes 6 seconds
+A risk and a rule view for you to understand the business logics involved when it is getting triggered.
+4:15
+4 minutes 15 seconds
+What is the purpose of it?
+4:16
+4 minutes 16 seconds
+In the logic behind and for DB interactions, you also have the data flow view for you to understand the application one level granular.
+4:36
+4 minutes 36 seconds
+You'll also be able to get similar set of outputs for the programs connected to this functionality.
+4:49
+4 minutes 49 seconds
+It can even drill down one level further to a method level where it gives you a flow chart of the interactions, the DB node, the calculation node.
+5:02
+5 minutes 2 seconds
+A simple flow chart from the beginning to the end of that method will be available as visual representation along with the comprehension.
+5:15
+5 minutes 15 seconds
+OK, all of these are about how the application currently is, but you may think what about the deeply buried business logic?
