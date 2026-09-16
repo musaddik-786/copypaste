@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jarvis Agent Tester</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, sans-serif; background: #0f1117; color: #e2e8f0; height: 100vh; display: flex; flex-direction: column; }
+
+  header { background: #1a1d27; border-bottom: 1px solid #2d3147; padding: 12px 20px; display: flex; align-items: center; gap: 16px; }
+  header h1 { font-size: 16px; font-weight: 600; color: #a78bfa; }
+
+  .lob-toggle { display: flex; gap: 4px; background: #0f1117; border-radius: 8px; padding: 4px; }
+  .lob-btn { padding: 5px 14px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; background: transparent; color: #94a3b8; transition: all .15s; }
+  .lob-btn.active { background: #4f46e5; color: #fff; }
+
+  .config { display: flex; gap: 8px; margin-left: auto; align-items: center; }
+  .config label { font-size: 12px; color: #64748b; }
+  .config input { background: #0f1117; border: 1px solid #2d3147; color: #e2e8f0; border-radius: 6px; padding: 4px 10px; font-size: 13px; width: 160px; }
+  .config input:focus { outline: 1px solid #4f46e5; }
+
+  .main { display: flex; flex: 1; overflow: hidden; }
+
+  /* Chat panel */
+  .chat-panel { flex: 1; display: flex; flex-direction: column; border-right: 1px solid #2d3147; }
+  .messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+  .msg { max-width: 75%; padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+  .msg.user { background: #4f46e5; color: #fff; align-self: flex-end; border-bottom-right-radius: 4px; }
+  .msg.agent { background: #1e2130; color: #e2e8f0; align-self: flex-start; border-bottom-left-radius: 4px; }
+  .msg.agent.streaming { border-left: 2px solid #4f46e5; }
+  .msg.system { background: #0f2e1a; color: #4ade80; font-size: 12px; align-self: center; padding: 4px 12px; border-radius: 20px; }
+  .msg.error { background: #2e1515; color: #f87171; font-size: 13px; align-self: center; padding: 6px 14px; border-radius: 8px; }
+
+  .input-row { border-top: 1px solid #2d3147; padding: 12px; display: flex; gap: 8px; }
+  .input-row textarea { flex: 1; background: #1a1d27; border: 1px solid #2d3147; color: #e2e8f0; border-radius: 8px; padding: 8px 12px; font-size: 14px; resize: none; font-family: inherit; line-height: 1.4; }
+  .input-row textarea:focus { outline: 1px solid #4f46e5; }
+  .send-btn { background: #4f46e5; color: #fff; border: none; border-radius: 8px; padding: 0 18px; cursor: pointer; font-size: 14px; font-weight: 500; }
+  .send-btn:disabled { background: #2d3147; color: #64748b; cursor: not-allowed; }
+  .reset-btn { background: #1e2130; color: #94a3b8; border: 1px solid #2d3147; border-radius: 8px; padding: 0 14px; cursor: pointer; font-size: 13px; }
+
+  /* FNOL panel */
+  .fnol-panel { width: 340px; display: flex; flex-direction: column; background: #131620; }
+  .fnol-header { padding: 12px 16px; border-bottom: 1px solid #2d3147; display: flex; justify-content: space-between; align-items: center; }
+  .fnol-header span { font-size: 13px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: .05em; }
+  .refresh-btn { background: none; border: 1px solid #2d3147; color: #64748b; border-radius: 6px; padding: 3px 10px; font-size: 12px; cursor: pointer; }
+  .refresh-btn:hover { color: #a78bfa; border-color: #4f46e5; }
+
+  .fnol-body { flex: 1; overflow-y: auto; padding: 12px; }
+  .fnol-empty { color: #475569; font-size: 13px; text-align: center; margin-top: 40px; }
+  .fnol-id { font-size: 11px; color: #64748b; margin-bottom: 10px; }
+  .field-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 5px 0; border-bottom: 1px solid #1e2130; gap: 8px; }
+  .field-label { font-size: 12px; color: #64748b; white-space: nowrap; flex-shrink: 0; }
+  .field-value { font-size: 12px; color: #e2e8f0; text-align: right; word-break: break-word; }
+  .field-value.null { color: #374151; }
+  .status-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+  .status-draft { background: #1e2a3a; color: #60a5fa; }
+  .status-submitted { background: #0f2e1a; color: #4ade80; }
+
+  .submit-row { padding: 12px; border-top: 1px solid #2d3147; }
+  .submit-fnol-btn { width: 100%; background: #059669; color: #fff; border: none; border-radius: 8px; padding: 10px; cursor: pointer; font-size: 14px; font-weight: 500; }
+  .submit-fnol-btn:disabled { background: #1e2130; color: #475569; cursor: not-allowed; }
+  .submit-fnol-btn:hover:not(:disabled) { background: #047857; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Jarvis Agent Tester</h1>
+  <div class="lob-toggle">
+    <button class="lob-btn active" onclick="setLob('Homeowners')">Homeowners</button>
+    <button class="lob-btn" onclick="setLob('Motor')">Motor</button>
+  </div>
+  <div class="config">
+    <label>Agent URL</label>
+    <input id="agentUrl" value="http://localhost:7701" />
+    <label>MCP URL</label>
+    <input id="mcpUrl" value="http://localhost:7720" />
+  </div>
+</header>
+
+<div class="main">
+  <!-- Chat -->
+  <div class="chat-panel">
+    <div class="messages" id="messages">
+      <div class="msg system">Select LOB and start chatting. The agent will guide you through FNOL intake.</div>
+    </div>
+    <div class="input-row">
+      <textarea id="msgInput" rows="2" placeholder="Type your message... (Enter to send, Shift+Enter for newline)"></textarea>
+      <button class="reset-btn" onclick="resetSession()">Reset</button>
+      <button class="send-btn" id="sendBtn" onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+
+  <!-- FNOL record -->
+  <div class="fnol-panel">
+    <div class="fnol-header">
+      <span>FNOL Record</span>
+      <button class="refresh-btn" onclick="refreshFnol()">Refresh</button>
+    </div>
+    <div class="fnol-body" id="fnolBody">
+      <div class="fnol-empty">No FNOL created yet</div>
+    </div>
+    <div class="submit-row">
+      <button class="submit-fnol-btn" id="submitFnolBtn" disabled onclick="submitFnol()">Submit FNOL</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let lob = 'Homeowners';
+  let history = [];
+  let fnolId = null;
+  let streaming = false;
+
+  function setLob(val) {
+    lob = val;
+    document.querySelectorAll('.lob-btn').forEach(b => b.classList.toggle('active', b.textContent === val));
+    resetSession();
+    addMsg('system', `Switched to ${val} LOB`);
+  }
+
+  function agentUrl() { return document.getElementById('agentUrl').value.replace(/\/$/, ''); }
+  function mcpUrl()   { return document.getElementById('mcpUrl').value.replace(/\/$/, ''); }
+
+  function addMsg(role, text) {
+    const el = document.createElement('div');
+    el.className = `msg ${role}`;
+    el.textContent = text;
+    const container = document.getElementById('messages');
+    container.appendChild(el);
+    container.scrollTop = container.scrollHeight;
+    return el;
+  }
+
+  async function sendMessage() {
+    if (streaming) return;
+    const input = document.getElementById('msgInput');
+    const text = input.value.trim();
+    if (!text) return;
+
+    input.value = '';
+    addMsg('user', text);
+    document.getElementById('sendBtn').disabled = true;
+    streaming = true;
+
+    const agentEl = addMsg('agent', '');
+    agentEl.classList.add('streaming');
+
+    let fullText = '';
+    try {
+      const resp = await fetch(`${agentUrl()}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text, lob, history, input_type: 'text' })
+      });
+
+      if (!resp.ok) {
+        const err = await resp.text();
+        throw new Error(`${resp.status}: ${err}`);
+      }
+
+      const reader = resp.body.getReader();
+      const dec = new TextDecoder();
+      let buf = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+        const lines = buf.split('\n');
+        buf = lines.pop();
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const raw = line.slice(6).trim();
+            if (!raw || raw === '[DONE]') continue;
+            try {
+              const parsed = JSON.parse(raw);
+              const chunk = parsed.content ?? parsed.text ?? parsed.delta ?? '';
+              fullText += chunk;
+              agentEl.textContent = fullText;
+              document.getElementById('messages').scrollTop = 99999;
+            } catch {
+              // plain text chunk
+              fullText += raw;
+              agentEl.textContent = fullText;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      agentEl.remove();
+      addMsg('error', `Error: ${e.message}`);
+    }
+
+    agentEl.classList.remove('streaming');
+    if (fullText) {
+      history.push({ role: 'user', content: text });
+      history.push({ role: 'assistant', content: fullText });
+    }
+
+    streaming = false;
+    document.getElementById('sendBtn').disabled = false;
+
+    // auto-refresh FNOL after each turn
+    setTimeout(refreshFnol, 800);
+  }
+
+  async function refreshFnol() {
+    // Try to find the latest FNOL by polling get_by_policy if we have a policy,
+    // or just list — for now we find fnol_id from the last known record.
+    if (!fnolId) {
+      // Try to discover from MCP
+      await discoverFnol();
+      return;
+    }
+    try {
+      const resp = await fetch(`${mcpUrl()}/api/fnol/get_submission/${fnolId}?lob=${lob}`);
+      if (!resp.ok) { fnolId = null; renderFnol(null); return; }
+      const data = await resp.json();
+      renderFnol(data);
+    } catch (e) {
+      console.warn('FNOL refresh failed', e);
+    }
+  }
+
+  async function discoverFnol() {
+    // Not easy without policy number — skip silently until fnolId is set via renderFnol
+  }
+
+  function renderFnol(data) {
+    const body = document.getElementById('fnolBody');
+    const submitBtn = document.getElementById('submitFnolBtn');
+
+    if (!data) {
+      body.innerHTML = '<div class="fnol-empty">No FNOL found</div>';
+      submitBtn.disabled = true;
+      return;
+    }
+
+    fnolId = data.id;
+    const status = data.status || 'draft';
+    submitBtn.disabled = status === 'submitted';
+
+    const SHOW = [
+      ['ID', 'id'], ['Status', 'status'], ['Policy #', 'policy_number'],
+      ['Name', 'policyholder_name'], ['LOB', 'lob'],
+      ['Loss Type', 'loss_type'], ['Cause', 'cause_of_loss'],
+      ['Date', 'date_of_loss'], ['Time', 'time_of_loss'],
+      ['Area Affected', 'area_affected'], ['Accident Location', 'accident_location'],
+      ['Occupancy', 'occupancy_at_loss'], ['Sudden/Gradual', 'sudden_vs_gradual'],
+      ['Severity', 'severity'], ['Urgency', 'urgency_indicator'],
+      ['Confidence', 'overall_confidence'], ['Claim #', 'claim_number'],
+    ];
+
+    let html = `<div class="fnol-id">FNOL #${data.id}</div>`;
+    for (const [label, key] of SHOW) {
+      const val = data[key];
+      if (key === 'status') {
+        html += `<div class="field-row"><span class="field-label">${label}</span><span class="status-badge status-${val}">${val}</span></div>`;
+      } else {
+        html += `<div class="field-row"><span class="field-label">${label}</span><span class="field-value ${val == null ? 'null' : ''}">${val ?? '—'}</span></div>`;
+      }
+    }
+    body.innerHTML = html;
+  }
+
+  async function submitFnol() {
+    if (!fnolId) return;
+    const btn = document.getElementById('submitFnolBtn');
+    btn.disabled = true;
+    btn.textContent = 'Submitting...';
+    try {
+      const resp = await fetch(`${mcpUrl()}/api/fnol/submit/${fnolId}?lob=${lob}`, { method: 'POST' });
+      const data = await resp.json();
+      if (!resp.ok) {
+        addMsg('error', `Submit failed: ${data.detail || JSON.stringify(data)}`);
+        btn.disabled = false;
+        btn.textContent = 'Submit FNOL';
+        return;
+      }
+      addMsg('system', `FNOL submitted! Claim #: ${data.claim_number || 'assigned'}`);
+      renderFnol(data.fnol || data);
+    } catch (e) {
+      addMsg('error', `Submit error: ${e.message}`);
+      btn.disabled = false;
+      btn.textContent = 'Submit FNOL';
+    }
+  }
+
+  function resetSession() {
+    history = [];
+    fnolId = null;
+    document.getElementById('messages').innerHTML = '<div class="msg system">Session reset. Start a new FNOL intake.</div>';
+    document.getElementById('fnolBody').innerHTML = '<div class="fnol-empty">No FNOL created yet</div>';
+    document.getElementById('submitFnolBtn').disabled = true;
+    document.getElementById('submitFnolBtn').textContent = 'Submit FNOL';
+  }
+
+  // Enter to send
+  document.getElementById('msgInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  });
+
+  // Poll FNOL every 5s if we have an ID
+  setInterval(() => { if (fnolId) refreshFnol(); }, 5000);
+
+  // Listen for fnol_id in agent messages via a simple heuristic
+  const origAddMsg = addMsg;
+</script>
+</body>
+</html>
