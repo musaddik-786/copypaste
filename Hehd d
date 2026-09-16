@@ -1,582 +1,82 @@
+Let me read the remaining files I need before writing the changes.
 
+Read 2 files
 
-separetsummary.py
-from dotenv import load_dotenv
-import os
-from typing import List, Dict, Any
-from openai import AzureOpenAI
+Now let me read the full active Motor section of fnol_handler.py to see all current functions.
 
+Read
+fnol_handler.py
+(815–1014, 1015–1214, 1355–1554)
 
-#Phoenix prmpt
-from Jarvis.MCP.common.phoenix_prompt import build_prompt
+Now I have everything I need. I'll apply all changes across all 5 files. Let me start in parallel where possible.
 
+Dual-LOB Agent Updates
 
+Step 1 — models.py: add lob to all request models
 
+Edited
+models.py
++7
+-0
 
+Step 2 — voice_handler.py: add Homeowners extraction prompt, make LOB-aware
 
-load_dotenv()
+Edited
+voice_handler.py
++51
+-3
 
-AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
-AZURE_OPENAI_API_VERSION = os.getenv("AZURE_OPENAI_API_VERSION")
-AZURE_OPENAI_API_KEY = os.getenv("AZURE_OPENAI_API_KEY")
-AZURE_OPENAI_CHAT_DEPLOYMENT = os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT")
+Step 3 — server.py: add lob to ChatRequest, dual prompts, LOB selection
 
-if not (
-    AZURE_OPENAI_ENDPOINT
-    and AZURE_OPENAI_API_VERSION
-    and AZURE_OPENAI_API_KEY
-    and AZURE_OPENAI_CHAT_DEPLOYMENT
-):
-    raise RuntimeError("Azure OpenAI env vars missing.")
+Edited
+server.py
++1
+-0
 
-client = AzureOpenAI(
-    api_key=AZURE_OPENAI_API_KEY,
-    api_version=AZURE_OPENAI_API_VERSION,
-    azure_endpoint=AZURE_OPENAI_ENDPOINT,
-)
+Now replace the single _FALLBACK_PROMPT with both LOB prompts:
 
+Edited
+server.py
++71
+-1
 
-def _call_chat_llm(prompt: str, max_tokens: int = 700, temperature: float = 0.2):
+Now update the Motor prompt to end with _FALLBACK_PROMPT_MOTOR name and add LOB instruction:
 
-    response = client.chat.completions.create(
-        model=AZURE_OPENAI_CHAT_DEPLOYMENT,
-        messages=[{"role": "user", "content": prompt}],
-        max_tokens=max_tokens,
-        temperature=temperature,
-    )
+Read and edited server.py
++5
+-1
 
-    return response.choices[0].message.content.strip()
+Now update load_prompt and chat_stream to be LOB-aware:
 
+Edited
+server.py
++15
+-5
 
-def generate_professional_summary(text: str):
+Step 4 — fnol_handler.py: add LOB routing helpers, update all functions
 
-    text = text[:5000]
+Edited
+fnol_handler.py
++67
+-0
 
-#     prompt = f"""
-# You are a Senior Commercial Insurance Underwriter.
+Now update cleanup_draft_fnols_for_policy to be LOB-aware:
 
-# You are given raw document text from an insurance submission.
+Edited
+fnol_handler.py
++11
+-21
 
-# Your task is to generate a PROFESSIONAL underwriting summary.
+Now update create_fnol_submission with dual INSERT paths:
 
-# STRICT RULES:
+Edited
+fnol_handler.py
++76
+-43
 
-# • Use ONLY information present in the document
-# • Do NOT hallucinate
-# • Do NOT guess values
-# • If information missing write "Not Present"
-# • Keep professional underwriting tone
-# • Use headings
-# • Use "-" for bullets (not special characters)
-# • Keep structure clean
-# • Focus only on underwriting relevant information
-# • Do NOT mention document type
-# • Do NOT mention source text
-# • Do NOT explain what you are doing
+Now update get_fnol_submission_by_id, get_fnol_submission_by_policy, _compute_overall_confidence, update_fnol_submission:
 
-# OUTPUT FORMAT:
-
-# DOCUMENT SUMMARY
-# INSURED DETAILS
-# - Named Insured:
-# - Address:
-# - Business Type:
-# - Operations:
-# PROPERTY DETAILS
-# - Number of Locations:
-# - Construction:
-# - Year Built:
-# - Square Footage:
-# - Occupancy:
-# - Protection Systems:
-# COVERAGE DETAILS
-# - Line of Business:
-# - Effective Date:
-# - Expiry Date:
-# - Limits:
-# - Valuation:
-# FINANCIAL DETAILS
-# - Total Insured Value:
-# - Revenue:
-# - Payroll:
-# - Business Income:
-# LOSS DETAILS
-# - Loss History:
-# - Major Losses:
-# - Trends:
-# RISK CONSIDERATIONS
-# - Key Exposures:
-# - CAT Exposure:
-# - Dependencies:
-# UNDERWRITER NOTES
-# - Key observations
-# - Risk quality indicators
-# - Important underwriting considerations
-
-# DOCUMENT TEXT:
-# \"\"\"
-# {text}
-# \"\"\"
-# """
-
-
-
-
-    prompt = build_prompt(
-
-        "UHJvbXB0VmVyc2lvbjoxNw==",
-
-        text=text,
-
-    )
-    print(prompt,"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁😁")
-
-    return _call_chat_llm(prompt)
-
-
-def individual_summary(attachments: List[Dict[str, Any]]):
-
-    for attachment in attachments:
-
-        file_name = attachment.get("file_name","")
-        text = attachment.get("text","")
-
-        print(f"Processing summary for {file_name}")
-
-        processed_summary = generate_professional_summary(text)
-
-        attachment["processed_summary"] = processed_summary
-
-        print(f"Processed Summary completed for {file_name}")
-
-    return attachments
-
-
-summaryhandler.py
-
-
-import os
-import json
-from typing import Dict, Any, List
-import pandas as pd
-
-
-from urllib.parse import urlparse
-import os
-
-
-from summary_service import summary_require_env
-# from summary_storage_utils import download_blob_to_input_folder
-from summary_loader import load_summary_document
-from summary_classifier import summarize_first_page
-from Data_Filler import extract_filenames_and_summaries
-from Data_Filler import connect_to_blob, beautify_extracted_data
-from newsummary import summarize_attachments
-from separate_summary import individual_summary
-from Data_Filler import beautify_api_response
-from summary_storage_utils import download_blob_to_input_folder_by_reference, read_text_file_from_container,extract_filename_referencenumber_container_name
-# from newsummary import extract_refs_from_attachments, load_raw_email_bodies_for_refs, summarize_attachments
-
-
-INPUT_FOLDER = "input"
-OUTPUT_FOLDER = "output"
-EMAIL_BODY = "email_body"
-
-def clean_result_for_api(result: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Build a compact, clean dictionary response from the full 'result' dict.
-
-    Output shape:
-    {
-      "combined_summary": "<string or None>",
-      "individualized_summary": [
-         { "file_name": ..., "summary": ..., "document_type": ..., "processed_summary": ... },
-         ...
-      ]
-    }
-
-    This removes raw 'text' and error details from the per-file items.
-    """
-    combined = result.get("combined_summary")
-
-    raw_individualized = result.get("individualized_summary", [])
-    cleaned_list: List[Dict[str, Any]] = []
-
-    if isinstance(raw_individualized, list):
-        for item in raw_individualized:
-            cleaned_item = {
-                "file_name": item.get("file_name"),
-                "summary": item.get("summary"),
-                "document_type": item.get("document_type"),
-                "processed_summary": item.get("processed_summary"),
-            }
-            cleaned_list.append(cleaned_item)
-
-    return {
-        "combined_summary": combined,
-        "individualized_summary": cleaned_list,
-    }
-
-
-async def summarize_blob_pdfs_layout(blob_urls: List[str]) -> Dict[str, Any]:
-    """
-    For each Blob URL:
-      - Download PDF into input/
-      - Use Form Recognizer to extract text (all pages)
-      - Use LLM to summarize the FIRST PAGE
-
-    Saves the full detailed JSON (including raw text) to ./output/layout_summaries_result.json
-    but RETURNS a cleaned dictionary suitable for API responses (no raw 'text').
-    """
-    try:
-        summary_require_env()
-    except Exception as e:
-        # Return a clean, empty-shaped response on environment failure
-        return {"combined_summary": None, "individualized_summary": []}
-
-    summaries: List[Dict[str, Any]] = []
-
-    for blob_url in blob_urls:
-        file_name = None
-
-        try:
-            container, filename, reference_number =  await extract_filename_referencenumber_container_name(blob_url)
-            file_name = filename
-
-
-            # parsed = urlparse(blob_url)
-            # file_name_with_ext = os.path.basename(parsed.path)
-            # file_name = os.path.splitext(file_name_with_ext)[0]
-            # reference_number = file_name.split("_")[0]
-            # container = parsed.path.split("/")[1]
-
-
-            # parsed = urlparse(blob_url)
-            # path_parts = parsed.path.lstrip("/").split("/")
-            # container = path_parts[0]
-            # file_name_with_ext = path_parts[-1]
-            # file_name = os.path.splitext(file_name_with_ext)[0]
-            # reference_number = file_name.split("_")[0]
-            # file_name = filename
-            
-            print("Container ", container)
-            print("Reference number", reference_number)
-            print("filename", filename)
-        except Exception as e:
-            summaries.append(
-                {
-                    "blob_url": blob_url,
-                    "file_name": file_name,
-                    "summary": None,
-                    "text": None,
-                    "error": f"Failed to read filename: {e}",
-                }
-            )            
-            continue
-
-        # try:
-        #     text = await read_text_file_from_container(filename)
-        # except Exception as e:
-        #     summaries.append(
-        #         {
-        #             "blob_url": blob_url,
-        #             "file_name": file_name,
-        #             "summary": None,
-        #             "text": text,
-        #             "error": f"Failed to read filename: {e}",
-        #         }
-        #     )            
-        #     continue
-
-        try:
-            text = await read_text_file_from_container(filename,container)
-        except Exception as e:
-            summaries.append(
-                {
-                    "blob_url": blob_url,
-                    "file_name": file_name,
-                    "reference_number": reference_number,
-                    "summary": None,
-                    "text": None,
-                    "error": f"TEXT_FILE_MISSING: {e}",
-                }
-            )            
-            continue
-
-
-
-        # 1) Download PDF
-        # try:
-        #     local_pdf = await download_blob_to_input_folder(
-        #         blob_url, input_folder=INPUT_FOLDER
-        #     )
-        #     file_name = os.path.basename(local_pdf)
-        # except Exception as e:
-        #     summaries.append(
-        #         {
-        #             "blob_url": blob_url,
-        #             "file_name": file_name,
-        #             "summary": None,
-        #             "text": None,
-        #             "error": f"Failed to download blob: {e}",
-        #         }
-        #     )
-        #     continue
-
-        # # 2) Use Form Recognizer to analyze the document
-        # try:
-        #     document_content = load_summary_document(local_pdf)
-        # except Exception as e:
-        #     summaries.append(
-        #         {
-        #             "blob_url": blob_url,
-        #             "file_name": file_name,
-        #             "summary": None,
-        #             "text": None,
-        #             "error": f"Form Recognizer failed: {e}",
-        #         }
-        #     )
-        #     continue
-
-        # Extract raw text (stored in first_page_text key by loader)
-        # text_content = document_content.get("text", "")
-
-        # 3) Summarize FIRST PAGE using LLM (short summary)
-        try:
-            summary_text = summarize_first_page({"first_page_text":text}, file_name=file_name)
-        except Exception as e:
-            summaries.append(
-                {
-                    "blob_url": blob_url,
-                    "file_name": file_name,
-                    "summary": None,
-                    "text": text_content,
-                    "error": f"Summarization failed: {e}",
-                }
-            )
-            continue
-
-        # 4) Success case for this document — include raw text for audit on disk
-        summaries.append(
-            {
-                "blob_url": blob_url,
-                "file_name": file_name,
-                "reference_number":reference_number,
-                "summary": summary_text,
-                "text": text,
-                "error": None,
-            }
-        )
-
-    result: Dict[str, Any] = {"status": True, "summaries": summaries}
-
-    # 5) Save result to ./output (retain 'text' on disk for audit)
-    try:
-        os.makedirs(OUTPUT_FOLDER, exist_ok=True)
-        out_path = os.path.join(OUTPUT_FOLDER, "layout_summaries_result.json")
-        with open(out_path, "w", encoding="utf-8") as f:
-            json.dump(result, f, indent=2, ensure_ascii=False)
-    except Exception as e:
-        result["save_error"] = str(e)
-
-    # 6) Beautify and optionally write to Excel (unchanged; uses only file_name + summary)
-    try:
-        extracted_data = extract_filenames_and_summaries(OUTPUT_FOLDER)
-        print("Beautified Extracted Data:\n")
-        beautify_data = beautify_extracted_data(extracted_data)
-        print(beautify_data)
-
-    #     DATA_URL = os.getenv("Data_URL")
-    #     if DATA_URL:
-    #         try:
-    #             updated_data = connect_to_blob(DATA_URL, beautify_data)
-    #             print("Blob Data Processed Successfully.")
-    #             if isinstance(updated_data, pd.DataFrame):
-    #                 print("Blob Data Processed Successfully and Excel Updated.")
-    #             else:
-    #                 # updated_data may be an error dict
-    #                 print(f"Error: {updated_data.get('error')}")
-    #         except Exception as e:
-    #             print(f"Error processing blob data: {e}")
-    #     else:
-    #         print("Data_URL environment variable is not set.")
-    except Exception as e:
-        print(f"Error in beautify / blob step: {e}")
-
-
-    try:
-        download_results = await download_blob_to_input_folder_by_reference(
-            beautify_data,
-            output_folder=EMAIL_BODY,
-            container_name="attachment-downloader",
-            blob_name_template="body_{ref}.txt",
-        )
-        print("Email body download results:", download_results)
-    except Exception as e:
-        print("Failed to download email bodies by reference:", e)
-
-#Working code friday night 7:20 pm
-    # 7) Combined submission summary (uses file_name + summary only)
-    combined_summary_text = None
-    filenamesummary_extracted_beautified: List[Dict[str, Any]] = []
-    try:
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        output_folder = "output"
-
-        json_path = os.path.join(base_dir, output_folder, "layout_summaries_result.json")
-        with open(json_path, "r", encoding="utf-8") as f:
-            layout_json = json.load(f)
-
-        # filenamesummary_extracted_beautified = extract_filenames_and_summaries(output_folder)
-       
-        #Commented this 
-        # filenamesummary_extracted_beautified = summaries
-        #Added below two things after commenting
-        valid_documents = [
-            doc for doc in summaries
-            if doc.get("text") and not doc.get("error")
-            ]
-
-        filenamesummary_extracted_beautified = valid_documents
-
-        print("Per-document summaries (with text):")
-        print(filenamesummary_extracted_beautified)
-        
-        
-        #HERE WE CAN CALL THE EXTRACT REFS FROM ATTACHMENTS AND LOAD RAW EMAIL BODIES FOR REFS FUNCTIONS AND KEEP THE CALLING OF SUMMARIZE_ATTACHMENTS SAME AS BELOW 
-
-        # reference_number_extracted = extract_refs_from_attachments(beautify_data)
-
-        # load_raw_email_bodies_for_refs(reference_extracted,"email_body")
-
-        combined_summary_text = summarize_attachments(filenamesummary_extracted_beautified)
-        print("Combined Submission Summary:")
-        print(combined_summary_text)
-
-        result["combined_summary"] = combined_summary_text
-    except Exception as e:
-        print(f"Error generating combined submission summary: {e}")
-        result["combined_summary_error"] = str(e)
-        combined_summary_text = None
-
-    # 8) Individual typed summaries (ACORD / Loss Run / SOV)
-    try:
-        # individual_summary expects attachments each having 'file_name','summary','text'
-        individualized_summary = individual_summary(filenamesummary_extracted_beautified)
-        # print("Individualized Summary Output (raw):")
-        print(individualized_summary)
-        result["individualized_summary"] = individualized_summary
-    except Exception as e:
-        print(f"Error generating Individual summary: {e}")
-        result["individualized_summary_error"] = str(e)
-        result["individualized_summary"] = []
-
-
-    # 9) CLEAN the result for the API and return only the compact payload (no raw text)
-    cleaned_payload = clean_result_for_api(result)
-
-
-    
-    try:
-        beautified = beautify_api_response(cleaned_payload)
-        print("This is beautified for  response : ", beautified)
-
-        # print("\n----- COMBINED SUBMISSION SUMMARY (beautified) -----\n")
-        # if beautified["combined_summary"]:
-        #     print(beautified["combined_summary"])
-        # else:
-        #     print("No combined summary available.")
-
-        DATA_URL = os.getenv("Data_URL")
-        if DATA_URL:
-            try:
-                updated_data = connect_to_blob(DATA_URL, beautified)
-                print("Blob Data Processed Successfully.")
-                if isinstance(updated_data, pd.DataFrame):
-                    print("Blob Data Processed Successfully and Excel Updated.")
-                    excel_update_status = "Excel Opened"
-                else:
-                    # updated_data may be an error dict
-                    error_msg = updated_data.get("error", "Excel update failed")
-                    # print(f"Error: {updated_data.get('error')}")
-                    print(f"Error: {error_msg}")
-                    excel_update_status = error_msg
-            except Exception as e:
-                print(f"Error processing blob data: {e}")
-                excel_update_status = str(e)
-        else:
-            print("Data_URL environment variable is not set.")
-            excel_update_status = "DATA_URL not configured"
-    except Exception as e:
-        print(f"Error in beautify / blob step: {e}")
-
-
-
-
-
-
-
-
-        # DATA_URL = os.getenv("Data_URL")
-
-        # excel_update_status = "Not attempted"
-
-        # if DATA_URL:
-        #     try:
-        #         updated_data = connect_to_blob(DATA_URL, beautified)
-        #         print("Blob Data Processed Successfully.")
-
-        #         if isinstance(updated_data, pd.DataFrame):
-        #             print("Blob Data Processed Successfully and Excel Updated.")
-        #             excel_update_status = "Excel updated successfully"
-        #         else:
-        #             error_msg = updated_data.get("error", "Excel update failed")
-        #             print(f"Error: {error_msg}")
-        #             excel_update_status = error_msg
-
-        #     except Exception as e:
-        #         print(f"Error processing blob data: {e}")
-        #         excel_update_status = str(e)
-
-        # else:
-        #     print("Data_URL environment variable is not set.")
-        #     excel_update_status = "DATA_URL not configured"
-
-
-        # # ADD THIS LINE (important)
-        # beautified["excel_update_status"] = excel_update_status
-
-
-
-
-
-
-
-    # try:
-    #     email_body = download_blob_to_input_folder_by_reference(beautify_data)
-    #     from summary_storage_utils import download_blob_to_input_folder_by_reference
-
-# ensure EMAIL_BODY = "email_body" at top of summary_handler.py
-
-# call it (since it's async, await it)
-    # try:
-    #     download_results = await download_blob_to_input_folder_by_reference(
-    #         beautify_data,
-    #         output_folder=EMAIL_BODY,
-    #         container_name="attachment-downloader",
-    #         blob_name_template="body_{ref}.txt",
-    #     )
-    #     print("Email body download results:", download_results)
-    # except Exception as e:
-    #     print("Failed to download email bodies by reference:", e)
-
-
-    # return cleaned_payload
-    beautified["excel_update_status"] = excel_update_status
-    return beautified
-
-
-
-
-
-
+Edited
+fnol_handler.py
++4
+-4
