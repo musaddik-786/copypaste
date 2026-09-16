@@ -1,271 +1,206 @@
-Insurenova RapidX
+# Insure Nova Demo
 
-0:00
-Hi, welcome to Insure Nova Demo.
+What if you could understand a decades-old insurance application before making a single modernization decision?
 
-0:04
-Insure Nova is Hexaware's AI LED framework designed specifically for modernizing legacy insurance applications.
+What does the system do today?
+What business capabilities are embedded within it?
+What can be sunset or retired?
+What needs to be retained, and what needs to be transformed?
 
-0:12
-In a typical insurance landscape, you can have decades old applications including policy admin system with millions of lines of code, complex business rules, tightly coupled components, and very limited documentation.
+And ultimately, what should the modern architecture look like?
 
-0:26
-Before you can modernize, you would first need answer to fundamental questions like what does my system currently do?
+Hi, welcome to the **Insure Nova Demo**.
 
-0:34
+Insure Nova is Hexaware’s **AI-led framework**, designed specifically for modernizing legacy insurance applications.
+
+In a typical insurance landscape, you can have decades-old applications, including policy administration systems with millions of lines of code, complex business rules, tightly coupled components, and very limited documentation.
+
+Before you can modernize, you first need answers to these fundamental questions.
+
+What does my system currently do?
+
 What are the business capabilities embedded in it?
 
-0:37
 What can be sunset or retired?
 
-0:39
-What needs to be retained and what needs to be transformed?
+What needs to be retained, and what needs to be transformed?
 
-0:43
-Ultimately, what should my modern architecture be like?
+And ultimately, what should my modern architecture look like?
 
-0:47
-Inshunova is here to give clarity on these.
+**Insure Nova is here to bring clarity to these questions.**
 
-0:51
-It brings together AI agents, domain intelligence, and modernization frameworks along with your SME inputs as human in the loop.
+It brings together AI agents, domain intelligence, and modernization frameworks, along with SME inputs through a **human-in-the-loop approach**.
 
-0:59
-To start with, legacy app understanding proceeds with defining a modern target state and results in a domain context in intact modernized application.
+The journey starts with understanding the legacy application, proceeds toward defining a modern target state, and ultimately results in a **domain-context-rich modernized application**.
 
-1:11
-Insure Nova uses a legacy modernization platform platform named Rapidix and uses 4 different steps to achieve this.
+Insure Nova uses a legacy modernization platform called **RapidX** and follows four distinct steps to achieve this.
 
-1:22
-Let me explain it to you through a demo.
+Let me explain it through a demo.
 
-1:25
-For the purpose of this demo, we have taken an RPG application as input to Rapidix, which is here.
+For the purpose of this demonstration, we have taken an **RPG application** as input to RapidX.
 
-1:31
-This is the source code that you're seeing on the screen, and this sample application is of a policy aggregator who helps with their insurance policy needs.
+This is the source code you're seeing on the screen, and this sample application represents a **policy aggregator** that helps users with their insurance policy needs.
 
-1:52
-Let's move to the Rapidx output.
+Now, let's move to the **RapidX output**.
 
-1:55
-Once the source code is ingested, Rapidx will be able to parse it and the first step is to illuminate.
+Once the source code is ingested, RapidX parses the application, and the first step is **Illuminate**.
 
-2:01
-Here you get to understand and isolate the complexity in the legacy estate and uncover the business logic.
+Illuminate helps us understand and isolate the complexity within the legacy estate and uncover the underlying business logic.
 
-2:08
-To start with, Rapidx will be able to give you an overall picture of the application, the hierarchy, and it also gives you some module level heuristics within the application as to the module with the highest number of rules, DB calls, service calls, lines of code, etc.
+To start with, RapidX provides an overall picture of the application and its hierarchy.
 
-2:25
-For the ease of your understanding and decision making for you to understand the application one level deep, the functional flows have a visual representation of how each program flows are connected.
+It also provides **module-level heuristics**, helping us identify modules with the highest number of rules, database calls, service calls, lines of code, and other key indicators.
 
-2:40
-For example, this functionality has about 5 RPG files being called.
+This gives us an immediate understanding of where the complexity exists within the application and helps support modernization decisions.
 
-2:54
-It also has a unified views of the number of programs, tables and rules connected to this functionality along with a simple vanilla English functional comprehension that even a BA or a PO would be able to understand.
+To make the application easier to understand one level deeper, the **functional flows** are represented visually, showing how the different programs are connected.
 
-3:05
-For example, this functionality is about processing the insurance codes.
+For example, this particular functionality has around **five RPG files** being called.
 
-3:10
-It clearly mentions the different inputs required and takes the reader through a step by step business process where it begins with identifying if the policy exists, then displays the codes based on different criteria and finally requests a code to the selected third party gives the business rules it's giving.
+It also provides a unified view of the number of **programs, tables, and rules** connected to this functionality, along with a simple, plain-English functional comprehension that even a **Business Analyst or Product Owner** can understand.
 
-3:32
-The components involved like the packages, procedures and the final outputs are also being given for for a person who is reading, it is also making it easy for them to understand using a fictional example.
+For example, this functionality is related to **processing insurance codes**.
 
-3:49
-Apart from this default view, you also have other views like an algorithmic view for step by step understanding.
+It clearly identifies the different inputs required and takes the reader through the business process step by step.
 
-4:06
-A risk and a rule view for you to understand the business logics involved when it is getting triggered.
+The process begins by identifying whether the policy exists, then displays the codes based on different criteria, and finally requests a code from the selected third party.
 
-4:15
-What is the purpose of it?
+The associated **business rules** are also captured as part of this understanding.
 
-4:16
-In the logic behind and for DB interactions, you also have the data flow view for you to understand the application one level granular.
+The components involved, including the **packages, procedures, and final outputs**, are also provided.
 
-4:36
-You'll also be able to get similar set of outputs for the programs connected to this functionality.
+And to make the functionality easier to understand, RapidX presents it through a fictional example, helping readers connect the technical implementation with the business process.
 
-4:49
-It can even drill down one level further to a method level where it gives you a flow chart of the interactions, the DB node, the calculation node.
+Apart from the default view, we also have several other views for deeper analysis.
 
-5:02
-A simple flow chart from the beginning to the end of that method will be available as visual representation along with the comprehension.
+The **Algorithmic View** provides a step-by-step understanding of how the underlying logic is executed.
 
-5:15
-OK, all of these are about how the application currently is, but you may think what about the deeply buried business logic?
+The **Risk and Rule View** helps us understand the business logic involved, when it is triggered, and what its purpose is.
 
-5:23
-I am more concerned on what is being implemented as part of my code rather than how it is implemented.
+And for understanding the logic behind database interactions, the **Data Flow View** provides a more granular view of how information moves through the application.
 
-5:29
-If you are such a person, then rule book helps.
+You'll also be able to get a similar set of outputs for the programs connected to this functionality.
 
-5:33
-This helps you uncover all the business rules inside your code along with identifying its complexity.
+RapidX can drill down one level further to the **method level**, where it provides a flowchart of the interactions, including the database node and the calculation node.
 
-5:40
-It gives you the purpose, high level steps, detailed algorithm, a DRY run and the associated code snippet for this rule will also be available.
+A simple flowchart from the beginning to the end of that method is available as a visual representation, along with the corresponding functional comprehension.
 
-5:52
-This will help you decide whether to keep the rule, tweak it or remove the rule while you go through the modernization.
+So far, we have looked at how the application currently works.
 
-6:04
-Rapidx will also be able to help you download a comprehensive software requirement specification document.
+But you may be thinking — **what about the deeply buried business logic?**
 
-6:10
-The Racks is a living map and ensures your team has a clear understanding of how your application behaves.
+If you're more concerned about **what is being implemented in the code**, rather than how it is implemented, then the **Rule Book** helps.
 
-6:17
-It is very detailed, has the entire comprehension that we have seen until now just for the understanding of how your application behaves like.
+The Rule Book helps uncover the business rules embedded within the code while also identifying their complexity.
 
-6:28
-In short, this is for all of your functionalities business rules to get documented so that everyone speaks the same language within your organization.
+For each rule, it provides the **purpose, high-level steps, detailed algorithm, a dry run, and the associated code snippet**.
 
-6:44
-Now that we have sufficient domain rich artifacts, we move to the second step, which is decouple.
+This helps you make informed decisions during modernization — whether a particular rule should be **kept, tweaked, or removed**.
 
-6:51
-Here Rapidix identifies business domains and capabilities and determines how the target system can be designed in manageable components.
+RapidX can also help you download a comprehensive **Software Requirement Specification**, or SRS document.
 
-6:59
-Let's look at how Rapidix has done it.
+The SRS acts as a living map and helps ensure that your team has a clear understanding of how the application behaves.
 
-7:04
-The capabilities section of Blueprinting helps you identify what your system is currently good at.
+It provides a detailed comprehension of the application and brings together the understanding generated throughout the analysis.
 
-7:09
-For example, this applications capabilities include streamlining, insurance operations, code processing, user authentication, code life cycle, etc.
+In short, it documents the functionalities and business rules of the application so that everyone across the organization can speak the same language.
 
-7:21
-Within each capability you will find sub capabilities and functionalities.
+Now that we have sufficient **domain-rich artifacts**, we move to the second step, which is **Decouple**.
 
-7:27
-Within the sub capabilities you also have a process flow visualizer which will be able to tell you the process end to end using a flow chart.
+Here, RapidX identifies business domains and capabilities and determines how the target system can be designed into more manageable components.
 
-7:36
-For example, it starts with processing the e-mail queue, extracting the code, combining all the three codes, then storing and updating it.
+Let's look at how RapidX has done it.
 
-7:47
-Rapidix will also be able to intelligently identify certain insights.
+The **Capabilities** section of Blueprinting helps you identify what your system is currently good at.
 
-7:52
-For example, in this case there is a hard coded loop.
+For example, this application's capabilities include streamlining insurance operations, code processing, user authentication, code lifecycle, and more.
 
-7:57
-It's like it's telling that it's like a bus that stops only at 3 predetermined locations even if the passengers are waiting at twenty others stops.
+Within each capability, you will find associated **sub-capabilities and functionalities**.
 
-8:06
-These are important insights that comes handy and helpful while you are reimagining your system.
+Within the sub-capabilities, we also have a **Process Flow Visualizer**, which helps you understand the process end to end through a flowchart.
 
-8:13
-The other insight here is the system is checking the patterns sequentially instead of a single pattern match.
+For example, the process starts with processing the email queue, extracting the code, combining all three codes, and then storing and updating the information.
 
-8:22
-For example, it's going and checking with the person's name is John.
+RapidX can also intelligently identify certain **insights**.
 
-8:25
-Then it's going and checking if it's Jane instead of directly looking up into a directory.
+For example, in this case, it identifies a **hard-coded loop**.
 
-8:31
-Moving on, every sub capability also has a detailed PDD.
+Think of it like a bus that stops at only three predetermined locations, even if passengers are waiting at twenty other stops.
 
-8:38
-This captures and organizes the existing business goals in a simple structured way.
+These are important insights that can come in handy while you are **reimagining your system**.
 
-8:44
-It has detailed business workflow information.
+Another insight here is that the system is checking patterns sequentially instead of using a single pattern match.
 
-8:48
-It has flow chart.
+For example, it checks whether the person's name is **John**, then checks whether it is **Jane**, instead of directly looking up the information in a directory.
 
-8:52
-It has the algorithmic comprehension.
+Moving on, every sub-capability also has a detailed **PDD**.
 
-8:55
-This is like the process DNA of your system.
+This captures and organizes the existing business goals in a simple, structured way.
 
-9:01
-This can be downloaded.
+It includes detailed business workflow information, a flowchart, and **algorithmic comprehension**.
 
-9:03
-This can also be edited as per your requirement.
+This is essentially the **process DNA of your system**.
 
-9:09
-The AS IS Business User story section gives you an understanding of the AS is functionality of how your business has been delivering value for multiple actors depending on the use case.
+The PDD can be downloaded, and it can also be edited as per your requirements.
 
-9:22
-In in this case, the insurance underwriter is the user persona.
+Next, we have the **AS-IS Business User Story** section.
 
-9:26
-It gives the actors what they want, why they want it, and how it delivers value.
+This provides an understanding of the AS-IS functionality and how the business has been delivering value to multiple actors, depending on the use case.
 
-9:32
-Every user story has the business value.
+In this case, the **insurance underwriter** is the user persona.
 
-9:35
-It also has the acceptance criteria and the boundary conditions.
+The user story captures what the actor wants, why they want it, and how the functionality delivers value.
 
-9:41
-We also have a blueprinting assistant who is like an SME chat bot with whom you can interact, ask questions, and then take informed decisions for target state blueprint.
+Every user story includes the **business value**, along with the **acceptance criteria and boundary conditions**.
 
-9:52
-SME can use blueprinting assistant to brain brainstorm solution options.
+We also have the **Blueprinting Assistant**, which works like an SME chatbot.
 
-9:57
-Like for example, let's say in this case I'm asking a question like there is a new mandate where every customer interaction quote and insurer handoff must be digitally traceable and auditable.
+With the Blueprinting Assistant, you can interact with the system, ask questions, and make informed decisions for the target-state blueprint.
 
-10:08
-Now to execute this, what changes should I make to the current application?
+SMEs can also use the Blueprinting Assistant to **brainstorm solution options**.
 
-10:12
-Which flows get affected, which business roles get affected and how should the architecture look like?
+For example, let's say there is a new mandate where every customer interaction, quote, and insurer handoff must be digitally traceable and auditable.
 
-10:22
-The blueprinting assistant thought for a while and it is giving me a detailed analysis of the current system architecture, the changes required for digital traceability, what needs to be added.
+We can ask the Blueprinting Assistant:
 
-10:45
-Which business rules and flows are getting affected and it has also neatly proposed the target architecture along with an implementation road map.
+What changes should I make to the current application?
 
-10:59
-This this is good, right?
+Which flows will be affected?
 
-11:01
-This is where you get a lot of assistance, which is also domain rich.
+Which business roles will be affected?
 
-11:06
-It has the interior business knowledge of your existing application and then it is suggesting you how to proceed with the target state.
+And how should the architecture look?
 
-11:16
+The Blueprinting Assistant analyzes the current system context and provides a detailed analysis of the **current system architecture**, the changes required for digital traceability, and what needs to be added.
+
+It also identifies which **business rules and flows are affected**.
+
+And finally, it proposes the **target architecture**, along with an **implementation roadmap**.
+
+This is where you get a lot of assistance, while also benefiting from domain-rich knowledge.
+
+The assistant has the contextual business knowledge of your existing application and uses that understanding to suggest how you can proceed toward the target state.
+
 This platform is more than just visualization.
 
-11:20
-It's your knowledge companion giving SME's everything they need to analyze, optimize, and reimagine with confidence.
+It is your **knowledge companion**, giving SMEs everything they need to analyze, optimize, and reimagine their applications with confidence.
 
-11:28
-We move to the final steps, which is the modernizing part.
+Now we move to the final step — the **modernization** part.
 
-11:32
-We call it the reinvent because this step isn't just about writing code, it is about using all the understanding we have until now to create a modern insurance platform.
+We call this stage **Reinvent**, because this step isn't just about writing code.
 
-11:44
-The SMEs shall refer to artifacts generated in the earlier steps and can also use a blueprinting assistant to define the future state approach.
+It is about using all the understanding we have gathered so far to create a modern insurance platform.
 
-11:52
-They can also perform additional analysis to generate custom outputs that helps support design decisions.
+The SMEs can refer to the artifacts generated during the earlier steps and can also use the **Blueprinting Assistant** to define the future-state approach.
 
-11:59
-All of these outputs, the architecture, the PDD inputs, service definitions, and tech stack mandates then get fed into Rapidx Agentic pipeline where the expert would be guiding the AI to make decisions that suit the app modernization requirement.
+They can perform additional analysis to generate custom outputs that help support important design decisions.
 
-12:20
-Finally, we get the code in the to be or the target tech stack and the app will now be modernized.
+All of these outputs — including the **architecture, PDD inputs, service definitions, and tech-stack mandates** — are then fed into the **RapidX Agentic Pipeline**.
 
-12:44
-To conclude, Insurnova is a structured AI intelligence driven journey from a legacy insurance environment to a modernized insurance application.
+Here, the expert guides the AI in making decisions that suit the specific application modernization requirements.
 
-12:55
+Finally, we get the code in the **TO-BE, or target technology stack**, and the application can now be modernized.
+
+To conclude, **Insure Nova is a structured, AI-intelligence-driven journey from a legacy insurance environment to a modernized insurance application.**
+
 Thank you.
