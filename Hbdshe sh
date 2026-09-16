@@ -1,310 +1,105 @@
-What if you could understand a decades-old insurance application before making a single modernization decision?
-
-What does the system do today? What business capabilities are embedded within it? What can be retired, retained, or transformed? And ultimately, what should the modern architecture look like?
-
-Welcome to the **Insure Nova Demo**.
-
-Insure Nova is Hexaware’s AI-led framework designed specifically for modernizing legacy insurance applications. It brings together AI agents, insurance domain intelligence, modernization frameworks, and SME expertise through a human-in-the-loop approach.
-
-In a typical insurance landscape, critical applications may have been running for decades, with millions of lines of code, complex business rules, tightly coupled components, and limited documentation.
-
-Before modernization can begin, organizations first need clarity on how these applications actually work.
-
-Insure Nova addresses this through a structured modernization journey — starting with understanding the existing application, defining the target state, and ultimately generating a modernized application.
-
-Let's see how **RapidX** enables this journey.
-
-### Understanding the Existing Application
-
-We begin with the **Blueprinting** phase.
-
-The Capabilities section gives us a clear view of what the existing application does today and the business capabilities it supports.
-
-Here, we can see capabilities such as streamlining insurance operations, code processing, user authentication, and code lifecycle management.
-
-Each capability can be explored further through its associated sub-capabilities and functionalities, giving us a more detailed understanding of how the application operates.
-
-Within these sub-capabilities, the **Process Flow Visualizer** provides an end-to-end view of the underlying business process.
-
-For example, we can follow a process that begins with processing the email queue, extracting the required information, combining the relevant data, and then storing and updating it.
-
-This converts complex application behavior into a visual flow that is much easier to understand.
-
-But the platform goes beyond simply documenting the existing system.
-
-It can also identify important **insights within the application logic**.
-
-For example, one insight identifies a hard-coded loop in the existing implementation.
-
-Think of it like a bus that stops only at three predetermined locations, even when passengers may be waiting at many other stops.
-
-These insights highlight areas of the legacy application that may need attention when we begin reimagining the system.
-
-Another example identifies sequential pattern checking within the application.
-
-Instead of directly looking up a matching value, the system checks one pattern after another — for example, checking whether the name is John, then Jane, and continuing sequentially.
-
-Identifying these patterns helps SMEs understand where existing logic can potentially be optimized as part of the modernization journey.
-
-### Capturing the Process DNA
-
-Moving further into each sub-capability, we have the **Process Definition Document**, or PDD.
-
-The PDD captures and organizes the existing business understanding in a structured format.
-
-It brings together detailed business workflow information, process flows, and algorithmic comprehension.
-
-In many ways, this represents the **process DNA of the existing system** — capturing not just what the application does, but how the underlying business process works.
-
-These artifacts can also be downloaded and edited, allowing SMEs to refine the information based on their understanding of the business.
-
-Next, we have the **AS-IS Business User Story** section.
-
-This provides an understanding of how the existing functionality delivers value to different actors and personas within the business.
-
-For example, in this scenario, the **insurance underwriter** is the user persona.
-
-The user story captures what the actor needs, why they need it, and how the existing application delivers that value.
-
-Each user story also captures the associated business value, acceptance criteria, and boundary conditions, providing a structured representation of the current-state functionality.
-
-### Blueprinting Assistant
-
-Once we understand the current state, the next question becomes: how do we define the future state?
-
-This is where the **Blueprinting Assistant** comes in.
-
-The Blueprinting Assistant acts as an AI-powered knowledge companion for SMEs. It allows them to ask questions, explore solution options, and use the existing application context to make more informed target-state decisions.
-
-For example, let's consider a new business mandate where every customer interaction, quote, and insurer handoff must be digitally traceable and auditable.
-
-We can ask the Blueprinting Assistant what changes would be required in the current application.
-
-We can also explore which business flows and roles would be affected and how the architecture should evolve to support the new requirement.
-
-The assistant analyzes the current system context and provides a detailed assessment.
-
-It identifies the changes required to support digital traceability, highlights the affected business rules and flows, and identifies the architectural components that need to be introduced or modified.
-
-It also proposes a target architecture along with an implementation roadmap.
-
-This is where the combination of **AI and domain knowledge** becomes particularly valuable.
-
-The assistant uses the understanding captured during the blueprinting process and builds on that context to help SMEs determine how the application should evolve.
-
-So Insure Nova is more than a visualization platform.
-
-It acts as a **knowledge companion for modernization**, helping SMEs analyze the existing application, identify opportunities, and make informed decisions about the target state.
-
-### From Blueprinting to Reinvention
-
-Once the existing application has been understood and the target-state approach has been defined, we move to the final stage — **Reinvent**.
-
-Reinvent is not simply about writing new code.
-
-It is about using everything we have learned throughout the modernization journey to create a modern insurance platform.
-
-SMEs can refer to the artifacts generated during the earlier stages and continue using the Blueprinting Assistant to define and refine the future-state approach.
-
-They can also perform additional analysis and generate custom outputs to support important design decisions.
-
-The resulting outputs — including architecture definitions, PDD inputs, service definitions, and technology-stack mandates — are then fed into the **RapidX Agentic Pipeline**.
-
-Here, AI works together with expert guidance to make implementation decisions aligned with the specific modernization requirements of the application.
-
-Finally, the solution is generated in the **target technology stack**, transforming the legacy application into its modernized form.
-
-### Conclusion
-
-From understanding legacy code and identifying business capabilities, to capturing process DNA, analyzing application insights, defining the target architecture, and generating the modern implementation — Insure Nova provides a structured, AI-driven modernization journey.
-
-It brings together **application intelligence, insurance domain knowledge, SME expertise, and agentic AI** to bridge the gap between legacy systems and modern insurance platforms.
-
-Insure Nova turns legacy complexity into actionable understanding — and that understanding into a modernized insurance application.
-
-Thank you.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Hi, welcome to the **Insure Nova Demo**.
-
-Insure Nova is Hexaware's AI-led framework designed specifically for modernizing legacy insurance applications.
-
-In a typical insurance landscape, organizations may have decades-old applications, including policy administration systems with millions of lines of code, complex business rules, tightly coupled components, and very limited documentation.
-
-Before modernizing such applications, organizations first need answers to some fundamental questions.
-
-What does my existing system currently do?
-
-What are the business capabilities embedded within it?
-
-What can be sunset or retired?
-
-What needs to be retained, and what needs to be transformed?
-
-And ultimately, what should the modern target architecture look like?
-
-**Insure Nova is designed to provide clarity across these questions.**
-
-It brings together AI agents, domain intelligence, modernization frameworks, and SME inputs through a human-in-the-loop approach.
-
-The journey starts with understanding the legacy application, defining the modern target state, and creating the domain context required to build an intact, modernized application.
-
-Let's look at how **Rapidx** enables this journey.
-
-We begin with the **Blueprinting** phase.
-
-The **Capabilities** section helps identify what the existing system currently does and the business capabilities it supports.
-
-For example, this application's capabilities include streamlining insurance operations, code processing, user authentication, code lifecycle management, and other core functionalities.
-
-Within each capability, we can drill down into its corresponding sub-capabilities and functionalities.
-
-Each sub-capability also provides a **Process Flow Visualizer**, which explains the end-to-end business process through a visual flowchart.
-
-For example, the process starts by processing the email queue, extracting the required codes, combining the three codes, and then storing and updating the information.
-
-Rapidx can also intelligently identify important insights within the existing application.
-
-For example, in this case, the system has identified a **hard-coded loop**.
-
-This is similar to a bus that stops only at three predetermined locations, even when passengers are waiting at twenty other stops.
-
-These types of insights are important when reimagining the existing system because they highlight areas where the current implementation may be limiting flexibility or scalability.
-
-Another insight identified here is that the system checks patterns sequentially instead of performing a single pattern match.
-
-For example, instead of directly looking up a name in a directory, the system first checks whether the person's name is John, and then checks whether it is Jane.
-
-Identifying these implementation patterns provides valuable context when designing the future-state architecture.
-
-Moving on, every sub-capability also has a detailed **PDD**, or Process Definition Document.
-
-The PDD captures and organizes the existing business logic and objectives in a simple, structured format.
-
-It contains detailed business workflow information, process flow diagrams, and algorithmic comprehension.
-
-In other words, it acts as the **process DNA of the existing system**.
-
-The PDD can be downloaded and can also be edited based on the SME's requirements.
-
-The **AS-IS Business User Story** section provides an understanding of how the existing functionality delivers business value to different actors based on the use case.
-
-In this example, the **Insurance Underwriter** is the primary user persona.
-
-Each user story describes what the actor wants, why they need it, and how the functionality delivers value.
-
-Every user story also includes the associated business value, acceptance criteria, and boundary conditions.
-
-We also have the **Blueprinting Assistant**, which works like an SME-focused conversational assistant.
-
-SMEs can interact with it, ask questions, explore different options, and make more informed decisions while defining the target-state blueprint.
-
-For example, let's say there is a new mandate stating that every customer interaction, quote, and insurer handoff must be digitally traceable and auditable.
-
-I can ask the Blueprinting Assistant:
-
-*"What changes should I make to the current application to support this mandate? Which flows will be affected, which business roles will be impacted, and how should the target architecture be designed?"*
-
-The Blueprinting Assistant analyzes the existing system and provides a detailed assessment.
-
-It identifies the current system architecture, the changes required to enable digital traceability, the components that need to be added, and the business rules and process flows that may be affected.
-
-It also proposes a target architecture along with an implementation roadmap.
-
-This is where the platform provides significant assistance to SMEs.
-
-The recommendations are not based only on generic technology knowledge. The assistant uses the business and technical understanding captured from the existing application to help SMEs determine how to move toward the desired target state.
-
-This makes the platform more than just a visualization tool.
-
-It becomes a **knowledge companion for SMEs**, providing the intelligence they need to analyze, optimize, and reimagine their legacy applications with greater confidence.
-
-Now we move to the final stage, which is the modernization phase.
-
-We call this stage **Reinvent**.
-
-Reinvent is not simply about writing new code. It is about using all the understanding generated throughout the earlier stages to create a modern insurance application.
-
-SMEs can refer to the artifacts generated during the earlier blueprinting stages and use the Blueprinting Assistant to define the future-state approach.
-
-They can also perform additional analysis and generate custom outputs to support specific architecture and design decisions.
-
-All these outputs—including the target architecture, PDD inputs, service definitions, and technology stack mandates—are then fed into the **Rapidx Agentic Pipeline**.
-
-Within this pipeline, domain and technology expertise guide the AI in making decisions aligned with the specific modernization requirements of the application.
-
-Finally, the solution generates the application code in the **TO-BE or target technology stack**, transforming the legacy application into a modernized insurance platform.
-
-To conclude, Insure Nova provides a structured, AI-driven journey from a complex legacy insurance environment to a modernized application.
-
-It combines legacy application understanding, business capability discovery, process intelligence, SME collaboration, target-state architecture, and agentic code modernization into a unified framework.
-
-Thank you.
+Here is the detailed, correct sequence flow of all Policyholder persona agents — based on database dependencies, UI flow, and backend code:
+Policyholder Persona — Detailed Agent Sequence Flow
+PHASE 0 — Pre-FNOL: Policy Lookup
+Agent: PolicyCoverageVerificationAgent (port 7707)
+Trigger: User enters their policy number in the UI before starting FNOL
+MCP Tool: verify_policy_coverage → calls Guidewire PolicyCenter (GW_PC_BASE_URL) via search_policy(policy_number)
+DB Writes: policy_details table (policy number, holder name, coverage type, limits)
+Output: Confirms the policy is valid and active before intake begins
+PHASE 1 — FNOL Intake (Conversational, Steps 1–6)
+Agent: FNOLOrchestratorAgent (port 7730) — drives the entire intake conversation
+This is a single LangGraph agent with a multi-step system prompt. It calls MCP tools from the VoiceTextIntake MCP (port 7700) throughout the conversation:
+Step	What Happens	MCP Tool Called	DB Written
+Step 1	Greet, collect input mode (voice/text)	—	—
+Step 2	Extract FNOL fields from user's statement (loss type, date, description)	extract_fnol_fields	fnol_voice_text_extraction, fnol_ai_inferences
+Step 3	Ask mandatory questions for missing fields	get_mandatory_questions → log_mandatory_answers	fnol_mandatory_question_log
+Step 4	Run duplicate claim check inline	check_duplicate_claim	reads claims / fnol_submissions
+Step 5	Validate all mandatory fields are complete	validate_fnol_completeness	fnol_field_attribution
+Step 6	Present summary and ask user to confirm	—	—
+Voice path: If input_type = voice_transcript, the VoiceTextIntakeAgent (port 7701) first runs Whisper transcription before passing to the orchestrator.
+PHASE 2 — FNOL Submission (UI Button Click)
+Agent: VoiceTextIntakeAgent (port 7701) via MCP tool submit_fnol
+Trigger: User clicks "Submit FNOL" in the UI
+Guidewire Call: create_claim() → POST to ClaimCenter (GW_CC_BASE_URL/claim/v1/claims) → returns the official claim number (e.g., 000-00-003815)
+Guidewire Call: submit_claim(claim_id) → POST to ClaimCenter to finalize
+DB Writes (all in one transaction):
+fnol_submissions — all Section B fields (loss_type, loss_description, date_of_loss, location, police_report_number, estimated_damage, injuries_involved, etc., each with a _source pair)
+claims — core subset (claim_number, policy_number, loss_type, date_of_loss, severity, status = "Submitted")
+claims_master — full claim record with Guidewire claim ID
+claim_journey_master — first journey entry: "FNOL Submitted"
+PHASE 3 — Document Upload (Optional, Parallel)
+Agent: DocumentSubmissionAgent (port 7705)
+Trigger: User uploads supporting documents (photos, police reports) from the UI
+MCP Tool: upload_document on Policyholder MCP (port 7700)
+Storage: Azure Blob Storage (or data/uploads/ locally)
+DB Writes: documents table (claim_number, file_name, blob_url, doc_type)
+Can happen at any point after claim number is created
+PHASE 4 — Post-Submission Background Processing
+Agent: FNOLOrchestratorAgent (port 7730) — background process, runs automatically after submit
+The orchestrator immediately spawns a background task that runs 4 sequential steps:
+Background Step 1 — Policy Coverage Verification
+Agent involved: PolicyCoverageVerification MCP tool
+Action: Re-validates coverage limits against the submitted loss
+DB Writes: coverage_verification_results (coverage_type, limit_amount, deductible, coverage_status)
+DB Reads: policy_details, fnol_submissions
+Background Step 2 — Claim Readiness Scoring
+Agent involved: ClaimReadinessAgent (port 7708, placeholder)
+Action: Scores completeness and quality of the submitted FNOL data
+DB Writes: intake_validation_result_output (readiness_score, missing_fields, recommendation)
+DB Reads: fnol_submissions, fnol_mandatory_question_log
+Background Step 3 — Segmentation & STP Classification
+Agent involved: ClaimSegmentationAgent (port 7704)
+Action: Classifies claim complexity; determines if it qualifies for Straight-Through Processing (auto-settle without adjuster)
+DB Writes:
+stp_classification (claim_number, stp_eligible, reason)
+segmentation_result_output (segment = Low/Medium/High/Complex, score, recommended_path)
+DB Reads: claims, intake_validation_result_output
+Background Step 4 — Audit Log
+Action: Logs all policyholder actions taken during intake
+DB Writes: policyholder_actions (claim_number, action_type, timestamp, actor)
+PHASE 5 — Ongoing / On-Demand Agents
+These run any time after claim creation, triggered by user or system:
+Agent	Port	Trigger	DB Reads	DB Writes
+ClaimStatusAgent	7703	User asks "what's the status of my claim?"	claim_journey_master, claims	—
+CommunicationAgent	7709	Notifications to policyholder	claims, policyholder_actions	communication_log
+FeedbackAgent	7706	User submits feedback after closure	—	feedback_responses
+DuplicateClaimCheckAgent	8802	Called inline during Step 4 of intake	claims, fnol_submissions	—
+Complete Sequence Summary
+[User Opens UI]
+      │
+      ▼
+[PolicyCoverageVerificationAgent (7707)] → GW PolicyCenter → policy_details
+      │
+      ▼
+[FNOLOrchestratorAgent (7730)] ← Steps 1–6 conversational intake
+      │  uses VoiceTextIntake MCP tools (7700)
+      │  → fnol_voice_text_extraction, fnol_ai_inferences
+      │  → fnol_mandatory_question_log, fnol_field_attribution
+      │
+      ▼
+[User clicks Submit]
+      │
+      ▼
+[VoiceTextIntakeAgent submit_fnol (7701)]
+      │  → GW ClaimCenter (create_claim + submit_claim)
+      │  → fnol_submissions, claims, claims_master, claim_journey_master
+      │
+      ├──→ [DocumentSubmissionAgent (7705)] → documents  (parallel, optional)
+      │
+      ▼
+[FNOLOrchestratorAgent Background Process (7730)]
+      │
+      ├─ Step 1: PolicyCoverageVerification → coverage_verification_results
+      ├─ Step 2: ClaimReadiness → intake_validation_result_output
+      ├─ Step 3: Segmentation → stp_classification, segmentation_result_output
+      └─ Step 4: AuditLog → policyholder_actions
+      │
+      ▼
+[Ongoing Agents]
+  ClaimStatusAgent (7703) — status queries
+  CommunicationAgent (7709) — notifications
+  FeedbackAgent (7706) — post-closure feedback
+Key dependencies:
+policy_details must exist before FNOL can be validated
+fnol_submissions must exist before background steps 2 and 3 can run
+claims (with claim_number from Guidewire) must exist before any downstream persona (Adjuster, VendorManager) can look up the claim
