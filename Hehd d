@@ -49,7 +49,3 @@ INSERT INTO motor_policy_details (
     ('POL-1004', 'Active', 'Motor', 500.00, 100000.00, 100000.00, '2025-01-15', '2026-01-15', 3000.00, 'Mary Brown',   'ACC-M-1004', 'USD'),
     ('POL-1005', 'Active', 'Motor', 250.00,  80000.00,  80000.00, '2025-02-01', '2026-02-01', 2400.00, 'David Wilson', 'ACC-M-1005', 'USD')
 ON CONFLICT (policy_number) DO NOTHING;
-
-
-
-
