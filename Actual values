@@ -15,7 +15,7 @@ https://cc-sandbox-gwcpdev.hexaware.zeta1-andromeda.guidewire.net/rest/claim/v1/
                 "country": "US",(policy_details table , country column) 
                 "postalCode": "60606",(policy_details table , postal_code column)
                 "state": {
-                    "code": "IL" (policy_details table , state column)
+                    "code": "IL" (policy_details table , state column here there is full state name but we want only the abbrevation of it)
                 }
             }
         }
@@ -32,11 +32,11 @@ https://cc-sandbox-gwcpdev.hexaware.zeta1-andromeda.guidewire.net/rest/claim/v1/
                     "dwellingRoomDamages": [{
                         "numberOfRooms": 1, (this should be automatically calculated based on users input)
                         "roomType": {
-                            "code": "kitchen"
+                            "code": "kitchen" (fnol_submissions table, area affected column)
                         }
                     }],
                     "occupancyType": {
-                        "code": "occupied"
+                        "code": "occupied" (fnol_submissions table , occupancy_at_loss column it contains either Yes or No , so write a code such that if Yes then it should give here occupied else it should give here vacant)
                     }
                 },
                 "method": "post",
