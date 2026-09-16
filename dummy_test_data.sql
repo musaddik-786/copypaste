@@ -1,40 +1,104 @@
-INSERT INTO fnol_mandatory_fields
-    (field_name, field_label, field_category, is_required, can_be_inferred, inference_question, input_type, input_options, display_order)
-VALUES
-('loss_type',         'Type of Loss',         'incident',   1, 1,
- 'What type of property loss occurred? (Water Damage, Fire, Theft, Storm, Vandalism, etc.)',
- 'select', '["Water Damage","Fire","Theft","Storm","Vandalism","Structural Damage","Electrical","Other"]', 1),
-
-('cause_of_loss',     'Cause of Loss',         'incident',   1, 1,
- 'What caused the loss or damage to the property?',
- 'text', NULL, 2),
-
-('date_of_loss',      'Date of Loss',           'incident',   1, 1,
- 'What date did the damage occur? (YYYY-MM-DD)',
- 'date', NULL, 3),
-
-('time_of_loss',      'Time of Loss',           'incident',   0, 1,
- 'Approximately what time did the incident occur?',
- 'time', NULL, 4),
-
-('area_affected',     'Area Affected',          'location',   1, 1,
- 'Which part of the property was damaged? (e.g. kitchen ceiling, basement, roof)',
- 'text', NULL, 5),
-
-('occupancy_at_loss', 'Occupancy at Time',      'context',    0, 1,
- 'Was the property occupied when the loss occurred?',
- 'select', '["Occupied","Unoccupied","Partially Occupied"]', 6),
-
-('sudden_vs_gradual', 'Sudden or Gradual',      'incident',   0, 1,
- 'Did the damage happen suddenly or develop gradually over time?',
- 'select', '["Sudden","Gradual","Unknown"]', 7),
-
-('severity',          'Damage Severity',        'assessment', 1, 1,
- 'How severe is the property damage? Low, Medium, or High?',
- 'select', '["Low","Medium","High"]', 8),
-
-('urgency_indicator', 'Urgency Level',          'assessment', 0, 1,
- 'How urgently does this claim need attention? Immediate, Standard, or Low?',
- 'select', '["Immediate","Standard","Low"]', 9)
-
-ON CONFLICT (field_name) DO NOTHING;
+Policyholder Persona — Detailed Agent Sequence Flow
+PHASE 0 — Pre-FNOL: Policy Lookup
+Agent: PolicyCoverageVerificationAgent (port 7707)
+Trigger: User enters their policy number in the UI before starting FNOL
+MCP Tool: verify_policy_coverage → calls Guidewire PolicyCenter (GW_PC_BASE_URL) via search_policy(policy_number)
+DB Writes: policy_details table (policy number, holder name, coverage type, limits)
+Output: Confirms the policy is valid and active before intake begins
+PHASE 1 — FNOL Intake (Conversational, Steps 1–6)
+Agent: FNOLOrchestratorAgent (port 7730) — drives the entire intake conversation
+This is a single LangGraph agent with a multi-step system prompt. It calls MCP tools from the VoiceTextIntake MCP (port 7700) throughout the conversation:
+Step	What Happens	MCP Tool Called	DB Written
+Step 1	Greet, collect input mode (voice/text)	—	—
+Step 2	Extract FNOL fields from user's statement (loss type, date, description)	extract_fnol_fields	fnol_voice_text_extraction, fnol_ai_inferences
+Step 3	Ask mandatory questions for missing fields	get_mandatory_questions → log_mandatory_answers	fnol_mandatory_question_log
+Step 4	Run duplicate claim check inline	check_duplicate_claim	reads claims / fnol_submissions
+Step 5	Validate all mandatory fields are complete	validate_fnol_completeness	fnol_field_attribution
+Step 6	Present summary and ask user to confirm	—	—
+Voice path: If input_type = voice_transcript, the VoiceTextIntakeAgent (port 7701) first runs Whisper transcription before passing to the orchestrator.
+PHASE 2 — FNOL Submission (UI Button Click)
+Agent: VoiceTextIntakeAgent (port 7701) via MCP tool submit_fnol
+Trigger: User clicks "Submit FNOL" in the UI
+Guidewire Call: create_claim() → POST to ClaimCenter (GW_CC_BASE_URL/claim/v1/claims) → returns the official claim number (e.g., 000-00-003815)
+Guidewire Call: submit_claim(claim_id) → POST to ClaimCenter to finalize
+DB Writes (all in one transaction):
+fnol_submissions — all Section B fields (loss_type, loss_description, date_of_loss, location, police_report_number, estimated_damage, injuries_involved, etc., each with a _source pair)
+claims — core subset (claim_number, policy_number, loss_type, date_of_loss, severity, status = "Submitted")
+claims_master — full claim record with Guidewire claim ID
+claim_journey_master — first journey entry: "FNOL Submitted"
+PHASE 3 — Document Upload (Optional, Parallel)
+Agent: DocumentSubmissionAgent (port 7705)
+Trigger: User uploads supporting documents (photos, police reports) from the UI
+MCP Tool: upload_document on Policyholder MCP (port 7700)
+Storage: Azure Blob Storage (or data/uploads/ locally)
+DB Writes: documents table (claim_number, file_name, blob_url, doc_type)
+Can happen at any point after claim number is created
+PHASE 4 — Post-Submission Background Processing
+Agent: FNOLOrchestratorAgent (port 7730) — background process, runs automatically after submit
+The orchestrator immediately spawns a background task that runs 4 sequential steps:
+Background Step 1 — Policy Coverage Verification
+Agent involved: PolicyCoverageVerification MCP tool
+Action: Re-validates coverage limits against the submitted loss
+DB Writes: coverage_verification_results (coverage_type, limit_amount, deductible, coverage_status)
+DB Reads: policy_details, fnol_submissions
+Background Step 2 — Claim Readiness Scoring
+Agent involved: ClaimReadinessAgent (port 7708, placeholder)
+Action: Scores completeness and quality of the submitted FNOL data
+DB Writes: intake_validation_result_output (readiness_score, missing_fields, recommendation)
+DB Reads: fnol_submissions, fnol_mandatory_question_log
+Background Step 3 — Segmentation & STP Classification
+Agent involved: ClaimSegmentationAgent (port 7704)
+Action: Classifies claim complexity; determines if it qualifies for Straight-Through Processing (auto-settle without adjuster)
+DB Writes:
+stp_classification (claim_number, stp_eligible, reason)
+segmentation_result_output (segment = Low/Medium/High/Complex, score, recommended_path)
+DB Reads: claims, intake_validation_result_output
+Background Step 4 — Audit Log
+Action: Logs all policyholder actions taken during intake
+DB Writes: policyholder_actions (claim_number, action_type, timestamp, actor)
+PHASE 5 — Ongoing / On-Demand Agents
+These run any time after claim creation, triggered by user or system:
+Agent	Port	Trigger	DB Reads	DB Writes
+ClaimStatusAgent	7703	User asks "what's the status of my claim?"	claim_journey_master, claims	—
+CommunicationAgent	7709	Notifications to policyholder	claims, policyholder_actions	communication_log
+FeedbackAgent	7706	User submits feedback after closure	—	feedback_responses
+DuplicateClaimCheckAgent	8802	Called inline during Step 4 of intake	claims, fnol_submissions	—
+Complete Sequence Summary
+[User Opens UI]
+      │
+      ▼
+[PolicyCoverageVerificationAgent (7707)] → GW PolicyCenter → policy_details
+      │
+      ▼
+[FNOLOrchestratorAgent (7730)] ← Steps 1–6 conversational intake
+      │  uses VoiceTextIntake MCP tools (7700)
+      │  → fnol_voice_text_extraction, fnol_ai_inferences
+      │  → fnol_mandatory_question_log, fnol_field_attribution
+      │
+      ▼
+[User clicks Submit]
+      │
+      ▼
+[VoiceTextIntakeAgent submit_fnol (7701)]
+      │  → GW ClaimCenter (create_claim + submit_claim)
+      │  → fnol_submissions, claims, claims_master, claim_journey_master
+      │
+      ├──→ [DocumentSubmissionAgent (7705)] → documents  (parallel, optional)
+      │
+      ▼
+[FNOLOrchestratorAgent Background Process (7730)]
+      │
+      ├─ Step 1: PolicyCoverageVerification → coverage_verification_results
+      ├─ Step 2: ClaimReadiness → intake_validation_result_output
+      ├─ Step 3: Segmentation → stp_classification, segmentation_result_output
+      └─ Step 4: AuditLog → policyholder_actions
+      │
+      ▼
+[Ongoing Agents]
+  ClaimStatusAgent (7703) — status queries
+  CommunicationAgent (7709) — notifications
+  FeedbackAgent (7706) — post-closure feedback
+Key dependencies:
+policy_details must exist before FNOL can be validated
+fnol_submissions must exist before background steps 2 and 3 can run
+claims (with claim_number from Guidewire) must exist before any downstream persona (Adjuster, VendorManager) can look up the claim
