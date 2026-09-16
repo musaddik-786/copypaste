@@ -1,82 +1,11 @@
-Let me read the remaining files I need before writing the changes.
+below is the testing for MOTOR lob , this POL-1003 number is present in the motor vehicle details table
 
-Read 2 files
+I had a road accident at around 8:30 AM while driving to work. The incident occurred at a traffic signal when another vehicle hit my car from behind. The rear bumper and tailgate were damaged. This happened today. It happened suddenly, and the impact was significant. I am very worried about the damage.
+[Tool: extract_fnol_fields_from_text] Starting...[Tool: extract_fnol_fields_from_text] DoneI'mheretohelpyoureportyourrecentvehicleincident.Toproceed,couldyoupleaseprovideyourpolicynumber?Thiswillhelpmelocateyourpolicyandstartyourclaimprocessrightaway.
+POL-1003
+[Tool: get_fnol_by_policy] Starting...[Tool: get_fnol_by_policy] Done[Tool: create_fnol_submission] Starting...[Tool: create_fnol_submission] Done[Tool: get_mandatory_fields] Starting...[Tool: get_mandatory_fields] Done[Tool: extract_fnol_fields_from_text] Starting...[Tool: extract_fnol_fields_from_text] Done[Tool: update_fnol_submission] Starting...[Tool: save_field_attribution] Starting...[Tool: save_field_attribution] Done[Tool: update_fnol_submission] Done[Tool: log_question_answer] Starting...[Tool: log_question_answer] Starting...[Tool: log_question_answer] Starting...[Tool: log_question_answer] Starting...[Tool: log_question_answer] Starting...[Tool: log_question_answer] Starting...[Tool: log_question_answer] Done[Tool: log_question_answer] Done[Tool: log_question_answer] Done[Tool: log_question_answer] Done[Tool: log_question_answer] Done[Tool: log_question_answer] Done[Tool: get_motor_vehicle_details] Starting...[Tool: get_motor_vehicle_details] Done[Tool: update_fnol_submission] Starting...[Tool: update_fnol_submission] Done[Tool: submit_fnol] Starting...[Tool: submit_fnol] DoneThankyouforprovidingthedetails.Here’sasummaryofyourreportedincident:-TypeofLoss:Collision-CauseofLoss:Rear-endedattrafficsignal-DateofLoss:-09-(today)-TimeofLoss:08:AM-AccidentLocation:Trafficsignal-Severity:High-Emotionalcontext:YousharedthatyouareveryworriedaboutthedamageYourpre-registeredvehicledetails:-Make:BMW-Model:New-Year:-RegistrationNumber:MH-02-CD-Allyouranswershavebeenrecordedandyourclaimhasbeensubmittedsuccessfully.Yourclaimnumberis:CLM--023.Ifanyofthesummarizedinformationneedscorrection,pleaseletmeknowrightaway.Otherwise,yourclaimisnowbeingprocessed,andourteamwillbeintouchforthenextsteps.Thankyou,andIunderstandthissituationisstressful.We’reheretosupportyou.End
 
-Now let me read the full active Motor section of fnol_handler.py to see all current functions.
 
-Read
-fnol_handler.py
-(815–1014, 1015–1214, 1355–1554)
 
-Now I have everything I need. I'll apply all changes across all 5 files. Let me start in parallel where possible.
 
-Dual-LOB Agent Updates
 
-Step 1 — models.py: add lob to all request models
-
-Edited
-models.py
-+7
--0
-
-Step 2 — voice_handler.py: add Homeowners extraction prompt, make LOB-aware
-
-Edited
-voice_handler.py
-+51
--3
-
-Step 3 — server.py: add lob to ChatRequest, dual prompts, LOB selection
-
-Edited
-server.py
-+1
--0
-
-Now replace the single _FALLBACK_PROMPT with both LOB prompts:
-
-Edited
-server.py
-+71
--1
-
-Now update the Motor prompt to end with _FALLBACK_PROMPT_MOTOR name and add LOB instruction:
-
-Read and edited server.py
-+5
--1
-
-Now update load_prompt and chat_stream to be LOB-aware:
-
-Edited
-server.py
-+15
--5
-
-Step 4 — fnol_handler.py: add LOB routing helpers, update all functions
-
-Edited
-fnol_handler.py
-+67
--0
-
-Now update cleanup_draft_fnols_for_policy to be LOB-aware:
-
-Edited
-fnol_handler.py
-+11
--21
-
-Now update create_fnol_submission with dual INSERT paths:
-
-Edited
-fnol_handler.py
-+76
--43
-
-Now update get_fnol_submission_by_id, get_fnol_submission_by_policy, _compute_overall_confidence, update_fnol_submission:
-
-Edited
-fnol_handler.py
-+4
--4
