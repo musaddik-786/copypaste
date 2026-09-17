@@ -1,22 +1,13 @@
--- 1. Draft FNOL created by Voice Text Intake Agent
-SELECT fnol_number, policy_number, loss_type, cause_of_loss, vehicle_make, vehicle_model, status
-FROM motor_fnol_submissions
-WHERE policy_number IN ('POL-1001','POL-1002','POL-1003')
-ORDER BY created_at DESC;
+for motor LOB after searching and saving to db i tested voice text intake agent
 
--- 2. Claim record created on FNOL submission
-SELECT claim_number, policy_number, loss_type, severity, status, filed_at
-FROM claims
-WHERE policy_number IN ('POL-1001','POL-1002','POL-1003')
-ORDER BY filed_at DESC;
+i want to file a claim
+Thankyouforreachingout.Tohelpyoufileyourclaim,mayIpleasehaveyourpolicynumber?Thiswillallowmetoretrieveyourpolicydetailsandstartyourclaimprocess.
+this is my policy number
+POL-1002
+[Tool: get_fnol_by_policy] Starting...[Tool: get_fnol_by_policy] DoneThankyouforprovidingyourpolicynumber(POL-).Itappearsthataclaimhasalreadybeensubmittedforthispolicy,involvingacollisionthatoccurredatHinjewadiPhase,Puneon-09-at:.Theclaimiscurrentlyin"submitted"status.Ifyouneedtofileanewclaimforadifferentincident,pleaseletmeknowandprovideabriefdescriptionofthenewincident.Otherwise,letmeknowifyouhavequestionsregardingyourexistingclaim.End
+i want to create a new claim
+[Tool: create_fnol_submission] Starting...[Tool: create_fnol_submission] Done[Tool: get_mandatory_fields] Starting...[Tool: get_mandatory_fields] DoneThankyou.Let’sstartyournewclaim.Tobetterassistyou,I’llneedafewdetailsabouttheincident:.Whattypeofmotorlossoccurred?(Collision,Theft,Vandalism,Fire,NaturalDisaster,Third-PartyLiability,WindshieldDamage).Whatcausedthelossordamage?Pleasedescribetheincident..Onwhatdatedidtheincidenthappen?(YYYY-MM-DD).Approximatelywhattimedidtheincidentoccur?.Wheredidtheaccidenttakeplace?Pleaseprovidethelocation..Howsevereisthevehicledamage?(Low,Medium,orHigh)Youcananswertheseinorderorjusttellmewhathappened,andI’llguideyouthroughanythingthat’sstillmissing.
+I had a road accident at around 8:30 AM while driving to work. The incident occurred at a traffic signal when another vehicle hit my car from behind. The rear bumper and tailgate were damaged. This happened today. It happened suddenly, and the impact was significant. I am very worried about the damage.
+[Tool: extract_fnol_fields_from_text] Starting...[Tool: extract_fnol_fields_from_text] Done[Tool: log_question_answer] Starting...[Tool: log_question_answer] Starting...[Tool: log_question_answer] Starting...[Tool: log_question_answer] Starting...[Tool: log_question_answer] Starting...[Tool: log_question_answer] Starting...[Tool: log_question_answer] Done[Tool: log_question_answer] Done[Tool: log_question_answer] Done[Tool: log_question_answer] Done[Tool: log_question_answer] Done[Tool: log_question_answer] Done[Tool: save_field_attribution] Starting...[Tool: update_fnol_submission] Starting...[Tool: save_field_attribution] Done[Tool: update_fnol_submission] Done[Tool: get_motor_vehicle_details] Starting...[Tool: get_motor_vehicle_details] Done[Tool: update_fnol_submission] Starting...[Tool: update_fnol_submission] Done[Tool: submit_fnol] Starting...[Tool: submit_fnol] DoneThankyouforprovidingtheincidentdetails.Here’sasummaryofyourclaimsubmission:-LossType:Collision-CauseofLoss:Anothervehiclerear-endedyourcaratatrafficsignalwhiledrivingtowork-DateofLoss:-09-(today)-TimeofLoss:08:AM-AccidentLocation:Trafficsignal-Severity:High(rearbumperandtailgatedamaged)-Yourexpressedconcern:Youareveryworriedaboutthedamage,andtheimpactwassignificant.Vehicledetails(pre-populatedfromourrecords):-Make/Model/Year:VolkswagenJetta-RegistrationNumber:MH-02-CD-Yourclaimhasbeensuccessfullysubmitted.Theassignedclaimnumberis:CLM--024.Ifanydetailaboveisincorrectorneedstobeupdated,pleaseletmeknowrightaway.Otherwise,ourclaimsteamwillbeintouchwithyouforthenextstepsshortly.IsthereanythingelseIcanassistyouwithtoday?End
 
--- 3. Coverage result written by Verification Agent
-SELECT claim_number, policy_number, coverage_verdict, exclusion_triggered,
-       net_payable, coverage_notes, verified_at
-FROM motor_coverage_verification_results
-ORDER BY verified_at DESC;
-
--- 4. Policy still has remaining coverage limit (after payment recording)
-SELECT policy_number, coverage_limit, remaining_coverage_limit, exclusions
-FROM motor_policy_details
-WHERE policy_number IN ('POL-1001','POL-1002','POL-1003');
+first tell me did it ran correctly also tell me how to verify that it ran correct 
