@@ -1,16 +1,2 @@
--- 1. Coverage verification result written by the agent
-SELECT claim_number, policy_number, coverage_verdict, exclusion_triggered,
-       exclusion_details, net_payable, coverage_notes, verified_at
-FROM motor_coverage_verification_results
-ORDER BY verified_at DESC LIMIT 5;
-
--- 2. The claim record it read from (should show CLM-2026-0256, POL-1003)
-SELECT claim_number, policy_number, loss_type, severity, estimated_cost, status
-FROM claims
-WHERE claim_number = 'CLM-2026-0256';
-
--- 3. The policy it read coverage data from
-SELECT policy_number, coverage_type, coverage_limit, remaining_coverage_limit,
-       deductible, exclusions
-FROM motor_policy_details
-WHERE policy_number = 'POL-1003';
+4849291929
+no i will use this policy number whichi generated freshly from gw 
