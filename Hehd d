@@ -1,51 +1,12 @@
--- Motor policy details (mimics what Guidewire PC returns for Homeowners)
-CREATE TABLE IF NOT EXISTS motor_policy_details (
-    policy_number       VARCHAR(100) PRIMARY KEY,
-    gw_policy_id        VARCHAR(100),
-    status              VARCHAR(50)  DEFAULT 'Active',
-    coverage_type       VARCHAR(100) DEFAULT 'Motor',
-    deductible          NUMERIC(12,2),
-    coverage_limit      NUMERIC(12,2),
-    remaining_coverage_limit NUMERIC(12,2),
-    exclusions          TEXT,
-    effective_date      DATE,
-    expiration_date     DATE,
-    premium_amount      NUMERIC(12,2),
-    policyholder_name   VARCHAR(200),
-    account_number      VARCHAR(100),
-    policy_address      TEXT,
-    state               VARCHAR(50),
-    term_type           VARCHAR(50),
-    currency            VARCHAR(10)  DEFAULT 'USD',
-    city                VARCHAR(100),
-    country             VARCHAR(100),
-    postal_code         VARCHAR(20),
-    created_at          TIMESTAMPTZ  DEFAULT NOW()
-);
-
--- Motor coverage verification results
-CREATE TABLE IF NOT EXISTS motor_coverage_verification_results (
-    id                  SERIAL PRIMARY KEY,
-    claim_number        VARCHAR(100) UNIQUE NOT NULL,
-    policy_number       VARCHAR(100),
-    coverage_verdict    VARCHAR(100),
-    exclusion_triggered BOOLEAN      DEFAULT FALSE,
-    exclusion_details   TEXT,
-    net_payable         NUMERIC(12,2),
-    coverage_notes      TEXT,
-    verified_at         TIMESTAMPTZ  DEFAULT NOW()
-);
-
--- Sample Motor policy data (pre-populated dummy records)
-INSERT INTO motor_policy_details (
-    policy_number, status, coverage_type,
-    deductible, coverage_limit, remaining_coverage_limit,
-    effective_date, expiration_date, premium_amount,
-    policyholder_name, account_number, currency
-) VALUES
-    ('POL-1001', 'Active', 'Motor', 500.00, 150000.00, 150000.00, '2025-01-01', '2026-01-01', 4500.00, 'John Smith',   'ACC-M-1001', 'USD'),
-    ('POL-1002', 'Active', 'Motor', 500.00, 120000.00, 120000.00, '2025-03-01', '2026-03-01', 3600.00, 'Jane Doe',     'ACC-M-1002', 'USD'),
-    ('POL-1003', 'Active', 'Motor', 750.00, 200000.00, 200000.00, '2025-06-01', '2026-06-01', 6000.00, 'Robert Jones', 'ACC-M-1003', 'USD'),
-    ('POL-1004', 'Active', 'Motor', 500.00, 100000.00, 100000.00, '2025-01-15', '2026-01-15', 3000.00, 'Mary Brown',   'ACC-M-1004', 'USD'),
-    ('POL-1005', 'Active', 'Motor', 250.00,  80000.00,  80000.00, '2025-02-01', '2026-02-01', 2400.00, 'David Wilson', 'ACC-M-1005', 'USD')
-ON CONFLICT (policy_number) DO NOTHING;
+I had a fire incident at 9 AM while I was at home. The incident occurred in the kitchen and caused damage to the flooring and cabinets. This happened today. It happened all of a sudden, and the damage was serious. I am very stressed.
+Thankyouforreachingout,andI'mverysorrytohearaboutthefireinyourhome.Iunderstandthisisastressfulsituation,andI'mheretohelpyouthroughtheclaimsprocess.Toproceed,couldyoupleaseprovideyourpolicynumber?Thiswillhelpmelocateyourpolicyandstartyourclaimrightaway.
+4061807702
+[Tool: get_fnol_by_policy] Starting...[Tool: get_fnol_by_policy] Done[Tool: create_fnol_submission] Starting...[Tool: create_fnol_submission] Done[Tool: get_mandatory_fields] Starting...[Tool: get_mandatory_fields] Done[Tool: extract_fnol_fields_from_text] Starting...[Tool: extract_fnol_fields_from_text] Done[Tool: log_question_answer] Starting...[Tool: log_question_answer] DoneIhavecapturedmostofthedetailsaboutyourfireincident.Couldyoupleaseprovidemoreinformationaboutwhatcausedthefire?Forexample,wasitduetoanappliancemalfunction,cookingaccident,electricalissue,orsomethingelse?Thiswillhelpmeaccuratelycompleteyourclaim.
+electrical
+[Tool: extract_fnol_fields_from_text] Starting...[Tool: log_question_answer] Starting...[Tool: log_question_answer] Done[Tool: extract_fnol_fields_from_text] Done[Tool: update_fnol_submission] Starting...[Tool: save_field_attribution] Starting...[Tool: save_field_attribution] Done[Tool: update_fnol_submission] DoneThankyouforconfirmingthecauseofthefireaselectrical.Ihavemostofyourincidentdetails,butforyourclaimtoproceed,Ineedtoconfirmthefollowing:-Yourlosstype(Isthisincidentbestdescribedasa"Fire"?)-Theexactdateofloss(Didtheincidenthappentoday,asinSeptember,?)Couldyoupleaseconfirmbothofthesedetailsforme?
+it happened today
+[Tool: extract_fnol_fields_from_text] Starting...[Tool: log_question_answer] Starting...[Tool: log_question_answer] Done[Tool: extract_fnol_fields_from_text] Done[Tool: update_fnol_submission] Starting...[Tool: save_field_attribution] Starting...[Tool: save_field_attribution] Done[Tool: update_fnol_submission] Done[Tool: create_fnol_submission] Starting...[Tool: create_fnol_submission] Done[Tool: update_fnol_submission] Starting...[Tool: get_mandatory_fields] Starting...[Tool: get_mandatory_fields] Done[Tool: update_fnol_submission] Done[Tool: update_fnol_submission] Starting...[Tool: update_fnol_submission] DoneHereisasummaryofyourclaimdetails:-Losstype:Fire-Causeofloss:Electrical-Dateofloss:-09-(today)-Timeofloss:09:00-Areaaffected:Kitchen,includingflooringandcabinets-Propertyoccupancy:Yes,youwereathome-Suddenvs.Gradual:Sudden-Severity:High-Emotionalcontext:YouareverystressedPleaseconfirmthatallofthesedetailsarecorrect,orletmeknowifanychangesareneededbeforeIsubmityourclaim.
+yes confirmed
+[Tool: update_fnol_submission] Starting...[Tool: update_fnol_submission] Done[Tool: get_fnol_by_policy] Starting...[Tool: get_fnol_by_policy] Done[Tool: update_fnol_submission] Starting...[Tool: update_fnol_submission] Done[Tool: submit_fnol] Starting...[Tool: submit_fnol] DoneYourclaimhasbeensuccessfullysubmitted.Herearethedetails:-Losstype:Fire-Cause:Electrical-Dateofloss:Today(-09-)-Timeofloss:09:00-Areaaffected:Kitchen,flooring,andcabinets-Severity:High-Youconfirmedyouwereathome,thedamagewassudden,andyouareverystressed.Yourassignedclaimnumberis:CLM--023.Aclaimsrepresentativewillcontactyousoontohelpwiththenextsteps.Ifyouneedurgentsupportorfurtherassistance,pleaseletusknow.End
+Claim # detected: CLM--023
+again it is sayin claim 023 man why is this happening
