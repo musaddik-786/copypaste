@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Jarvis Full-Flow Tester</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -164,9 +165,17 @@
   /* ── Center panel — Chat ── */
   .chat-panel { flex: 1; min-width: 0; background: var(--bg); }
   .messages { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 9px; }
-  .msg { max-width: 78%; padding: 9px 13px; border-radius: 11px; font-size: 13px; line-height: 1.55; white-space: pre-wrap; word-break: break-word; }
-  .msg.user  { background: var(--accent); color: #fff; align-self: flex-end; border-bottom-right-radius: 3px; }
-  .msg.agent { background: var(--card); color: var(--txt); align-self: flex-start; border-bottom-left-radius: 3px; }
+  .msg { max-width: 78%; padding: 9px 13px; border-radius: 11px; font-size: 13px; line-height: 1.6; word-break: break-word; }
+  .msg.user  { background: var(--accent); color: #fff; align-self: flex-end; border-bottom-right-radius: 3px; white-space: pre-wrap; }
+  .msg.agent { background: var(--card); color: var(--txt); align-self: flex-start; border-bottom-left-radius: 3px; white-space: normal; }
+  .msg.agent p { margin: 0 0 7px; }
+  .msg.agent p:last-child { margin-bottom: 0; }
+  .msg.agent ul, .msg.agent ol { padding-left: 18px; margin: 0 0 7px; }
+  .msg.agent li { margin-bottom: 3px; }
+  .msg.agent strong { color: var(--txt); font-weight: 700; }
+  .msg.agent em { color: var(--txt2); }
+  .msg.agent code { background: var(--bg); padding: 1px 5px; border-radius: 3px; font-size: 11px; font-family: monospace; color: var(--blue); }
+  .msg.agent h1, .msg.agent h2, .msg.agent h3 { margin: 8px 0 4px; font-size: 13px; font-weight: 700; color: var(--txt); }
   .msg.agent.streaming { border-left: 2px solid var(--accent); }
   .msg.system { background: rgba(52,211,153,.1); color: var(--phase3); font-size: 11px; align-self: center; padding: 3px 12px; border-radius: 20px; }
   .msg.error  { background: var(--red-bg); color: var(--red); font-size: 12px; align-self: center; padding: 6px 13px; border-radius: 8px; }
@@ -568,17 +577,24 @@
         buf = lines.pop();
         for (const line of lines) {
           if (!line.startsWith('data: ')) continue;
-          const raw = line.slice(6).trim();
-          if (!raw || raw === '[DONE]') continue;
+          // Keep raw with spaces intact — trimming strips leading spaces from tokens
+          // e.g. " The" becomes "The" and words run together
+          const raw = line.slice(6);
+          const rawTrimmed = raw.trim();
+          if (!rawTrimmed || rawTrimmed === '[DONE]') continue;
+          // Tool status lines go to console only — not into the chat bubble
+          if (rawTrimmed.startsWith('[Tool:') || rawTrimmed.startsWith('[AGENT_ERROR]')) {
+            console.log('[Agent]', rawTrimmed);
+            continue;
+          }
           try {
-            const parsed = JSON.parse(raw);
+            const parsed = JSON.parse(rawTrimmed);
             const chunk = parsed.content ?? parsed.text ?? parsed.delta ?? '';
             fullText += chunk;
-            agentEl.textContent = fullText;
           } catch {
-            fullText += raw;
-            agentEl.textContent = fullText;
+            fullText += raw; // use raw (with spaces) not trimmed
           }
+          agentEl.innerHTML = _renderMarkdown(fullText);
           document.getElementById('messages').scrollTop = 99999;
         }
       }
@@ -599,10 +615,24 @@
     setTimeout(refreshFnol, 800);
   }
 
+  // Render markdown for agent messages; fallback to basic HTML escaping
+  function _renderMarkdown(text) {
+    if (typeof marked !== 'undefined') {
+      try { return marked.parse(text); } catch(e) {}
+    }
+    // Fallback: escape HTML then apply minimal formatting
+    const esc = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return esc
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/\n\n/g, '</p><p>')
+      .replace(/\n/g, '<br>');
+  }
+
   function _extractIdsFromText(text) {
-    // Extract claim number like CLM-2026-0042 or CLM--023
+    // Extract claim number — strict format CLM-YYYY-NNNN only to avoid garbled matches
     if (!claimNumber) {
-      const clmMatch = text.match(/\b(CLM[-–][^\s,."']{2,20})/i);
+      const clmMatch = text.match(/\b(CLM[-–]\d{4}[-–]\d{3,6})\b/i);
       if (clmMatch) {
         claimNumber = clmMatch[1];
         document.getElementById('verifyCoverageBtn').disabled = false;
@@ -803,18 +833,26 @@
     const verdict = d.coverage_verdict || '';
     const badgeCls = verdictBadgeClass(verdict);
 
+    const isMotor = lob === 'Motor';
+    const licenseOk = d.license_valid === undefined || d.license_valid === true || d.license_valid === 1;
+
     const html = `
       <div class="coverage-card">
         <div class="coverage-verdict-row">
           <span class="kv-label">Verdict</span>
           <span class="badge ${badgeCls}">${verdict || 'Unknown'}</span>
         </div>
+        ${isMotor && d.claim_type ? `<div class="kv"><span class="kv-label">Claim Type</span><span class="kv-value" style="color:var(--blue);font-weight:600">${d.claim_type} (${d.claim_type === 'OD' ? 'Own Damage' : 'Third Party'})</span></div>` : ''}
         <div class="kv"><span class="kv-label">Exclusion Triggered</span><span class="kv-value">${d.exclusion_triggered ? 'Yes' : 'No'}</span></div>
         ${d.exclusion_details ? `<div class="kv"><span class="kv-label">Exclusion</span><span class="kv-value">${d.exclusion_details}</span></div>` : ''}
+        ${isMotor ? `<div class="kv"><span class="kv-label">Driver License</span><span class="kv-value" style="color:${licenseOk ? 'var(--green)' : 'var(--red)'}">${licenseOk ? 'Valid ✓' : 'EXPIRED ✗'}</span></div>` : ''}
+        ${isMotor && !licenseOk && d.license_expiry_note ? `<div class="kv"><span class="kv-label">License Note</span><span class="kv-value" style="color:var(--red);font-size:10px">${d.license_expiry_note}</span></div>` : ''}
+        ${isMotor ? `<div class="kv"><span class="kv-label">Zero Dep Applied</span><span class="kv-value" style="color:${d.zero_dep_applied ? 'var(--green)' : 'var(--txt3)'}">${d.zero_dep_applied ? 'Yes ✓' : 'No'}</span></div>` : ''}
+        ${isMotor && d.engine_protection_note ? `<div class="kv"><span class="kv-label">Engine Protection</span><span class="kv-value" style="color:var(--amber);font-size:10px">${d.engine_protection_note}</span></div>` : ''}
       </div>
       <div class="amounts-row">
         <div class="amount-tile">
-          <div class="amount-label">Coverage Limit</div>
+          <div class="amount-label">${isMotor && d.claim_type ? d.claim_type + ' Limit' : 'Coverage Limit'}</div>
           <div class="amount">${formatCurrency(d.remaining_coverage_limit ?? d.coverage_limit)}</div>
         </div>
         <div class="amount-tile">
