@@ -1,30 +1,22 @@
-
-
 """
-handler.py — Policy Coverage Verification (dual-LOB: Homeowners + Motor)
-──────────────────────────────────────────────────────────────────────────
-Homeowners: Guidewire PolicyCenter lookup → local policy_details table
-Motor:      Local motor_policy_details table (pre-populated dummy data,
-            mimics what Guidewire PC would return for real motor policies)
+handler.py — Claim Readiness
+─────────────────────────────
+Validates that all mandatory FNOL fields AND required documents are present
+for a claim, runs an initial fraud pre-screen, and writes the result to
+intake_validation_result_output.
 """
 
 import json
 import logging
 import os
-import random
 import sys
 from datetime import datetime
-from zoneinfo import ZoneInfo
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "common"))
 
 from db import get_db_connection, row_to_dict  # noqa: E402
 from dotenv import load_dotenv, find_dotenv
 from openai import AzureOpenAI
-try:
-    from policy_coverage_mcp import guidewire_client
-except ImportError:
-    guidewire_client = None
 
 load_dotenv(find_dotenv())
 
@@ -35,27 +27,46 @@ AZURE_OPENAI_API_KEY = os.environ.get("AZURE_OPENAI_API_KEY", "")
 AZURE_OPENAI_API_VERSION = os.environ.get("AZURE_OPENAI_API_VERSION", "2025-01-01-preview")
 AZURE_OPENAI_CHAT_DEPLOYMENT = os.environ.get("AZURE_OPENAI_CHAT_DEPLOYMENT", "gpt-4.1-claims")
 
-LOCAL_ONLY_POLICY_NUMBERS = {"73-300676", "73-400676", "73-123676"}
+_REQUIRED_FNOL_FIELDS = [
+    "policy_number", "date_of_loss", "loss_type", "cause_of_loss",
+    "short_description", "claimant_name", "contact_phone",
+]
 
+# Mandatory field_name values whose data lives under a differently-named
+# column in the source table (policy_details.policy_address stores the
+# fnol_mandatory_fields "policyholder_address" entry).
+_MANDATORY_FIELD_ALIASES = {
+    "policyholder_address": "policy_address",
+}
 
-# ── LOB routing helpers ───────────────────────────────────────────────────────
+# ── LOB helpers ───────────────────────────────────────────────────────────────
 
 def _is_motor(lob: str) -> bool:
     return (lob or "").strip().lower() == "motor"
+
+
+def _fnol_table(lob: str) -> str:
+    return "motor_fnol_submissions" if _is_motor(lob) else "fnol_submissions"
 
 
 def _policy_table(lob: str) -> str:
     return "motor_policy_details" if _is_motor(lob) else "policy_details"
 
 
-def _claims_table(lob: str) -> str:
-    """Both Motor and HO claim records (with claim_number) live in the claims table.
-    motor_fnol_submissions is the draft/intake table and has no claim_number column."""
-    return "claims"
+def _intake_table(lob: str) -> str:
+    return "motor_intake_validation_result_output" if _is_motor(lob) else "intake_validation_result_output"
 
 
-def _coverage_table(lob: str) -> str:
-    return "motor_coverage_verification_results" if _is_motor(lob) else "coverage_verification_results"
+# ── Motor mandatory FNOL fields ───────────────────────────────────────────────
+# Vehicle fields (vin, driver_license, etc.) come from motor_vehicle_details
+# (pre-populated per policy) but are still checked for presence in readiness.
+_REQUIRED_MOTOR_FNOL_FIELDS = [
+    "policy_number", "date_of_loss", "loss_type", "accident_location",
+    "driver_license", "vin", "registration_number",
+    "vehicle_make", "vehicle_model",
+]
+
+_MOTOR_VEHICLE_FIELDS = ["vin", "driver_license", "registration_number", "vehicle_make", "vehicle_model"]
 
 
 def _get_openai_client() -> AzureOpenAI:
@@ -66,414 +77,1460 @@ def _get_openai_client() -> AzureOpenAI:
     )
 
 
-def _policy_from_local_row(row: dict) -> dict:
-    """Maps a policy_details / motor_policy_details row into the shape gw_search_policy returns."""
-    coverage_type = row.get("coverage_type")
-    return {
-        "gw_policy_id": row.get("gw_policy_id") or "",
-        "policy_number": row.get("policy_number") or "",
-        "status": row.get("status") or "Unknown",
-        "effective_date": row.get("effective_date"),
-        "expiration_date": row.get("expiration_date"),
-        "coverage_types": [coverage_type] if coverage_type else [],
-        "policyholder_name": row.get("policyholder_name") or "",
-        "policyholder_address": row.get("policy_address") or "",
-        "account_number": row.get("account_number") or "",
-        "product_name": coverage_type or "",
-        "raw": None,
-    }
-
-
-# ── Policy Search ─────────────────────────────────────────────────────────────
-
-def gw_search_policy(policy_number: str, lob: str = "Homeowners") -> dict:
+def acknowledge_missing_docs(claim_number: str, lob: str = "Homeowners", notes: str = None) -> dict:
     """
-    Motor: reads from motor_policy_details (no Guidewire call).
-    Homeowners: checks LOCAL_ONLY_POLICY_NUMBERS first, else hits Guidewire PC.
+    Record that the policyholder acknowledged they have no documents to upload
+    right now. Sets docs_status = 'Acknowledged - Not Available' so downstream
+    agents (adjuster workflow) know to request evidence before processing.
     """
-    trimmed = (policy_number or "").strip()
-
-    if _is_motor(lob):
-        row = get_policy_details(trimmed, lob=lob)
-        if not row:
-            return {
-                "found": False,
-                "policy": None,
-                "error": f"Motor policy '{trimmed}' not found in motor_policy_details table.",
-                "raw_gw_response": {},
-            }
-        return {"found": True, "policy": _policy_from_local_row(row), "error": None, "raw_gw_response": None}
-
-    # Homeowners — check local-only set first
-    if trimmed in LOCAL_ONLY_POLICY_NUMBERS:
-        row = get_policy_details(trimmed, lob=lob)
-        if not row:
-            return {
-                "found": False,
-                "policy": None,
-                "error": f"Policy '{trimmed}' not found in local policy_details table.",
-                "raw_gw_response": {},
-            }
-        return {"found": True, "policy": _policy_from_local_row(row), "error": None, "raw_gw_response": None}
-
-    try:
-        raw = guidewire_client.search_policy(policy_number)
-        parsed = guidewire_client.parse_policy_from_search(raw)
-        if not parsed:
-            return {
-                "found": False,
-                "policy": None,
-                "error": f"No policy found in Guidewire for policy number '{policy_number}'.",
-                "raw_gw_response": raw,
-            }
-        return {"found": True, "policy": parsed, "error": None, "raw_gw_response": raw}
-    except Exception as exc:
-        status_code = getattr(getattr(exc, "response", None), "status_code", None)
-        if status_code == 404:
-            return {
-                "found": False, "policy": None,
-                "error": f"Policy '{policy_number}' not found in Guidewire (HTTP 404).",
-                "raw_gw_response": {},
-            }
-        log.exception("Guidewire policy search failed for %s", policy_number)
-        return {
-            "found": False, "policy": None,
-            "error": f"Guidewire API error: {str(exc)}", "raw_gw_response": {},
-        }
-
-
-# ── Policy Coverages ──────────────────────────────────────────────────────────
-
-def gw_get_policy_coverages(policy_number: str, lob: str = "Homeowners") -> dict:
-    """
-    Motor: returns coverage detail directly from motor_policy_details row.
-    Homeowners: fetches from Guidewire PolicyCenter.
-    """
-    search_result = gw_search_policy(policy_number, lob=lob)
-    if not search_result["found"]:
-        return search_result
-
-    if _is_motor(lob):
-        row = get_policy_details(policy_number, lob=lob)
-        return {"found": True, "policy_id": policy_number, "coverage_detail": row, "error": None}
-
-    gw_policy_id = search_result["policy"]["gw_policy_id"]
-    try:
-        detail = guidewire_client.get_policy_coverages(gw_policy_id)
-        return {"found": True, "policy_id": gw_policy_id, "coverage_detail": detail, "error": None}
-    except Exception as exc:
-        log.exception("gw_get_policy_coverages failed for %s", gw_policy_id)
-        return {"found": False, "policy_id": gw_policy_id, "coverage_detail": None, "error": str(exc)}
-
-
-# ── Local DB: Save & Read policy_details / motor_policy_details ──────────────
-
-def save_policy_details(policy_number: str, lob: str = "Homeowners") -> dict:
-    """
-    Motor: motor_policy_details is pre-populated with dummy data; no GW fetch needed.
-           Just returns the existing record (or error if not found).
-    Homeowners: fetches from Guidewire and upserts to policy_details.
-    """
-    trimmed = (policy_number or "").strip()
-
-    if _is_motor(lob):
-        row = get_policy_details(trimmed, lob=lob)
-        if not row:
-            return {
-                "found": False, "policy": None,
-                "error": f"Motor policy '{trimmed}' not found in motor_policy_details. Pre-populate the table first.",
-                "raw_gw_response": {},
-            }
-        return {"saved": True, **row}
-
-    # Homeowners LOCAL_ONLY short-circuit
-    if trimmed in LOCAL_ONLY_POLICY_NUMBERS:
-        row = get_policy_details(trimmed, lob=lob)
-        if not row:
-            return {"found": False, "policy": None, "error": f"Policy '{trimmed}' not found in local policy_details table.", "raw_gw_response": {}}
-        return {"saved": True, **row}
-
-    search_result = gw_search_policy(policy_number, lob=lob)
-    if not search_result["found"]:
-        return search_result
-
-    policy = search_result["policy"]
-    gw_policy_id = policy.get("gw_policy_id")
-    effective_date = policy.get("effective_date")
-    expiration_date = policy.get("expiration_date")
-    policyholder_name = policy.get("policyholder_name")
-    account_number = policy.get("account_number")
-    policy_address = policy.get("policyholder_address") or (
-        policy.get("raw", {})
-        .get("data", [{}])[0]
-        .get("attributes", {})
-        .get("policyAddress")
-    )
-
-    coverage_result = gw_get_policy_coverages(policy_number, lob=lob)
-    attrs = {}
-    if coverage_result.get("found"):
-        raw_detail = coverage_result.get("coverage_detail", {})
-        log.info("[GW DEBUG] raw_detail top-level keys: %s", list(raw_detail.keys()) if isinstance(raw_detail, dict) else type(raw_detail).__name__)
-        data_node = raw_detail.get("data", {}) if isinstance(raw_detail, dict) else {}
-        log.info("[GW DEBUG] data_node type=%s", type(data_node).__name__)
-        # Guidewire detail endpoint may return data as a dict (single record) or as a list
-        if isinstance(data_node, list):
-            log.info("[GW DEBUG] data is a LIST with %d items — taking first element", len(data_node))
-            data_node = data_node[0] if data_node else {}
-        attrs = data_node.get("attributes", {}) if isinstance(data_node, dict) else {}
-        log.info("[GW DEBUG] attrs keys: %s", sorted(attrs.keys()))
-        log.info("[GW DEBUG] totalPremium=%s  lines_type=%s", attrs.get("totalPremium"), type(attrs.get("lines")).__name__)
-    else:
-        log.warning("[GW DEBUG] gw_get_policy_coverages not found for %s: %s", policy_number, coverage_result.get("error"))
-
-    state = attrs.get("baseState", {}).get("name") if isinstance(attrs.get("baseState"), dict) else None
-    term_type = attrs.get("termType", {}).get("name") if isinstance(attrs.get("termType"), dict) else None
-    premium_amount = (attrs.get("totalPremium") or {}).get("amount") if isinstance(attrs.get("totalPremium"), dict) else None
-    currency = (attrs.get("preferredCoverageCurrency") or {}).get("code") if isinstance(attrs.get("preferredCoverageCurrency"), dict) else None
-
-    addr = attrs.get("policyAddress") or {}
-    city = addr.get("city") if isinstance(addr, dict) else None
-    country = addr.get("country") if isinstance(addr, dict) else None
-    postal_code = addr.get("postalCode") if isinstance(addr, dict) else None
-
-    product_name = (attrs.get("product") or {}).get("displayName", "") if isinstance(attrs.get("product"), dict) else ""
-    coverage_type = "Homeowners" if "Homeowners" in product_name else (product_name or policy.get("product_name", ""))
-    status = "Active" if coverage_result.get("found") else (policy.get("status") or "Unknown")
-
-    # Extract deductible, coverage limit, and exclusions from Guidewire coverage lines
-    # deductible = None
-    # coverage_limit = None
-    # exclusions_list = []
-
-    # lines_data = (attrs.get("lines") or {}).get("data", []) if isinstance(attrs.get("lines"), dict) else []
-    # for line in lines_data:
-    #     line_attrs = line.get("attributes", {}) if isinstance(line, dict) else {}
-    #     coverages_data = (line_attrs.get("coverages") or {}).get("data", []) if isinstance(line_attrs.get("coverages"), dict) else []
-    #     for cov in coverages_data:
-    #         cov_attrs = cov.get("attributes", {}) if isinstance(cov, dict) else {}
-    #         # Deductible — take the first non-null value found
-    #         if deductible is None:
-    #             ded = cov_attrs.get("deductible") or {}
-    #             if isinstance(ded, dict) and ded.get("amount") is not None:
-    #                 try:
-    #                     deductible = float(ded["amount"])
-    #                 except (TypeError, ValueError):
-    #                     pass
-    #         # Coverage limit
-    #         if coverage_limit is None:
-    #             lim = cov_attrs.get("coverageAmount") or cov_attrs.get("limit") or {}
-    #             if isinstance(lim, dict) and lim.get("amount") is not None:
-    #                 try:
-    #                     # coverage_limit = float(lim["amount"])
-    #                     coverage_limit = 500000
-    #                 except (TypeError, ValueError):
-    #                     pass
-    #         # Exclusions
-    #         for excl in (cov_attrs.get("exclusions") or []):
-    #             name = (excl.get("attributes") or {}).get("name") if isinstance(excl, dict) else None
-    #             if name:
-    #                 exclusions_list.append(name)
-
-    # exclusions = ",".join(exclusions_list) if exclusions_list else None
-
-
-
-
-
-
-
-# Extract deductible, coverage limit, and exclusions from Guidewire coverage lines
-    # deductible = None
-    # coverage_limit = None
-    # exclusions_list = []
-    # lines_data = (attrs.get("lines") or {}).get("data", []) if isinstance(attrs.get("lines"), dict) else []
-    # for line in lines_data:
-    #     line_attrs = line.get("attributes", {}) if isinstance(line, dict) else {}
-    #     coverages_data = (
-    #         (line_attrs.get("coverages") or {}).get("data", [])
-    #         if isinstance(line_attrs.get("coverages"), dict)
-    #         else []
-    #     )
-    #     for cov in coverages_data:
-    #         cov_attrs = cov.get("attributes", {}) if isinstance(cov, dict) else {}
-    #         # Deductible
-    #         if deductible is None:
-    #             ded = cov_attrs.get("deductible") or {}
-    #             if isinstance(ded, dict) and ded.get("amount") is not None:
-    #                 try:
-    #                     deductible = float(ded["amount"])
-    #                 except (TypeError, ValueError):
-    #                     pass
-    #         # Coverage Limit
-    #         if coverage_limit is None:
-    #             lim = cov_attrs.get("coverageAmount") or cov_attrs.get("limit") or {}
-    #             if isinstance(lim, dict) and lim.get("amount") is not None:
-    #                 try:
-    #                     coverage_limit = float(lim["amount"])
-    #                 except (TypeError, ValueError):
-    #                     pass
-    #         # Exclusions
-    #         for excl in (cov_attrs.get("exclusions") or []):
-    #             name = (
-    #                 (excl.get("attributes") or {}).get("name")
-    #                 if isinstance(excl, dict)
-    #                 else None
-    #             )
-    #             if name:
-    #                 exclusions_list.append(name)
-    # # Fallback ONLY if Guidewire did not provide a coverage limit
-    # if coverage_limit is None:
-    #     log.warning(
-    #         "Guidewire did not return a coverage limit for policy %s. Using default PoC value 500000.",
-    #         policy_number,
-    #     )
-    #     coverage_limit = 500000.0
-    # exclusions = ",".join(exclusions_list) if exclusions_list else None
-
-
-
-
-
-
-
-
-    # Extract deductible, coverage limit, and exclusions from Guidewire coverage lines
-    deductible = None
-    coverage_limit = None
-    exclusions_list = []
-
-    lines_data = (
-        (attrs.get("lines") or {}).get("data", [])
-        if isinstance(attrs.get("lines"), dict)
-        else []
-    )
-
-    for line in lines_data:
-        line_attrs = line.get("attributes", {}) if isinstance(line, dict) else {}
-
-        coverages_data = (
-            (line_attrs.get("coverages") or {}).get("data", [])
-            if isinstance(line_attrs.get("coverages"), dict)
-            else []
-        )
-
-        for cov in coverages_data:
-            cov_attrs = cov.get("attributes", {}) if isinstance(cov, dict) else {}
-
-            # Deductible from Guidewire
-            if deductible is None:
-                ded = cov_attrs.get("deductible") or {}
-                if isinstance(ded, dict) and ded.get("amount") is not None:
-                    try:
-                        deductible = float(ded["amount"])
-                    except (TypeError, ValueError):
-                        pass
-
-            # Coverage Limit from Guidewire
-            if coverage_limit is None:
-                lim = cov_attrs.get("coverageAmount") or cov_attrs.get("limit") or {}
-                if isinstance(lim, dict) and lim.get("amount") is not None:
-                    try:
-                        coverage_limit = float(lim["amount"])
-                    except (TypeError, ValueError):
-                        pass
-
-            # Exclusions
-            for excl in (cov_attrs.get("exclusions") or []):
-                name = (
-                    (excl.get("attributes") or {}).get("name")
-                    if isinstance(excl, dict)
-                    else None
-                )
-                if name:
-                    exclusions_list.append(name)
-
-    # ------------------------------------------------------------------
-    # PoC fallback logic when Guidewire does not provide values
-    # ------------------------------------------------------------------
-    coverage = (coverage_type or "").lower()
-
-    if premium_amount is not None:
-        premium_amount = float(premium_amount)
-
-        # Coverage Limit
-        # Industry benchmark: homeowners premium ≈ 0.7% of dwelling coverage → limit = premium / 0.007
-        # Vehicle premium ≈ 3% of vehicle value → limit = premium / 0.03
-        if coverage_limit is None:
-            if "vehicle" in coverage:
-                coverage_limit = round(premium_amount / 0.03, 2)
-            elif "homeowners" in coverage or "personal" in coverage:
-                coverage_limit = round(premium_amount / 0.007, 2)
-            log.info(
-                "Coverage limit not returned by Guidewire. Calculated value: %s",
-                coverage_limit,
-            )
-
-        # Deductible
-        # Homeowners: typically $1,000–$2,500; approximate as 1% of coverage limit
-        # Vehicle: typically $500–$1,000; approximate as 1% of coverage limit
-        if deductible is None:
-            if coverage_limit is not None:
-                deductible = round(coverage_limit * 0.01, 2)
-            elif "vehicle" in coverage:
-                deductible = round(premium_amount * 0.35, 2)
-            elif "homeowners" in coverage or "personal" in coverage:
-                deductible = round(premium_amount * 0.65, 2)
-            log.info(
-                "Deductible not returned by Guidewire. Calculated value: %s",
-                deductible,
-            )
-
-    exclusions = ",".join(exclusions_list) if exclusions_list else None
-
-
-
+    tbl = _intake_table(lob)
     conn = get_db_connection()
     try:
         cur = conn.cursor()
         cur.execute(
-            """
-            INSERT INTO policy_details (
-                policy_number, gw_policy_id, status, coverage_type,
-                deductible, coverage_limit, remaining_coverage_limit, exclusions,
-                effective_date, expiration_date, premium_amount,
-                policyholder_name, account_number, policy_address,
-                state, term_type, currency, city, country, postal_code
-            ) VALUES (
-                %s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s
-            )
-            ON CONFLICT (policy_number) DO UPDATE SET
-                gw_policy_id = EXCLUDED.gw_policy_id,
-                status = EXCLUDED.status,
-                coverage_type = EXCLUDED.coverage_type,
-                deductible = EXCLUDED.deductible,
-                coverage_limit = EXCLUDED.coverage_limit,
-                remaining_coverage_limit = COALESCE(
-                    policy_details.remaining_coverage_limit, EXCLUDED.coverage_limit
-                ),
-                exclusions = EXCLUDED.exclusions,
-                effective_date = EXCLUDED.effective_date,
-                expiration_date = EXCLUDED.expiration_date,
-                premium_amount = EXCLUDED.premium_amount,
-                policyholder_name = EXCLUDED.policyholder_name,
-                account_number = EXCLUDED.account_number,
-                policy_address = EXCLUDED.policy_address,
-                state = EXCLUDED.state,
-                term_type = EXCLUDED.term_type,
-                currency = EXCLUDED.currency,
-                city = EXCLUDED.city,
-                country = EXCLUDED.country,
-                postal_code = EXCLUDED.postal_code
+            f"""
+            INSERT INTO {tbl}
+              (claim_number, docs_status, missing_docs, validated_at)
+            VALUES (%s, %s, %s, %s)
+            ON CONFLICT (claim_number) DO UPDATE SET
+              docs_status  = 'Acknowledged - Not Available',
+              missing_docs = COALESCE(
+                  {tbl}.missing_docs,
+                  EXCLUDED.missing_docs
+              ),
+              validated_at = EXCLUDED.validated_at
             """,
             (
-                policy_number, gw_policy_id, status, coverage_type,
-                deductible, coverage_limit, coverage_limit, exclusions,
-                effective_date, expiration_date, premium_amount,
-                policyholder_name, account_number, policy_address,
-                state, term_type, currency, city, country, postal_code,
+                claim_number,
+                "Acknowledged - Not Available",
+                json.dumps(["No documents submitted — policyholder acknowledged"
+                            + (f": {notes}" if notes else "")]),
+                datetime.utcnow().isoformat(),
             ),
         )
+        conn.commit()
+        log.info("acknowledge_missing_docs: claim_number=%s lob=%s noted", claim_number, lob)
+        return {
+            "claim_number": claim_number,
+            "docs_status": "Acknowledged - Not Available",
+            "message": (
+                "Recorded. Your FNOL and Claim ID are saved. "
+                "The adjuster may request documents before the claim can be processed further."
+            ),
+        }
+    except Exception as e:
+        conn.rollback()
+        log.error("acknowledge_missing_docs error: %s", e)
+        return {"error": str(e)}
+    finally:
+        conn.close()
+
+
+def get_intake_validation_result(claim_number: str, lob: str = "Homeowners") -> dict:
+    tbl = _intake_table(lob)
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            f"SELECT * FROM {tbl} WHERE claim_number = %s ORDER BY id DESC LIMIT 1",
+            (claim_number,),
+        )
+        return row_to_dict(cur.fetchone())
+    finally:
+        conn.close()
+
+
+def score_claim_readiness(claim_number: str, lob: str = "Homeowners") -> dict:  # noqa: C901
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+
+        # ── Fetch claim (same table for all LOBs) ─────────────────────────────
+        cur.execute(
+            "SELECT * FROM claims WHERE claim_number = %s OR id::text = %s LIMIT 1",
+            (claim_number, claim_number),
+        )
+        claim = row_to_dict(cur.fetchone())
+        if not claim:
+            return {"error": f"claim_number {claim_number} not found"}
+
+        policy_number = claim.get("policy_number")
+
+        if _is_motor(lob):
+            # ── Motor: FNOL from motor_fnol_submissions ──────────────────────
+            cur.execute(
+                "SELECT * FROM motor_fnol_submissions WHERE policy_number = %s ORDER BY submitted_at DESC LIMIT 1",
+                (policy_number,),
+            )
+            fnol = row_to_dict(cur.fetchone()) or {}
+
+            # ── Motor: policy from motor_policy_details ──────────────────────
+            cur.execute(
+                "SELECT * FROM motor_policy_details WHERE policy_number = %s LIMIT 1",
+                (policy_number,),
+            )
+            policy = row_to_dict(cur.fetchone()) or {}
+
+            # ── Motor: vehicle details from motor_vehicle_details ────────────
+            cur.execute(
+                "SELECT * FROM motor_vehicle_details WHERE policy_number = %s LIMIT 1",
+                (policy_number,),
+            )
+            vehicle = row_to_dict(cur.fetchone()) or {}
+
+            # ── Motor mandatory fields (DB or fallback) ──────────────────────
+            try:
+                cur.execute("SELECT * FROM motor_fnol_mandatory_fields ORDER BY display_order")
+                rows = cur.fetchall()
+                mandatory_fields = [row_to_dict(r)["field_name"] for r in rows if row_to_dict(r).get("field_name")]
+            except Exception:
+                conn.rollback()
+                mandatory_fields = list(_REQUIRED_MOTOR_FNOL_FIELDS)
+
+            # Always include vehicle fields — they're pre-populated from motor_vehicle_details
+            for vf in _MOTOR_VEHICLE_FIELDS:
+                if vf not in mandatory_fields:
+                    mandatory_fields.append(vf)
+
+        else:
+            # ── Homeowners: FNOL from fnol_submissions ───────────────────────
+            cur.execute(
+                "SELECT * FROM fnol_submissions WHERE policy_number = %s ORDER BY submitted_at DESC LIMIT 1",
+                (policy_number,),
+            )
+            fnol = row_to_dict(cur.fetchone()) or {}
+
+            # ── HO: policy from policy_details ──────────────────────────────
+            cur.execute(
+                "SELECT * FROM policy_details WHERE policy_number = %s LIMIT 1",
+                (policy_number,),
+            )
+            policy = row_to_dict(cur.fetchone()) or {}
+            vehicle = {}
+
+            try:
+                cur.execute("SELECT * FROM fnol_mandatory_fields ORDER BY display_order")
+                rows = cur.fetchall()
+                mandatory_fields = [row_to_dict(r)["field_name"] for r in rows if row_to_dict(r).get("field_name")]
+            except Exception:
+                conn.rollback()
+                mandatory_fields = _REQUIRED_FNOL_FIELDS
+
+        # ── Fetch uploaded documents ──────────────────────────────────────────
+        cur.execute(
+            "SELECT document_type, file_name, status FROM documents WHERE claim_number = %s",
+            (claim_number,),
+        )
+        doc_rows = [row_to_dict(r) for r in cur.fetchall()]
+
+    finally:
+        conn.close()
+
+    # ── Field completeness ────────────────────────────────────────────────────
+    if _is_motor(lob):
+        merged = {**claim, **fnol, **policy, **vehicle}
+        field_aliases = {}
+    else:
+        merged = {**claim, **fnol, **policy}
+        field_aliases = _MANDATORY_FIELD_ALIASES
+
+    missing_fields = [
+        f for f in mandatory_fields
+        if not merged.get(field_aliases.get(f, f))
+    ]
+    present_count = len(mandatory_fields) - len(missing_fields)
+    completeness_score = round((present_count / len(mandatory_fields)) * 100) if mandatory_fields else 0
+
+    # ── Document completeness ─────────────────────────────────────────────────
+    validated_docs = [d for d in doc_rows if (d or {}).get("status") not in (None, "Failed")]
+
+    if _is_motor(lob):
+        # Motor document checklist
+        _motor_img_types = {"Image", "Dashcam Video", "Damage Photo", "Video"}
+        _motor_dl_types = {"Driving License", "DL", "Driver License"}
+        _motor_rc_types = {"RC Book", "Vehicle Registration", "Registration Certificate"}
+        _motor_fir_types = {"Police FIR", "FIR", "Police Report"}
+
+        has_damage_photo = any(d["document_type"] in _motor_img_types for d in validated_docs)
+        has_dl_doc       = any(d["document_type"] in _motor_dl_types  for d in validated_docs)
+        has_rc_book      = any(d["document_type"] in _motor_rc_types  for d in validated_docs)
+        has_police_fir   = any(d["document_type"] in _motor_fir_types for d in validated_docs)
+
+        missing_docs = []
+        if not has_damage_photo:
+            missing_docs.append("Damage photo or dashcam footage required")
+
+        # FIR required only for theft / third-party / hit-and-run
+        loss_type_lower = (claim.get("loss_type") or fnol.get("loss_type") or "").lower()
+        fir_required = any(k in loss_type_lower for k in ("theft", "third", "hit and run", "hit-and-run"))
+        if fir_required and not has_police_fir:
+            missing_docs.append("Police FIR required for theft/hit-and-run/third-party claims")
+
+        # Recommended (not blocking)
+        if not has_dl_doc:
+            missing_docs.append("Driving License copy recommended")
+        if not has_rc_book:
+            missing_docs.append("Vehicle Registration Certificate (RC Book) recommended")
+
+        # docs_status = Incomplete only when a *required* item is missing
+        blocking_docs = [d for d in missing_docs if "required" in d and "recommended" not in d]
+        docs_status = "Complete" if not blocking_docs else "Incomplete"
+
+        vehicle_details_present = int(bool(vehicle.get("vin") and vehicle.get("registration_number")))
+        driver_details_present  = int(bool(vehicle.get("driver_license") and merged.get("policyholder_name")))
+
+    else:
+        has_image    = any(d["document_type"] == "Image" for d in validated_docs)
+        missing_docs = []
+        if not validated_docs:
+            missing_docs.append("No documents uploaded")
+        elif not has_image:
+            missing_docs.append("At least one photo/image of damage required")
+        docs_status = "Complete" if not missing_docs else "Incomplete"
+        has_damage_photo = has_image if validated_docs else False
+        has_dl_doc = has_rc_book = has_police_fir = False
+        vehicle_details_present = driver_details_present = None
+
+    # ── Coverage status ───────────────────────────────────────────────────────
+    coverage_status = "Unknown"
+    if claim.get("policy_number") and claim.get("loss_type"):
+        coverage_status = "Needs Verification"
+    if completeness_score >= 80:
+        coverage_status = "Sufficient for Processing"
+
+    # ── LLM fraud pre-screen ──────────────────────────────────────────────────
+    motor_fraud_context = ""
+    if _is_motor(lob):
+        motor_fraud_context = (
+            "Motor-specific fraud signals to evaluate:\n"
+            "- Staged accident (inconsistent story, contradicting witness accounts, damage pattern mismatch)\n"
+            "- VIN or registration number mismatch with policy records\n"
+            "- Odometer tampering or usage inconsistency\n"
+            "- Prior unreported damage visible in photos\n"
+            "- Duplicate images from a previous claim\n"
+            "- Telematics data inconsistency (speed, location, airbag triggers)\n"
+            "- Delayed reporting (>72 hours without a valid explanation)\n"
+            "- Accident location in a known fraud hot-spot area\n\n"
+        )
+
+    try:
+        client = _get_openai_client()
+        llm_prompt = (
+            "You are an insurance fraud pre-screener. Based on the FNOL data below, "
+            "respond with JSON: "
+            '{"fraud_risk": "Low|Medium|High", "fraud_risk_score": 0-100, '
+            '"fraud_flags": ["..."], "recommendation": "..."}.\n\n'
+            + motor_fraud_context
+            + f"LOB: {lob}\n"
+            + f"FNOL/Claim data:\n{json.dumps(merged, default=str)}\n\n"
+            f"Missing mandatory fields: {missing_fields}\n"
+            f"Completeness score: {completeness_score}%\n"
+            f"Documents uploaded: {len(doc_rows)}, validated: {len(validated_docs)}"
+        )
+        response = client.chat.completions.create(
+            model=AZURE_OPENAI_CHAT_DEPLOYMENT,
+            messages=[{"role": "user", "content": llm_prompt}],
+            temperature=0.0,
+            response_format={"type": "json_object"},
+        )
+        llm_result = json.loads(response.choices[0].message.content)
+    except Exception as e:
+        log.warning("LLM fraud pre-screen failed: %s", e)
+        llm_result = {
+            "fraud_risk": "Unknown",
+            "fraud_risk_score": 0,
+            "fraud_flags": [],
+            "recommendation": "Manual review required",
+        }
+
+    # ── Overall verdict ───────────────────────────────────────────────────────
+    fraud_risk = llm_result.get("fraud_risk", "Unknown")
+    if completeness_score < 80 or docs_status == "Incomplete":
+        overall_result = "Incomplete"
+    elif fraud_risk in ("Medium", "High"):
+        overall_result = "Flagged for Review"
+    else:
+        overall_result = "Ready"
+
+    # ── Persist ───────────────────────────────────────────────────────────────
+    tbl = _intake_table(lob)
+    conn2 = get_db_connection()
+    try:
+        cur2 = conn2.cursor()
+        if _is_motor(lob):
+            cur2.execute(
+                f"""
+                INSERT INTO {tbl}
+                  (claim_number, completeness_score, missing_fields, coverage_status,
+                   docs_status, missing_docs, fraud_risk, fraud_risk_score, fraud_flags,
+                   recommendation, overall_result, validated_at,
+                   vehicle_details_present, driver_details_present,
+                   damage_photos_present, dl_doc_present, rc_book_present, police_fir_present)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                ON CONFLICT (claim_number) DO UPDATE SET
+                  completeness_score      = EXCLUDED.completeness_score,
+                  missing_fields          = EXCLUDED.missing_fields,
+                  coverage_status         = EXCLUDED.coverage_status,
+                  docs_status             = EXCLUDED.docs_status,
+                  missing_docs            = EXCLUDED.missing_docs,
+                  fraud_risk              = EXCLUDED.fraud_risk,
+                  fraud_risk_score        = EXCLUDED.fraud_risk_score,
+                  fraud_flags             = EXCLUDED.fraud_flags,
+                  recommendation          = EXCLUDED.recommendation,
+                  overall_result          = EXCLUDED.overall_result,
+                  validated_at            = EXCLUDED.validated_at,
+                  vehicle_details_present = EXCLUDED.vehicle_details_present,
+                  driver_details_present  = EXCLUDED.driver_details_present,
+                  damage_photos_present   = EXCLUDED.damage_photos_present,
+                  dl_doc_present          = EXCLUDED.dl_doc_present,
+                  rc_book_present         = EXCLUDED.rc_book_present,
+                  police_fir_present      = EXCLUDED.police_fir_present
+                """,
+                (
+                    claim_number, completeness_score, json.dumps(missing_fields),
+                    coverage_status, docs_status, json.dumps(missing_docs),
+                    fraud_risk, llm_result.get("fraud_risk_score"),
+                    json.dumps(llm_result.get("fraud_flags", [])),
+                    llm_result.get("recommendation"), overall_result,
+                    datetime.utcnow().isoformat(),
+                    vehicle_details_present, driver_details_present,
+                    int(has_damage_photo), int(has_dl_doc), int(has_rc_book), int(has_police_fir),
+                ),
+            )
+        else:
+            cur2.execute(
+                f"""
+                INSERT INTO {tbl}
+                  (claim_number, completeness_score, missing_fields, coverage_status,
+                   docs_status, missing_docs, fraud_risk, fraud_risk_score, fraud_flags,
+                   recommendation, overall_result, validated_at)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                ON CONFLICT (claim_number) DO UPDATE SET
+                  completeness_score = EXCLUDED.completeness_score,
+                  missing_fields     = EXCLUDED.missing_fields,
+                  coverage_status    = EXCLUDED.coverage_status,
+                  docs_status        = EXCLUDED.docs_status,
+                  missing_docs       = EXCLUDED.missing_docs,
+                  fraud_risk         = EXCLUDED.fraud_risk,
+                  fraud_risk_score   = EXCLUDED.fraud_risk_score,
+                  fraud_flags        = EXCLUDED.fraud_flags,
+                  recommendation     = EXCLUDED.recommendation,
+                  overall_result     = EXCLUDED.overall_result,
+                  validated_at       = EXCLUDED.validated_at
+                """,
+                (
+                    claim_number, completeness_score, json.dumps(missing_fields),
+                    coverage_status, docs_status, json.dumps(missing_docs),
+                    fraud_risk, llm_result.get("fraud_risk_score"),
+                    json.dumps(llm_result.get("fraud_flags", [])),
+                    llm_result.get("recommendation"), overall_result,
+                    datetime.utcnow().isoformat(),
+                ),
+            )
+        conn2.commit()
+    except Exception as e:
+        conn2.rollback()
+        log.warning("Could not write %s: %s", tbl, e)
+    finally:
+        conn2.close()
+
+    result = {
+        "claim_number": claim_number,
+        "lob": lob,
+        "completeness_score": completeness_score,
+        "missing_fields": missing_fields,
+        "docs_status": docs_status,
+        "missing_docs": missing_docs,
+        "coverage_status": coverage_status,
+        "fraud_risk": fraud_risk,
+        "fraud_risk_score": llm_result.get("fraud_risk_score"),
+        "fraud_flags": llm_result.get("fraud_flags", []),
+        "recommendation": llm_result.get("recommendation"),
+        "overall_result": overall_result,
+    }
+
+    if _is_motor(lob):
+        result.update({
+            "vehicle_details_present": bool(vehicle_details_present),
+            "driver_details_present":  bool(driver_details_present),
+            "damage_photos_present":   has_damage_photo,
+            "dl_doc_present":          has_dl_doc,
+            "rc_book_present":         has_rc_book,
+            "police_fir_present":      has_police_fir,
+        })
+
+    return result
+
+
+
+
+"""
+claim_readiness_router.py
+──────────────────────────
+Tool / Endpoint map:
+  score_claim_readiness         POST /api/claim_readiness/score/{claim_number}?lob=Homeowners|Motor
+  acknowledge_missing_docs      POST /api/claim_readiness/acknowledge_docs/{claim_number}?lob=Homeowners|Motor
+  get_intake_validation_result  GET  /api/claim_readiness/validation/{claim_number}?lob=Homeowners|Motor
+"""
+
+import logging
+from fastapi import APIRouter
+from pydantic import BaseModel
+from typing import Optional
+
+from claim_readiness_mcp import handler
+
+log = logging.getLogger(__name__)
+
+router = APIRouter()
+
+
+class AcknowledgeDocsRequest(BaseModel):
+    notes: Optional[str] = None
+    lob: str = "Homeowners"
+
+
+@router.post(
+    "/api/claim_readiness/acknowledge_docs/{claim_number}",
+    operation_id="acknowledge_missing_docs",
+    summary="Record that the policyholder has no documents to upload right now",
+    tags=["ClaimReadiness"],
+)
+def acknowledge_missing_docs(claim_number: str, req: AcknowledgeDocsRequest = None):
+    """
+    Marks docs_status as 'Acknowledged - Not Available' in the appropriate
+    intake_validation_result_output table for the given LOB.
+    Call this only after the policyholder explicitly confirms they cannot upload
+    evidence at this time. The FNOL and Claim ID remain intact.
+    """
+    lob = (req.lob if req else "Homeowners") or "Homeowners"
+    notes = (req.notes if req else None)
+    return handler.acknowledge_missing_docs(claim_number, lob=lob, notes=notes)
+
+
+@router.get(
+    "/api/claim_readiness/validation/{claim_number}",
+    operation_id="get_intake_validation_result",
+    summary="Read the latest intake_validation_result_output for a claim",
+    tags=["ClaimReadiness"],
+)
+def get_intake_validation_result(claim_number: str, lob: str = "Homeowners"):
+    """Read the most recent completeness-scoring result stored for a claim."""
+    record = handler.get_intake_validation_result(claim_number, lob=lob)
+    if not record:
+        return {"status": "not_found", "claim_number": claim_number}
+    return record
+
+
+@router.post(
+    "/api/claim_readiness/score/{claim_number}",
+    operation_id="score_claim_readiness",
+    summary="Score FNOL completeness and initial fraud risk for a claim",
+    tags=["ClaimReadiness"],
+)
+def score_claim_readiness(claim_number: str, lob: str = "Homeowners"):
+    """
+    Compute completeness_score against mandatory FNOL fields (Homeowners or Motor),
+    assess coverage_status, run LLM fraud pre-screen with LOB-specific signals,
+    and persist the result to the appropriate intake validation table.
+
+    For Motor LOB also returns:
+      vehicle_details_present, driver_details_present, damage_photos_present,
+      dl_doc_present, rc_book_present, police_fir_present
+    """
+    return handler.score_claim_readiness(claim_number, lob=lob)
+
+
+
+"""
+init_db.py
+──────────
+Creates all PostgreSQL tables for the Policyholder Agents platform and seeds
+reference/sample data. Safe to re-run (idempotent).
+
+Run:
+    py -3 MCP/common/init_db.py
+"""
+
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from db import get_db_connection  # noqa: E402
+
+SCHEMA_SQL = """
+CREATE TABLE IF NOT EXISTS claims (
+    id SERIAL PRIMARY KEY,
+    claim_number TEXT UNIQUE,
+    policyholder_name TEXT,
+    policy_number TEXT,
+    loss_type TEXT,
+    short_description TEXT,
+    ai_generated_summary TEXT,
+    detected_cause TEXT,
+    severity TEXT,
+    complexity TEXT,
+    estimated_cost REAL,
+    coverage INTEGER DEFAULT 1,
+    ai_confidence INTEGER,
+    status TEXT DEFAULT 'Open',
+    location TEXT,
+    assigned_adjuster TEXT,
+    assigned_vendor TEXT,
+    date_of_loss TEXT,
+    filed_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS claims_master (
+    id SERIAL PRIMARY KEY,
+    claim_number TEXT UNIQUE,
+    policyholder_name TEXT,
+    policy_number TEXT,
+    loss_type TEXT,
+    date_of_loss TEXT,
+    coverage_limit REAL,
+    deductible REAL,
+    status TEXT
+);
+
+CREATE TABLE IF NOT EXISTS claim_journey_master (
+    id SERIAL PRIMARY KEY,
+    claim_id INTEGER,
+    claim_number TEXT,
+    current_stage INTEGER DEFAULT 1,
+    current_stage_name TEXT DEFAULT 'Claim Initiated',
+    sub_status TEXT DEFAULT 'Under Review',
+    journey_start_date TIMESTAMP DEFAULT NOW(),
+    last_stage_change_date TIMESTAMP DEFAULT NOW(),
+    expected_completion_date TEXT,
+    overall_sla_status TEXT DEFAULT 'on_track',
+    total_days_in_journey INTEGER DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS stage_time_sla_tracking (
+    id SERIAL PRIMARY KEY,
+    claim_id INTEGER,
+    claim_number TEXT,
+    stage_number INTEGER,
+    stage_name TEXT,
+    entered_at TIMESTAMP DEFAULT NOW(),
+    exited_at TIMESTAMP,
+    sla_days INTEGER,
+    sla_status TEXT
+);
+
+CREATE TABLE IF NOT EXISTS policy_details (
+    id SERIAL PRIMARY KEY,
+    policy_number TEXT UNIQUE,
+    gw_policy_id TEXT,
+    status TEXT DEFAULT 'Active',
+    coverage_type TEXT,
+    deductible REAL,
+    coverage_limit REAL,
+    remaining_coverage_limit REAL,
+    exclusions TEXT,
+    effective_date TEXT,
+    expiration_date TEXT,
+    policyholder_name TEXT,
+    account_number TEXT,
+    policy_address TEXT,
+    state TEXT,
+    term_type TEXT,
+    premium_amount REAL,
+    currency TEXT,
+    city TEXT,
+    country TEXT,
+    postal_code TEXT,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS coverage_verification_results (
+    id SERIAL PRIMARY KEY,
+    claim_number TEXT UNIQUE,
+    policy_number TEXT,
+    coverage_verdict TEXT,
+    exclusion_triggered INTEGER DEFAULT 0,
+    exclusion_details TEXT,
+    net_payable REAL,
+    coverage_notes TEXT,
+    verified_at TEXT,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS claim_payments (
+    id SERIAL PRIMARY KEY,
+    payment_id TEXT UNIQUE,
+    claim_number TEXT,
+    policy_number TEXT,
+    amount_paid REAL,
+    payment_date TEXT,
+    approved_by TEXT,
+    payment_status TEXT DEFAULT 'Released',
+    coverage_before REAL,
+    coverage_after REAL,
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS fnol_submissions (
+    id SERIAL PRIMARY KEY,
+    fnol_number TEXT UNIQUE,
+    policy_number TEXT,
+    policyholder_name TEXT,
+    policyholder_address TEXT,
+    policy_effective_date TEXT,
+    policy_expiration_date TEXT,
+    loss_type TEXT,
+    loss_type_source TEXT,
+    cause_of_loss TEXT,
+    cause_of_loss_source TEXT,
+    date_of_loss TEXT,
+    date_of_loss_source TEXT,
+    time_of_loss TEXT,
+    time_of_loss_source TEXT,
+    area_affected TEXT,
+    area_affected_source TEXT,
+    occupancy_at_loss TEXT,
+    occupancy_at_loss_source TEXT,
+    sudden_vs_gradual TEXT,
+    sudden_vs_gradual_source TEXT,
+    emotional_context TEXT,
+    emotional_context_source TEXT,
+    severity TEXT,
+    severity_source TEXT,
+    urgency_indicator TEXT,
+    urgency_indicator_source TEXT,
+    voice_transcript TEXT,
+    text_input TEXT,
+    overall_confidence INTEGER,
+    confidence_notes TEXT,
+    status TEXT DEFAULT 'draft',
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    submitted_at TIMESTAMP
+);
+ALTER TABLE fnol_submissions ADD COLUMN IF NOT EXISTS estimated_cost REAL;
+
+CREATE TABLE IF NOT EXISTS fnol_mandatory_fields (
+    id SERIAL PRIMARY KEY,
+    field_name TEXT UNIQUE,
+    field_label TEXT,
+    field_category TEXT,
+    is_required INTEGER DEFAULT 1,
+    can_be_inferred INTEGER DEFAULT 1,
+    inference_question TEXT,
+    input_type TEXT DEFAULT 'text',
+    input_options TEXT,
+    display_order INTEGER DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS fnol_ai_inferences (
+    id SERIAL PRIMARY KEY,
+    fnol_id INTEGER,
+    field_name TEXT,
+    inferred_value TEXT,
+    confidence INTEGER,
+    source TEXT,
+    source_details TEXT,
+    customer_confirmed INTEGER DEFAULT 0,
+    customer_edited_value TEXT,
+    inferred_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS fnol_voice_text_extraction (
+    id SERIAL PRIMARY KEY,
+    fnol_id INTEGER,
+    input_type TEXT,
+    raw_input TEXT,
+    transcribed_text TEXT,
+    extracted_loss_type TEXT,
+    extracted_cause TEXT,
+    extracted_area TEXT,
+    extracted_temporal TEXT,
+    sudden_gradual_signal TEXT,
+    emotional_context TEXT,
+    extraction_confidence INTEGER,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS fnol_mandatory_question_log (
+    id SERIAL PRIMARY KEY,
+    fnol_id INTEGER,
+    question_text TEXT,
+    field_name TEXT,
+    answer_text TEXT,
+    answer_type TEXT,
+    was_skipped INTEGER DEFAULT 0,
+    question_order INTEGER DEFAULT 0,
+    asked_at TIMESTAMP DEFAULT NOW(),
+    answered_at TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS fnol_field_attribution (
+    id SERIAL PRIMARY KEY,
+    fnol_id INTEGER,
+    field_name TEXT,
+    field_label TEXT,
+    field_value TEXT,
+    source TEXT,
+    confidence INTEGER,
+    was_edited INTEGER DEFAULT 0,
+    was_confirmed INTEGER DEFAULT 0,
+    original_value TEXT,
+    edited_value TEXT,
+    created_at TIMESTAMP DEFAULT NOW(),
+    confirmed_at TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS documents (
+    id SERIAL PRIMARY KEY,
+    document_id TEXT UNIQUE,
+    claim_number TEXT,
+    file_name TEXT,
+    file_url TEXT,
+    file_size INTEGER,
+    content_type TEXT,
+    document_type TEXT,
+    classification_confidence INTEGER DEFAULT 0,
+    uploaded_by TEXT,
+    uploaded_by_role TEXT,
+    status TEXT DEFAULT 'Classified',
+    visibility TEXT DEFAULT 'public',
+    extracted_data TEXT,
+    insights TEXT,
+    investigation_notes TEXT,
+    flagged INTEGER DEFAULT 0,
+    uploaded_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS customer_feedback_per_stage (
+    id SERIAL PRIMARY KEY,
+    claim_id TEXT,
+    claim_number TEXT,
+    stage_number INTEGER,
+    stage_name TEXT,
+    sentiment TEXT,
+    sentiment_score REAL,
+    comment TEXT,
+    submitted_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS claim_sentiment_tracker (
+    id SERIAL PRIMARY KEY,
+    tracker_id TEXT UNIQUE,
+    claim_row_id TEXT,
+    claim_number TEXT,
+    policyholder_name TEXT,
+    current_sentiment TEXT,
+    sentiment_score REAL,
+    sentiment_trend TEXT,
+    last_interaction_date TEXT,
+    escalation_risk TEXT,
+    satisfaction_rating REAL,
+    nps_score INTEGER,
+    notes TEXT,
+    assigned_adjuster TEXT,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS communication_history (
+    id SERIAL PRIMARY KEY,
+    communication_id TEXT UNIQUE,
+    claim_row_id TEXT,
+    claim_number TEXT,
+    policyholder_name TEXT,
+    communication_type TEXT,
+    direction TEXT,
+    subject TEXT,
+    summary TEXT,
+    sentiment_detected TEXT,
+    handled_by TEXT,
+    response_time_minutes INTEGER,
+    resolution_status TEXT,
+    follow_up_required INTEGER DEFAULT 0,
+    follow_up_date TEXT,
+    attachments TEXT,
+    communication_date TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS segmentation_result_output (
+    id SERIAL PRIMARY KEY,
+    claim_number TEXT UNIQUE,
+    severity TEXT,
+    complexity TEXT,
+    stp_score INTEGER,
+    recommended_path TEXT,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS stp_classification (
+    id SERIAL PRIMARY KEY,
+    stp_id TEXT,
+    claim_number TEXT UNIQUE,
+    readiness INTEGER DEFAULT 0,
+    fraud_ambiguity TEXT DEFAULT 'Low',
+    subrogation TEXT DEFAULT 'Low',
+    vis INTEGER DEFAULT 0,
+    stp_score INTEGER DEFAULT 0,
+    stp_category TEXT DEFAULT 'Manual Review',
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS intake_validation_result_output (
+    id SERIAL PRIMARY KEY,
+    claim_number TEXT UNIQUE,
+    completeness_score INTEGER,
+    missing_fields TEXT,
+    coverage_status TEXT,
+    docs_status TEXT DEFAULT 'Not Checked',
+    missing_docs TEXT,
+    fraud_risk TEXT,
+    fraud_risk_score INTEGER,
+    fraud_flags TEXT,
+    recommendation TEXT,
+    overall_result TEXT,
+    validated_at TEXT,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS policyholder_actions (
+    id SERIAL PRIMARY KEY,
+    claim_row_id TEXT,
+    claim_number TEXT,
+    action_type TEXT,
+    action_label TEXT,
+    details TEXT,
+    stage_at_action INTEGER,
+    performed_by TEXT DEFAULT 'Policyholder',
+    timestamp TIMESTAMP DEFAULT NOW()
+);
+
+-- ── Motor LOB: policy details (local mock — no Guidewire for Motor) ───────────
+CREATE TABLE IF NOT EXISTS motor_policy_details (
+    id SERIAL PRIMARY KEY,
+    policy_number TEXT UNIQUE NOT NULL,
+    status TEXT DEFAULT 'Active',
+    coverage_type TEXT,
+    deductible REAL,
+    coverage_limit REAL,
+    remaining_coverage_limit REAL,
+    exclusions TEXT,
+    effective_date TEXT,
+    expiration_date TEXT,
+    policyholder_name TEXT,
+    vehicle_make TEXT,
+    vehicle_model TEXT,
+    vehicle_year TEXT,
+    -- Motor-specific coverage limits (OD = Own Damage, TP = Third Party)
+    od_coverage_limit NUMERIC(12,2),
+    tp_coverage_limit NUMERIC(12,2),
+    -- Add-on flags (1 = active, 0 = not active)
+    zero_dep_enabled         INTEGER DEFAULT 0,
+    engine_protection_enabled INTEGER DEFAULT 0,
+    addons TEXT,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- ── Motor LOB: coverage verification results ──────────────────────────────────
+CREATE TABLE IF NOT EXISTS motor_coverage_verification_results (
+    id SERIAL PRIMARY KEY,
+    claim_number TEXT UNIQUE,
+    policy_number TEXT,
+    coverage_verdict TEXT,
+    exclusion_triggered INTEGER DEFAULT 0,
+    exclusion_details TEXT,
+    net_payable REAL,
+    coverage_notes TEXT,
+    verified_at TEXT,
+    -- Motor-specific result columns
+    claim_type TEXT,                   -- 'OD' or 'TP'
+    license_valid INTEGER DEFAULT 1,   -- 0 = expired at time of loss
+    license_expiry_note TEXT,
+    zero_dep_applied INTEGER DEFAULT 0,
+    engine_protection_note TEXT,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- ── Motor LOB: vehicle details pre-populated per policy ──────────────────────
+CREATE TABLE IF NOT EXISTS motor_vehicle_details (
+    id SERIAL PRIMARY KEY,
+    policy_number TEXT UNIQUE NOT NULL,
+    driver_license TEXT,
+    vin TEXT,
+    registration_number TEXT,
+    vehicle_make TEXT,
+    vehicle_model TEXT,
+    vehicle_year TEXT,
+    driver_license_expiry DATE,        -- for license expiry check at time of loss
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- ── Motor LOB: separate FNOL submission table (does NOT touch fnol_submissions) ─
+CREATE TABLE IF NOT EXISTS motor_fnol_submissions (
+    id SERIAL PRIMARY KEY,
+    fnol_number TEXT UNIQUE,
+    policy_number TEXT,
+    policyholder_name TEXT,
+    policyholder_address TEXT,
+    policy_effective_date TEXT,
+    policy_expiration_date TEXT,
+    -- Motor LOB loss fields
+    loss_type TEXT,
+    loss_type_source TEXT,
+    cause_of_loss TEXT,
+    cause_of_loss_source TEXT,
+    date_of_loss TEXT,
+    date_of_loss_source TEXT,
+    time_of_loss TEXT,
+    time_of_loss_source TEXT,
+    accident_location TEXT,
+    accident_location_source TEXT,
+    emotional_context TEXT,
+    emotional_context_source TEXT,
+    severity TEXT,
+    severity_source TEXT,
+    urgency_indicator TEXT,
+    urgency_indicator_source TEXT,
+    -- Motor LOB vehicle fields (auto-populated from motor_vehicle_details)
+    driver_license TEXT,
+    vin TEXT,
+    registration_number TEXT,
+    vehicle_make TEXT,
+    vehicle_model TEXT,
+    vehicle_year TEXT,
+    -- Optional user-supplied motor fields
+    passenger_count TEXT,
+    tow_required TEXT,
+    police_fir_number TEXT,
+    telematics_consent TEXT,
+    -- Audit / metadata
+    voice_transcript TEXT,
+    text_input TEXT,
+    overall_confidence INTEGER,
+    confidence_notes TEXT,
+    estimated_cost REAL,
+    status TEXT DEFAULT 'draft',
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    submitted_at TIMESTAMP
+);
+
+-- ── Motor LOB: claim readiness results ───────────────────────────────────────
+CREATE TABLE IF NOT EXISTS motor_intake_validation_result_output (
+    id SERIAL PRIMARY KEY,
+    claim_number TEXT UNIQUE,
+    completeness_score INTEGER,
+    missing_fields TEXT,
+    coverage_status TEXT,
+    docs_status TEXT DEFAULT 'Not Checked',
+    missing_docs TEXT,
+    fraud_risk TEXT,
+    fraud_risk_score INTEGER,
+    fraud_flags TEXT,
+    recommendation TEXT,
+    overall_result TEXT,
+    validated_at TEXT,
+    -- Motor-specific readiness checklist
+    vehicle_details_present INTEGER DEFAULT 0,
+    driver_details_present  INTEGER DEFAULT 0,
+    damage_photos_present   INTEGER DEFAULT 0,
+    dl_doc_present          INTEGER DEFAULT 0,
+    rc_book_present         INTEGER DEFAULT 0,
+    police_fir_present      INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- ── Motor LOB: child tables (mirror of personal-lines tables, motor-prefixed) ──
+CREATE TABLE IF NOT EXISTS motor_fnol_mandatory_fields (
+    id SERIAL PRIMARY KEY,
+    field_name TEXT UNIQUE,
+    field_label TEXT,
+    field_category TEXT,
+    is_required INTEGER DEFAULT 1,
+    can_be_inferred INTEGER DEFAULT 1,
+    inference_question TEXT,
+    input_type TEXT DEFAULT 'text',
+    input_options TEXT,
+    display_order INTEGER DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS motor_fnol_ai_inferences (
+    id SERIAL PRIMARY KEY,
+    fnol_id INTEGER,
+    field_name TEXT,
+    inferred_value TEXT,
+    confidence INTEGER,
+    source TEXT,
+    source_details TEXT,
+    customer_confirmed INTEGER DEFAULT 0,
+    customer_edited_value TEXT,
+    inferred_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS motor_fnol_voice_text_extraction (
+    id SERIAL PRIMARY KEY,
+    fnol_id INTEGER,
+    input_type TEXT,
+    raw_input TEXT,
+    transcribed_text TEXT,
+    extracted_loss_type TEXT,
+    extracted_cause TEXT,
+    extracted_area TEXT,
+    extracted_temporal TEXT,
+    sudden_gradual_signal TEXT,
+    emotional_context TEXT,
+    extraction_confidence INTEGER,
+    created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS motor_fnol_mandatory_question_log (
+    id SERIAL PRIMARY KEY,
+    fnol_id INTEGER,
+    question_text TEXT,
+    field_name TEXT,
+    answer_text TEXT,
+    answer_type TEXT,
+    was_skipped INTEGER DEFAULT 0,
+    question_order INTEGER DEFAULT 0,
+    asked_at TIMESTAMP DEFAULT NOW(),
+    answered_at TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS motor_fnol_field_attribution (
+    id SERIAL PRIMARY KEY,
+    fnol_id INTEGER,
+    field_name TEXT,
+    field_label TEXT,
+    field_value TEXT,
+    source TEXT,
+    confidence INTEGER,
+    was_edited INTEGER DEFAULT 0,
+    was_confirmed INTEGER DEFAULT 0,
+    original_value TEXT,
+    edited_value TEXT,
+    created_at TIMESTAMP DEFAULT NOW(),
+    confirmed_at TIMESTAMP
+);
+"""
+
+
+# ── Motor LOB mandatory fields ────────────────────────────────────────────────
+# driver_license / vin / registration_number / make+model+year are intentionally
+# NOT in this list — they come from motor_vehicle_details (pre-populated per
+# policy) and are never asked from the user.
+MANDATORY_FIELDS = [
+    ("loss_type", "Type of Loss", "loss_details", 1, 1,
+     "What type of motor loss occurred? (e.g. Collision, Theft, Vandalism, Fire, Natural Disaster)",
+     "select", '["Collision", "Theft", "Vandalism", "Fire", "Natural Disaster", "Third-Party Liability", "Windshield Damage"]', 1),
+    ("cause_of_loss", "Cause of Loss", "loss_details", 1, 1,
+     "What caused the accident or loss? Briefly describe what happened.", "text", None, 2),
+    ("date_of_loss", "Date of Loss", "loss_details", 1, 1,
+     "On what date did the loss occur?", "date", None, 3),
+    ("time_of_loss", "Time of Loss", "loss_details", 1, 1,
+     "Approximately what time did the loss occur?", "time", None, 4),
+    ("accident_location", "Accident Location", "loss_details", 1, 1,
+     "Where did the accident or loss occur? (address, city, or landmark)", "text", None, 5),
+    ("severity", "Severity", "loss_details", 1, 1,
+     "How severe would you say the damage is — minor, moderate, or severe?", "select",
+     '["Low", "Medium", "High", "Critical"]', 6),
+    ("policy_number", "Policy Number", "policy_details", 1, 1,
+     "What is your motor policy number?", "text", None, 7),
+]
+
+# Fields that are pre-populated from motor_vehicle_details (NOT asked from user)
+MOTOR_VEHICLE_AUTO_FIELDS = ["driver_license", "vin", "registration_number",
+                              "vehicle_make", "vehicle_model", "vehicle_year"]
+
+
+def init_db():
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor()
+
+        # Execute schema (CREATE TABLE IF NOT EXISTS is idempotent)
+        cur.execute(SCHEMA_SQL)
+
+        # Column migrations — safely add columns that may be missing from
+        # tables created by an earlier schema version.
+        migrations = [
+            "ALTER TABLE claims ADD COLUMN IF NOT EXISTS complexity TEXT",
+            "ALTER TABLE claims ADD COLUMN IF NOT EXISTS ai_generated_summary TEXT",
+            "ALTER TABLE claims ADD COLUMN IF NOT EXISTS detected_cause TEXT",
+            "ALTER TABLE claims ADD COLUMN IF NOT EXISTS assigned_adjuster TEXT",
+            "ALTER TABLE claims ADD COLUMN IF NOT EXISTS assigned_vendor TEXT",
+            "ALTER TABLE claims ADD COLUMN IF NOT EXISTS police_report_number TEXT",
+            "ALTER TABLE claim_journey_master ADD COLUMN IF NOT EXISTS sub_status TEXT DEFAULT 'Under Review'",
+            "ALTER TABLE claim_journey_master ADD COLUMN IF NOT EXISTS overall_sla_status TEXT DEFAULT 'on_track'",
+            # policy_details extended columns
+            "ALTER TABLE policy_details ADD COLUMN IF NOT EXISTS gw_policy_id TEXT",
+            "ALTER TABLE policy_details ADD COLUMN IF NOT EXISTS remaining_coverage_limit REAL",
+            "ALTER TABLE policy_details ADD COLUMN IF NOT EXISTS exclusions TEXT",
+            "ALTER TABLE policy_details ADD COLUMN IF NOT EXISTS effective_date TEXT",
+            "ALTER TABLE policy_details ADD COLUMN IF NOT EXISTS expiration_date TEXT",
+            "ALTER TABLE policy_details ADD COLUMN IF NOT EXISTS policyholder_name TEXT",
+            "ALTER TABLE policy_details ADD COLUMN IF NOT EXISTS account_number TEXT",
+            "ALTER TABLE policy_details ADD COLUMN IF NOT EXISTS policy_address TEXT",
+            "ALTER TABLE policy_details ADD COLUMN IF NOT EXISTS state TEXT",
+            "ALTER TABLE policy_details ADD COLUMN IF NOT EXISTS term_type TEXT",
+            "ALTER TABLE policy_details ADD COLUMN IF NOT EXISTS premium_amount REAL",
+            "ALTER TABLE policy_details ADD COLUMN IF NOT EXISTS currency TEXT",
+            "ALTER TABLE policy_details ADD COLUMN IF NOT EXISTS city TEXT",
+            "ALTER TABLE policy_details ADD COLUMN IF NOT EXISTS country TEXT",
+            "ALTER TABLE policy_details ADD COLUMN IF NOT EXISTS postal_code TEXT",
+            # customer_feedback_per_stage — add sentiment_score column
+            "ALTER TABLE customer_feedback_per_stage ADD COLUMN IF NOT EXISTS sentiment_score REAL",
+            # stp_classification — add missing stp_score column and unique constraint
+            "ALTER TABLE stp_classification ADD COLUMN IF NOT EXISTS stp_score INTEGER DEFAULT 0",
+            # intake_validation_result_output — add missing columns for existing DBs
+            "ALTER TABLE intake_validation_result_output ADD COLUMN IF NOT EXISTS missing_fields TEXT",
+            "ALTER TABLE intake_validation_result_output ADD COLUMN IF NOT EXISTS docs_status TEXT DEFAULT 'Not Checked'",
+            "ALTER TABLE intake_validation_result_output ADD COLUMN IF NOT EXISTS missing_docs TEXT",
+            "ALTER TABLE intake_validation_result_output ADD COLUMN IF NOT EXISTS fraud_risk_score INTEGER",
+            "ALTER TABLE intake_validation_result_output ADD COLUMN IF NOT EXISTS fraud_flags TEXT",
+            "ALTER TABLE intake_validation_result_output ADD COLUMN IF NOT EXISTS recommendation TEXT",
+            "ALTER TABLE intake_validation_result_output ADD COLUMN IF NOT EXISTS overall_result TEXT",
+            "ALTER TABLE intake_validation_result_output ADD COLUMN IF NOT EXISTS validated_at TEXT",
+            # Deduplicate before adding unique indexes (keep latest row per claim_number)
+            "DELETE FROM intake_validation_result_output WHERE id NOT IN (SELECT MAX(id) FROM intake_validation_result_output GROUP BY claim_number)",
+            "DELETE FROM stp_classification WHERE id NOT IN (SELECT MAX(id) FROM stp_classification GROUP BY claim_number)",
+            "DELETE FROM segmentation_result_output WHERE id NOT IN (SELECT MAX(id) FROM segmentation_result_output GROUP BY claim_number)",
+            # Unique indexes — required for ON CONFLICT (claim_number) DO UPDATE in handlers
+            "CREATE UNIQUE INDEX IF NOT EXISTS uq_intake_validation_claim_number ON intake_validation_result_output(claim_number)",
+            "CREATE UNIQUE INDEX IF NOT EXISTS uq_stp_classification_claim_number ON stp_classification(claim_number)",
+            "CREATE UNIQUE INDEX IF NOT EXISTS uq_segmentation_result_claim_number ON segmentation_result_output(claim_number)",
+            # occupancy_at_loss used to be stored as INTEGER (1/0), which showed
+            # inconsistently against the chat's "Yes"/"No" summary and was
+            # mistaken for "missing" by falsy-value checks when 0 (No) was a
+            # legitimate answer. Convert existing data in place; guarded so this
+            # is a no-op once the column is already TEXT.
+            """
+            DO $$
+            BEGIN
+                IF EXISTS (
+                    SELECT 1 FROM information_schema.columns
+                    WHERE table_name = 'fnol_submissions'
+                      AND column_name = 'occupancy_at_loss'
+                      AND data_type = 'integer'
+                ) THEN
+                    ALTER TABLE fnol_submissions
+                    ALTER COLUMN occupancy_at_loss TYPE TEXT
+                    USING (CASE occupancy_at_loss WHEN 1 THEN 'Yes' WHEN 0 THEN 'No' ELSE NULL END);
+                END IF;
+            END $$;
+            """,
+            # ── Motor LOB column migrations (safe to re-run on existing DBs) ────
+            # motor_policy_details — OD/TP limits and add-on flags
+            "ALTER TABLE motor_policy_details ADD COLUMN IF NOT EXISTS od_coverage_limit NUMERIC(12,2)",
+            "ALTER TABLE motor_policy_details ADD COLUMN IF NOT EXISTS tp_coverage_limit NUMERIC(12,2)",
+            "ALTER TABLE motor_policy_details ADD COLUMN IF NOT EXISTS zero_dep_enabled INTEGER DEFAULT 0",
+            "ALTER TABLE motor_policy_details ADD COLUMN IF NOT EXISTS engine_protection_enabled INTEGER DEFAULT 0",
+            "ALTER TABLE motor_policy_details ADD COLUMN IF NOT EXISTS addons TEXT",
+            # motor_vehicle_details — license expiry for Check 2
+            "ALTER TABLE motor_vehicle_details ADD COLUMN IF NOT EXISTS driver_license_expiry DATE",
+            # motor_coverage_verification_results — Motor-specific check result columns
+            "ALTER TABLE motor_coverage_verification_results ADD COLUMN IF NOT EXISTS claim_type TEXT",
+            "ALTER TABLE motor_coverage_verification_results ADD COLUMN IF NOT EXISTS license_valid INTEGER DEFAULT 1",
+            "ALTER TABLE motor_coverage_verification_results ADD COLUMN IF NOT EXISTS license_expiry_note TEXT",
+            "ALTER TABLE motor_coverage_verification_results ADD COLUMN IF NOT EXISTS zero_dep_applied INTEGER DEFAULT 0",
+            "ALTER TABLE motor_coverage_verification_results ADD COLUMN IF NOT EXISTS engine_protection_note TEXT",
+            # motor_intake_validation_result_output — unique index for ON CONFLICT
+            "CREATE UNIQUE INDEX IF NOT EXISTS uq_motor_intake_validation_claim ON motor_intake_validation_result_output(claim_number)",
+            # Rename the pre-rename "insured_address" mandatory field row left over
+            # from an earlier schema version — ON CONFLICT DO NOTHING in the seed
+            # loop below can't fix this since policyholder_address is a different
+            # field_name, so the stale row would otherwise never update.
+            """
+            UPDATE fnol_mandatory_fields
+               SET field_name = 'policyholder_address',
+                   field_label = 'Policyholder Property Address'
+             WHERE field_name = 'insured_address'
+               AND NOT EXISTS (
+                   SELECT 1 FROM fnol_mandatory_fields WHERE field_name = 'policyholder_address'
+               )
+            """,
+            # Some DBs already had both rows (a newer init_db seeded
+            # policyholder_address before this instance's insured_address row was
+            # ever renamed) — the UPDATE above is then a no-op, so drop the
+            # redundant leftover directly. fnol_ai_inferences /
+            # fnol_mandatory_question_log store field_name as plain text with no
+            # FK, so this is safe and doesn't touch audit history.
+            """
+            DELETE FROM fnol_mandatory_fields
+             WHERE field_name = 'insured_address'
+               AND EXISTS (
+                   SELECT 1 FROM fnol_mandatory_fields WHERE field_name = 'policyholder_address'
+               )
+            """,
+        ]
+        for m in migrations:
+            cur.execute(m)
+
+        # Seed Motor LOB mandatory fields into motor_fnol_mandatory_fields
+        # (personal-lines fnol_mandatory_fields is left completely untouched)
+        for row in MANDATORY_FIELDS:
+            cur.execute(
+                """
+                INSERT INTO motor_fnol_mandatory_fields (
+                    field_name, field_label, field_category, is_required,
+                    can_be_inferred, inference_question, input_type,
+                    input_options, display_order
+                ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                ON CONFLICT (field_name) DO NOTHING
+                """,
+                row,
+            )
+
+        # Seed sample policy
+        cur.execute(
+            """
+            INSERT INTO policy_details (policy_number, status, coverage_type, deductible, coverage_limit)
+            VALUES ('POL-1001', 'Active', 'Homeowners', 1000, 250000)
+            ON CONFLICT DO NOTHING
+            """
+        )
+        cur.execute(
+            """
+            INSERT INTO policy_details (policy_number, status, coverage_type, deductible, coverage_limit)
+            VALUES ('POL-1002', 'Active', 'Auto', 500, 50000)
+            ON CONFLICT DO NOTHING
+            """
+        )
+
+        # Seed Motor LOB policy details (mock — no Guidewire for Motor)
+        # POL-1001: full add-ons (Zero Dep + Engine Protection), valid license
+        # POL-1002: no add-ons, EXPIRED license (test rejection)
+        # POL-1003: Zero Dep only, valid license
+        motor_policies = [
+            ("POL-1001", "Active", "Comprehensive", 5000, 150000, 135000,
+             "Racing, DUI, Commercial Use", "2025-01-01", "2026-12-31", "Rajesh Kumar",
+             135000, 100000, 1, 1, "Zero Depreciation, Engine Protection"),
+            ("POL-1002", "Active", "Third Party", 2000, 100000, 100000,
+             "Racing, DUI", "2025-06-01", "2026-12-31", "Priya Sharma",
+             100000, 100000, 0, 0, "None"),
+            ("POL-1003", "Active", "Comprehensive", 3000, 200000, 180000,
+             "Commercial Use, DUI", "2024-09-01", "2026-12-31", "Anil Mehta",
+             180000, 100000, 1, 0, "Zero Depreciation"),
+        ]
+        for mp in motor_policies:
+            cur.execute(
+                """
+                INSERT INTO motor_policy_details (
+                    policy_number, status, coverage_type, deductible, coverage_limit,
+                    remaining_coverage_limit, exclusions, effective_date, expiration_date,
+                    policyholder_name, od_coverage_limit, tp_coverage_limit,
+                    zero_dep_enabled, engine_protection_enabled, addons
+                ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                ON CONFLICT (policy_number) DO NOTHING
+                """,
+                mp,
+            )
+
+        # Seed mock motor vehicle details (pre-populated, never asked from user)
+        # driver_license_expiry: POL-1001 valid, POL-1002 EXPIRED (2025-12-31), POL-1003 valid
+        mock_vehicles = [
+            ("POL-1001", "DL-MH-112233", "1HGCM82633A112233", "MH-01-AB-1234",
+             "Honda", "Accord", "2022", "2028-06-30"),
+            ("POL-1002", "DL-MH-445566", "3VWFE21C04M445566", "MH-02-CD-5678",
+             "Volkswagen", "Jetta", "2020", "2025-12-31"),
+            ("POL-1003", "DL-MH-778899", "5YJSA1DN5CFP01234", "MH-03-EF-9012",
+             "Toyota", "Camry", "2021", "2027-09-15"),
+        ]
+        for mv in mock_vehicles:
+            cur.execute(
+                """
+                INSERT INTO motor_vehicle_details (
+                    policy_number, driver_license, vin, registration_number,
+                    vehicle_make, vehicle_model, vehicle_year, driver_license_expiry
+                ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
+                ON CONFLICT (policy_number) DO NOTHING
+                """,
+                mv,
+            )
+
+        # Seed sample claim
+        cur.execute("SELECT COUNT(*) FROM claims WHERE claim_number = 'CLM-2026-1001'")
+        count = cur.fetchone()["count"]
+        if count == 0:
+            cur.execute(
+                """
+                INSERT INTO claims (
+                    claim_number, policyholder_name, policy_number, loss_type,
+                    short_description, severity, complexity, estimated_cost,
+                    coverage, ai_confidence, status, location, date_of_loss
+                ) VALUES (
+                    'CLM-2026-1001', 'John Doe', 'POL-1001', 'Water Damage',
+                    'Burst pipe in kitchen caused flooding', 'Medium', 'Low', 8500,
+                    TRUE, 85, 'Open', '123 Main St, Springfield', '2026-05-20'
+                ) RETURNING id
+                """
+            )
+            claim_id = cur.fetchone()["id"]
+
+            cur.execute(
+                """
+                INSERT INTO claims_master (
+                    claim_number, policyholder_name, policy_number, loss_type,
+                    date_of_loss, coverage_limit, deductible, status
+                ) VALUES (
+                    'CLM-2026-1001', 'John Doe', 'POL-1001', 'Homeowners',
+                    '2026-05-20', 250000, 1000, 'Open'
+                ) ON CONFLICT (claim_number) DO NOTHING
+                """
+            )
+
+            cur.execute("SELECT COUNT(*) FROM claim_journey_master WHERE claim_number = 'CLM-2026-1001'")
+            if cur.fetchone()["count"] == 0:
+                cur.execute(
+                    """
+                    INSERT INTO claim_journey_master (
+                        claim_id, claim_number, current_stage, current_stage_name,
+                        sub_status, overall_sla_status
+                    ) VALUES (%s, 'CLM-2026-1001', 1, 'Claim Initiated', 'Under Review', 'on_track')
+                    """,
+                    (claim_id,),
+                )
+
+        # ── Motor LOB: seed claims in the shared claims table ─────────────────
+        # CLM-MOTOR-001: complete Collision claim (POL-1001, all fields present)
+        # CLM-MOTOR-002: Theft claim (POL-1002, missing accident_location)
+        # CLM-MOTOR-003: Third-Party Liability (POL-1003, late-reported — fraud risk)
+        motor_claims = [
+            ("CLM-MOTOR-001", "Rajesh Kumar", "POL-1001", "Collision",
+             "Vehicle rear-ended at traffic signal, front bumper and hood damage",
+             "Medium", "Low", 45000, True, 82, "Open",
+             "MG Road, Bangalore", "2026-09-10"),
+            ("CLM-MOTOR-002", "Priya Sharma",  "POL-1002", "Theft",
+             "Vehicle stolen from parking lot overnight",
+             "High", "High", 100000, True, 75, "Open",
+             None, "2026-08-20"),
+            ("CLM-MOTOR-003", "Anil Mehta",    "POL-1003", "Third Party Liability",
+             "Vehicle collided with another car; third-party injury reported",
+             "High", "Complex", 80000, True, 60, "Open",
+             "NH48 Pune Highway", "2026-07-15"),
+        ]
+        for mc in motor_claims:
+            cur.execute("SELECT COUNT(*) FROM claims WHERE claim_number = %s", (mc[0],))
+            if cur.fetchone()["count"] == 0:
+                cur.execute(
+                    """
+                    INSERT INTO claims (
+                        claim_number, policyholder_name, policy_number, loss_type,
+                        short_description, severity, complexity, estimated_cost,
+                        coverage, ai_confidence, status, location, date_of_loss
+                    ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                    """,
+                    mc,
+                )
+
+        # ── Motor LOB: seed motor_fnol_submissions ────────────────────────────
+        motor_fnols = [
+            # CLM-MOTOR-001: complete FNOL (all fields present)
+            {
+                "fnol_number": "MFNOL-2026-001",
+                "policy_number": "POL-1001",
+                "policyholder_name": "Rajesh Kumar",
+                "policyholder_address": "42 Koramangala, Bangalore 560034",
+                "loss_type": "Collision",
+                "cause_of_loss": "Rear-end collision at traffic signal",
+                "date_of_loss": "2026-09-10",
+                "time_of_loss": "08:30",
+                "accident_location": "MG Road & Brigade Road junction, Bangalore",
+                "severity": "Medium",
+                "driver_license": "DL-MH-112233",
+                "vin": "1HGCM82633A112233",
+                "registration_number": "MH-01-AB-1234",
+                "vehicle_make": "Honda",
+                "vehicle_model": "Accord",
+                "vehicle_year": "2022",
+                "passenger_count": "2",
+                "tow_required": "Yes",
+                "police_fir_number": None,
+                "telematics_consent": "Yes",
+                "overall_confidence": 88,
+                "status": "submitted",
+            },
+            # CLM-MOTOR-002: incomplete FNOL (no accident_location)
+            {
+                "fnol_number": "MFNOL-2026-002",
+                "policy_number": "POL-1002",
+                "policyholder_name": "Priya Sharma",
+                "policyholder_address": "15 Andheri West, Mumbai 400053",
+                "loss_type": "Theft",
+                "cause_of_loss": "Vehicle stolen from parking lot",
+                "date_of_loss": "2026-08-20",
+                "time_of_loss": "02:00",
+                "accident_location": None,  # MISSING — triggers incompleteness
+                "severity": "High",
+                "driver_license": "DL-MH-445566",
+                "vin": "3VWFE21C04M445566",
+                "registration_number": "MH-02-CD-5678",
+                "vehicle_make": "Volkswagen",
+                "vehicle_model": "Jetta",
+                "vehicle_year": "2020",
+                "passenger_count": None,
+                "tow_required": "No",
+                "police_fir_number": "FIR/2026/0892",
+                "telematics_consent": "No",
+                "overall_confidence": 70,
+                "status": "submitted",
+            },
+            # CLM-MOTOR-003: third-party claim, delayed 64 days — fraud signal
+            {
+                "fnol_number": "MFNOL-2026-003",
+                "policy_number": "POL-1003",
+                "policyholder_name": "Anil Mehta",
+                "policyholder_address": "88 Baner Road, Pune 411045",
+                "loss_type": "Third Party Liability",
+                "cause_of_loss": "Collision with third-party vehicle on highway; injury reported",
+                "date_of_loss": "2026-07-15",
+                "time_of_loss": "14:15",
+                "accident_location": "NH48 Pune-Mumbai Highway, Km 72",
+                "severity": "High",
+                "driver_license": "DL-MH-778899",
+                "vin": "5YJSA1DN5CFP01234",
+                "registration_number": "MH-03-EF-9012",
+                "vehicle_make": "Toyota",
+                "vehicle_model": "Camry",
+                "vehicle_year": "2021",
+                "passenger_count": "3",
+                "tow_required": "Yes",
+                "police_fir_number": "FIR/2026/1456",
+                "telematics_consent": "No",
+                "overall_confidence": 55,
+                "status": "submitted",
+            },
+        ]
+        for mf in motor_fnols:
+            cur.execute(
+                "SELECT COUNT(*) FROM motor_fnol_submissions WHERE fnol_number = %s",
+                (mf["fnol_number"],),
+            )
+            if cur.fetchone()["count"] == 0:
+                cur.execute(
+                    """
+                    INSERT INTO motor_fnol_submissions (
+                        fnol_number, policy_number, policyholder_name, policyholder_address,
+                        loss_type, cause_of_loss, date_of_loss, time_of_loss,
+                        accident_location, severity,
+                        driver_license, vin, registration_number,
+                        vehicle_make, vehicle_model, vehicle_year,
+                        passenger_count, tow_required, police_fir_number, telematics_consent,
+                        overall_confidence, status, submitted_at
+                    ) VALUES (
+                        %(fnol_number)s, %(policy_number)s, %(policyholder_name)s, %(policyholder_address)s,
+                        %(loss_type)s, %(cause_of_loss)s, %(date_of_loss)s, %(time_of_loss)s,
+                        %(accident_location)s, %(severity)s,
+                        %(driver_license)s, %(vin)s, %(registration_number)s,
+                        %(vehicle_make)s, %(vehicle_model)s, %(vehicle_year)s,
+                        %(passenger_count)s, %(tow_required)s, %(police_fir_number)s,
+                        %(telematics_consent)s, %(overall_confidence)s, %(status)s, NOW()
+                    )
+                    """,
+                    mf,
+                )
+
         conn.commit()
     except Exception:
         conn.rollback()
@@ -481,502 +1538,341 @@ def save_policy_details(policy_number: str, lob: str = "Homeowners") -> dict:
     finally:
         conn.close()
 
-    return {
-        "saved": True,
-        "policy_number": policy_number,
-        "gw_policy_id": gw_policy_id,
-        "status": status,
-        "coverage_type": coverage_type,
-        "deductible": deductible,
-        "coverage_limit": coverage_limit,
-        "remaining_coverage_limit": coverage_limit,
-        "exclusions": exclusions,
-        "premium_amount": premium_amount,
-        "currency": currency,
-        "policyholder_name": policyholder_name,
-        "effective_date": effective_date,
-        "expiration_date": expiration_date,
+
+if __name__ == "__main__":
+    init_db()
+    print("Database initialized on Azure PostgreSQL.")
+
+
+
+
+"""
+server.py — Claim Readiness Agent
+───────────────────────────────────
+LangGraph agent that scores FNOL completeness against mandatory field
+definitions and runs an initial fraud pre-screen for a claim.
+
+Port: 7708
+MCP : http://localhost:7720/api/v1/claim_readiness/mcp
+
+Run:
+    py -3 server.py
+"""
+
+import json
+import logging
+import os
+import sys
+import time
+import traceback
+from datetime import datetime, timedelta
+from typing import Annotated, List, TypedDict
+
+import uvicorn
+from dotenv import load_dotenv, find_dotenv
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from langchain_mcp_adapters.client import MultiServerMCPClient
+from langchain_openai.chat_models import AzureChatOpenAI
+from langgraph.graph import END, START, StateGraph
+from langgraph.graph.message import add_messages
+from langgraph.prebuilt import ToolNode
+from pydantic import BaseModel
+
+load_dotenv(find_dotenv())
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
+    stream=sys.stdout,
+    force=True,
+)
+logger = logging.getLogger("claim_readiness_agent")
+
+PHOENIX_API_KEY = os.getenv("PHOENIX_API_KEY", "")
+PHOENIX_ENDPOINT = os.getenv("PHOENIX_ENDPOINT", "")
+MCP_URL = os.getenv("MCP_URL", "http://localhost:7720/api/v1/claim_readiness/mcp")
+AGENT_PORT = int(os.getenv("AGENT_PORT", "7708"))
+
+config_mcp_server = {
+    "claim_readiness_mcp": {
+        "url": MCP_URL,
+        "transport": "streamable_http",
+        "timeout": timedelta(seconds=120),
+        "sse_read_timeout": timedelta(seconds=600),
     }
+}
+
+app = FastAPI(title="Claim Readiness Agent")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
-def get_policy_details(policy_number: str, lob: str = "Homeowners") -> dict:
-    """Read a policy record from policy_details or motor_policy_details."""
-    table = _policy_table(lob)
-    conn = get_db_connection()
+class State(TypedDict):
+    messages: Annotated[list, add_messages]
+
+
+def router(state: State):
+    last = state["messages"][-1]
+    if isinstance(last, AIMessage) and getattr(last, "tool_calls", None):
+        return "tools"
+    if isinstance(last, AIMessage) and last.content:
+        if "Continue" in last.content:
+            return "tools"
+        if "End" in last.content:
+            return "End"
+    return "End"
+
+
+class ChatRequest(BaseModel):
+    message: str = "Check claim readiness"
+    history: list = []
+    lob: str = "Homeowners"  # "Homeowners" or "Motor"
+
+
+_FALLBACK_PROMPT_HOMEOWNERS = """
+You are the Claim Readiness Agent for a Homeowners Insurance claims platform,
+assisting a Policyholder (or claims intake team).
+
+Given a claim_id, your workflow is:
+
+1. Call score_claim_readiness with the claim_id and lob="Homeowners". This will:
+   - Check which mandatory FNOL fields are present vs. missing.
+   - Compute a completeness_score (0–100%).
+   - Check whether evidence documents (photos, videos, PDFs) have been uploaded.
+   - Run an LLM fraud pre-screen and return fraud_risk and fraud_flags.
+   - Determine an overall_result (Ready / Incomplete / Flagged for Review).
+
+2. If docs_status is "Incomplete" (no validated documents uploaded):
+   - Inform the policyholder that supporting evidence (photos of damage, police
+     report, repair estimates, etc.) helps process the claim faster.
+   - Ask them: "Do you have any photos, videos, or documents related to the
+     incident that you can upload now?"
+   - If they say YES: direct them to upload via the Document Submission step
+     and do NOT call acknowledge_missing_docs.
+   - If they say NO or they don't have evidence available right now:
+     call acknowledge_missing_docs with the claim_id, lob="Homeowners", and a brief note.
+     Then inform them: their claim and FNOL submission are recorded, but the
+     assigned adjuster may request evidence before the claim can move forward.
+
+3. If missing_fields is non-empty:
+   - Tell the policyholder exactly which fields are still missing and ask them
+     to provide the information so the intake form can be completed.
+
+4. Summarise the overall readiness verdict:
+   - completeness_score and any missing fields
+   - docs_status and any missing document types
+   - fraud_risk and any fraud_flags
+   - overall_result (Ready / Incomplete / Flagged for Review) and next steps
+
+Important:
+- FNOL and Claim ID are already created regardless of document status — do NOT
+  tell the policyholder their claim has not been created.
+- Only call acknowledge_missing_docs after the policyholder explicitly confirms
+  they cannot upload documents right now.
+- When you have completed the full interaction, end your response with "End".
+"""
+
+_FALLBACK_PROMPT_MOTOR = """
+You are the Claim Readiness Agent for a Motor Insurance claims platform,
+assisting a Policyholder (or claims intake team) with a Motor vehicle claim.
+
+Given a claim_id, your workflow is:
+
+1. Call score_claim_readiness with the claim_id and lob="Motor". This will:
+   - Check which mandatory Motor FNOL fields are present vs. missing:
+     policy_number, date_of_loss, loss_type, accident_location,
+     driver_license, VIN, registration_number, vehicle_make, vehicle_model.
+   - Compute a completeness_score (0–100%).
+   - Evaluate the Motor document checklist:
+       • Damage photo or dashcam footage — REQUIRED
+       • Driving License copy — Recommended
+       • RC Book / Vehicle Registration Certificate — Recommended
+       • Police FIR — REQUIRED for theft, hit-and-run, or third-party liability claims
+   - Run an LLM fraud pre-screen with Motor-specific signals (staged accident,
+     VIN/RC mismatch, odometer tampering, delayed reporting, prior damage,
+     telematics inconsistency) and return fraud_risk and fraud_flags.
+   - Determine an overall_result (Ready / Incomplete / Flagged for Review).
+   - Return Motor-specific checklist: vehicle_details_present, driver_details_present,
+     damage_photos_present, dl_doc_present, rc_book_present, police_fir_present.
+
+2. If docs_status is "Incomplete" (no damage photos or required docs uploaded):
+   - Explain that uploading damage photos or dashcam footage helps expedite the Motor claim.
+   - Ask: "Do you have any photos of the vehicle damage or dashcam footage from the
+     incident that you can upload now?"
+   - If YES: guide them to the Document Submission step. Do NOT call acknowledge_missing_docs.
+   - If NO: call acknowledge_missing_docs with the claim_id and lob="Motor" and a brief note.
+     Inform them the adjuster may request evidence before processing can proceed.
+
+3. If missing_fields is non-empty:
+   - Tell the policyholder exactly which Motor fields are still missing
+     (e.g. accident location, vehicle details) and ask them to provide the information.
+
+4. Summarise the Motor claim readiness verdict:
+   - completeness_score and missing Motor-specific fields
+   - Document checklist: damage photos, DL copy, RC Book, Police FIR (if applicable)
+   - fraud_risk and any Motor-specific fraud_flags
+   - overall_result (Ready / Incomplete / Flagged for Review) and recommended next steps
+   - vehicle_details_present and driver_details_present status
+
+Important:
+- FNOL and Claim ID are already created — do NOT tell the policyholder their claim was not created.
+- Vehicle details (VIN, registration, driver license, make/model) come from the pre-populated
+  policy database. If they show as missing, the policy record needs to be updated.
+- Police FIR is mandatory for theft, hit-and-run, and third-party liability claims.
+- When you have completed the full interaction, end your response with "End".
+"""
+
+
+def load_prompt(lob: str = "Homeowners") -> str:
+    prompt_name = (
+        "claim_readiness_agent_motor"
+        if (lob or "").strip().lower() == "motor"
+        else "claim_readiness_agent"
+    )
+    if not PHOENIX_ENDPOINT:
+        raise RuntimeError("Phoenix not configured")
+    from phoenix.client import Client
+    client = Client(base_url=PHOENIX_ENDPOINT, api_key=PHOENIX_API_KEY)
+    prompt = client.prompts.get(name=prompt_name, label="production")
+    prompt_set = prompt._template["messages"]
+    system_msg = next(
+        (item["content"][0]["text"] for item in prompt_set if item.get("role") == "system"), None
+    )
+    if not system_msg:
+        raise ValueError("System prompt is empty or missing in Phoenix")
+    return system_msg
+
+
+def create_graph(model, tools, prompt):
+    graph_builder = StateGraph(State)
+    llm_with_tools = model.bind_tools(tools)
+
+    async def agent_node(state: State):
+        all_messages = [SystemMessage(content=prompt)] + state["messages"]
+        message = await llm_with_tools.ainvoke(all_messages)
+        return {"messages": [message]}
+
+    graph_builder.add_node("agent", agent_node)
+    graph_builder.add_node("tools", ToolNode(tools=tools))
+    graph_builder.add_edge(START, "agent")
+    graph_builder.add_conditional_edges("agent", router, {"tools": "tools", "End": END})
+    graph_builder.add_edge("tools", "agent")
+    return graph_builder.compile()
+
+
+async def get_tools():
+    client = MultiServerMCPClient(config_mcp_server)
+    tools = await client.get_tools()
+    logger.info("Tools loaded from MCP: %s", [t.name for t in tools])
+    return tools
+
+
+async def stream_graph(graph, initial_state, config):
+    async for event in graph.astream_events(initial_state, config=config, version="v2"):
+        kind = event.get("event", "")
+        if kind == "on_chat_model_stream":
+            chunk = event["data"].get("chunk")
+            if chunk and hasattr(chunk, "content") and chunk.content:
+                yield f"data: {chunk.content}\n\n"
+        elif kind == "on_tool_start":
+            yield f"data: [Tool: {event.get('name', 'unknown_tool')}] Starting...\n\n"
+        elif kind == "on_tool_end":
+            yield f"data: [Tool: {event.get('name', 'unknown_tool')}] Done\n\n"
+
+
+@app.post("/chat")
+async def chat_stream(request: Request):
+    load_dotenv(find_dotenv())
+    tools = await get_tools()
+
+    model = AzureChatOpenAI(
+        api_key=os.getenv("AZURE_OPENAI_API_KEY"),
+        api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
+        azure_deployment=os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT"),
+        azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
+    )
+
+    body = await request.json()
+    lob = (body.get("lob") or "Homeowners").strip()
+    user_message = body.get("message", "Check claim readiness")
+    history_raw = body.get("history", [])
+
     try:
-        cur = conn.cursor()
-        cur.execute(f"SELECT * FROM {table} WHERE policy_number = %s", (policy_number,))
-        return row_to_dict(cur.fetchone())
-    finally:
-        conn.close()
-
-
-# ── Coverage Verification ─────────────────────────────────────────────────────
-
-def get_coverage_verification_result(claim_id: str, lob: str = "Homeowners") -> dict:
-    """Read an existing coverage verification result for the claim."""
-    table = _coverage_table(lob)
-    conn = get_db_connection()
-    try:
-        cur = conn.cursor()
-        cur.execute(f"SELECT * FROM {table} WHERE claim_number = %s", (claim_id,))
-        row = row_to_dict(cur.fetchone())
-        if row:
-            return {"found": True, **row}
-        return {"found": False, "claim_number": claim_id}
-    finally:
-        conn.close()
-
-
-def _save_motor_coverage_result(
-    coverage_tbl: str,
-    claim_id: str,
-    policy_number,
-    llm_result: dict,
-    claim_type,
-    license_valid: bool,
-    license_expiry_note,
-    zero_dep_applied: bool,
-    engine_protection_note,
-) -> None:
-    """Persist Motor coverage result including the 4 Motor-specific check columns."""
-    conn2 = get_db_connection()
-    try:
-        cur2 = conn2.cursor()
-        cur2.execute(
-            f"""
-            INSERT INTO {coverage_tbl}
-              (claim_number, policy_number, coverage_verdict, exclusion_triggered,
-               exclusion_details, net_payable, coverage_notes, verified_at,
-               claim_type, license_valid, license_expiry_note,
-               zero_dep_applied, engine_protection_note)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ON CONFLICT (claim_number) DO UPDATE SET
-              coverage_verdict      = EXCLUDED.coverage_verdict,
-              exclusion_triggered   = EXCLUDED.exclusion_triggered,
-              exclusion_details     = EXCLUDED.exclusion_details,
-              net_payable           = EXCLUDED.net_payable,
-              coverage_notes        = EXCLUDED.coverage_notes,
-              verified_at           = EXCLUDED.verified_at,
-              claim_type            = EXCLUDED.claim_type,
-              license_valid         = EXCLUDED.license_valid,
-              license_expiry_note   = EXCLUDED.license_expiry_note,
-              zero_dep_applied      = EXCLUDED.zero_dep_applied,
-              engine_protection_note = EXCLUDED.engine_protection_note
-            """,
-            (
-                claim_id, str(policy_number),
-                llm_result.get("coverage_verdict"),
-                llm_result.get("exclusion_triggered", False),
-                llm_result.get("exclusion_details"),
-                llm_result.get("net_payable"),
-                llm_result.get("coverage_notes"),
-                datetime.now(ZoneInfo("UTC")).isoformat(),
-                claim_type,
-                int(license_valid),
-                license_expiry_note,
-                int(zero_dep_applied),
-                engine_protection_note,
-            ),
-        )
-        conn2.commit()
+        system_prompt = load_prompt(lob)
     except Exception as e:
-        conn2.rollback()
-        log.warning("Could not write %s: %s", coverage_tbl, e)
-    finally:
-        conn2.close()
-
-
-def verify_coverage(claim_id: str, lob: str = "Homeowners") -> dict:
-    """
-    Motor: reads claims + motor_policy_details + motor_vehicle_details,
-           applies 4 Motor-specific checks (OD/TP, license expiry, zero dep, engine protection),
-           writes to motor_coverage_verification_results.
-    Homeowners: reads claims + policy_details → coverage_verification_results.
-    """
-    claims_tbl = _claims_table(lob)
-    policy_tbl = _policy_table(lob)
-    coverage_tbl = _coverage_table(lob)
-
-    conn = get_db_connection()
-    try:
-        cur = conn.cursor()
-        cur.execute(f"SELECT * FROM {claims_tbl} WHERE claim_number = %s", (claim_id,))
-        claim = row_to_dict(cur.fetchone())
-        if not claim:
-            return {"error": f"Claim {claim_id} not found in {claims_tbl}"}
-
-        policy_number = claim.get("policy_number")
-        if not policy_number:
-            return {"error": "No policy_number on claim", "claim": claim}
-
-        cur.execute(f"SELECT * FROM {policy_tbl} WHERE policy_number = %s", (policy_number,))
-        policy = row_to_dict(cur.fetchone())
-        if not policy:
-            return {
-                "error": f"Policy {policy_number} not found in {policy_tbl} — run save_policy_details first",
-                "claim": claim,
-            }
-
-        # Motor-only: fetch vehicle/driver record for license expiry check
-        vehicle = {}
-        if _is_motor(lob):
-            cur.execute(
-                "SELECT * FROM motor_vehicle_details WHERE policy_number = %s", (policy_number,)
-            )
-            vehicle = row_to_dict(cur.fetchone()) or {}
-    finally:
-        conn.close()
-
-    loss_type = claim.get("loss_type", "") or ""
-    # cause_of_loss is stored in short_description (see fnol_handler submit_fnol)
-    cause_of_loss = (
-        claim.get("detected_cause") or claim.get("short_description") or
-        claim.get("cause_of_loss") or ""
-    )
-    coverage_type = policy.get("coverage_type", "")
-    coverage_limit = float(policy.get("remaining_coverage_limit") or policy.get("coverage_limit") or 0)
-    deductible = float(policy.get("deductible") or 0)
-    exclusions_raw = policy.get("exclusions") or ""
-    exclusions = (
-        json.loads(exclusions_raw)
-        if isinstance(exclusions_raw, str) and exclusions_raw.startswith("[")
-        else [x.strip() for x in exclusions_raw.split(",") if x.strip()]
-    )
-    loss_amount = float(
-        claim.get("loss_amount") or claim.get("estimated_loss_amount") or claim.get("estimated_cost") or 0
-    )
-
-    # ── Motor-specific checks ──────────────────────────────────────────────────
-    motor_claim_type = None
-    license_valid = True
-    license_expiry_note = None
-    zero_dep_applied = False
-    engine_protection_note = None
-
-    if _is_motor(lob):
-        loss_lower = loss_type.lower()
-        cause_lower = cause_of_loss.lower()
-
-        # CHECK 1 — OD vs TP: determine which coverage limit applies
-        tp_keywords = {
-            "third party", "third-party", "tp claim", "liability",
-            "bodily injury", "property damage to third", "third party property",
-        }
-        is_tp = any(kw in loss_lower or kw in cause_lower for kw in tp_keywords)
-        motor_claim_type = "TP" if is_tp else "OD"
-
-        od_limit = float(policy.get("od_coverage_limit") or 0)
-        tp_limit = float(policy.get("tp_coverage_limit") or 0)
-        if motor_claim_type == "TP" and tp_limit:
-            coverage_limit = tp_limit
-        elif motor_claim_type == "OD" and od_limit:
-            coverage_limit = od_limit
-        # else: fall back to generic coverage_limit already resolved above
-
-        # CHECK 2 — Driver license expiry: reject immediately if expired on date of loss
-        license_expiry = vehicle.get("driver_license_expiry")
-        date_of_loss = claim.get("date_of_loss")
-        if license_expiry and date_of_loss:
-            try:
-                # ISO date strings compare lexicographically (YYYY-MM-DD)
-                lic_str = str(license_expiry)[:10]
-                dol_str = str(date_of_loss)[:10]
-                if lic_str < dol_str:
-                    license_valid = False
-                    license_expiry_note = (
-                        f"Driver license expired on {lic_str}, "
-                        f"which is before the date of loss {dol_str}."
-                    )
-            except (ValueError, TypeError):
-                pass
-
-        if not license_valid:
-            rejected = {
-                "coverage_verdict": "Not Covered",
-                "exclusion_triggered": True,
-                "exclusion_details": "Driver license expired at time of loss",
-                "net_payable": 0,
-                "coverage_notes": license_expiry_note,
-            }
-            _save_motor_coverage_result(
-                coverage_tbl, claim_id, policy_number, rejected,
-                motor_claim_type, license_valid, license_expiry_note,
-                zero_dep_applied, engine_protection_note,
-            )
-            return {
-                "claim_number": claim_id,
-                "policy_number": str(policy_number),
-                "coverage_type": coverage_type,
-                "claim_type": motor_claim_type,
-                "remaining_coverage_limit": coverage_limit,
-                "deductible": deductible,
-                "loss_amount": loss_amount,
-                "exclusions": exclusions,
-                "license_valid": license_valid,
-                "license_expiry_note": license_expiry_note,
-                **rejected,
-            }
-
-        # CHECK 3 — Engine protection: flag if engine damage reported without add-on
-        engine_keywords = {
-            "engine", "engine damage", "hydrostatic lock", "waterlogging",
-            "seized engine", "crankshaft", "piston", "cylinder",
-            "engine seizure", "engine failure", "engine flood",
-        }
-        engine_damage_detected = any(kw in loss_lower or kw in cause_lower for kw in engine_keywords)
-        engine_protection_enabled = int(policy.get("engine_protection_enabled") or 0)
-        if engine_damage_detected and not engine_protection_enabled:
-            engine_protection_note = (
-                "Engine damage detected in claim but Engine Protection add-on is NOT active "
-                "on this policy. Engine-related repair costs are excluded."
-            )
-
-        # CHECK 4 — Zero depreciation: flag for LLM to skip depreciation deduction
-        zero_dep_applied = bool(int(policy.get("zero_dep_enabled") or 0))
-
-    # ── LLM coverage assessment ───────────────────────────────────────────────
-    try:
-        client = _get_openai_client()
-
-        motor_context = ""
-        if _is_motor(lob):
-            motor_context = (
-                f"\nClaim Type (OD/TP): {motor_claim_type}"
-                f"\nApplicable Coverage Limit for {motor_claim_type}: {coverage_limit}"
-                f"\nZero Depreciation Add-on Active: {'Yes — do NOT deduct depreciation from net_payable' if zero_dep_applied else 'No'}"
-                f"\nEngine Protection Add-on Active: {'Yes' if int(policy.get('engine_protection_enabled') or 0) else 'No'}"
-            )
-            if engine_protection_note:
-                motor_context += f"\nEngine Protection Note: {engine_protection_note}"
-
-        prompt = (
-            "You are a motor/property insurance policy coverage analyst. Determine whether the claim is covered.\n"
-            "IMPORTANT: If Estimated Loss Amount is 0 or not provided, the damage has not yet been assessed. "
-            "Do NOT return 'Needs Investigation' solely because the loss amount is zero. "
-            "Evaluate whether the loss type and cause of loss are covered under the policy and whether "
-            "any exclusions apply. "
-            "If covered with no exclusion triggered, return coverage_verdict='Covered - Pending Assessment' "
-            "with net_payable=0 and coverage_notes explaining that net payable will be calculated once "
-            "damage assessment is complete.\n"
-        )
-        if _is_motor(lob) and engine_protection_note:
-            prompt += (
-                "Engine damage is present but Engine Protection is NOT active: "
-                "mark coverage_verdict as 'Partially Covered' and exclude engine costs from net_payable; "
-                "reflect this clearly in coverage_notes.\n"
-            )
-        if _is_motor(lob) and zero_dep_applied:
-            prompt += (
-                "Zero Depreciation add-on is ACTIVE: calculate net_payable as "
-                "loss_amount minus deductible (capped at coverage_limit) with NO depreciation deduction.\n"
-            )
-        prompt += (
-            "Respond with JSON only: "
-            '{"coverage_verdict": "Covered|Covered - Pending Assessment|Partially Covered|Not Covered|Needs Investigation", '
-            '"exclusion_triggered": true/false, '
-            '"exclusion_details": "...", '
-            '"net_payable": <number>, '
-            '"coverage_notes": "..."}.\n\n'
-            f"Policy Coverage Type: {coverage_type}\n"
-            f"Remaining Coverage Limit: {coverage_limit}\n"
-            f"Deductible: {deductible}\n"
-            f"Policy Exclusions: {exclusions}\n"
-            f"Claim Loss Type: {loss_type}\n"
-            f"Cause of Loss: {cause_of_loss}\n"
-            f"Estimated Loss Amount: {loss_amount}"
-            f"{motor_context}"
+        logger.warning("Phoenix prompt load failed (%s) — using fallback prompt", e)
+        system_prompt = (
+            _FALLBACK_PROMPT_MOTOR if lob.lower() == "motor" else _FALLBACK_PROMPT_HOMEOWNERS
         )
 
-        response = client.chat.completions.create(
-            model=AZURE_OPENAI_CHAT_DEPLOYMENT,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.0,
-            response_format={"type": "json_object"},
-        )
-        llm_result = json.loads(response.choices[0].message.content)
-    except Exception as e:
-        log.warning("LLM coverage check failed: %s", e)
-        net_payable = max(0.0, loss_amount - deductible)
-        if coverage_limit:
-            net_payable = min(net_payable, coverage_limit)
-        llm_result = {
-            "coverage_verdict": "Needs Investigation",
-            "exclusion_triggered": False,
-            "exclusion_details": "",
-            "net_payable": net_payable,
-            "coverage_notes": "Automated LLM check failed; manual review needed",
-        }
+    history_messages = []
+    for entry in history_raw:
+        role = (entry.get("role") or "").lower()
+        content = entry.get("content", "")
+        if role == "user":
+            history_messages.append(HumanMessage(content=content))
+        elif role in ("assistant", "ai"):
+            history_messages.append(AIMessage(content=content))
 
-    # ── Persist result ────────────────────────────────────────────────────────
-    if _is_motor(lob):
-        _save_motor_coverage_result(
-            coverage_tbl, claim_id, policy_number, llm_result,
-            motor_claim_type, license_valid, license_expiry_note,
-            zero_dep_applied, engine_protection_note,
-        )
-    else:
-        conn2 = get_db_connection()
+    initial_messages = history_messages + [user_message]
+    graph = create_graph(model=model, tools=tools, prompt=system_prompt)
+
+    async def generate():
+        start = time.time()
+        last_event_at = start
+        last_tool = None
         try:
-            cur2 = conn2.cursor()
-            cur2.execute(
-                f"""
-                INSERT INTO {coverage_tbl}
-                  (claim_number, policy_number, coverage_verdict, exclusion_triggered,
-                   exclusion_details, net_payable, coverage_notes, verified_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT (claim_number) DO UPDATE SET
-                  coverage_verdict    = EXCLUDED.coverage_verdict,
-                  exclusion_triggered = EXCLUDED.exclusion_triggered,
-                  exclusion_details   = EXCLUDED.exclusion_details,
-                  net_payable         = EXCLUDED.net_payable,
-                  coverage_notes      = EXCLUDED.coverage_notes,
-                  verified_at         = EXCLUDED.verified_at
-                """,
-                (
-                    claim_id, str(policy_number),
-                    llm_result.get("coverage_verdict"),
-                    llm_result.get("exclusion_triggered", False),
-                    llm_result.get("exclusion_details"),
-                    llm_result.get("net_payable"),
-                    llm_result.get("coverage_notes"),
-                    datetime.now(ZoneInfo("UTC")).isoformat(),
-                ),
-            )
-            conn2.commit()
-        except Exception as e:
-            conn2.rollback()
-            log.warning("Could not write %s: %s", coverage_tbl, e)
-        finally:
-            conn2.close()
+            async for event in stream_graph(
+                graph=graph,
+                initial_state={"messages": initial_messages},
+                config={"recursion_limit": 250},
+            ):
+                last_event_at = time.time()
+                if isinstance(event, str) and event.startswith("data: [Tool:"):
+                    try:
+                        last_tool = event.split("[Tool:", 1)[1].split("]", 1)[0]
+                    except Exception:
+                        pass
+                yield event
+        except BaseException as e:
+            elapsed = time.time() - start
+            since_last = time.time() - last_event_at
+            err = {
+                "exception_class": type(e).__name__,
+                "message": str(e),
+                "elapsed_total_seconds": round(elapsed, 2),
+                "seconds_since_last_event": round(since_last, 2),
+                "last_tool_invoked": last_tool,
+                "traceback": traceback.format_exc(),
+                "timestamp_utc": datetime.utcnow().isoformat(),
+            }
+            logger.error("AGENT_ERROR %s", json.dumps(err, default=str))
+            try:
+                yield f"data: [AGENT_ERROR] {json.dumps(err, default=str)}\n\n"
+            except Exception:
+                pass
+            import asyncio
+            if isinstance(e, asyncio.CancelledError):
+                raise
 
-    result = {
-        "claim_number": claim_id,
-        "policy_number": str(policy_number),
-        "coverage_type": coverage_type,
-        "remaining_coverage_limit": coverage_limit,
-        "deductible": deductible,
-        "loss_amount": loss_amount,
-        "exclusions": exclusions,
-        **llm_result,
-    }
-    if _is_motor(lob):
-        result.update({
-            "claim_type": motor_claim_type,
-            "license_valid": license_valid,
-            "license_expiry_note": license_expiry_note,
-            "zero_dep_applied": zero_dep_applied,
-            "engine_protection_note": engine_protection_note,
-        })
-    return result
+    return StreamingResponse(generate(), media_type="text/event-stream")
 
 
-# ── Payment Tracking ──────────────────────────────────────────────────────────
-
-def record_claim_payment(
-    claim_id: str,
-    amount_paid: float,
-    lob: str = "Homeowners",
-    approved_by: str = None,
-    notes: str = None,
-) -> dict:
-    """
-    Record an approved claim payment and reduce the policy's remaining_coverage_limit.
-    Routes to motor or HO tables based on lob.
-    """
-    claims_tbl = _claims_table(lob)
-    policy_tbl = _policy_table(lob)
-
-    conn = get_db_connection()
-    try:
-        cur = conn.cursor()
-        cur.execute(f"SELECT * FROM {claims_tbl} WHERE claim_number = %s", (claim_id,))
-        claim = row_to_dict(cur.fetchone())
-    finally:
-        conn.close()
-
-    if not claim:
-        return {"error": f"Claim {claim_id} not found in {claims_tbl}"}
-
-    policy_number = claim.get("policy_number")
-    if not policy_number:
-        return {"error": "No policy_number on claim"}
-
-    conn2 = get_db_connection()
-    try:
-        cur2 = conn2.cursor()
-        cur2.execute(
-            f"SELECT coverage_limit, remaining_coverage_limit FROM {policy_tbl} WHERE policy_number = %s",
-            (policy_number,),
-        )
-        policy = row_to_dict(cur2.fetchone())
-    finally:
-        conn2.close()
-
-    if not policy:
-        return {"error": f"Policy {policy_number} not found in {policy_tbl} — run save_policy_details first"}
-
-    coverage_before = float(
-        policy.get("remaining_coverage_limit") or policy.get("coverage_limit") or 0
-    )
-    coverage_after = max(0.0, coverage_before - amount_paid)
-
-    payment_id = f"PAY-{datetime.now().strftime('%Y%m%d%H%M%S')}-{random.randint(1000, 9999)}"
-    payment_date = datetime.now(ZoneInfo("UTC")).isoformat()
-
-    conn3 = get_db_connection()
-    try:
-        cur3 = conn3.cursor()
-        cur3.execute(
-            """
-            INSERT INTO claim_payments (
-                payment_id, claim_number, policy_number, amount_paid, payment_date,
-                approved_by, payment_status, coverage_before, coverage_after, notes
-            ) VALUES (%s,%s,%s,%s,%s,%s,'Released',%s,%s,%s)
-            """,
-            (
-                payment_id, claim_id, policy_number, amount_paid, payment_date,
-                approved_by, coverage_before, coverage_after, notes,
-            ),
-        )
-        cur3.execute(
-            f"UPDATE {policy_tbl} SET remaining_coverage_limit = %s WHERE policy_number = %s",
-            (coverage_after, policy_number),
-        )
-        cur3.execute(
-            f"UPDATE {claims_tbl} SET status = 'Settled' WHERE claim_number = %s",
-            (claim_id,),
-        )
-        conn3.commit()
-    except Exception:
-        conn3.rollback()
-        raise
-    finally:
-        conn3.close()
-
-    return {
-        "payment_id": payment_id,
-        "claim_number": claim_id,
-        "policy_number": policy_number,
-        "amount_paid": amount_paid,
-        "coverage_before": coverage_before,
-        "coverage_after": coverage_after,
-        "payment_status": "Released",
-        "payment_date": payment_date,
-    }
+@app.get("/health")
+async def health():
+    return {"status": "healthy", "agent": "claim_readiness_agent"}
 
 
-def get_claim_details(claim_id: str, lob: str = "Homeowners") -> dict:
-    """Fetch claim details from claims or motor_fnol_submissions based on lob."""
-    claims_tbl = _claims_table(lob)
-    conn = get_db_connection()
-    try:
-        cur = conn.cursor()
-        cur.execute(f"SELECT * FROM {claims_tbl} WHERE claim_number = %s", (claim_id,))
-        claim = row_to_dict(cur.fetchone())
-        if not claim:
-            return {"found": False, "claim_id": claim_id, "error": f"Claim '{claim_id}' not found in {claims_tbl}"}
-        return {"found": True, "claim": claim}
-    finally:
-        conn.close()
- 
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=AGENT_PORT)
+
+
