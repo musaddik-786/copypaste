@@ -1,6 +1,132 @@
 
 
 """
+policy_coverage_router.py
+──────────────────────────
+Endpoints / MCP tools:
+  gw_search_policy        POST /gw_search_policy
+  gw_get_policy_coverages POST /gw_get_policy_coverages
+  save_policy_details     POST /save_policy_details
+  get_policy_details      GET  /get_policy_details/{policy_id}
+  verify_coverage         POST /api/policy_coverage/verify/{claim_id}
+  record_claim_payment    POST /api/policy_coverage/payment
+"""
+
+import logging
+from fastapi import APIRouter, HTTPException, Query
+
+from policy_coverage_mcp import handler
+from policy_coverage_mcp.models import (
+    GwSearchPolicyRequest,
+    SavePolicyDetailsRequest,
+    RecordClaimPaymentRequest,
+    GetClaimDetailsRequest,
+)
+
+log = logging.getLogger(__name__)
+router = APIRouter()
+
+
+@router.post(
+    "/get_claim_details",
+    operation_id="get_claim_details",
+    summary="Fetch claim details from local database (Homeowners: claims table, Motor: motor_fnol_submissions)",
+)
+def get_claim_details(req: GetClaimDetailsRequest):
+    return handler.get_claim_details(req.claim_number, lob=req.lob)
+
+
+@router.post(
+    "/gw_search_policy",
+    operation_id="gw_search_policy",
+    summary="Search for a policy (Homeowners: Guidewire PC, Motor: motor_policy_details table)",
+)
+def gw_search_policy(req: GwSearchPolicyRequest):
+    """
+    Motor: reads from motor_policy_details (no Guidewire call).
+    Homeowners: searches Guidewire PolicyCenter as usual.
+    """
+    return handler.gw_search_policy(req.policy_number, lob=req.lob)
+
+
+@router.post(
+    "/gw_get_policy_coverages",
+    operation_id="gw_get_policy_coverages",
+    summary="Fetch full policy coverage details (Homeowners: Guidewire, Motor: motor_policy_details)",
+)
+def gw_get_policy_coverages(req: GwSearchPolicyRequest):
+    return handler.gw_get_policy_coverages(req.policy_number, lob=req.lob)
+
+
+@router.post(
+    "/save_policy_details",
+    operation_id="save_policy_details",
+    summary="Persist policy data locally (Homeowners: fetches from Guidewire, Motor: reads motor_policy_details)",
+)
+def save_policy_details(req: SavePolicyDetailsRequest):
+    try:
+        return handler.save_policy_details(req.policy_number, lob=req.lob)
+    except Exception as e:
+        log.exception("save_policy_details error")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get(
+    "/get_policy_details/{policy_number}",
+    operation_id="get_policy_details",
+    summary="Read policy details from the local database",
+)
+def get_policy_details(policy_number: str, lob: str = Query("Homeowners")):
+    """Returns the full policy_details or motor_policy_details record."""
+    record = handler.get_policy_details(policy_number, lob=lob)
+    if not record:
+        return {"status": "not_found", "policy_number": policy_number}
+    return record
+
+
+@router.get(
+    "/api/policy_coverage/result/{claim_number}",
+    operation_id="get_coverage_verification_result",
+    summary="Read an existing coverage verification result for a claim",
+)
+def get_coverage_verification_result(claim_number: str, lob: str = Query("Homeowners")):
+    return handler.get_coverage_verification_result(claim_number, lob=lob)
+
+
+@router.post(
+    "/api/policy_coverage/verify/{claim_number}",
+    operation_id="verify_coverage",
+    summary="Verify whether a claim's loss is covered by the linked policy",
+)
+def verify_coverage(claim_number: str, lob: str = Query("Homeowners")):
+    """
+    Motor: uses motor_fnol_submissions + motor_policy_details.
+    Homeowners: uses claims + policy_details.
+    """
+    return handler.verify_coverage(claim_number, lob=lob)
+
+
+@router.post(
+    "/api/policy_coverage/payment",
+    operation_id="record_claim_payment",
+    summary="Record an approved claim payment and reduce remaining policy coverage",
+)
+def record_claim_payment(req: RecordClaimPaymentRequest):
+    try:
+        return handler.record_claim_payment(
+            req.claim_number, req.amount_paid, lob=req.lob,
+            approved_by=req.approved_by, notes=req.notes,
+        )
+    except Exception as e:
+        log.exception("record_claim_payment error")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+
+
+
+
+"""
 handler.py — Policy Coverage Verification (dual-LOB: Homeowners + Motor)
 ──────────────────────────────────────────────────────────────────────────
 Homeowners: Guidewire PolicyCenter lookup → local policy_details table
@@ -774,4 +900,411 @@ def get_claim_details(claim_id: str, lob: str = "Homeowners") -> dict:
   
   
   
-  
+
+
+
+from pydantic import BaseModel, Field
+from typing import Optional
+
+
+class GetClaimDetailsRequest(BaseModel):
+    claim_number: str = Field(..., description="Claim number, e.g. CLM-2024-1003")
+    lob: str = Field("Homeowners", description="Line of business: 'Homeowners' or 'Motor'")
+
+
+class GwSearchPolicyRequest(BaseModel):
+    policy_number: str = Field(..., description="Policy number to look up, e.g. '9802322834'")
+    lob: str = Field("Homeowners", description="Line of business: 'Homeowners' or 'Motor'")
+
+
+class GwReportLossRequest(BaseModel):
+    policy_number: str = Field(..., description="Policy number the loss is reported against")
+    claim_number: str = Field(..., description="Local claim number, e.g. CLM-2026-1234")
+    loss_type: str = Field(..., description="Type of loss, e.g. 'Water Damage', 'Fire'")
+    loss_date: str = Field(..., description="Date of loss in YYYY-MM-DD format")
+    loss_description: str = Field(..., description="Free-text description of what happened")
+    loss_location: Optional[str] = Field(None, description="Address or area where loss occurred")
+    policyholder_name: str = Field(..., description="Name of the insured policyholder")
+    estimated_amount: Optional[float] = Field(None, description="Policyholder's estimated loss amount")
+    lob: str = Field("Homeowners", description="Line of business: 'Homeowners' or 'Motor'")
+
+
+class SavePolicyDetailsRequest(BaseModel):
+    policy_number: str = Field(..., description="Policy number to fetch from Guidewire (HO) or local table (Motor)")
+    lob: str = Field("Homeowners", description="Line of business: 'Homeowners' or 'Motor'")
+
+
+class RecordClaimPaymentRequest(BaseModel):
+    claim_number: str = Field(..., description="Claim number (e.g. CLM-2026-1001) for which payment is released")
+    amount_paid: float = Field(..., description="Amount paid out for this claim")
+    approved_by: Optional[str] = Field(None, description="Name or ID of the adjuster who approved the payment")
+    notes: Optional[str] = Field(None, description="Optional notes about the payment")
+    lob: str = Field("Homeowners", description="Line of business: 'Homeowners' or 'Motor'")
+
+
+
+
+
+"""
+server.py — Policy Coverage Verification Agent
+───────────────────────────────────────────────
+LangGraph agent that verifies whether a claim's reported loss falls within
+the linked policy's coverage terms, deductible, limit, and exclusions.
+
+Port: 8007
+MCP : http://localhost:8000/api/v1/policy_coverage/mcp
+
+Run:
+    py -3 server.py
+"""
+
+import json
+import logging
+import os
+import sys
+import time
+import traceback
+from datetime import datetime, timedelta
+from typing import Annotated, TypedDict
+
+import uvicorn
+from dotenv import load_dotenv, find_dotenv
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
+from langchain_core.messages import AIMessage, SystemMessage
+from langchain_mcp_adapters.client import MultiServerMCPClient
+from langchain_openai.chat_models import AzureChatOpenAI
+from langgraph.graph import END, START, StateGraph
+from langgraph.graph.message import add_messages
+from langgraph.prebuilt import ToolNode
+
+load_dotenv(find_dotenv())
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
+    stream=sys.stdout,
+    force=True,
+)
+logger = logging.getLogger("policy_coverage_agent")
+
+PHOENIX_API_KEY = os.getenv("PHOENIX_API_KEY", "")
+PHOENIX_ENDPOINT = os.getenv("PHOENIX_ENDPOINT", "")
+MCP_URL = os.getenv("MCP_URL", "http://localhost:8000/api/v1/policy_coverage/mcp")
+AGENT_PORT = int(os.getenv("AGENT_PORT", "8007"))
+
+config_mcp_server = {
+    "policy_coverage_mcp": {
+        "url": MCP_URL,
+        "transport": "streamable_http",
+        "timeout": timedelta(seconds=120),
+        "sse_read_timeout": timedelta(seconds=600),
+    }
+}
+
+app = FastAPI(title="Policy Coverage Verification Agent")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+class State(TypedDict):
+    messages: Annotated[list, add_messages]
+
+
+def router(state: State):
+    last = state["messages"][-1]
+    if isinstance(last, AIMessage) and getattr(last, "tool_calls", None):
+        return "tools"
+    if isinstance(last, AIMessage) and last.content:
+        if "Continue" in last.content:
+            return "tools"
+        if "End" in last.content:
+            return "End"
+    return "End"
+
+
+# _FALLBACK_PROMPT = """
+# You are the Policy Coverage Verification Agent for an insurance claims platform,
+# assisting a Policyholder.
+
+# ─── STEP 0 — Determine whether a tool call is needed ───────────────────────
+# Only call tools when the policyholder is asking about coverage status or
+# verification for a SPECIFIC claim.
+
+# If the message is a general question (e.g. "What does deductible mean?",
+# "How does coverage work?") — answer it from your knowledge WITHOUT calling
+# any tools, then end with "End".
+
+# ─── STEP 1 — Extract the claim number ──────────────────────────────────────
+# Before calling any tool, identify the claim number from the CURRENT message
+# only. Do NOT use claim numbers from earlier in the conversation.
+
+# If no claim number is present in the current message, ask:
+#   "Could you please share your claim number so I can check the coverage?"
+# Do not call any tool until the policyholder provides it.
+
+# ─── STEP 2 — Check for an existing verification result ─────────────────────
+# Call get_coverage_verification_result with the claim number.
+# - If a result already exists, use it to answer the policyholder directly.
+#   Do NOT call verify_coverage again unless they explicitly ask for a recheck.
+# - If no result exists, proceed to Step 3.
+
+# ─── STEP 3 — Ensure policy is in the local database ────────────────────────
+# Call get_policy_details with the policy number linked to the claim.
+# - If policy details exist locally, proceed directly to Step 4.
+# - If not found locally:
+#     a. Call gw_search_policy to find the policy in Guidewire.
+#     b. Call save_policy_details to persist it locally.
+
+# ─── STEP 4 — Run coverage verification ─────────────────────────────────────
+# Call verify_coverage with the claim number.
+
+# ─── STEP 5 — Explain the result in plain language ──────────────────────────
+# Tell the policyholder:
+# - Whether their loss is Covered, Partially Covered, or Not Covered.
+# - Any exclusions that apply and why, in plain terms.
+# - The deductible that applies to their claim.
+# - The estimated net payable amount after the deductible.
+# - Recommended next steps.
+
+# ─── RULES ───────────────────────────────────────────────────────────────────
+# - NEVER show internal IDs (gw_policy_id, claim_id integers, etc.).
+# - NEVER expose remaining_coverage_limit as a raw number — describe it in
+#   context (e.g. "Your remaining coverage for this period is $X").
+# - NEVER assume or guess a claim number. Always take it from the current message.
+# - When you have completed the full response, end with "End".
+# """
+
+
+
+
+_FALLBACK_PROMPT = """
+You are the Policy Coverage Verification Agent for an insurance claims platform,
+assisting a Policyholder.
+
+─── STEP 0 — Determine whether a tool call is needed ───────────────────────
+Only call tools when the policyholder is asking about coverage status or
+verification for a SPECIFIC claim.
+
+If the message is a general question (e.g. "What does deductible mean?",
+"How does coverage work?") — answer it from your knowledge WITHOUT calling
+any tools, then end with "End".
+
+─── STEP 1 — Extract the claim number ──────────────────────────────────────
+Before calling any tool, identify the claim number from the CURRENT message
+only. Do NOT use claim numbers from earlier in the conversation.
+
+If no claim number is present in the current message, ask:
+  "Could you please share your claim number so I can check the coverage?"
+Do not call any tool until the policyholder provides it.
+
+─── STEP 2 — Check for an existing verification result ─────────────────────
+Call get_coverage_verification_result with the claim number.
+- If a result already exists, use it to answer the policyholder directly.
+  Do NOT call verify_coverage again unless they explicitly ask for a recheck.
+- If no result exists, proceed to Step 3.
+
+─── STEP 3 — Retrieve the linked policy ─────────────────────────────
+Call get_claim_details using the claim number.
+If the claim is not found:
+Explain that the claim does not exist and stop.
+Otherwise:
+Read the policy_number returned by get_claim_details.
+Do not guess or invent a policy number.
+Proceed to Step 4.
+
+─── STEP 4 — Ensure policy is available locally ─────────────────────
+Call get_policy_details using the policy_number returned from
+get_claim_details.
+If the policy exists locally:
+Proceed to Step 5.
+Otherwise:
+1. Call gw_search_policy(policy_number)
+2. Call save_policy_details(policy_number)
+3. Call get_policy_details(policy_number) again
+Proceed to Step 5.
+
+─── STEP 5 — Explain the result in plain language ──────────────────────────
+Run verify_coverage(claim_number)
+ 
+
+─── RULES ───────────────────────────────────────────────────────────────────
+- NEVER show internal IDs (gw_policy_id, claim_id integers, etc.).
+- NEVER expose remaining_coverage_limit as a raw number — describe it in
+  context (e.g. "Your remaining coverage for this period is $X").
+- NEVER assume or guess a claim number. Always take it from the current message.
+- When you have completed the full response, end with "End".
+"""
+
+
+def load_prompt() -> str:
+    if not PHOENIX_ENDPOINT:
+        raise RuntimeError("Phoenix not configured")
+    from phoenix.client import Client
+    client = Client(base_url=PHOENIX_ENDPOINT, api_key=PHOENIX_API_KEY)
+    prompt = client.prompts.get(name="policy_coverage_agent", label="production")
+    prompt_set = prompt._template["messages"]
+    system_msg = next(
+        (item["content"][0]["text"] for item in prompt_set if item.get("role") == "system"), None
+    )
+    if not system_msg:
+        raise ValueError("System prompt is empty or missing in Phoenix")
+    return system_msg
+
+
+def create_graph(model, tools, prompt):
+    graph_builder = StateGraph(State)
+    llm_with_tools = model.bind_tools(tools)
+
+    async def agent_node(state: State):
+        all_messages = [SystemMessage(content=prompt)] + state["messages"]
+        # message = await llm_with_tools.ainvoke(all_messages)
+        message = await llm_with_tools.ainvoke(all_messages)
+        logger.info("=" * 80)
+        logger.info("LLM Response")
+        logger.info("Content: %s", message.content)
+        if getattr(message, "tool_calls", None):
+            logger.info("Tool Calls:")
+        for tool in message.tool_calls:
+            logger.info(
+                    "Tool=%s Args=%s",
+                    tool.get("name"),
+                    tool.get("args"),
+                )
+        logger.info("=" * 80)
+        return {"messages": [message]}
+        # return {"messages": [message]}
+
+    graph_builder.add_node("agent", agent_node)
+    graph_builder.add_node("tools", ToolNode(tools=tools))
+    graph_builder.add_edge(START, "agent")
+    graph_builder.add_conditional_edges("agent", router, {"tools": "tools", "End": END})
+    graph_builder.add_edge("tools", "agent")
+    return graph_builder.compile()
+
+
+async def get_tools():
+    client = MultiServerMCPClient(config_mcp_server)
+    tools = await client.get_tools()
+    logger.info("Tools loaded from MCP: %s", [t.name for t in tools])
+    return tools
+
+
+async def stream_graph(graph, initial_state, config):
+    async for event in graph.astream_events(initial_state, config=config, version="v2"):
+        kind = event.get("event", "")
+        if kind == "on_chat_model_stream":
+            chunk = event["data"].get("chunk")
+            if chunk and hasattr(chunk, "content") and chunk.content:
+                yield f"data: {chunk.content}\n\n"
+        # elif kind == "on_tool_start":
+        #     yield f"data: [Tool: {event.get('name', 'unknown_tool')}] Starting...\n\n"
+        elif kind == "on_tool_start":
+            logger.info(
+                "TOOL START: %s | INPUT=%s",
+                event.get("name"),
+                event["data"].get("input"),
+            )
+            yield f"data: [Tool: {event.get('name')}] Starting...\n\n"
+        # elif kind == "on_tool_end":
+        #     yield f"data: [Tool: {event.get('name', 'unknown_tool')}] Done\n\n"
+
+        elif kind == "on_tool_end":
+            logger.info(
+
+                    "TOOL END: %s | OUTPUT=%s",
+
+                    event.get("name"),
+
+                    event["data"].get("output"),
+
+                )
+
+            yield f"data: [Tool: {event.get('name')}] Done\n\n"
+
+ 
+
+
+
+@app.post("/chat")
+async def chat_stream(request: Request):
+    load_dotenv(find_dotenv())
+    tools = await get_tools()
+
+    model = AzureChatOpenAI(
+        api_key=os.getenv("AZURE_OPENAI_API_KEY"),
+        api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
+        azure_deployment=os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT"),
+        azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
+    )
+
+    try:
+        system_prompt = load_prompt()
+    except Exception as e:
+        logger.warning("Phoenix prompt load failed (%s) — using fallback prompt", e)
+        system_prompt = _FALLBACK_PROMPT
+
+    body = await request.json()
+    history = body.get("history", [])
+    user_message = body.get("message", "Verify policy coverage for this claim")
+
+    initial_messages = history + [user_message] if history else [user_message]
+    graph = create_graph(model=model, tools=tools, prompt=system_prompt)
+
+    async def generate():
+        start = time.time()
+        last_event_at = start
+        last_tool = None
+        try:
+            async for event in stream_graph(
+                graph=graph,
+                initial_state={"messages": initial_messages},
+                config={"recursion_limit": 250},
+            ):
+                last_event_at = time.time()
+                if isinstance(event, str) and event.startswith("data: [Tool:"):
+                    try:
+                        last_tool = event.split("[Tool:", 1)[1].split("]", 1)[0]
+                    except Exception:
+                        pass
+                yield event
+        except BaseException as e:
+            elapsed = time.time() - start
+            since_last = time.time() - last_event_at
+            err = {
+                "exception_class": type(e).__name__,
+                "message": str(e),
+                "elapsed_total_seconds": round(elapsed, 2),
+                "seconds_since_last_event": round(since_last, 2),
+                "last_tool_invoked": last_tool,
+                "traceback": traceback.format_exc(),
+                "timestamp_utc": datetime.utcnow().isoformat(),
+            }
+            logger.error("AGENT_ERROR %s", json.dumps(err, default=str))
+            try:
+                yield f"data: [AGENT_ERROR] {json.dumps(err, default=str)}\n\n"
+            except Exception:
+                pass
+            import asyncio
+            if isinstance(e, asyncio.CancelledError):
+                raise
+
+    return StreamingResponse(generate(), media_type="text/event-stream")
+
+
+@app.get("/health")
+async def health():
+    return {"status": "healthy", "agent": "policy_coverage_agent"}
+
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=AGENT_PORT)
+
+
