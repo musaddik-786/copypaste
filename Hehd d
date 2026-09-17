@@ -1,12 +1,22 @@
-I had a fire incident at 9 AM while I was at home. The incident occurred in the kitchen and caused damage to the flooring and cabinets. This happened today. It happened all of a sudden, and the damage was serious. I am very stressed.
-Thankyouforreachingout,andI'mverysorrytohearaboutthefireinyourhome.Iunderstandthisisastressfulsituation,andI'mheretohelpyouthroughtheclaimsprocess.Toproceed,couldyoupleaseprovideyourpolicynumber?Thiswillhelpmelocateyourpolicyandstartyourclaimrightaway.
-4061807702
-[Tool: get_fnol_by_policy] Starting...[Tool: get_fnol_by_policy] Done[Tool: create_fnol_submission] Starting...[Tool: create_fnol_submission] Done[Tool: get_mandatory_fields] Starting...[Tool: get_mandatory_fields] Done[Tool: extract_fnol_fields_from_text] Starting...[Tool: extract_fnol_fields_from_text] Done[Tool: log_question_answer] Starting...[Tool: log_question_answer] DoneIhavecapturedmostofthedetailsaboutyourfireincident.Couldyoupleaseprovidemoreinformationaboutwhatcausedthefire?Forexample,wasitduetoanappliancemalfunction,cookingaccident,electricalissue,orsomethingelse?Thiswillhelpmeaccuratelycompleteyourclaim.
-electrical
-[Tool: extract_fnol_fields_from_text] Starting...[Tool: log_question_answer] Starting...[Tool: log_question_answer] Done[Tool: extract_fnol_fields_from_text] Done[Tool: update_fnol_submission] Starting...[Tool: save_field_attribution] Starting...[Tool: save_field_attribution] Done[Tool: update_fnol_submission] DoneThankyouforconfirmingthecauseofthefireaselectrical.Ihavemostofyourincidentdetails,butforyourclaimtoproceed,Ineedtoconfirmthefollowing:-Yourlosstype(Isthisincidentbestdescribedasa"Fire"?)-Theexactdateofloss(Didtheincidenthappentoday,asinSeptember,?)Couldyoupleaseconfirmbothofthesedetailsforme?
-it happened today
-[Tool: extract_fnol_fields_from_text] Starting...[Tool: log_question_answer] Starting...[Tool: log_question_answer] Done[Tool: extract_fnol_fields_from_text] Done[Tool: update_fnol_submission] Starting...[Tool: save_field_attribution] Starting...[Tool: save_field_attribution] Done[Tool: update_fnol_submission] Done[Tool: create_fnol_submission] Starting...[Tool: create_fnol_submission] Done[Tool: update_fnol_submission] Starting...[Tool: get_mandatory_fields] Starting...[Tool: get_mandatory_fields] Done[Tool: update_fnol_submission] Done[Tool: update_fnol_submission] Starting...[Tool: update_fnol_submission] DoneHereisasummaryofyourclaimdetails:-Losstype:Fire-Causeofloss:Electrical-Dateofloss:-09-(today)-Timeofloss:09:00-Areaaffected:Kitchen,includingflooringandcabinets-Propertyoccupancy:Yes,youwereathome-Suddenvs.Gradual:Sudden-Severity:High-Emotionalcontext:YouareverystressedPleaseconfirmthatallofthesedetailsarecorrect,orletmeknowifanychangesareneededbeforeIsubmityourclaim.
-yes confirmed
-[Tool: update_fnol_submission] Starting...[Tool: update_fnol_submission] Done[Tool: get_fnol_by_policy] Starting...[Tool: get_fnol_by_policy] Done[Tool: update_fnol_submission] Starting...[Tool: update_fnol_submission] Done[Tool: submit_fnol] Starting...[Tool: submit_fnol] DoneYourclaimhasbeensuccessfullysubmitted.Herearethedetails:-Losstype:Fire-Cause:Electrical-Dateofloss:Today(-09-)-Timeofloss:09:00-Areaaffected:Kitchen,flooring,andcabinets-Severity:High-Youconfirmedyouwereathome,thedamagewassudden,andyouareverystressed.Yourassignedclaimnumberis:CLM--023.Aclaimsrepresentativewillcontactyousoontohelpwiththenextsteps.Ifyouneedurgentsupportorfurtherassistance,pleaseletusknow.End
-Claim # detected: CLM--023
-again it is sayin claim 023 man why is this happening
+-- 1. Draft FNOL created by Voice Text Intake Agent
+SELECT fnol_number, policy_number, loss_type, cause_of_loss, vehicle_make, vehicle_model, status
+FROM motor_fnol_submissions
+WHERE policy_number IN ('POL-1001','POL-1002','POL-1003')
+ORDER BY created_at DESC;
+
+-- 2. Claim record created on FNOL submission
+SELECT claim_number, policy_number, loss_type, severity, status, filed_at
+FROM claims
+WHERE policy_number IN ('POL-1001','POL-1002','POL-1003')
+ORDER BY filed_at DESC;
+
+-- 3. Coverage result written by Verification Agent
+SELECT claim_number, policy_number, coverage_verdict, exclusion_triggered,
+       net_payable, coverage_notes, verified_at
+FROM motor_coverage_verification_results
+ORDER BY verified_at DESC;
+
+-- 4. Policy still has remaining coverage limit (after payment recording)
+SELECT policy_number, coverage_limit, remaining_coverage_limit, exclusions
+FROM motor_policy_details
+WHERE policy_number IN ('POL-1001','POL-1002','POL-1003');
