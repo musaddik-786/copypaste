@@ -1,2 +1,22 @@
-4849291929
-no i will use this policy number whichi generated freshly from gw 
+-- 1. Policy saved from Guidewire
+SELECT policy_number, coverage_type, coverage_limit, deductible, exclusions, status
+FROM policy_details
+WHERE policy_number = '4849291929';
+
+-- 2. FNOL created
+SELECT fnol_number, policy_number, loss_type, cause_of_loss, severity, status
+FROM fnol_submissions
+WHERE policy_number = '4849291929'
+ORDER BY created_at DESC LIMIT 3;
+
+-- 3. Claim created on submission
+SELECT claim_number, policy_number, loss_type, severity, status, filed_at
+FROM claims
+WHERE policy_number = '4849291929'
+ORDER BY filed_at DESC LIMIT 3;
+
+-- 4. Coverage result
+SELECT claim_number, policy_number, coverage_verdict, exclusion_triggered,
+       net_payable, coverage_notes, verified_at
+FROM coverage_verification_results
+ORDER BY verified_at DESC LIMIT 3;
