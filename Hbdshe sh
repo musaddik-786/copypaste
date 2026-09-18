@@ -1,15 +1,16 @@
-11:00:21 AM
-Started executing query at Line 1
-(1 row(s) affected)
-11:00:21 AM
-Started executing query at Line 1907
-(1 row(s) affected)
-11:00:21 AM
-Started executing query at Line 1916
-(1 row(s) affected)
-11:00:21 AM
-Started executing query at Line 1923
-column mpd.vehicle_make does not exist
-LINE 5: mpd.coverage_type, mpd.vehicle_make, mpd.vehicle_mode...
-^
-Total execution time: 00:00:00.019
+-- Motor claim with vehicle info (correct join)
+SELECT c.claim_number, c.policy_number, c.policyholder_name,
+       c.loss_type, c.status, c.date_of_loss,
+       mpd.coverage_type,
+       mvd.vehicle_make, mvd.vehicle_model, mvd.vehicle_year
+FROM claims c
+LEFT JOIN motor_policy_details mpd ON mpd.policy_number = c.policy_number
+LEFT JOIN motor_vehicle_details mvd ON mvd.policy_number = c.policy_number
+WHERE c.claim_number = 'CLM-MOTOR-001';
+And query 5 (motor policy details) should drop those columns too:
+
+SELECT policy_number, policyholder_name, coverage_type,
+       od_coverage_limit, tp_coverage_limit, zero_dep_enabled,
+       engine_protection_enabled, status
+FROM motor_policy_details
+WHERE policy_number = 'POL-1001';
