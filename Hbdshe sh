@@ -1,125 +1,78 @@
-
-
-
--- Phase 0 — Policy saved
--- Homeowners:
-
-SELECT policy_number, policyholder_name, coverage_type, coverage_limit, 
-       effective_date, expiration_date, status
-FROM policy_details
-WHERE policy_number = '4198285458'
-ORDER BY id DESC LIMIT 1;
--- Motor:
-
-SELECT pd.policy_number, pd.policyholder_name, pd.coverage_type,
-       vd.vin, vd.registration_number, vd.vehicle_make, vd.vehicle_model, vd.driver_license
-FROM motor_policy_details pd
-LEFT JOIN motor_vehicle_details vd ON pd.policy_number = vd.policy_number
-WHERE pd.policy_number = 'POL-1005';
--- Phase 1-2 — FNOL draft created
--- Homeowners:
-
-SELECT *
+1. Homeowners — FNOL submission (by policy_number, not claim_number)
+SELECT fnol_number, policy_number, policyholder_name,
+       loss_type, date_of_loss, status, submitted_at
 FROM fnol_submissions
-WHERE policy_number = '4198285458'
-ORDER BY id DESC LIMIT 3;
--- Motor:
-
-SELECT *
+WHERE policy_number = 'POL-1001'
+ORDER BY created_at DESC
+LIMIT 1;
+2. Motor — FNOL submission (by policy_number)
+SELECT fnol_number, policy_number, policyholder_name,
+       loss_type, accident_location, date_of_loss,
+       driver_license, registration_number, police_fir_number,
+       status, submitted_at
 FROM motor_fnol_submissions
-WHERE policy_number = 'POL-1005'
-ORDER BY id DESC LIMIT 3;
--- Phase 3 — FNOL submitted → Claim created
--- Both LOBs (claims is shared):
+WHERE policy_number = 'POL-1001'
+ORDER BY created_at DESC
+LIMIT 1;
+3. Claims table (no lob column — use policy_number to cross-reference LOB)
+SELECT c.claim_number, c.policy_number, c.policyholder_name,
+       c.loss_type, c.status, c.date_of_loss, c.filed_at,
+       pd.coverage_type   -- 'Homeowners' or 'Motor/Comprehensive/Third Party' etc.
+FROM claims c
+LEFT JOIN policy_details pd ON pd.policy_number = c.policy_number
+WHERE c.claim_number = 'CLM-2026-0265';
+For Motor claims you can also join motor_policy_details:
 
-SELECT claim_number, policy_number, lob, loss_type, status, 
-       filed_date, file_url
-FROM claims
-WHERE policy_number = 'POL-1005'
-ORDER BY id DESC LIMIT 3;
-claim_number should be non-null after submit. file_url will be a JSON array after documents are uploaded.
-
-
-SELECT claim_number, policy_number, lob, loss_type, status, 
-       filed_date, file_url
-FROM claims
-WHERE policy_number = '4198285458'
-ORDER BY id DESC LIMIT 3;
-claim_number should be non-null after submit. file_url will be a JSON array after documents are uploaded.
--- Phase 4 — Coverage verified
--- Homeowners:
-
-SELECT claim_number, coverage_verdict, exclusion_triggered,
-       remaining_coverage_limit, deductible, net_payable, verified_at
-FROM coverage_verification_results
-WHERE claim_number = 'CLM-2026-0268'
-ORDER BY id DESC LIMIT 1;
--- Motor:
-
-SELECT claim_number, coverage_verdict, claim_type, license_valid,
-       zero_dep_applied, remaining_coverage_limit, deductible, verified_at
-FROM motor_coverage_verification_results
-WHERE claim_number = 'CLM-2026-0269'
-ORDER BY id DESC LIMIT 1;
--- Document upload
--- Both LOBs (shared documents table):
-
-SELECT document_id, claim_number, document_type, file_name, 
-       status, uploaded_by_role, uploaded_at
+SELECT c.claim_number, c.policy_number, c.policyholder_name,
+       c.loss_type, c.status, c.date_of_loss,
+       mpd.coverage_type, mpd.vehicle_make, mpd.vehicle_model
+FROM claims c
+LEFT JOIN motor_policy_details mpd ON mpd.policy_number = c.policy_number
+WHERE c.claim_number = 'CLM-MOTOR-001';
+4. Homeowners policy details
+SELECT policy_number, policyholder_name, coverage_type,
+       coverage_limit, deductible, status, effective_date, expiration_date
+FROM policy_details
+WHERE policy_number = 'POL-1001';
+5. Motor policy details
+SELECT policy_number, policyholder_name, coverage_type,
+       od_coverage_limit, tp_coverage_limit, zero_dep_enabled,
+       engine_protection_enabled, status
+FROM motor_policy_details
+WHERE policy_number = 'POL-1001';
+6. Motor vehicle details
+SELECT policy_number, driver_license, vin, registration_number,
+       vehicle_make, vehicle_model, vehicle_year, driver_license_expiry
+FROM motor_vehicle_details
+WHERE policy_number = 'POL-1001';
+7. Documents uploaded for a claim
+SELECT document_id, claim_number, file_name, document_type,
+       content_type, uploaded_by, status, uploaded_at
 FROM documents
-WHERE claim_number = 'CLM-2026-0268'
+WHERE claim_number = 'CLM-2026-0265'
 ORDER BY uploaded_at DESC;
-
-
-SELECT document_id, claim_number, document_type, file_name, 
-       status, uploaded_by_role, uploaded_at
-FROM documents
-WHERE claim_number = 'CLM-2026-0269'
-ORDER BY uploaded_at DESC;
--- document_type must be "Image" for Homeowners to pass the docs check.
--- For Motor it must be "Damage Photo" / "Police FIR" / "Driving License" / "RC Book".
--- status should be "Uploaded" (becomes "Validated" after validate endpoint is called).
-
--- Phase 5 — Claim Readiness scored
--- Homeowners:
-
-SELECT claim_number, completeness_score, missing_fields, coverage_status,
-       docs_status, missing_docs, fraud_risk, fraud_risk_score,
-       fraud_flags, overall_result, validated_at
+8. Homeowners claim readiness result
+SELECT claim_number, completeness_score, docs_status, missing_docs,
+       fraud_risk, fraud_risk_score, overall_result, validated_at
 FROM intake_validation_result_output
-WHERE claim_number = 'CLM-2026-0268'
-ORDER BY id DESC LIMIT 1;
--- Motor:
-
-SELECT claim_number, completeness_score, missing_fields, coverage_status,
-       docs_status, missing_docs, fraud_risk, fraud_risk_score, fraud_flags,
-       overall_result, validated_at,
+WHERE claim_number = 'CLM-2026-0265';
+9. Motor claim readiness result (with checklist columns)
+SELECT claim_number, completeness_score, docs_status, missing_docs,
+       fraud_risk, fraud_risk_score, overall_result,
        vehicle_details_present, driver_details_present,
-       damage_photos_present, dl_doc_present, rc_book_present, police_fir_present
+       damage_photos_present, dl_doc_present,
+       rc_book_present, police_fir_present,
+       validated_at
 FROM motor_intake_validation_result_output
-WHERE claim_number = 'CLM-2026-0269'
-ORDER BY id DESC LIMIT 1;
--- Quick full-flow sanity check (one query)
-
-
-first of all claim number column does not exists in any of submissionhs table for any of the lobs
-next
-
-10:45:42 AM
-Started executing query at Line 1
-(1 row(s) affected)
-10:45:42 AM
-Started executing query at Line 1796
-(1 row(s) affected)
-10:45:42 AM
-Started executing query at Line 1803
-(1 row(s) affected)
-10:45:42 AM
-Started executing query at Line 1810
-(1 row(s) affected)
-10:45:42 AM
-Started executing query at Line 1816
-column "lob" does not exist
-LINE 4: SELECT claim_number, policy_number, lob, loss_type, status,
-^
-Total execution time: 00:00:00.027
+WHERE claim_number = 'CLM-MOTOR-001';
+10. Coverage verification result — Homeowners
+SELECT claim_number, policy_number, coverage_verdict,
+       net_payable, exclusion_triggered, verified_at
+FROM coverage_verification_results
+WHERE claim_number = 'CLM-2026-0265';
+11. Coverage verification result — Motor
+SELECT claim_number, policy_number, coverage_verdict,
+       claim_type, license_valid, zero_dep_applied,
+       net_payable, verified_at
+FROM motor_coverage_verification_results
+WHERE claim_number = 'CLM-MOTOR-001';
