@@ -124,4 +124,4 @@ INFO:     127.0.0.1:47226 - "POST /api/v1/claim_readiness/api/claim_readiness/sc
 
 this is what it gave
 
-do we need document submission agent to be run also what else should we have in place so that it gives that claim readiness is complete
+do we need document submission agent to be run also what else should we have in place so that it gives that claim readiness is complete for both the lobs also remember we should not change any logic for calim readiness agent for homeowners as it wasearlier we are only incorporating for motor lobs
