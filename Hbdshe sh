@@ -1,80 +1,95 @@
-Phase 0 — Policy saved
-Homeowners:
+
+
+
+-- Phase 0 — Policy saved
+-- Homeowners:
 
 SELECT policy_number, policyholder_name, coverage_type, coverage_limit, 
        effective_date, expiration_date, status
 FROM policy_details
-WHERE policy_number = 'YOUR_POLICY_NUMBER'
+WHERE policy_number = '4198285458'
 ORDER BY id DESC LIMIT 1;
-Motor:
+-- Motor:
 
 SELECT pd.policy_number, pd.policyholder_name, pd.coverage_type,
        vd.vin, vd.registration_number, vd.vehicle_make, vd.vehicle_model, vd.driver_license
 FROM motor_policy_details pd
 LEFT JOIN motor_vehicle_details vd ON pd.policy_number = vd.policy_number
-WHERE pd.policy_number = 'YOUR_POLICY_NUMBER';
-Phase 1-2 — FNOL draft created
-Homeowners:
+WHERE pd.policy_number = 'POL-1005';
+-- Phase 1-2 — FNOL draft created
+-- Homeowners:
 
-SELECT id, policy_number, status, loss_type, cause_of_loss, date_of_loss, 
-       severity, claim_number, submitted_at
+SELECT *
 FROM fnol_submissions
-WHERE policy_number = 'YOUR_POLICY_NUMBER'
+WHERE policy_number = '4198285458'
 ORDER BY id DESC LIMIT 3;
-Motor:
+-- Motor:
 
-SELECT id, policy_number, status, loss_type, accident_location, 
-       date_of_loss, severity, claim_number, submitted_at
+SELECT *
 FROM motor_fnol_submissions
-WHERE policy_number = 'YOUR_POLICY_NUMBER'
+WHERE policy_number = 'POL-1005'
 ORDER BY id DESC LIMIT 3;
-Phase 3 — FNOL submitted → Claim created
-Both LOBs (claims is shared):
+-- Phase 3 — FNOL submitted → Claim created
+-- Both LOBs (claims is shared):
 
 SELECT claim_number, policy_number, lob, loss_type, status, 
        filed_date, file_url
 FROM claims
-WHERE policy_number = 'YOUR_POLICY_NUMBER'
+WHERE policy_number = 'POL-1005'
 ORDER BY id DESC LIMIT 3;
 claim_number should be non-null after submit. file_url will be a JSON array after documents are uploaded.
 
-Phase 4 — Coverage verified
-Homeowners:
+
+SELECT claim_number, policy_number, lob, loss_type, status, 
+       filed_date, file_url
+FROM claims
+WHERE policy_number = '4198285458'
+ORDER BY id DESC LIMIT 3;
+claim_number should be non-null after submit. file_url will be a JSON array after documents are uploaded.
+-- Phase 4 — Coverage verified
+-- Homeowners:
 
 SELECT claim_number, coverage_verdict, exclusion_triggered,
        remaining_coverage_limit, deductible, net_payable, verified_at
 FROM coverage_verification_results
-WHERE claim_number = 'CLM-XXXX-XXXX'
+WHERE claim_number = 'CLM-2026-0268'
 ORDER BY id DESC LIMIT 1;
-Motor:
+-- Motor:
 
 SELECT claim_number, coverage_verdict, claim_type, license_valid,
        zero_dep_applied, remaining_coverage_limit, deductible, verified_at
 FROM motor_coverage_verification_results
-WHERE claim_number = 'CLM-XXXX-XXXX'
+WHERE claim_number = 'CLM-2026-0269'
 ORDER BY id DESC LIMIT 1;
-Document upload
-Both LOBs (shared documents table):
+-- Document upload
+-- Both LOBs (shared documents table):
 
 SELECT document_id, claim_number, document_type, file_name, 
        status, uploaded_by_role, uploaded_at
 FROM documents
-WHERE claim_number = 'CLM-XXXX-XXXX'
+WHERE claim_number = 'CLM-2026-0268'
 ORDER BY uploaded_at DESC;
-document_type must be "Image" for Homeowners to pass the docs check.
-For Motor it must be "Damage Photo" / "Police FIR" / "Driving License" / "RC Book".
-status should be "Uploaded" (becomes "Validated" after validate endpoint is called).
 
-Phase 5 — Claim Readiness scored
-Homeowners:
+
+SELECT document_id, claim_number, document_type, file_name, 
+       status, uploaded_by_role, uploaded_at
+FROM documents
+WHERE claim_number = 'CLM-2026-0269'
+ORDER BY uploaded_at DESC;
+-- document_type must be "Image" for Homeowners to pass the docs check.
+-- For Motor it must be "Damage Photo" / "Police FIR" / "Driving License" / "RC Book".
+-- status should be "Uploaded" (becomes "Validated" after validate endpoint is called).
+
+-- Phase 5 — Claim Readiness scored
+-- Homeowners:
 
 SELECT claim_number, completeness_score, missing_fields, coverage_status,
        docs_status, missing_docs, fraud_risk, fraud_risk_score,
        fraud_flags, overall_result, validated_at
 FROM intake_validation_result_output
-WHERE claim_number = 'CLM-XXXX-XXXX'
+WHERE claim_number = 'CLM-2026-0268'
 ORDER BY id DESC LIMIT 1;
-Motor:
+-- Motor:
 
 SELECT claim_number, completeness_score, missing_fields, coverage_status,
        docs_status, missing_docs, fraud_risk, fraud_risk_score, fraud_flags,
@@ -82,32 +97,29 @@ SELECT claim_number, completeness_score, missing_fields, coverage_status,
        vehicle_details_present, driver_details_present,
        damage_photos_present, dl_doc_present, rc_book_present, police_fir_present
 FROM motor_intake_validation_result_output
-WHERE claim_number = 'CLM-XXXX-XXXX'
+WHERE claim_number = 'CLM-2026-0269'
 ORDER BY id DESC LIMIT 1;
-Quick full-flow sanity check (one query)
--- Shows every step for a claim in one shot
-SELECT 
-    c.claim_number,
-    c.lob,
-    c.policy_number,
-    c.loss_type,
-    c.status AS claim_status,
-    (SELECT COUNT(*) FROM documents d WHERE d.claim_number = c.claim_number) AS docs_uploaded,
-    COALESCE(
-        (SELECT overall_result FROM motor_intake_validation_result_output m WHERE m.claim_number = c.claim_number LIMIT 1),
-        (SELECT overall_result FROM intake_validation_result_output h WHERE h.claim_number = c.claim_number LIMIT 1)
-    ) AS readiness_result,
-    COALESCE(
-        (SELECT completeness_score FROM motor_intake_validation_result_output m WHERE m.claim_number = c.claim_number LIMIT 1),
-        (SELECT completeness_score FROM intake_validation_result_output h WHERE h.claim_number = c.claim_number LIMIT 1)
-    ) AS completeness_pct,
-    COALESCE(
-        (SELECT docs_status FROM motor_intake_validation_result_output m WHERE m.claim_number = c.claim_number LIMIT 1),
-        (SELECT docs_status FROM intake_validation_result_output h WHERE h.claim_number = c.claim_number LIMIT 1)
-    ) AS docs_status,
-    COALESCE(
-        (SELECT fraud_risk FROM motor_intake_validation_result_output m WHERE m.claim_number = c.claim_number LIMIT 1),
-        (SELECT fraud_risk FROM intake_validation_result_output h WHERE h.claim_number = c.claim_number LIMIT 1)
-    ) AS fraud_risk
-FROM claims c
-WHERE c.claim_number = 'CLM-XXXX-XXXX';
+-- Quick full-flow sanity check (one query)
+
+
+first of all claim number column does not exists in any of submissionhs table for any of the lobs
+next
+
+10:45:42 AM
+Started executing query at Line 1
+(1 row(s) affected)
+10:45:42 AM
+Started executing query at Line 1796
+(1 row(s) affected)
+10:45:42 AM
+Started executing query at Line 1803
+(1 row(s) affected)
+10:45:42 AM
+Started executing query at Line 1810
+(1 row(s) affected)
+10:45:42 AM
+Started executing query at Line 1816
+column "lob" does not exist
+LINE 4: SELECT claim_number, policy_number, lob, loss_type, status,
+^
+Total execution time: 00:00:00.027
