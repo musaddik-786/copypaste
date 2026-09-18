@@ -1,3 +1,47 @@
+policyholder name column for first 2 queries is emtpy
+for thrid and forth qquery policy holder name is Unknown
+for 8th query drivers licence column is NULL
+
+
+below is what i ran 
+
+-- 1. Homeowners — FNOL submission (by policy_number, not claim_number)
+SELECT fnol_number, policy_number, policyholder_name,
+       loss_type, date_of_loss, status, submitted_at
+FROM fnol_submissions
+WHERE policy_number = '4198285458'
+ORDER BY created_at DESC
+LIMIT 1;
+-- 2. Motor — FNOL submission (by policy_number)
+SELECT fnol_number, policy_number, policyholder_name,
+       loss_type, accident_location, date_of_loss,
+       driver_license, registration_number, police_fir_number,
+       status, submitted_at
+FROM motor_fnol_submissions
+WHERE policy_number = 'POL-1005'
+ORDER BY created_at DESC
+LIMIT 1;
+-- 3. Claims table (no lob column — use policy_number to cross-reference LOB)
+SELECT c.claim_number, c.policy_number, c.policyholder_name,
+       c.loss_type, c.status, c.date_of_loss, c.filed_at,
+       pd.coverage_type   -- 'Homeowners' or 'Motor/Comprehensive/Third Party' etc.
+FROM claims c
+LEFT JOIN policy_details pd ON pd.policy_number = c.policy_number
+WHERE c.claim_number = 'CLM-2026-0268';
+-- For Motor claims you can also join motor_policy_details:
+
+-- SELECT c.claim_number, c.policy_number, c.policyholder_name,
+--        c.loss_type, c.status, c.date_of_loss,
+--        mpd.coverage_type, mpd.vehicle_make, mpd.vehicle_model
+-- FROM claims c
+-- LEFT JOIN motor_policy_details mpd ON mpd.policy_number = c.policy_number
+-- WHERE c.claim_number = 'CLM-MOTOR-001';
+
+
+
+
+
+
 -- Motor claim with vehicle info (correct join)
 SELECT c.claim_number, c.policy_number, c.policyholder_name,
        c.loss_type, c.status, c.date_of_loss,
@@ -6,11 +50,61 @@ SELECT c.claim_number, c.policy_number, c.policyholder_name,
 FROM claims c
 LEFT JOIN motor_policy_details mpd ON mpd.policy_number = c.policy_number
 LEFT JOIN motor_vehicle_details mvd ON mvd.policy_number = c.policy_number
-WHERE c.claim_number = 'CLM-MOTOR-001';
-And query 5 (motor policy details) should drop those columns too:
+WHERE c.claim_number = 'CLM-2026-0269';
+-- And query 5 (motor policy details) should drop those columns too:
 
 SELECT policy_number, policyholder_name, coverage_type,
        od_coverage_limit, tp_coverage_limit, zero_dep_enabled,
        engine_protection_enabled, status
 FROM motor_policy_details
-WHERE policy_number = 'POL-1001';
+WHERE policy_number = 'POL-1005';
+
+
+
+-- 4. Homeowners policy details
+SELECT policy_number, policyholder_name, coverage_type,
+       coverage_limit, deductible, status, effective_date, expiration_date
+FROM policy_details
+WHERE policy_number = '4198285458';
+-- 5. Motor policy details
+SELECT policy_number, policyholder_name, coverage_type,
+       od_coverage_limit, tp_coverage_limit, zero_dep_enabled,
+       engine_protection_enabled, status
+FROM motor_policy_details
+WHERE policy_number = 'POL-1005';
+-- 6. Motor vehicle details
+SELECT policy_number, driver_license, vin, registration_number,
+       vehicle_make, vehicle_model, vehicle_year, driver_license_expiry
+FROM motor_vehicle_details
+WHERE policy_number = 'POL-1005';
+-- 7. Documents uploaded for a claim
+SELECT document_id, claim_number, file_name, document_type,
+       content_type, uploaded_by, status, uploaded_at
+FROM documents
+WHERE claim_number = 'CLM-2026-0268'
+ORDER BY uploaded_at DESC;
+-- 8. Homeowners claim readiness result
+SELECT claim_number, completeness_score, docs_status, missing_docs,
+       fraud_risk, fraud_risk_score, overall_result, validated_at
+FROM intake_validation_result_output
+WHERE claim_number = 'CLM-2026-0268';
+-- 9. Motor claim readiness result (with checklist columns)
+SELECT claim_number, completeness_score, docs_status, missing_docs,
+       fraud_risk, fraud_risk_score, overall_result,
+       vehicle_details_present, driver_details_present,
+       damage_photos_present, dl_doc_present,
+       rc_book_present, police_fir_present,
+       validated_at
+FROM motor_intake_validation_result_output
+WHERE claim_number = 'CLM-2026-0269';
+-- 10. Coverage verification result — Homeowners
+SELECT claim_number, policy_number, coverage_verdict,
+       net_payable, exclusion_triggered, verified_at
+FROM coverage_verification_results
+WHERE claim_number = 'CLM-2026-0268';
+-- 11. Coverage verification result — Motor
+SELECT claim_number, policy_number, coverage_verdict,
+       claim_type, license_valid, zero_dep_applied,
+       net_payable, verified_at
+FROM motor_coverage_verification_results
+WHERE claim_number = 'CLM-2026-0269';
