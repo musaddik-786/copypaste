@@ -1,233 +1,78 @@
-Nice — I converted your single-script synchronous analyze_local.py into an async MCP-style FastAPI app with the same input/output behavior and identical logic, split into the four files you asked for:
-	•	file_router.py (router)
-	•	handler.py (async handler that keeps your logic)
-	•	service.py (env & helpers)
-	•	main.py (FastAPI + MCP mount)
-
-I kept the exact file names used in your example structure and preserved the original I/O: it still reads input.pdf from the current working directory and writes output.json to the current working directory. I used the async client from azure.ai.documentintelligence.aio and kept the same flow and messages you had in the script. Paste these into the corresponding files.
-
-⸻
-
-file_router.py
-
-from fastapi import APIRouter
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
-
-from handler import analyze_local_document
-
-router = APIRouter()
-
-
-class AnalyzeLocalRequest(BaseModel):
-    """
-    This endpoint triggers the same local analysis flow you had in your script.
-    It does NOT require any body, but we keep a model for consistency with MCP clients.
-    If you prefer no body, the endpoint can be changed to receive an empty POST.
-    """
-    trigger: str = Field(default="analyze_local", description="Trigger for local analysis (ignored).")
-
-
-@router.post(
-    "/Document_Analyzer_MCP",
-    operation_id="Document_Analyzer_MCP",
-    summary="Analyze local input.pdf using Azure Document Intelligence and save output.json"
-)
-async def analyze_local(request: AnalyzeLocalRequest):
-    """
-    Calls the async handler which preserves the original logic:
-      - Loads .env (ENDPOINT, KEY, MODEL_ID)
-      - Reads ./input.pdf
-      - Calls Azure Document Intelligence begin_analyze_document with model_id
-      - Saves result to ./output.json
-      - Returns a JSON-RPC envelope for MCP clients
-    """
-    try:
-        result = await analyze_local_document()
-        return JSONResponse(
-            content={
-                "jsonrpc": "2.0",
-                "id": 1,
-                "result": result
-            },
-            status_code=200
-        )
-    except Exception as e:
-        return JSONResponse(
-            content={
-                "jsonrpc": "2.0",
-                "id": 1,
-                "result": {"status": False, "error": f"Unexpected server error: {str(e)}"}
-            },
-            status_code=200
-        )
-
-
-⸻
-
-handler.py
-
-import os
-import json
-from dotenv import load_dotenv
-from azure.core.credentials import AzureKeyCredential
-from azure.ai.documentintelligence.aio import DocumentIntelligenceClient
-
-from service import _require_env, get_env_values
-
-load_dotenv()
-
-
-async def analyze_local_document() -> dict:
-    """
-    Async wrapper that preserves your original script's logic exactly:
-      1) Load .env
-      2) Check ENDPOINT, KEY, MODEL_ID
-      3) Use ./input.pdf and ./output.json (same filenames/locations)
-      4) Create Azure async client and call begin_analyze_document
-      5) Save result.as_dict() to output.json
-      6) Return a dict with status and file paths (mirrors prints)
-    """
-    # Ensure environment is set
-    _require_env()
-    endpoint, key, model_id = get_env_values()
-
-    # Default file paths (same as your original script)
-    input_path = os.path.join(os.getcwd(), "input.pdf")
-    output_path = os.path.join(os.getcwd(), "output.json")
-
-    if not os.path.exists(input_path):
-        raise FileNotFoundError(
-            f"❌ Could not find 'input.pdf' in {os.getcwd()}.\n"
-            f"Please place your document there and re-run: call the MCP endpoint"
-        )
-
-    # 3️⃣ Create Azure async client
-    print("🔗 Connecting to Azure Document Intelligence service...")
-    client = DocumentIntelligenceClient(
-        endpoint=endpoint,
-        credential=AzureKeyCredential(key)
-    )
-
-    # 4️⃣ Analyze document (keeping the same IO behavior)
-    print(f"📄 Analyzing '{input_path}' using model '{model_id}'...")
-    # Note: to keep identical behavior to your script we open the file in binary mode
-    # and pass the file object to the SDK. This preserves the exact logic & I/O.
-    try:
-        async with client:
-            with open(input_path, "rb") as f:
-                poller = await client.begin_analyze_document(model_id=model_id, analyze_request=f)
-                result = await poller.result()
-    except Exception as e:
-        # bubble up to router which will wrap into a JSON-RPC envelope
-        raise RuntimeError(f"Error during document analysis: {e}")
-
-    # 5️⃣ Save exact JSON output (same as your original script)
-    print("💾 Saving results as 'output.json'...")
-    json_data = result.as_dict()
-    try:
-        with open(output_path, "w", encoding="utf-8") as wf:
-            json.dump(json_data, wf, indent=2, ensure_ascii=False)
-    except Exception as e:
-        raise RuntimeError(f"Failed to save output.json: {e}")
-
-    print("\n✅ Done!")
-    print(f"📂 Input file:  {input_path}")
-    print(f"📁 Output file: {output_path}")
-    print("You can open 'output.json' to see the same JSON as in Azure Studio.\n")
-
-    return {"status": True, "input": input_path, "output": output_path}
-
-
-⸻
-
-service.py
-
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
-
-# Read environment variables once
-ENDPOINT = os.getenv("ENDPOINT", "")
-KEY = os.getenv("KEY", "")
-MODEL_ID = os.getenv("MODEL_ID", "")
-
-
-def _require_env() -> None:
-    """Ensure required environment variables exist (same checks as your original script)."""
-    if not (ENDPOINT and KEY and MODEL_ID):
-        raise RuntimeError("Missing ENDPOINT, KEY, or MODEL_ID in .env file.")
-
-
-def get_env_values():
-    """Return endpoint, key, model_id"""
-    return ENDPOINT, KEY, MODEL_ID
-
-
-⸻
-
-main.py
-
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi_mcp import FastApiMCP
-import uvicorn
-
-from file_router import router as file_router
-
-
-def apply_cors(app: FastAPI):
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-
-
-def create_sub_app(title: str, description: str, version: str = "0.1.0") -> FastAPI:
-    sub = FastAPI(title=title, description=description, version=version)
-    apply_cors(sub)
-    return sub
-
-
-app = FastAPI()
-apply_cors(app)
-
-file_app = create_sub_app(
-    title="Document Analyzer MCP",
-    description="Analyze local input.pdf with Azure Document Intelligence and save output.json",
-)
-file_app.include_router(file_router)
-
-# Expose ONLY this operation id via MCP HTTP (client will use transport='http')
-FastApiMCP(file_app, include_operations=["Document_Analyzer_MCP"]).mount_http()
-
-# Mount the sub-app under this prefix (adjust if you want a different path)
-app.mount("/api/v1/document_agent", file_app)
-
-
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8602)
-
-
-⸻
-
-Notes & rationale
-	•	I preserved your I/O exactly: input.pdf from current working directory and output.json written there.
-	•	The Azure async SDK (azure.ai.documentintelligence.aio.DocumentIntelligenceClient) is used and begin_analyze_document(... ) is awaited, then await poller.result() — this mirrors the flow and output of your original script but in an async def handler.
-	•	I kept your printed messages and final returned dict so behavior in logs remains familiar.
-	•	I returned a JSON-RPC envelope from the router (same approach as your example), so MCP clients can call this endpoint consistently.
-	•	The main.py mounts the sub-app under /api/v1/document_agent and exposes the operation id Document_Analyzer_MCP for MCP. I used port 8602 — change if you want another port.
-	•	I intentionally left the local file reads/writes synchronous (as in your original script) because you asked to not change the existing I/O logic. If you later want fully non-blocking file I/O (and avoid blocking the event loop), I can convert reading/writing to aiofiles — but only if you want that change.
-
-⸻
-
-If you want, I can:
-	•	change the endpoint path or port,
-	•	switch to fully non-blocking file I/O (aiofiles) so the FastAPI event loop isn’t blocked while reading/writing large PDFs,
-	•	add a tiny health endpoint or example curl/http call to invoke the MCP operation,
-	•	or produce a docker-compose example to run this MCP service.
-
-Which of those (if any) would you like next?
+this is a transcript no need to change everything just we need to add additional paragraph or few sentences at the beginning part not exactly at start but somewhere at the begining
+such that guidewire should be highlighted in the overall video so now give the full script as i said earlier no need to change the entire script just the starting section because now this video has to be presented in the guidewire event
+Musaddique Lalkot
+0 minutes 14 seconds0:14
+Musaddique Lalkot 0 minutes 14 seconds
+Imagine an Agentic underwriter assist built and integrated with Guidewire.
+Musaddique Lalkot 0 minutes 18 seconds
+Let's look at the Agentic underwriting process flow for the same. The journey begins when a broker sends a submission e-mail with attachments to the insurer's mailbox. The AI-powered e-mail intent agent identifies the intent, performs a duplicate check, and if no duplicate is found, downloads the attachments. Data is extracted and structured into JSON format.
+Musaddique Lalkot 0 minutes 41 seconds
+This flows through eligibility and risk assessment AI agents, where the risk is evaluated, classified, and scored. Risk summarization.
+Musaddique Lalkot 0 minutes 52 seconds
+AI agent capability generates insights and enables chat-based Q&A for the underwriter. Now here is where Guidewire's rating engine for pricing comes in, and it generates the quote. A quote document is created. The quote document, along with a pre-filled e-mail body, is saved in the insurer's draft folder for review.
+Musaddique Lalkot 1 minute 13 seconds
+The underwriter now mails the quote to the broker. Once the broker confirms acceptance via e-mail.
+Musaddique Lalkot 1 minute 20 seconds
+Guidewire's policy administration system generates the policy document, and it is sent to the broker for approval. After approval and successful payment, the policy is activated. Now let's step in. Welcome to Agent vs Underwriting Assist, an intelligent layer built to enhance and amplify the Guidewire ecosystem with agenda capabilities.
+Musaddique Lalkot 1 minute 42 seconds
+Let's begin. An underwriter opens their inbox and sees a new commercial property submission. The submission is for Azul Biscayne Resort and Spa. The e-mail contains key details such as proposed policy period, total insured value, limit, along with three important attachments, a submission document, loss run and SOV document.
+Musaddique Lalkot 2 minutes 3 seconds
+Traditionally, this would mean manual reading, cross-checking, validation, and multiple system updates. But not anymore.
+Musaddique Lalkot 2 minutes 13 seconds
+The underwriter navigates to the Agentverse Underwriting Assist dashboard and triggers submission ingestion.
+Musaddique Lalkot 2 minutes 19 seconds
+Behind the scenes, AI agents begin orchestrating the process. Documents are ingested, content is parsed, he sees that the data extraction indicator has now changed color, showing that the stage has been processed and a review is awaited from the underwriter. He opens it and sees that data is extracted. e-mail content and all the attachments have been processed.
+Musaddique Lalkot 2 minutes 42 seconds
+Now, the underwriter reviews the extracted data and cross-references it with the original documents. Once satisfied with accuracy, he approves all the documents. Now, 2 powerful A capabilities become available.
+Musaddique Lalkot 2 minutes 56 seconds
+First, document summaries. Each attachment is summarized into a concise, actionable overview highlights.
+Musaddique Lalkot 3 minutes 5 seconds
+And second one is Chat with AI, which enables chat-based Q&A for the underwriter, a retrieval augmented capability that allows the underwriter to ask questions directly to the documents. For example, what are the construction and occupancy details for the property? When was the property last renovated? What safety measures are in place?
+Musaddique Lalkot 3 minutes 25 seconds
+The answers are precise, contextual, and fully grounded in the source documents eliminating guesswork and manual searching. Navigating to Eligibility Phase
+Musaddique Lalkot 3 minutes 36 seconds
+Under hard stops, there are several trigger checks. Based on the conditions, and it may be declined or marked for mandatory referral. In this case, all checks have passed, so there are no triggers. Next is the compliance section, where sanctions screening is performed. Following that is the appetite check.
+Musaddique Lalkot 3 minutes 56 seconds
+Which consists of five checks that can either pass or generate a warning.
+Musaddique Lalkot 4 minutes 1 second
+Summary tab provides an overall view of all the checks performed.
+Musaddique Lalkot 4 minutes 5 seconds
+Based on the results, we receive a triggered summary along with a relevant justification. Since there are warning flags, the underwriter records the reason for the decision and proceeds with an acceptance decision.
+Musaddique Lalkot 4 minutes 18 seconds
+Now, the process moves into risk assessment. The risk assessment is based on six key categories, such as property and physical, and other risk dimensions. On a thousand scale each category is scored and is assigned a specific weighting. For every category, there are corresponding input parameters, which may be either extracted directly from the submission data or derived through calculations. Points are then assigned
+Musaddique Lalkot 4 minutes 42 seconds
+according to predefined business rules.
+Musaddique Lalkot 4 minutes 45 seconds
+For example, the construction class has been extracted as fire resistive concrete steel. As we scroll down, we can see the business rule tables for building age and system condition scoring, as well as construction class scoring. The selected construction class matches a scoring rule that assigns 10 points.
+Musaddique Lalkot 5 minutes 5 seconds
+which is reflected in the overall calculation.
+Musaddique Lalkot 5 minutes 12 seconds
+Moving to the risk summary, we get a consolidated view of the risk assessment through the Risk Profile Visualization, Domain Risk Radar, and Composite Risk Scorecard. In the Risk Band Reference section, the calculated risk score is 250. Based on the defined thresholds, this falls into Band 2.
+Musaddique Lalkot 5 minutes 30 seconds
+Preferred, resulting in accept recommendation and a premium adjustment ranging from -10 to 0%.
+Musaddique Lalkot 5 minutes 38 seconds
+Different risk bands correspond to different labels, underwriting actions, and premium adjustments based on the final risk score. Also, comprehensive risk analysis summary, including market context, emerging risks, and peril sub-limit and deductible recommendations. And an AI-generated justification that explains the reasoning behind the risk assessment and recommendation.
+Musaddique Lalkot 6 minutes 2 seconds
+By clicking on the score section, we can view a detailed breakdown of how the final score was calculated, including category-level contributions and applied business rules. He records the reason for the decision and proceeds with an acceptance decision. Once the underwriter completes the submission, a comprehensive submission summary is generated.
+Musaddique Lalkot 6 minutes 22 seconds
+Now with a single click of the Get Quote from Guidewire button. Agent first interfaces directly with the Guidewire ecosystem.
+Musaddique Lalkot 6 minutes 30 seconds
+Submission data is transmitted, pricing and rating are executed, and the quote response is returned. The quote document is also automatically generated and can be reviewed.
+Musaddique Lalkot 6 minutes 42 seconds
+Now, the underwriter navigates to Guidewire Policy Center.
+Musaddique Lalkot 6 minutes 46 seconds
+Submission is now reflected inside Guidewire. The quoted policy displays premium details, transaction information, and rating outputs enriched with structured, validated, intelligence-prepared data that was seamlessly passed from Agentverse. Guidewire remains the system of record in the Policy Review section, where policy details are visible.
+Musaddique Lalkot 7 minutes 7 seconds
+And he can review few policy-related data.
+Musaddique Lalkot 7 minutes 10 seconds
+And in the payment section, the payment plan gets visible with installments, down payment with the premium summary.
+Musaddique Lalkot 7 minutes 17 seconds
+From within the platform, the underwriter can draft a response e-mail back to the broker with the quote document attached and key details pre-filled in the body. On clicking draft e-mail, a ready-to-review reply appears in the underwriter's inbox. Professional, structured, complete. The underwriter reviews, makes final edits, and sends the mail response back to the broker.
+Musaddique Lalkot 7 minutes 40 seconds
+Submission received, assessed, quoted, responded. Once the broker is satisfied and responds to the e-mail, the underwriter clicks the Bind and Issue Policy button. The policy is then bound and becomes visible in the Guidewire platform under the Policy section, showing details such as term financials, contacts,
+Musaddique Lalkot 8 minutes
+policy transactions, and more. End to end.
+Musaddique Lalkot 8 minutes 5 seconds
+Powered by intelligent decision support and fully integrated with Guidewire, AgentVerse is an intelligent orchestration layer that strengthens Guidewire with smarter ingestion, explainable decisions, accelerated risk evaluation, and seamless communication. It transforms underwriting from a manual, document-heavy process into a connected,
+Musaddique Lalkot 8 minutes 25 seconds
+Insight-driven experience. AI-powered, human-controlled, Guidewire-enhanced. The future of underwriting isn't just digital, it's agentic, and it starts here.
