@@ -1,149 +1,125 @@
+Life insurance underwriting involves bringing together large volumes of applicant information, medical evidence, financial data, eligibility checks, fraud assessment, and risk evaluation before an underwriting decision can be made.
 
-Rohan Modi 0 minutes 17 seconds
-Underwriter has received the patient information from the broker and the patient name is Carlos E. Diaz, who is a kind of an active smoker. And the mail body we can see, so it consists of the details regarding the patient, like his full name, date of birth, age, SSN, last four digits.
-Rohan Modi 0 minutes 36 seconds
-occupation, state of residence, his tobacco, nicotine usage, the face amount. And apart from that, the mail also consists of the documents related to the patient. And the documents attached in this mail body are like application form.
-Rohan Modi 0 minutes 56 seconds
-APS, that is the attending physician statement form, lab results, RX history form, and financial statements form. Now, the underwriter has received this e-mail. Now, he wants to process and check the data.
-Rohan Modi 1 minute 16 seconds
-Related to this patient on going ahead, so he will be using our agentic life underwriter work board. So, here this is the executive dashboard of our application, where we can see the...
-Rohan Modi 1 minute 36 seconds
-applications received section, approved cases section, the average processing time, auto processed rate, which will basically count all the cases where the fraud risk is low, and it will calculate its percentage. Apart from that, we have this.
-Rohan Modi 1 minute 56 seconds
-operational metric section as well, which consists of three sections inside it, as requirements are outstanding, new applications discovered, duplicate submissions found. Below that, if we go, then we have this bar graph available, which shows us the applications by product.
-Rohan Modi 2 minutes 15 seconds
-Available.
-Rohan Modi 2 minutes 18 seconds
-Moving ahead, so after that, we have the applications by decision section, which currently shows us a kind of a pie chart with four categories in it, the approved, declined in review, and referred. And just after that, we have this.
-Rohan Modi 2 minutes 37 seconds
-requirement aging section which basically counts the active in progress cases. It will exclude the completed, declined, escalated or suspended kind of case. Only the active cases will be tracked in the requirement aging. So that is another thing.
-Rohan Modi 7 minutes 48 seconds
-traction, prescription analysis, lab analysis. Apart from that, it will also call the financial underwriting agent.
-Rohan Modi 7 minutes 57 seconds
-whose main purpose is to extract the medical and financial data from the PDF attachments which came via mail. Now the agent is being processed to the stage for fraud screening. Since there is a fraud risk came as low.
-Rohan Modi 8 minutes 18 seconds
-That's why there is no human in the loop at this phase and the overall recommendation by the AI is also approved. That is, that HITL gate will be skipped here. Now, moving ahead, so the agent moves.
-Rohan Modi 8 minutes 37 seconds
-In the risk scoring and rating phase, so that phase also here it is.
-Rohan Modi 8 minutes 48 seconds
-It ran successfully. For the scoring and rating as well, we can see here is completed. So the rating determination process agent will be called, which internally orchestrates the rule evaluation agent, morality scoring agent, table rating agent, and the flat extra calculation agent as well. And apart from that, it will also call.
-Rohan Modi 9 minutes 9 seconds
-the eligibility assessment agent and the reinsurance assessment agent. Now, since here, the HITL is involved because the agent wants the underwriter decision, because he, from his own side, can't decide what decision to take here.
-Rohan Modi 9 minutes 28 seconds
-Okay, so now the agent is currently stopped at the stage CP5. That is, he's awaiting the senior underwriter judgment. And we can see here in the agent decision matrix as well, the few agents are still in awaiting processing because those will get triggered after.
-Rohan Modi 9 minutes 48 seconds
-the underwriter takes the decision. So the decision underwriter needs to take from this box of decision center where he gets the option to approve, approve with rating, refer to senior UW, postpone, reinsurance referral.
-Rohan Modi 10 minutes 8 seconds
-And decline, OK. Now, since I am OK with this fraud risk, as the fraud risk is low, so I will proceed with the approve option.
-Rohan Modi 10 minutes 22 seconds
-And I will say and give my comments as approved and then I will click on this button of submission, submit decision.
-Rohan Modi 10 minutes 46 seconds
-Yep, so here we can see the pipe, the process has again started, and the remaining agents will be.
-Rohan Modi 10 minutes 59 seconds
-getting triggered now. So currently the agent is in the stage 6, that is the decision generation phase. Okay, and here after that it auto approves and proceeds to the stage 7, that is the correspondence drafting it.
-Rohan Modi 11 minutes 18 seconds
-closure phase. So here currently the pipeline is running and we can see two agents are there here, the correspondence drafting agent and the audit logging agent. So those two agents are also completed here and we can see the confidence score as of 98%.
-Rohan Modi 11 minutes 37 seconds
-And the decision, final decision recorded for this case is as approved.
-Rohan Modi 11 minutes 46 seconds
-Apart from that, we also have a panel of the explainability panel, and which consists of the factors which increase the risk factors, the reducing risk, and the confidence we can see here is a 98%. Moving ahead, so we have this medical findings section, which I...
-Rohan Modi 12 minutes 6 seconds
-If I expand so we can see the conditions identified, lab results, and the AI medical recommendation tab. Similarly, like the financial findings section, if I...
-Rohan Modi 12 minutes 18 seconds
-click on this and expand it so we can see the income, network, existing coverage, requested coverage, and the financial assessment came as low here.
-Rohan Modi 12 minutes 31 seconds
-Proceeding ahead, so we also show the agent related data coming from the back end. So for the new business intake agent evidence, this is the data. Then the duplicate detection agent evidence, here is the data. Then...
-Rohan Modi 12 minutes 49 seconds
-Similarly, for all the baseline agents which gets triggered by our orchestration flow right from the e-mail ingestion, so those old data we can easily see here.
-Rohan Modi 13 minutes
-I think we can again move to the dashboard and we would be seeing that the case count has been increased now, like the and the new applications discovered section has also increased since it.
-Rohan Modi 13 minutes 18 seconds
-fetches live the polling of the mail from the inbox of the underwriter via Gmail API.
-Rohan Modi 13 minutes 28 seconds
-So that also I think is done. And the latest underwriter decision also we can see here is approve, which he took 2 minutes ago. So that is one thing. Let's move to the case workbench. So now the case ID, the topmost one, which was earlier in review, that is now moved to the status as approved.
-Rohan Modi 13 minutes 48 seconds
-And now let's dive into the requirement section. So here we can see the there is a for this case ID, the applicant details and the stage it's showing as the approved and the evidence readiness percentage is 100% and the.
-Rohan Modi 14 minutes 7 seconds
-Financial and medical percentage is also 100% here, with fraud check is complete.
-Rohan Modi 14 minutes 14 seconds
-Now moving ahead to the medical underwriting section. So here we can see for the same case ID, we can see the medical related data. Like we have the medical assessment section here consisting of the findings, source severity, mortality impact, and a detailed.
-Rohan Modi 14 minutes 36 seconds
-Lab interpretation report also we have, which consists of the test result is normal range interpretation actions. And we also have the mortality scorecard, which gave the mortality score as 960, rating class as DC.
-Rohan Modi 14 minutes 55 seconds
-And the table rating, since we didn't went ahead with that option in our HITL decision, like we clicked on the approve button. So that's why here is table rating has been shown as N, and for the same reason, that extra is also is not recorded. Now, explainability section also we have in this medical tab.
-Rohan Modi 15 minutes 14 seconds
-Medical underwriting section, so we are.
-Rohan Modi 15 minutes 19 seconds
-The overall AI confidence we can see is the 98%, which matches which we saw in our casework when section. And apart from that, we have this completed case run evidence. So this patient related data we have, which came from our agent, medical underwriting agent. And here we can see the medical underwriting recommendation, like the medical risk.
-Rohan Modi 15 minutes 41 seconds
-curve is low, decision is DC, and all the stuff is present here.
-Rohan Modi 15 minutes 47 seconds
-And here, if I scroll, so a very detailed medical report lab report is available for the patient.
-Rohan Modi 15 minutes 56 seconds
-Now, let me proceed ahead to the financial underwriting section.
-Rohan Modi 16 minutes 7 seconds
-Here we can see the case ID, the topmost one, which is the approved one. So for the patient, Carlos, the financial underwriting agent related data, we can see like the coverage requested, occupation, annual income, net worth, and we can see a financial score.
-Rohan Modi 16 minutes 26 seconds
-which is of 96 out of 100 it came. Latest financial assessment date also we have, which shows the coverage requested, annual income, net worth, existing coverage, total coverage exposure, coverage supported, and the income multiplier as well.
-Rohan Modi 16 minutes 45 seconds
-we can see the financial risk came as low. And we also have in this same page the coverage justification section as well, and which shows various factors to us, like the annual income multiplier supported among the existing coverage, new coverage, total coverage. And at last we can see the AI related conclusion as well, by that.
-Rohan Modi 17 minutes 6 seconds
-Financial risk is low for the same reason.
-Rohan Modi 17 minutes 12 seconds
-Moving right to the eligibility section. So here we can see for the same case ID, if I open, so it is kind of eligible with the assessment confidence percentage of 88% and it is in an adult estimated phase.
-Rohan Modi 17 minutes 29 seconds
-Here we can see the eligibility breakdown as well, where it passes all the checks for the eligibility. And the reinsurance one here is kept as not recorded because there is no reinsurance evaluation source available for this kind of, for this particular case.
-Rohan Modi 17 minutes 50 seconds
-Apart from that, we also have the eligibility rule references section, which shows the references description result. So that part is also there and it shows like eligible and yes, for almost all the stuff.
-Rohan Modi 18 minutes 8 seconds
-And we have the assessment family section where each row opens source evidence separately from the current completed run. We have the medical, financial, fraud, compliance, and reinsurance category here. Apart from that, moving ahead, so there is an eligibility source evidence section.
-Rohan Modi 18 minutes 28 seconds
-We can, where we can see the up for the respective applicant ID, what is the final final decision like the final eligibility is eligible, medical eligible is yes, financial eligible is yes, product eligible is yes, the residence eligible is yes, product eligible, compliance eligible.
-Rohan Modi 18 minutes 47 seconds
-Yes, then risk score came as 963. Yeah, so that part is there. Then, since the fraud risk is low, so there is kind of no blocking factors available here, and there is no source backed action is recorded for this kind of case.
-Rohan Modi 19 minutes 5 seconds
-and no valid product catalog is connected in the product alternatives.
-Rohan Modi 19 minutes 14 seconds
-Now, moving ahead to the eligibility timeline section. So here we can see the eligibility timeline.
-Rohan Modi 19 minutes 25 seconds
-Ohh, moving to the decision center, so...
-Rohan Modi 19 minutes 30 seconds
-For this, Carlos, we can see the decision. So, the AI recommended decision is taken and the confidence is 90% and the processing status is came as approved with the key assessment summary as a medical assessment.
-Rohan Modi 19 minutes 48 seconds
-is of standard risk, financial assessment is low, fraud risk assessment is low risk, creating assessment is kind of DC. And the AI rational also we can see here. So it's eligible and the medical related data it shows like 12 lab values and three medications it reviewed.
-Rohan Modi 20 minutes 9 seconds
-Financial low it checked, then the fraud was auto-cleared since that fraud was low risk, so the score it gave as a 20 for the fraud. Outstanding items came as none, and...
-Rohan Modi 20 minutes 29 seconds
-Yep, so that is the thing. Now, proceeding to the explainability, so let me filter out the case ID, which we for which we want to analyze this. So, the patient name is Carlos, so for that, you can see here the overall confidence came is ninety-eight percent.
-Rohan Modi 20 minutes 49 seconds
-And the source traceability of the evidence, we can see, which basically shows the agent related data from the back end. Like for the new business intake agent evidence, we can see duplicate detection evidence, we can see document extraction agent, we can see requirements and completeness agent, we can see the data here.
-Rohan Modi 21 minutes 10 seconds
-Similarly, the medical underwriting agent evidence data, we can see here. Financial underwriting agent data, we can see here. Fraud detection agent evidence data, fraud investigation agent evidence data, risk scoring and rating agent evidence data, we can see here. Similarly, for the other agents also, we can see.
-Rohan Modi 21 minutes 30 seconds
-like the decision, recommendation, compliance, correspondence, drafting, audit logging. Now, moving to the correspondence section. So now, since the case has been approved by the underwriter, and now he wants to send the...
-Rohan Modi 21 minutes 49 seconds
-closure letter to back to the broker consisting of the policy number and the details for this specific patient. So here we just need to select that patient detail from the drop down for the and then we will type the...
-Rohan Modi 22 minutes 9 seconds
-The next section is the letter type in which from drop down we can see our agent is suggesting the kind of letter as approval letter since this case is already approved. So it can we can see here for the case ID of the patient Carlos Edadorias.
-Rohan Modi 22 minutes 28 seconds
-The approval letter is we have selected in the section and the current status is being approved. So I can just click on this create draft button which will basically create the draft and we can read this.
-Rohan Modi 22 minutes 48 seconds
-draft letter like we are pleased to inform you that your application has been approved and this draft letter once the underwriter has reviewed it so he can just click on this approve button.
-Rohan Modi 23 minutes 2 seconds
-Once he clicks on this approve button, the message will be sent for the draft letter in the underwriters draft box. So we can come back to our inbox.
-Rohan Modi 23 minutes 17 seconds
-And I can just do a refresh here.
-Rohan Modi 23 minutes 23 seconds
-And let me go to the draft section.
-Rohan Modi 23 minutes 30 seconds
-Yes, we can see the draft letter has been sent to the underwriter's draft box where he can just click on the send button and by clicking this it will be sent to the broker along with his final decision.
-Rohan Modi 23 minutes 50 seconds
-Yes.
-Rohan Modi 23 minutes 52 seconds
-So, that's, I think, is the...
-Rohan Modi 23 minutes 57 seconds
-And apart from that, we also have this audit trailing agent section, which basically shows the actions taken by the underwriter for each case ID.
-Rohan Modi 24 minutes 11 seconds
-So, that is the one.
-Rohan Modi 24 minutes 14 seconds
-Yeah, thank you.
+The challenge is not just processing this information, but coordinating multiple underwriting activities, connecting evidence across different sources, and ensuring that the right decisions are made at the right stage of the process.
+
+This is where our Agentic Life Underwriter solution comes in — bringing together specialized AI agents through an intelligent orchestration layer to streamline the end-to-end underwriting journey.
+
+Let’s take a look at the journey through a life insurance application.
+
+The process begins when the underwriter receives an application from the broker.
+
+In this scenario, the applicant is Carlos E. Diaz, an active smoker. The email contains key applicant information such as his full name, date of birth, age, the last four digits of his SSN, occupation, state of residence, tobacco and nicotine usage, and the requested face amount.
+
+Along with this information, the email also includes supporting documents such as the application form, Attending Physician Statement, or APS, lab results, prescription history, and financial statements.
+
+Instead of manually processing each piece of information, the underwriter can use the Agentic Life Underwriter workbench to manage and process the application.
+
+The executive dashboard provides an overall view of the underwriting operation, including applications received, approved cases, average processing time, and the auto-processed rate.
+
+The dashboard also provides operational metrics such as outstanding requirements, newly discovered applications, and duplicate submissions. Additional views provide insights into applications by product, application decisions, and requirement aging, giving the underwriter a consolidated view of the underwriting workload.
+
+Now, let’s move into the processing of Carlos’s application.
+
+The orchestration begins with the intake of the application and the supporting documents received through email.
+
+The solution coordinates multiple specialized agents across the underwriting workflow. These include agents for new business intake, duplicate detection, document extraction, requirements and completeness, medical underwriting, financial underwriting, fraud detection, eligibility assessment, risk scoring and rating, compliance, decision recommendation, correspondence drafting, and audit logging.
+
+The medical underwriting process analyzes the available medical evidence, including prescription history and lab results.
+
+At the same time, the Financial Underwriting Agent extracts the relevant medical and financial information from the supporting PDF documents received with the application.
+
+Once the initial underwriting information is processed, the application moves into the fraud screening stage.
+
+For Carlos’s application, the fraud risk is assessed as low. Because of this low-risk assessment, the human-in-the-loop gate at this stage is automatically skipped, allowing the workflow to continue without manual intervention.
+
+The application then progresses into the risk scoring and rating phase.
+
+Here, the Rating Determination Process Agent orchestrates several specialized agents, including the rule evaluation agent, mortality scoring agent, table rating agent, and flat extra calculation agent.
+
+The workflow also invokes the Eligibility Assessment Agent and the Reinsurance Assessment Agent as part of the overall assessment.
+
+At this point, the workflow reaches a human-in-the-loop decision gate.
+
+The AI agents can perform the analysis and provide recommendations, but the final underwriting decision requires the underwriter’s judgment.
+
+The application therefore pauses at CP5, awaiting the senior underwriter’s decision.
+
+Within the Decision Center, the underwriter can review the available assessment and choose from the applicable decision options, including approve, approve with rating, refer to senior underwriting, postpone, reinsurance referral, or decline.
+
+For Carlos’s application, the underwriter reviews the assessment and selects Approve, adding the appropriate comments before submitting the decision.
+
+Once the decision is submitted, the orchestration resumes and the remaining agents are triggered automatically.
+
+The workflow now moves into the decision generation phase, followed by the correspondence drafting and closure stages.
+
+The Correspondence Drafting Agent and Audit Logging Agent complete their respective activities, and the overall case reaches a 98% confidence score with the final decision recorded as Approved.
+
+The solution also provides an explainability layer, allowing the underwriter to understand the factors contributing to the decision, including the factors that increased risk, the factors that reduced risk, and the overall confidence associated with the AI assessment.
+
+Let’s now look at the detailed underwriting findings.
+
+Within the Medical Underwriting section, the underwriter can review the identified medical conditions, lab results, and the AI medical recommendation.
+
+The detailed lab interpretation includes the test results, normal ranges, interpretations, and recommended actions.
+
+The mortality scorecard provides a mortality score of 960, with a rating class of DC.
+
+Since the underwriter selected the standard approve option rather than proceeding with table rating or flat extra, those fields are not recorded for this case.
+
+The medical underwriting section also provides the completed case-run evidence, including the medical underwriting recommendation, medical risk assessment, and the detailed laboratory report.
+
+Moving to Financial Underwriting, the solution provides the applicant’s requested coverage, occupation, annual income, net worth, and existing coverage information.
+
+The financial assessment produces a score of 96 out of 100, with the overall financial risk assessed as low.
+
+The underwriter can also review the coverage justification, including the supported income multiplier, existing coverage, new coverage, total coverage exposure, and the resulting financial assessment.
+
+The AI conclusion confirms that the financial risk is low.
+
+Next, the Eligibility Assessment provides a consolidated view of the applicant’s eligibility.
+
+For Carlos’s application, the case is assessed as eligible, with an assessment confidence of 88%.
+
+The eligibility breakdown shows the individual checks and their results, while the eligibility rule references provide the corresponding source descriptions and outcomes.
+
+The assessment also brings together evidence across medical, financial, fraud, compliance, and reinsurance categories.
+
+For this case, the final eligibility assessment confirms that the applicant is eligible, with the medical, financial, product, residence, and compliance checks passing successfully.
+
+The risk score is recorded as 963, and because the fraud risk is low, there are no blocking factors identified for the application.
+
+The Decision Center then brings these assessments together into the final underwriting view.
+
+For Carlos’s application, the AI-recommended decision is Approved, with a confidence level of 90% in the decision center.
+
+The assessment summary shows standard medical risk, low financial risk, low fraud risk, and a DC mortality rating.
+
+The AI rationale also provides the underlying assessment details, including the review of 12 lab values and three medications.
+
+The fraud assessment is automatically cleared because the fraud risk is low, with a fraud score of 20, and there are no outstanding items.
+
+Another important capability is source traceability and explainability.
+
+The explainability view allows the underwriter to trace the evidence generated by the individual agents throughout the completed case run.
+
+This includes evidence from the new business intake agent, duplicate detection agent, document extraction agent, requirements and completeness agent, medical underwriting agent, financial underwriting agent, fraud detection and investigation agents, risk scoring and rating agent, decision recommendation, compliance, correspondence drafting, and audit logging.
+
+This provides the underwriter with visibility into how the final decision was supported across the entire agentic workflow.
+
+With the underwriting decision finalized as approved, the process moves into correspondence generation.
+
+The underwriter can select the applicant and the appropriate letter type. Since Carlos’s application has been approved, the solution recommends an approval letter.
+
+The Correspondence Drafting Agent generates the approval letter automatically, including the relevant policy and applicant information.
+
+The underwriter can review the generated draft and approve it.
+
+Once approved, the correspondence is placed into the underwriter’s draft mailbox, where it can be reviewed one final time and sent to the broker along with the final underwriting decision.
+
+Finally, the Audit Logging Agent maintains a record of the actions taken throughout the case, providing an auditable trail of the underwriting activity and decisions.
+
+Overall, the Agentic Life Underwriter brings together intelligent automation, specialized underwriting agents, human judgment, explainability, and auditability into a single end-to-end workflow.
+
+From the moment an application arrives through email, the solution can ingest and understand the supporting information, coordinate medical, financial, fraud, eligibility, and risk assessments, pause for human judgment when required, and then continue automatically through decision generation, correspondence, and audit logging.
+
+This enables underwriters to move from manually coordinating multiple underwriting activities to managing an intelligent, evidence-driven workflow — improving visibility, accelerating processing, and keeping the underwriter at the center of critical decisions.
