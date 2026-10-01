@@ -1,1 +1,196 @@
-FGWJjF2W1IYzynPTZw9TqeuOwHrvWaEvZnZ90FiVe0p2fNN0#IeGIDR5xz29PhE4Jy5Tqxv6g6XLZ2I3JQ3d_AtO3i1Y
+below are few guide wire apis that the team provided to me i want to see if from the excel which of the column name that i can map with the below request bodies of the apis
+so that i can pass my data to those apis you can go through the excel sheet i have the column names along with the description of that field so that you understand and give whatever you analyzed in the same exceel create a new sheet with the mapping of fields in  request body for each api with the column name column that we have currently in the excel 
+
+create exposure
+
+request body
+{
+    "data": {
+        "attributes": {
+            "claimant": {
+                "id": "{{insuredId}}"
+            },
+            "claimantType": {
+                "code": "insured"
+            },
+            "contactPermitted": true,
+            "coverage": {
+                "id": "{{coverageId}}"
+            },
+            "coverageSubtype": {
+                "code": "z26h4fbq18l81e5n478v5v07mj8"
+            },
+            "tempLocation_Ext": {
+                "addressLine1": "425 Madison St.",
+                "city": "Chicago",
+                "country": "US",
+                "postalCode": "60606",
+                "state": {
+                    "code": "IL"
+                }
+            },
+            "lossParty": {
+                "code": "insured"
+            },
+            "primaryCoverage": {
+                "code": "z26h4fbq18l81e5n478v5v07mj8"
+            },
+            "tier": {
+                "code": "lossofuse"
+            },
+            "jurisdiction": {
+                "code": "IL"
+            },
+            "otherStructureIncident": {
+                "refid": "newOtherStructureIncident"
+            }
+        }
+    },
+    "included": {
+        "OtherStructureIncident": [
+            {
+                "attributes": {
+                    "description": "water from heavy rains damaged the other structures.",
+                    "fencesDamaged": true,
+                    "lossParty": {
+                        "code": "insured"
+                    }
+                },
+                "refid": "newOtherStructureIncident",
+                "method": "post",
+                "uri": "/claim/v1/claims/{{claimId}}/other-structure-incidents"
+            }
+        ]
+    }
+}
+
+
+
+create reserve
+
+{
+    "data": {
+        "attributes": {
+            "reservesToWrite": [{
+                    "currency": {
+                        "code": "eur"
+                    },
+                    "lineItems": [{                           
+                            "transactionAmount": {
+                                "amount": "10000",
+                                "currency": "eur"
+                            }
+                        }
+                    ],
+                    "reserveLine": {
+                        "costCategory": {
+                            "code": "property_repair"
+                        },
+                        "costType": {
+                            "code": "claimcost"
+                        },
+                        "exposure": {
+                            "id": "{{exposureId}}"
+                        },
+                        "reservingCurrency": {
+                            "code": "eur"
+                        }
+                    }
+                }
+            ]
+        }
+    }
+}
+
+Validate
+
+
+{
+  "data": {
+    "attributes": {
+      "validateClaim": true,
+      "validationLevel": {
+        "code": "payment"
+      }
+    }
+  }
+}
+
+payment
+{
+    "data": {
+        "attributes": {
+            "primaryCheckToWrite": {
+                "paymentsToWrite": [
+                    {
+                        "lineItems": [
+                            {
+                                "lineCategory": {
+                                    "code": "other",
+                                    "name": "Other"
+                                },
+                                "transactionAmount": {
+                                    "amount": "5000",
+                                    "currency": "eur"
+                                }
+                            }
+                        ],
+                        "paymentType": {
+                            "code": "final"
+                        },
+                        "reserveLine": {
+                            "costCategory": {
+                                "code": "property_repair"
+                            },
+                            "costType": {
+                                "code": "claimcost"
+                            },
+                            "exposure": {
+                                "id": "{{exposureId}}"
+                            },
+                            "reservingCurrency": {
+                                "code": "eur"
+                            }
+                        },
+                        "currency": {
+                            "code": "eur"
+                        }
+                    }
+                ],
+                "mailingAddress": {
+                    "addressLine1": "425 Madison St.",
+                    "city": "Chicago",
+                    "country": "US",
+                    "postalCode": "60606",
+                    "state": {
+                        "code": "IL"
+                    }
+                },
+                "payTo": "John Albertson",
+                "mailTo": "0000@guidewire.com",
+                "payees": [
+                    {
+                        "contact": {
+                            "id": "{{insuredId}}"
+                        },
+                        "payeeType": {
+                            "code": "insured"
+                        }
+                    }
+                ],
+                "paymentMethod": {
+                    "code": "check"
+                },
+                "reportability": {
+                    "code": "notreportable"
+                },
+                "checkBatching": {
+                    "code": "apdefault"
+                },
+                "deliveryMethod": {
+                    "code": "send"
+                }
+            }
+        }
+    }
+}
