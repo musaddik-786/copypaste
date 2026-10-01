@@ -45,3 +45,20 @@ https://cc-sandbox-gwcpdev.hexaware.zeta1-andromeda.guidewire.net/rest/claim/v1/
         ]
     }
 }
+
+for the above api to work only the below configurations are the possibilities for it to work
+
+
+LossCause - (All types)(below are the possible inputs it can take else it will throw error)
+animalcollision, animal, bikecollision, fixedobjcoll, vehcollision, otherobjcoll, pedcollision, trainbuscoll, loadingdamage, FallingObject, earthquake, explosion, firedamage, waterdamage, glassbreakage, vandalism, rearend, riotandcivil, theftentire, theftparts, fire, wind, hail, mold, structfailure, snowice, burglary, animal_bite, broken_glass, electrical_curr, air_crash, rail_crash, water_veh_crash, construction, errors, breach, burn_scald, caught_in, cut, fall, motorvehicle, strain, striking, struck, rubbed, miscellaneous, leftcollision, assault, med_error, product, excess, rollover, personal_misconduct, professional_sports, official_duty, death, preex_med_condition, abandonment, delay, cancellation, terrorism_hijack, missed_departure, documents, hurricane
+
+
+room type ->
+ 
+kitchen, bedroom, livingroom, bathroom, garage, other
+
+occupancyType ->
+ 
+occupied (means yes)
+vacant (means no)
+underConst
