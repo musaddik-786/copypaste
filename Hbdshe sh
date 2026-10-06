@@ -1,125 +1,189 @@
-Life insurance underwriting involves bringing together large volumes of applicant information, medical evidence, financial data, eligibility checks, fraud assessment, and risk evaluation before an underwriting decision can be made.
+from pathlib import Path
+import chromadb
 
-The challenge is not just processing this information, but coordinating multiple underwriting activities, connecting evidence across different sources, and ensuring that the right decisions are made at the right stage of the process.
 
-This is where our Agentic Life Underwriter solution comes in — bringing together specialized AI agents through an intelligent orchestration layer to streamline the end-to-end underwriting journey.
+CHROMA_PATH = Path(__file__).resolve().parent / "chroma_db"
+COLLECTION_NAME = "treaty_clauses"
 
-Let’s take a look at the journey through a life insurance application.
 
-The process begins when the underwriter receives an application from the broker.
+def get_chroma_client():
+    return chromadb.PersistentClient(path=str(CHROMA_PATH))
 
-In this scenario, the applicant is Carlos E. Diaz, an active smoker. The email contains key applicant information such as his full name, date of birth, age, the last four digits of his SSN, occupation, state of residence, tobacco and nicotine usage, and the requested face amount.
 
-Along with this information, the email also includes supporting documents such as the application form, Attending Physician Statement, or APS, lab results, prescription history, and financial statements.
+def get_chroma_collection():
+    client = get_chroma_client()
+    return client.get_or_create_collection(
+        name=COLLECTION_NAME
+    )
 
-Instead of manually processing each piece of information, the underwriter can use the Agentic Life Underwriter workbench to manage and process the application.
 
-The executive dashboard provides an overall view of the underwriting operation, including applications received, approved cases, average processing time, and the auto-processed rate.
+def rebuild_chroma_collection():
+    client = get_chroma_client()
 
-The dashboard also provides operational metrics such as outstanding requirements, newly discovered applications, and duplicate submissions. Additional views provide insights into applications by product, application decisions, and requirement aging, giving the underwriter a consolidated view of the underwriting workload.
+    try:
+        client.delete_collection(COLLECTION_NAME)
+        print(f"Deleted existing collection: {COLLECTION_NAME}")
+    except Exception:
+        print(f"No existing collection found: {COLLECTION_NAME}")
 
-Now, let’s move into the processing of Carlos’s application.
+    collection = client.create_collection(
+        name=COLLECTION_NAME
+    )
 
-The orchestration begins with the intake of the application and the supporting documents received through email.
+    print(f"Created fresh collection: {COLLECTION_NAME}")
 
-The solution coordinates multiple specialized agents across the underwriting workflow. These include agents for new business intake, duplicate detection, document extraction, requirements and completeness, medical underwriting, financial underwriting, fraud detection, eligibility assessment, risk scoring and rating, compliance, decision recommendation, correspondence drafting, and audit logging.
+    return collection
 
-The medical underwriting process analyzes the available medical evidence, including prescription history and lab results.
 
-At the same time, the Financial Underwriting Agent extracts the relevant medical and financial information from the supporting PDF documents received with the application.
+import re
+from pathlib import Path
 
-Once the initial underwriting information is processed, the application moves into the fraud screening stage.
+from ingestion.loaders import load_pdf
+from ingestion.clause_chunker import chunk_documents
+from ingestion.embedder import get_embeddings
+from ingestion.chroma_store import rebuild_chroma_collection
 
-For Carlos’s application, the fraud risk is assessed as low. Because of this low-risk assessment, the human-in-the-loop gate at this stage is automatically skipped, allowing the workflow to continue without manual intervention.
 
-The application then progresses into the risk scoring and rating phase.
+TREATY_PDF_DIR = Path("treaty_pdfs")
 
-Here, the Rating Determination Process Agent orchestrates several specialized agents, including the rule evaluation agent, mortality scoring agent, table rating agent, and flat extra calculation agent.
 
-The workflow also invokes the Eligibility Assessment Agent and the Reinsurance Assessment Agent as part of the overall assessment.
+def extract_treaty_ref(file_path: Path) -> str:
+    filename = file_path.name
 
-At this point, the workflow reaches a human-in-the-loop decision gate.
+    match = re.match(
+        r"(TRT-\d{4}-\d{3})",
+        filename
+    )
 
-The AI agents can perform the analysis and provide recommendations, but the final underwriting decision requires the underwriter’s judgment.
+    if not match:
+        raise ValueError(
+            f"Could not extract treaty_ref from filename: {filename}"
+        )
 
-The application therefore pauses at CP5, awaiting the senior underwriter’s decision.
+    return match.group(1)
 
-Within the Decision Center, the underwriter can review the available assessment and choose from the applicable decision options, including approve, approve with rating, refer to senior underwriting, postpone, reinsurance referral, or decline.
 
-For Carlos’s application, the underwriter reviews the assessment and selects Approve, adding the appropriate comments before submitting the decision.
+def ingest_treaties():
+    pdf_files = sorted(TREATY_PDF_DIR.glob("*.pdf"))
 
-Once the decision is submitted, the orchestration resumes and the remaining agents are triggered automatically.
+    if not pdf_files:
+        raise FileNotFoundError(
+            f"No treaty PDFs found in {TREATY_PDF_DIR}"
+        )
 
-The workflow now moves into the decision generation phase, followed by the correspondence drafting and closure stages.
+    collection = rebuild_chroma_collection()
 
-The Correspondence Drafting Agent and Audit Logging Agent complete their respective activities, and the overall case reaches a 98% confidence score with the final decision recorded as Approved.
+    embedding_model = get_embeddings()
 
-The solution also provides an explainability layer, allowing the underwriter to understand the factors contributing to the decision, including the factors that increased risk, the factors that reduced risk, and the overall confidence associated with the AI assessment.
+    total_chunks = 0
 
-Let’s now look at the detailed underwriting findings.
+    for pdf_path in pdf_files:
 
-Within the Medical Underwriting section, the underwriter can review the identified medical conditions, lab results, and the AI medical recommendation.
+        treaty_ref = extract_treaty_ref(pdf_path)
 
-The detailed lab interpretation includes the test results, normal ranges, interpretations, and recommended actions.
+        print(f"\nProcessing: {pdf_path.name}")
+        print(f"Treaty ref: {treaty_ref}")
 
-The mortality scorecard provides a mortality score of 960, with a rating class of DC.
+        documents = load_pdf(str(pdf_path))
 
-Since the underwriter selected the standard approve option rather than proceeding with table rating or flat extra, those fields are not recorded for this case.
+        chunks = chunk_documents(documents)
 
-The medical underwriting section also provides the completed case-run evidence, including the medical underwriting recommendation, medical risk assessment, and the detailed laboratory report.
+        texts = [
+            chunk["text"]
+            for chunk in chunks
+        ]
 
-Moving to Financial Underwriting, the solution provides the applicant’s requested coverage, occupation, annual income, net worth, and existing coverage information.
+        vectors = embedding_model.embed_documents(texts)
 
-The financial assessment produces a score of 96 out of 100, with the overall financial risk assessed as low.
+        ids = [
+            f"{treaty_ref}_{chunk['chunk_number']}"
+            for chunk in chunks
+        ]
 
-The underwriter can also review the coverage justification, including the supported income multiplier, existing coverage, new coverage, total coverage exposure, and the resulting financial assessment.
+        metadatas = [
+            {
+                "source": chunk["source"],
+                "treaty_ref": treaty_ref,
+                "page_number": chunk["page_number"],
+                "chunk_number": chunk["chunk_number"],
+                "article": chunk["article"] or "",
+                "clause_ref": chunk["clause_ref"] or "",
+            }
+            for chunk in chunks
+        ]
 
-The AI conclusion confirms that the financial risk is low.
+        collection.upsert(
+            ids=ids,
+            documents=texts,
+            embeddings=vectors,
+            metadatas=metadatas,
+        )
 
-Next, the Eligibility Assessment provides a consolidated view of the applicant’s eligibility.
+        total_chunks += len(chunks)
 
-For Carlos’s application, the case is assessed as eligible, with an assessment confidence of 88%.
+        print(f"Chunks: {len(chunks)}")
 
-The eligibility breakdown shows the individual checks and their results, while the eligibility rule references provide the corresponding source descriptions and outcomes.
+    print("\n-----------------------------")
+    print("Ingestion complete")
+    print(f"Treaties: {len(pdf_files)}")
+    print(f"Total chunks: {total_chunks}")
+    print(f"Collection count: {collection.count()}")
+    print("-----------------------------")
 
-The assessment also brings together evidence across medical, financial, fraud, compliance, and reinsurance categories.
 
-For this case, the final eligibility assessment confirms that the applicant is eligible, with the medical, financial, product, residence, and compliance checks passing successfully.
+if __name__ == "__main__":
+    ingest_treaties()
 
-The risk score is recorded as 963, and because the fraud risk is low, there are no blocking factors identified for the application.
 
-The Decision Center then brings these assessments together into the final underwriting view.
+from ingestion.embedder import get_embeddings
+from ingestion.chroma_store import get_chroma_collection
 
-For Carlos’s application, the AI-recommended decision is Approved, with a confidence level of 90% in the decision center.
 
-The assessment summary shows standard medical risk, low financial risk, low fraud risk, and a DC mortality rating.
+def search_clause(treaty_ref: str, query: str):
 
-The AI rationale also provides the underlying assessment details, including the review of 12 lab values and three medications.
+    collection = get_chroma_collection()
+    embedding_model = get_embeddings()
 
-The fraud assessment is automatically cleared because the fraud risk is low, with a fraud score of 20, and there are no outstanding items.
+    query_vector = embedding_model.embed_query(query)
 
-Another important capability is source traceability and explainability.
+    results = collection.query(
+        query_embeddings=[query_vector],
+        n_results=5,
+        where={
+            "treaty_ref": treaty_ref
+        },
+    )
 
-The explainability view allows the underwriter to trace the evidence generated by the individual agents throughout the completed case run.
+    print("\n====================================")
+    print(f"Treaty: {treaty_ref}")
+    print(f"Query: {query}")
+    print("====================================")
 
-This includes evidence from the new business intake agent, duplicate detection agent, document extraction agent, requirements and completeness agent, medical underwriting agent, financial underwriting agent, fraud detection and investigation agents, risk scoring and rating agent, decision recommendation, compliance, correspondence drafting, and audit logging.
+    for i in range(len(results["documents"][0])):
 
-This provides the underwriter with visibility into how the final decision was supported across the entire agentic workflow.
+        metadata = results["metadatas"][0][i]
+        document = results["documents"][0][i]
+        distance = results["distances"][0][i]
 
-With the underwriting decision finalized as approved, the process moves into correspondence generation.
+        print(f"\nResult {i + 1}")
+        print(f"Distance: {distance}")
+        print(f"Article: {metadata['article']}")
+        print(f"Clause: {metadata['clause_ref']}")
+        print(f"Page: {metadata['page_number']}")
+        print(f"Treaty: {metadata['treaty_ref']}")
+        print(f"Text:\n{document}")
 
-The underwriter can select the applicant and the appropriate letter type. Since Carlos’s application has been approved, the solution recommends an approval letter.
 
-The Correspondence Drafting Agent generates the approval letter automatically, including the relevant policy and applicant information.
+if __name__ == "__main__":
 
-The underwriter can review the generated draft and approve it.
+    query = "What is excluded under Article 4(b)?"
 
-Once approved, the correspondence is placed into the underwriter’s draft mailbox, where it can be reviewed one final time and sent to the broker along with the final underwriting decision.
+    search_clause(
+        "TRT-2026-001",
+        query
+    )
 
-Finally, the Audit Logging Agent maintains a record of the actions taken throughout the case, providing an auditable trail of the underwriting activity and decisions.
-
-Overall, the Agentic Life Underwriter brings together intelligent automation, specialized underwriting agents, human judgment, explainability, and auditability into a single end-to-end workflow.
-
-From the moment an application arrives through email, the solution can ingest and understand the supporting information, coordinate medical, financial, fraud, eligibility, and risk assessments, pause for human judgment when required, and then continue automatically through decision generation, correspondence, and audit logging.
-
-This enables underwriters to move from manually coordinating multiple underwriting activities to managing an intelligent, evidence-driven workflow — improving visibility, accelerating processing, and keeping the underwriter at the center of critical decisions.
+    search_clause(
+        "TRT-2026-003",
+        query
+    )
