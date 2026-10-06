@@ -1,7 +1,1471 @@
 1. What is Article 4(b) for TRT-2026-001?
+
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/cedera$ python3 -m ingestion.test_retrieval
+
+====================================
+Treaty: TRT-2026-001
+Query: What is Article 4(b) for TRT-2026-001??
+====================================
+
+Result 1
+Distance: 1.2584881782531738
+Article: ARTICLE 1 — INTERPRETATION AND DEFINITIONS
+Clause: 
+Page: 2
+Treaty: TRT-2026-001
+Text:
+ARTICLE 1 — INTERPRETATION AND DEFINITIONS
+
+Result 2
+Distance: 1.2922604084014893
+Article: ARTICLE 4 — EXCLUSIONS
+Clause: 4(a)
+Page: 3
+Treaty: TRT-2026-001
+Text:
+4(a)  War, invasion, act of foreign enemy, hostilities or warlike operations (whether war be declared or not),
+civil war, rebellion, revolution, insurrection or military or usurped power.
+
+Result 3
+Distance: 1.320582628250122
+Article: 
+Clause: 
+Page: 2
+Treaty: TRT-2026-001
+Text:
+REINSURANCE AGREEMENT
+PROPERTY QUOTA SHARE REINSURANCE
+AGREEMENT
+Reference TRT-2026-001
+Reassured
+Northgate Mutual Insurance Company Limited
+Reinsurer
+Meridian Reinsurance SE
+Reinsurer's share
+100 per cent
+Intermediary
+Calderwood Reinsurance Brokers LLP
+Class of business
+Property
+Type
+Proportional — Quota Share
+Period
+01 January 2026 to 31 December 2026, both days inclusive, local standard
+time at the place where the risk is situated
+Currency
+Pounds Sterling (GBP)
+Governing law
+The laws of England and Wales
+Status
+Active
+This Agreement records the terms upon which the Reinsurer agrees to indemnify the Reassured in respect of the
+business described herein. It is subject to the Articles, Schedules and Endorsements which follow and which
+together form one contract.
+
+Result 4
+Distance: 1.3213002681732178
+Article: ARTICLE 5 — RETENTION AND CESSION
+Clause: 
+Page: 3
+Treaty: TRT-2026-001
+Text:
+ARTICLE 5 — RETENTION AND CESSION
+
+Result 5
+Distance: 1.326673984527588
+Article: ARTICLE 4 — EXCLUSIONS
+Clause: 4.2
+Page: 3
+Treaty: TRT-2026-001
+Text:
+4.2  Cyber Definition
+For the purposes of this Article, a cyber event means the unauthorised access to, use of, or interference with
+any computer system, network, software or data, including the introduction of malicious code, denial of
+service, and the encryption or corruption of data.
+
+====================================
+Treaty: TRT-2026-003
+Query: What is Article 4(b) for TRT-2026-001??
+====================================
+
+Result 1
+Distance: 1.2490215301513672
+Article: ARTICLE 5 — ATTACHMENT, LIMIT AND RETENTION
+Clause: 
+Page: 4
+Treaty: TRT-2026-003
+Text:
+ARTICLE 5 — ATTACHMENT, LIMIT AND RETENTION
+
+Result 2
+Distance: 1.2584881782531738
+Article: ARTICLE 1 — INTERPRETATION AND DEFINITIONS
+Clause: 
+Page: 2
+Treaty: TRT-2026-003
+Text:
+ARTICLE 1 — INTERPRETATION AND DEFINITIONS
+
+Result 3
+Distance: 1.2849993705749512
+Article: SCHEDULE A — SUMMARY OF TERMS
+Clause: 
+Page: 9
+Treaty: TRT-2026-003
+Text:
+SCHEDULE A — SUMMARY OF TERMS
+Layer
+Limit
+Excess of
+Aggregate
+Reinst.
+Deposit prem.
+Min. prem.
+ROL
+1
+GBP 500,000
+GBP 500,000
+GBP
+1,000,000
+1
+GBP 180,000
+GBP
+144,000
+36.00
+%
+2
+GBP
+4,000,000
+GBP
+1,000,000
+GBP
+12,000,000
+2
+GBP 520,000
+GBP
+416,000
+13.00
+%
+3
+GBP
+15,000,000
+GBP
+5,000,000
+GBP
+30,000,000
+1
+GBP 675,000
+GBP
+540,000
+4.50%
+Treaty reference
+Basis
+Losses occurring during the Period
+Net retention
+GBP 500,000
+Currency
+GBP
+Brokerage
+10 per cent, included in the rates above
+Property Catastrophe Excess of Loss Programme
+ENDORSEMENT NO. 1 — HOURS CLAUSE AMENDMENT
+It is hereby noted and agreed that with effect from 1 July 2026 the period specified in Clause 1.3(a) in respect of
+windstorm, tempest, hurricane, tornado, cyclone and typhoon is amended from 72 to 96 consecutive hours.
+This amendment applies only to Loss Occurrences commencing on or after the effective date stated below. The
+72 hour period continues to apply to any Loss Occurrence commencing before that date.
+For the avoidance of doubt, no other provision of Clause 1.3 is amended, and in particular the 168 hour period in
+Clause 1.3(b) is unchanged. The exclusion in Article 4(b) remains in full force and effect and is unaffected by
+this Endorsement.
+Endorsement number
+1
+Effective date
+1 July 2026
+All other terms
+Unchanged
+
+Result 4
+Distance: 1.2912485599517822
+Article: 
+Clause: 
+Page: 2
+Treaty: TRT-2026-003
+Text:
+REINSURANCE AGREEMENT
+PROPERTY CATASTROPHE EXCESS OF LOSS
+PROGRAMME
+Reference TRT-2026-003
+Reassured
+Northgate Mutual Insurance Company Limited
+Reinsurer
+Consortium led by Sable Re Limited
+Reinsurer's share
+100 per cent
+Intermediary
+Calderwood Reinsurance Brokers LLP
+Class of business
+Property
+Type
+Non-proportional — Excess of Loss
+Period
+01 January 2026 to 31 December 2026, both days inclusive, local standard
+time at the place where the risk is situated
+Currency
+Pounds Sterling (GBP)
+Governing law
+The laws of England and Wales
+Status
+Active
+This Agreement records the terms upon which the Reinsurer agrees to indemnify the Reassured in respect of the
+business described herein. It is subject to the Articles, Schedules and Endorsements which follow and which
+together form one contract.
+Property Catastrophe Excess of Loss Programme
+
+Result 5
+Distance: 1.2922604084014893
+Article: ARTICLE 4 — EXCLUSIONS
+Clause: 4(a)
+Page: 3
+Treaty: TRT-2026-003
+Text:
+4(a)  War, invasion, act of foreign enemy, hostilities or warlike operations (whether war be declared or not),
+civil war, rebellion, revolution, insurrection or military or usurped power.
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/cedera$ 
+
+
+
+
 2. What is Article 4(b) for TRT-2026-003?
+
+
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/cedera$ python3 -m ingestion.test_retrieval
+
+====================================
+Treaty: TRT-2026-001
+Query: What is Article 4(b) for TRT-2026-003?
+====================================
+
+Result 1
+Distance: 1.2791334390640259
+Article: ARTICLE 1 — INTERPRETATION AND DEFINITIONS
+Clause: 
+Page: 2
+Treaty: TRT-2026-001
+Text:
+ARTICLE 1 — INTERPRETATION AND DEFINITIONS
+
+Result 2
+Distance: 1.2891039848327637
+Article: ARTICLE 4 — EXCLUSIONS
+Clause: 4(a)
+Page: 3
+Treaty: TRT-2026-001
+Text:
+4(a)  War, invasion, act of foreign enemy, hostilities or warlike operations (whether war be declared or not),
+civil war, rebellion, revolution, insurrection or military or usurped power.
+
+Result 3
+Distance: 1.3076218366622925
+Article: ARTICLE 5 — RETENTION AND CESSION
+Clause: 
+Page: 3
+Treaty: TRT-2026-001
+Text:
+ARTICLE 5 — RETENTION AND CESSION
+
+Result 4
+Distance: 1.3193731307983398
+Article: ARTICLE 4 — EXCLUSIONS
+Clause: 4.2
+Page: 3
+Treaty: TRT-2026-001
+Text:
+4.2  Cyber Definition
+For the purposes of this Article, a cyber event means the unauthorised access to, use of, or interference with
+any computer system, network, software or data, including the introduction of malicious code, denial of
+service, and the encryption or corruption of data.
+
+Result 5
+Distance: 1.32266366481781
+Article: 
+Clause: 
+Page: 2
+Treaty: TRT-2026-001
+Text:
+REINSURANCE AGREEMENT
+PROPERTY QUOTA SHARE REINSURANCE
+AGREEMENT
+Reference TRT-2026-001
+Reassured
+Northgate Mutual Insurance Company Limited
+Reinsurer
+Meridian Reinsurance SE
+Reinsurer's share
+100 per cent
+Intermediary
+Calderwood Reinsurance Brokers LLP
+Class of business
+Property
+Type
+Proportional — Quota Share
+Period
+01 January 2026 to 31 December 2026, both days inclusive, local standard
+time at the place where the risk is situated
+Currency
+Pounds Sterling (GBP)
+Governing law
+The laws of England and Wales
+Status
+Active
+This Agreement records the terms upon which the Reinsurer agrees to indemnify the Reassured in respect of the
+business described herein. It is subject to the Articles, Schedules and Endorsements which follow and which
+together form one contract.
+
+====================================
+Treaty: TRT-2026-003
+Query: What is Article 4(b) for TRT-2026-003?
+====================================
+
+Result 1
+Distance: 1.2430236339569092
+Article: ARTICLE 5 — ATTACHMENT, LIMIT AND RETENTION
+Clause: 
+Page: 4
+Treaty: TRT-2026-003
+Text:
+ARTICLE 5 — ATTACHMENT, LIMIT AND RETENTION
+
+Result 2
+Distance: 1.2791334390640259
+Article: ARTICLE 1 — INTERPRETATION AND DEFINITIONS
+Clause: 
+Page: 2
+Treaty: TRT-2026-003
+Text:
+ARTICLE 1 — INTERPRETATION AND DEFINITIONS
+
+Result 3
+Distance: 1.2798957824707031
+Article: SCHEDULE A — SUMMARY OF TERMS
+Clause: 
+Page: 9
+Treaty: TRT-2026-003
+Text:
+SCHEDULE A — SUMMARY OF TERMS
+Layer
+Limit
+Excess of
+Aggregate
+Reinst.
+Deposit prem.
+Min. prem.
+ROL
+1
+GBP 500,000
+GBP 500,000
+GBP
+1,000,000
+1
+GBP 180,000
+GBP
+144,000
+36.00
+%
+2
+GBP
+4,000,000
+GBP
+1,000,000
+GBP
+12,000,000
+2
+GBP 520,000
+GBP
+416,000
+13.00
+%
+3
+GBP
+15,000,000
+GBP
+5,000,000
+GBP
+30,000,000
+1
+GBP 675,000
+GBP
+540,000
+4.50%
+Treaty reference
+Basis
+Losses occurring during the Period
+Net retention
+GBP 500,000
+Currency
+GBP
+Brokerage
+10 per cent, included in the rates above
+Property Catastrophe Excess of Loss Programme
+ENDORSEMENT NO. 1 — HOURS CLAUSE AMENDMENT
+It is hereby noted and agreed that with effect from 1 July 2026 the period specified in Clause 1.3(a) in respect of
+windstorm, tempest, hurricane, tornado, cyclone and typhoon is amended from 72 to 96 consecutive hours.
+This amendment applies only to Loss Occurrences commencing on or after the effective date stated below. The
+72 hour period continues to apply to any Loss Occurrence commencing before that date.
+For the avoidance of doubt, no other provision of Clause 1.3 is amended, and in particular the 168 hour period in
+Clause 1.3(b) is unchanged. The exclusion in Article 4(b) remains in full force and effect and is unaffected by
+this Endorsement.
+Endorsement number
+1
+Effective date
+1 July 2026
+All other terms
+Unchanged
+
+Result 4
+Distance: 1.2856453657150269
+Article: ARTICLE 4 — EXCLUSIONS
+Clause: 4(f)
+Page: 3
+Treaty: TRT-2026-003
+Text:
+4(f)  Any loss occurring outside the Territorial Scope set out in Article 3.
+
+Result 5
+Distance: 1.2891039848327637
+Article: ARTICLE 4 — EXCLUSIONS
+Clause: 4(a)
+Page: 3
+Treaty: TRT-2026-003
+Text:
+4(a)  War, invasion, act of foreign enemy, hostilities or warlike operations (whether war be declared or not),
+civil war, rebellion, revolution, insurrection or military or usurped power.
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/cedera$ 
+
+
+
+
 3. What is the cession percentage for TRT-2026-004?
+
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/cedera$ python3 -m ingestion.test_retrieval
+
+====================================
+Treaty: TRT-2026-001
+Query: What is the cession percentage for TRT-2026-004?
+====================================
+
+Result 1
+Distance: 1.0502216815948486
+Article: ARTICLE 5 — RETENTION AND CESSION
+Clause: 5.1
+Page: 4
+Treaty: TRT-2026-001
+Text:
+5.1  Cession
+The Company shall cede and the Reinsurer shall accept 30.0 per cent of each and every Original Policy
+falling within the Business Covered, and the Company shall retain for its own account the balance of 70.0
+per cent.
+
+Result 2
+Distance: 1.0558888912200928
+Article: SCHEDULE A — SUMMARY OF TERMS
+Clause: 
+Page: 7
+Treaty: TRT-2026-001
+Text:
+SCHEDULE A — SUMMARY OF TERMS
+Treaty reference
+Cession
+30.0 per cent
+Retention
+70.0 per cent
+Maximum cession any one risk
+GBP 3,000,000
+Event limit
+GBP 15,000,000
+Ceding commission
+27.5 per cent
+Profit commission
+15.0 per cent
+Management expense allowance
+5.0 per cent
+Currency
+GBP
+Accounting
+Quarterly in arrears
+
+Result 3
+Distance: 1.1982042789459229
+Article: ARTICLE 7 — COMMISSION
+Clause: 7.1
+Page: 4
+Treaty: TRT-2026-001
+Text:
+7.1  Ceding Commission
+The Reinsurer shall allow the Company a ceding commission of 27.5 per cent on all premium ceded
+hereunder, such commission to cover the Company's acquisition costs, brokerage, taxes and internal
+expenses.
+Ceding commission shall be deducted at source in the quarterly accounts rendered under Article 11 and shall
+not be subject to adjustment save as provided below.
+
+Result 4
+Distance: 1.2394545078277588
+Article: ARTICLE 5 — RETENTION AND CESSION
+Clause: 5.2
+Page: 4
+Treaty: TRT-2026-001
+Text:
+5.2  Retention
+The Company shall retain net for its own account 70.0 per cent of every risk ceded hereunder, and shall not
+reinsure such retention elsewhere save under catastrophe excess of loss protections operating on the
+Company's net retained account.
+
+Result 5
+Distance: 1.3145242929458618
+Article: ARTICLE 7 — COMMISSION
+Clause: 7.2
+Page: 4
+Treaty: TRT-2026-001
+Text:
+7.2  Profit Commission
+In addition, the Reinsurer shall allow the Company a profit commission of 15.0 per cent of the net profit
+arising to the Reinsurer under this Agreement, calculated in accordance with Section 7.2 below.
+For the purpose of calculating profit commission, the net profit shall be the ceded premium less ceded losses
+paid and outstanding, less ceding commission, less a management expense allowance of 5.0 per cent of
+ceded premium, and less any deficit carried forward from the preceding two treaty years.
+Profit commission shall be calculated annually and settled within ninety days of the close of the treaty year.
+Any deficit shall be carried forward for a maximum of two successive treaty years and shall be extinguished
+thereafter.
+
+====================================
+Treaty: TRT-2026-003
+Query: What is the cession percentage for TRT-2026-004?
+====================================
+
+Result 1
+Distance: 1.285683274269104
+Article: 
+Clause: 
+Page: 2
+Treaty: TRT-2026-003
+Text:
+REINSURANCE AGREEMENT
+PROPERTY CATASTROPHE EXCESS OF LOSS
+PROGRAMME
+Reference TRT-2026-003
+Reassured
+Northgate Mutual Insurance Company Limited
+Reinsurer
+Consortium led by Sable Re Limited
+Reinsurer's share
+100 per cent
+Intermediary
+Calderwood Reinsurance Brokers LLP
+Class of business
+Property
+Type
+Non-proportional — Excess of Loss
+Period
+01 January 2026 to 31 December 2026, both days inclusive, local standard
+time at the place where the risk is situated
+Currency
+Pounds Sterling (GBP)
+Governing law
+The laws of England and Wales
+Status
+Active
+This Agreement records the terms upon which the Reinsurer agrees to indemnify the Reassured in respect of the
+business described herein. It is subject to the Articles, Schedules and Endorsements which follow and which
+together form one contract.
+Property Catastrophe Excess of Loss Programme
+
+Result 2
+Distance: 1.376236915588379
+Article: ARTICLE 7 — COMMISSION
+Clause: 
+Page: 5
+Treaty: TRT-2026-003
+Text:
+ARTICLE 7 — COMMISSION
+No ceding commission is allowed under this Agreement.
+Brokerage of 10 per cent is payable by the Reinsurer to the Intermediary named in the Preamble and is included
+within the premium rates stated in Article 6.
+
+Result 3
+Distance: 1.3918343782424927
+Article: SCHEDULE A — SUMMARY OF TERMS
+Clause: 
+Page: 9
+Treaty: TRT-2026-003
+Text:
+SCHEDULE A — SUMMARY OF TERMS
+Layer
+Limit
+Excess of
+Aggregate
+Reinst.
+Deposit prem.
+Min. prem.
+ROL
+1
+GBP 500,000
+GBP 500,000
+GBP
+1,000,000
+1
+GBP 180,000
+GBP
+144,000
+36.00
+%
+2
+GBP
+4,000,000
+GBP
+1,000,000
+GBP
+12,000,000
+2
+GBP 520,000
+GBP
+416,000
+13.00
+%
+3
+GBP
+15,000,000
+GBP
+5,000,000
+GBP
+30,000,000
+1
+GBP 675,000
+GBP
+540,000
+4.50%
+Treaty reference
+Basis
+Losses occurring during the Period
+Net retention
+GBP 500,000
+Currency
+GBP
+Brokerage
+10 per cent, included in the rates above
+Property Catastrophe Excess of Loss Programme
+ENDORSEMENT NO. 1 — HOURS CLAUSE AMENDMENT
+It is hereby noted and agreed that with effect from 1 July 2026 the period specified in Clause 1.3(a) in respect of
+windstorm, tempest, hurricane, tornado, cyclone and typhoon is amended from 72 to 96 consecutive hours.
+This amendment applies only to Loss Occurrences commencing on or after the effective date stated below. The
+72 hour period continues to apply to any Loss Occurrence commencing before that date.
+For the avoidance of doubt, no other provision of Clause 1.3 is amended, and in particular the 168 hour period in
+Clause 1.3(b) is unchanged. The exclusion in Article 4(b) remains in full force and effect and is unaffected by
+this Endorsement.
+Endorsement number
+1
+Effective date
+1 July 2026
+All other terms
+Unchanged
+
+Result 4
+Distance: 1.4154621362686157
+Article: ARTICLE 6 — PREMIUM
+Clause: 
+Page: 5
+Treaty: TRT-2026-003
+Text:
+ARTICLE 6 — PREMIUM
+The premium payable hereunder shall be calculated as the rate on line specified for each layer in Schedule A
+applied to the Company's estimated subject premium income for the Period.
+A deposit premium shall be payable in four equal quarterly instalments in advance, and shall be adjusted at
+expiry against the actual subject premium income, subject always to the minimum premium stated for each
+layer.
+Layer 1: deposit premium GBP 180,000, minimum premium GBP 144,000, rate on line 36.00 per cent.
+Layer 2: deposit premium GBP 520,000, minimum premium GBP 416,000, rate on line 13.00 per cent.
+Layer 3: deposit premium GBP 675,000, minimum premium GBP 540,000, rate on line 4.50 per cent.
+Property Catastrophe Excess of Loss Programme
+Adjustment premium, if any, shall be settled within ninety days of the close of the Period. No return of premium
+shall be made below the minimum premium stated above.
+
+Result 5
+Distance: 1.4504406452178955
+Article: ARTICLE 10 — BORDEREAUX AND REPORTING
+Clause: 8.1
+Page: 6
+Treaty: TRT-2026-003
+Text:
+8.1 An aggregate exposure return, showing the Company's net retained exposure by zone and by class, rendered
+semi-annually as at 30 June and 31 December.
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/cedera$ 
+
+
 4. What is the maximum cession any one risk under TRT-2026-004?
+
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/cedera$ python3 -m ingestion.test_retrieval
+
+====================================
+Treaty: TRT-2026-001
+Query: What is the maximum cession any one risk under TRT-2026-004?
+====================================
+
+Result 1
+Distance: 0.8521145582199097
+Article: ARTICLE 5 — RETENTION AND CESSION
+Clause: 5.3
+Page: 4
+Treaty: TRT-2026-001
+Text:
+5.3  Limits
+Notwithstanding Section 5.1, the maximum amount ceded hereunder in respect of any one risk shall not
+exceed GBP 3,000,000, and the maximum amount recoverable in respect of any one Loss Occurrence shall
+not exceed GBP 15,000,000.
+Where the application of Section 5.1 would result in a cession exceeding the limit in Section 5.3, the cession
+shall be reduced accordingly and the premium ceded adjusted in the same proportion.
+
+Result 2
+Distance: 0.8926579356193542
+Article: SCHEDULE A — SUMMARY OF TERMS
+Clause: 
+Page: 7
+Treaty: TRT-2026-001
+Text:
+SCHEDULE A — SUMMARY OF TERMS
+Treaty reference
+Cession
+30.0 per cent
+Retention
+70.0 per cent
+Maximum cession any one risk
+GBP 3,000,000
+Event limit
+GBP 15,000,000
+Ceding commission
+27.5 per cent
+Profit commission
+15.0 per cent
+Management expense allowance
+5.0 per cent
+Currency
+GBP
+Accounting
+Quarterly in arrears
+
+Result 3
+Distance: 0.9876483678817749
+Article: ARTICLE 5 — RETENTION AND CESSION
+Clause: 5.1
+Page: 4
+Treaty: TRT-2026-001
+Text:
+5.1  Cession
+The Company shall cede and the Reinsurer shall accept 30.0 per cent of each and every Original Policy
+falling within the Business Covered, and the Company shall retain for its own account the balance of 70.0
+per cent.
+
+Result 4
+Distance: 1.0559909343719482
+Article: ARTICLE 5 — RETENTION AND CESSION
+Clause: 5.2
+Page: 4
+Treaty: TRT-2026-001
+Text:
+5.2  Retention
+The Company shall retain net for its own account 70.0 per cent of every risk ceded hereunder, and shall not
+reinsure such retention elsewhere save under catastrophe excess of loss protections operating on the
+Company's net retained account.
+
+Result 5
+Distance: 1.1356756687164307
+Article: ARTICLE 4 — EXCLUSIONS
+Clause: 4(e)
+Page: 3
+Treaty: TRT-2026-001
+Text:
+4(e)  Land-based transit risks where the transit forms the predominant exposure, such business being
+reinsured elsewhere.
+
+====================================
+Treaty: TRT-2026-003
+Query: What is the maximum cession any one risk under TRT-2026-004?
+====================================
+
+Result 1
+Distance: 1.0272564888000488
+Article: SCHEDULE A — SUMMARY OF TERMS
+Clause: 
+Page: 9
+Treaty: TRT-2026-003
+Text:
+SCHEDULE A — SUMMARY OF TERMS
+Layer
+Limit
+Excess of
+Aggregate
+Reinst.
+Deposit prem.
+Min. prem.
+ROL
+1
+GBP 500,000
+GBP 500,000
+GBP
+1,000,000
+1
+GBP 180,000
+GBP
+144,000
+36.00
+%
+2
+GBP
+4,000,000
+GBP
+1,000,000
+GBP
+12,000,000
+2
+GBP 520,000
+GBP
+416,000
+13.00
+%
+3
+GBP
+15,000,000
+GBP
+5,000,000
+GBP
+30,000,000
+1
+GBP 675,000
+GBP
+540,000
+4.50%
+Treaty reference
+Basis
+Losses occurring during the Period
+Net retention
+GBP 500,000
+Currency
+GBP
+Brokerage
+10 per cent, included in the rates above
+Property Catastrophe Excess of Loss Programme
+ENDORSEMENT NO. 1 — HOURS CLAUSE AMENDMENT
+It is hereby noted and agreed that with effect from 1 July 2026 the period specified in Clause 1.3(a) in respect of
+windstorm, tempest, hurricane, tornado, cyclone and typhoon is amended from 72 to 96 consecutive hours.
+This amendment applies only to Loss Occurrences commencing on or after the effective date stated below. The
+72 hour period continues to apply to any Loss Occurrence commencing before that date.
+For the avoidance of doubt, no other provision of Clause 1.3 is amended, and in particular the 168 hour period in
+Clause 1.3(b) is unchanged. The exclusion in Article 4(b) remains in full force and effect and is unaffected by
+this Endorsement.
+Endorsement number
+1
+Effective date
+1 July 2026
+All other terms
+Unchanged
+
+Result 2
+Distance: 1.0458258390426636
+Article: 
+Clause: 
+Page: 2
+Treaty: TRT-2026-003
+Text:
+REINSURANCE AGREEMENT
+PROPERTY CATASTROPHE EXCESS OF LOSS
+PROGRAMME
+Reference TRT-2026-003
+Reassured
+Northgate Mutual Insurance Company Limited
+Reinsurer
+Consortium led by Sable Re Limited
+Reinsurer's share
+100 per cent
+Intermediary
+Calderwood Reinsurance Brokers LLP
+Class of business
+Property
+Type
+Non-proportional — Excess of Loss
+Period
+01 January 2026 to 31 December 2026, both days inclusive, local standard
+time at the place where the risk is situated
+Currency
+Pounds Sterling (GBP)
+Governing law
+The laws of England and Wales
+Status
+Active
+This Agreement records the terms upon which the Reinsurer agrees to indemnify the Reassured in respect of the
+business described herein. It is subject to the Articles, Schedules and Endorsements which follow and which
+together form one contract.
+Property Catastrophe Excess of Loss Programme
+
+Result 3
+Distance: 1.0692815780639648
+Article: ARTICLE 5 — ATTACHMENT, LIMIT AND RETENTION
+Clause: 5.1
+Page: 4
+Treaty: TRT-2026-003
+Text:
+5.1  Layers
+The Reinsurer shall pay the amount of Ultimate Net Loss arising from each Loss Occurrence in excess of the
+attachment point specified for each layer, up to but not exceeding the limit for that layer, as set out below and
+in Schedule A.
+Layer
+Limit
+Excess of
+Aggregate limit
+Reinstatements
+Layer 1
+GBP 500,000
+GBP 500,000
+GBP 1,000,000
+1
+Layer 2
+GBP 4,000,000
+GBP 1,000,000
+GBP 12,000,000
+2
+Layer 3
+GBP 15,000,000
+GBP 5,000,000
+GBP 30,000,000
+1
+
+Result 4
+Distance: 1.1314603090286255
+Article: ARTICLE 6 — PREMIUM
+Clause: 
+Page: 5
+Treaty: TRT-2026-003
+Text:
+ARTICLE 6 — PREMIUM
+The premium payable hereunder shall be calculated as the rate on line specified for each layer in Schedule A
+applied to the Company's estimated subject premium income for the Period.
+A deposit premium shall be payable in four equal quarterly instalments in advance, and shall be adjusted at
+expiry against the actual subject premium income, subject always to the minimum premium stated for each
+layer.
+Layer 1: deposit premium GBP 180,000, minimum premium GBP 144,000, rate on line 36.00 per cent.
+Layer 2: deposit premium GBP 520,000, minimum premium GBP 416,000, rate on line 13.00 per cent.
+Layer 3: deposit premium GBP 675,000, minimum premium GBP 540,000, rate on line 4.50 per cent.
+Property Catastrophe Excess of Loss Programme
+Adjustment premium, if any, shall be settled within ninety days of the close of the Period. No return of premium
+shall be made below the minimum premium stated above.
+
+Result 5
+Distance: 1.1483348608016968
+Article: ARTICLE 10 — BORDEREAUX AND REPORTING
+Clause: 8.1
+Page: 6
+Treaty: TRT-2026-003
+Text:
+8.1 An aggregate exposure return, showing the Company's net retained exposure by zone and by class, rendered
+semi-annually as at 30 June and 31 December.
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/cedera$ 
+
+
 5. What is the retention under TRT-2026-006?
+
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/cedera$ python3 -m ingestion.test_retrieval
+
+====================================
+Treaty: TRT-2026-001
+Query: What is the retention under TRT-2026-006?
+====================================
+
+Result 1
+Distance: 1.177984356880188
+Article: ARTICLE 5 — RETENTION AND CESSION
+Clause: 
+Page: 3
+Treaty: TRT-2026-001
+Text:
+ARTICLE 5 — RETENTION AND CESSION
+
+Result 2
+Distance: 1.228375792503357
+Article: ARTICLE 5 — RETENTION AND CESSION
+Clause: 5.2
+Page: 4
+Treaty: TRT-2026-001
+Text:
+5.2  Retention
+The Company shall retain net for its own account 70.0 per cent of every risk ceded hereunder, and shall not
+reinsure such retention elsewhere save under catastrophe excess of loss protections operating on the
+Company's net retained account.
+
+Result 3
+Distance: 1.3081374168395996
+Article: 
+Clause: 
+Page: 2
+Treaty: TRT-2026-001
+Text:
+REINSURANCE AGREEMENT
+PROPERTY QUOTA SHARE REINSURANCE
+AGREEMENT
+Reference TRT-2026-001
+Reassured
+Northgate Mutual Insurance Company Limited
+Reinsurer
+Meridian Reinsurance SE
+Reinsurer's share
+100 per cent
+Intermediary
+Calderwood Reinsurance Brokers LLP
+Class of business
+Property
+Type
+Proportional — Quota Share
+Period
+01 January 2026 to 31 December 2026, both days inclusive, local standard
+time at the place where the risk is situated
+Currency
+Pounds Sterling (GBP)
+Governing law
+The laws of England and Wales
+Status
+Active
+This Agreement records the terms upon which the Reinsurer agrees to indemnify the Reassured in respect of the
+business described herein. It is subject to the Articles, Schedules and Endorsements which follow and which
+together form one contract.
+
+Result 4
+Distance: 1.3093147277832031
+Article: SCHEDULE A — SUMMARY OF TERMS
+Clause: 
+Page: 7
+Treaty: TRT-2026-001
+Text:
+SCHEDULE A — SUMMARY OF TERMS
+Treaty reference
+Cession
+30.0 per cent
+Retention
+70.0 per cent
+Maximum cession any one risk
+GBP 3,000,000
+Event limit
+GBP 15,000,000
+Ceding commission
+27.5 per cent
+Profit commission
+15.0 per cent
+Management expense allowance
+5.0 per cent
+Currency
+GBP
+Accounting
+Quarterly in arrears
+
+Result 5
+Distance: 1.3722031116485596
+Article: ARTICLE 12 — INSPECTION OF RECORDS
+Clause: 
+Page: 6
+Treaty: TRT-2026-001
+Text:
+ARTICLE 12 — INSPECTION OF RECORDS
+The Reinsurer, or its duly appointed representatives, shall have the right at any reasonable time to inspect all
+books, records and papers of the Company relating to business reinsured hereunder.
+Such right shall continue for a period of three years following the final settlement of all obligations arising under
+this Agreement, and shall survive its termination.
+
+====================================
+Treaty: TRT-2026-003
+Query: What is the retention under TRT-2026-006?
+====================================
+
+Result 1
+Distance: 1.1651649475097656
+Article: ARTICLE 5 — ATTACHMENT, LIMIT AND RETENTION
+Clause: 
+Page: 4
+Treaty: TRT-2026-003
+Text:
+ARTICLE 5 — ATTACHMENT, LIMIT AND RETENTION
+
+Result 2
+Distance: 1.264420509338379
+Article: SCHEDULE A — SUMMARY OF TERMS
+Clause: 
+Page: 9
+Treaty: TRT-2026-003
+Text:
+SCHEDULE A — SUMMARY OF TERMS
+Layer
+Limit
+Excess of
+Aggregate
+Reinst.
+Deposit prem.
+Min. prem.
+ROL
+1
+GBP 500,000
+GBP 500,000
+GBP
+1,000,000
+1
+GBP 180,000
+GBP
+144,000
+36.00
+%
+2
+GBP
+4,000,000
+GBP
+1,000,000
+GBP
+12,000,000
+2
+GBP 520,000
+GBP
+416,000
+13.00
+%
+3
+GBP
+15,000,000
+GBP
+5,000,000
+GBP
+30,000,000
+1
+GBP 675,000
+GBP
+540,000
+4.50%
+Treaty reference
+Basis
+Losses occurring during the Period
+Net retention
+GBP 500,000
+Currency
+GBP
+Brokerage
+10 per cent, included in the rates above
+Property Catastrophe Excess of Loss Programme
+ENDORSEMENT NO. 1 — HOURS CLAUSE AMENDMENT
+It is hereby noted and agreed that with effect from 1 July 2026 the period specified in Clause 1.3(a) in respect of
+windstorm, tempest, hurricane, tornado, cyclone and typhoon is amended from 72 to 96 consecutive hours.
+This amendment applies only to Loss Occurrences commencing on or after the effective date stated below. The
+72 hour period continues to apply to any Loss Occurrence commencing before that date.
+For the avoidance of doubt, no other provision of Clause 1.3 is amended, and in particular the 168 hour period in
+Clause 1.3(b) is unchanged. The exclusion in Article 4(b) remains in full force and effect and is unaffected by
+this Endorsement.
+Endorsement number
+1
+Effective date
+1 July 2026
+All other terms
+Unchanged
+
+Result 3
+Distance: 1.2748889923095703
+Article: 
+Clause: 
+Page: 2
+Treaty: TRT-2026-003
+Text:
+REINSURANCE AGREEMENT
+PROPERTY CATASTROPHE EXCESS OF LOSS
+PROGRAMME
+Reference TRT-2026-003
+Reassured
+Northgate Mutual Insurance Company Limited
+Reinsurer
+Consortium led by Sable Re Limited
+Reinsurer's share
+100 per cent
+Intermediary
+Calderwood Reinsurance Brokers LLP
+Class of business
+Property
+Type
+Non-proportional — Excess of Loss
+Period
+01 January 2026 to 31 December 2026, both days inclusive, local standard
+time at the place where the risk is situated
+Currency
+Pounds Sterling (GBP)
+Governing law
+The laws of England and Wales
+Status
+Active
+This Agreement records the terms upon which the Reinsurer agrees to indemnify the Reassured in respect of the
+business described herein. It is subject to the Articles, Schedules and Endorsements which follow and which
+together form one contract.
+Property Catastrophe Excess of Loss Programme
+
+Result 4
+Distance: 1.3078763484954834
+Article: ARTICLE 17 — SUNSET AND RUN-OFF
+Clause: 
+Page: 8
+Treaty: TRT-2026-003
+Text:
+ARTICLE 17 — SUNSET AND RUN-OFF
+The Reinsurer shall have no liability in respect of any Loss Occurrence first advised to it more than thirty-six
+months after the expiry of the Period.
+This Article shall not apply where the Company has given notice of a potential circumstance under Article 8
+within the Period.
+Property Catastrophe Excess of Loss Programme
+
+Result 5
+Distance: 1.368769645690918
+Article: ARTICLE 10 — BORDEREAUX AND REPORTING
+Clause: 8.1
+Page: 6
+Treaty: TRT-2026-003
+Text:
+8.1 An aggregate exposure return, showing the Company's net retained exposure by zone and by class, rendered
+semi-annually as at 30 June and 31 December.
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/cedera$ 
+
+
+
 6. What is the event limit under TRT-2026-003?
+
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/cedera$ python3 -m ingestion.test_retrieval
+
+====================================
+Treaty: TRT-2026-001
+Query: What is the event limit under TRT-2026-003?
+====================================
+
+Result 1
+Distance: 1.2742359638214111
+Article: ARTICLE 5 — RETENTION AND CESSION
+Clause: 5.3
+Page: 4
+Treaty: TRT-2026-001
+Text:
+5.3  Limits
+Notwithstanding Section 5.1, the maximum amount ceded hereunder in respect of any one risk shall not
+exceed GBP 3,000,000, and the maximum amount recoverable in respect of any one Loss Occurrence shall
+not exceed GBP 15,000,000.
+Where the application of Section 5.1 would result in a cession exceeding the limit in Section 5.3, the cession
+shall be reduced accordingly and the premium ceded adjusted in the same proportion.
+
+Result 2
+Distance: 1.3162428140640259
+Article: ARTICLE 1 — INTERPRETATION AND DEFINITIONS
+Clause: 1.3
+Page: 2
+Treaty: TRT-2026-001
+Text:
+1.3  Loss Occurrence
+“Loss Occurrence” means all individual losses arising out of and directly occasioned by one catastrophe.
+The duration and extent of any Loss Occurrence shall be limited to:
+(a) a period of 72 consecutive hours arising out of and directly occasioned by windstorm, tempest, hurricane,
+tornado, cyclone or typhoon, including resultant storm surge and rainfall;
+(b) a period of 168 consecutive hours arising out of and directly occasioned by flood or inundation not
+otherwise excluded;
+(c) a period of 72 consecutive hours arising out of and directly occasioned by earthquake, seaquake, volcanic
+eruption or subterranean fire;
+(d) a period of 168 consecutive hours in respect of riot, civil commotion or malicious damage, provided such
+losses arise within the boundaries of one city or town.
+The Company may choose the date and time at which any such period commences, provided that no two
+periods overlap and that no period commences earlier than the date and time of the first recorded individual
+loss.
+
+Result 3
+Distance: 1.3352420330047607
+Article: SCHEDULE A — SUMMARY OF TERMS
+Clause: 
+Page: 7
+Treaty: TRT-2026-001
+Text:
+SCHEDULE A — SUMMARY OF TERMS
+Treaty reference
+Cession
+30.0 per cent
+Retention
+70.0 per cent
+Maximum cession any one risk
+GBP 3,000,000
+Event limit
+GBP 15,000,000
+Ceding commission
+27.5 per cent
+Profit commission
+15.0 per cent
+Management expense allowance
+5.0 per cent
+Currency
+GBP
+Accounting
+Quarterly in arrears
+
+Result 4
+Distance: 1.3838523626327515
+Article: ARTICLE 9 — LOSS OCCURRENCE AND AGGREGATION
+Clause: 
+Page: 5
+Treaty: TRT-2026-001
+Text:
+ARTICLE 9 — LOSS OCCURRENCE AND AGGREGATION
+The provisions of Clause 1.3 shall apply to the aggregation of individual losses into a single Loss Occurrence for
+the purposes of the limit in Section 5.3.
+Where losses arise from a peril not specified in Clause 1.3, the Company and the Reinsurer shall agree the
+appropriate aggregation period, failing which the matter shall be referred to arbitration under Article 15.
+
+Result 5
+Distance: 1.4100337028503418
+Article: ARTICLE 4 — EXCLUSIONS
+Clause: 4.2
+Page: 3
+Treaty: TRT-2026-001
+Text:
+4.2  Cyber Definition
+For the purposes of this Article, a cyber event means the unauthorised access to, use of, or interference with
+any computer system, network, software or data, including the introduction of malicious code, denial of
+service, and the encryption or corruption of data.
+
+====================================
+Treaty: TRT-2026-003
+Query: What is the event limit under TRT-2026-003?
+====================================
+
+Result 1
+Distance: 1.3162428140640259
+Article: ARTICLE 1 — INTERPRETATION AND DEFINITIONS
+Clause: 1.3
+Page: 2
+Treaty: TRT-2026-003
+Text:
+1.3  Loss Occurrence
+“Loss Occurrence” means all individual losses arising out of and directly occasioned by one catastrophe.
+The duration and extent of any Loss Occurrence shall be limited to:
+(a) a period of 72 consecutive hours arising out of and directly occasioned by windstorm, tempest, hurricane,
+tornado, cyclone or typhoon, including resultant storm surge and rainfall;
+(b) a period of 168 consecutive hours arising out of and directly occasioned by flood or inundation not
+otherwise excluded;
+(c) a period of 72 consecutive hours arising out of and directly occasioned by earthquake, seaquake, volcanic
+eruption or subterranean fire;
+(d) a period of 168 consecutive hours in respect of riot, civil commotion or malicious damage, provided such
+losses arise within the boundaries of one city or town.
+The Company may choose the date and time at which any such period commences, provided that no two
+periods overlap and that no period commences earlier than the date and time of the first recorded individual
+loss.
+
+Result 2
+Distance: 1.3203766345977783
+Article: SCHEDULE A — SUMMARY OF TERMS
+Clause: 
+Page: 9
+Treaty: TRT-2026-003
+Text:
+SCHEDULE A — SUMMARY OF TERMS
+Layer
+Limit
+Excess of
+Aggregate
+Reinst.
+Deposit prem.
+Min. prem.
+ROL
+1
+GBP 500,000
+GBP 500,000
+GBP
+1,000,000
+1
+GBP 180,000
+GBP
+144,000
+36.00
+%
+2
+GBP
+4,000,000
+GBP
+1,000,000
+GBP
+12,000,000
+2
+GBP 520,000
+GBP
+416,000
+13.00
+%
+3
+GBP
+15,000,000
+GBP
+5,000,000
+GBP
+30,000,000
+1
+GBP 675,000
+GBP
+540,000
+4.50%
+Treaty reference
+Basis
+Losses occurring during the Period
+Net retention
+GBP 500,000
+Currency
+GBP
+Brokerage
+10 per cent, included in the rates above
+Property Catastrophe Excess of Loss Programme
+ENDORSEMENT NO. 1 — HOURS CLAUSE AMENDMENT
+It is hereby noted and agreed that with effect from 1 July 2026 the period specified in Clause 1.3(a) in respect of
+windstorm, tempest, hurricane, tornado, cyclone and typhoon is amended from 72 to 96 consecutive hours.
+This amendment applies only to Loss Occurrences commencing on or after the effective date stated below. The
+72 hour period continues to apply to any Loss Occurrence commencing before that date.
+For the avoidance of doubt, no other provision of Clause 1.3 is amended, and in particular the 168 hour period in
+Clause 1.3(b) is unchanged. The exclusion in Article 4(b) remains in full force and effect and is unaffected by
+this Endorsement.
+Endorsement number
+1
+Effective date
+1 July 2026
+All other terms
+Unchanged
+
+Result 3
+Distance: 1.3619022369384766
+Article: ARTICLE 5 — ATTACHMENT, LIMIT AND RETENTION
+Clause: 5.4
+Page: 4
+Treaty: TRT-2026-003
+Text:
+5.4  Effect of Prior Erosion
+Where the limit of a layer has been reduced by an earlier Loss Occurrence, only the unexhausted balance of
+that limit shall be available in respect of any subsequent Loss Occurrence, until such time as the limit is
+reinstated in accordance with Article 9. Reinstatement shall take effect from the time of the Loss Occurrence
+which gave rise to it and shall not operate retrospectively to increase the amount recoverable in respect of
+that same Loss Occurrence.
+
+Result 4
+Distance: 1.3782284259796143
+Article: ARTICLE 4 — EXCLUSIONS
+Clause: 4(e)
+Page: 3
+Treaty: TRT-2026-003
+Text:
+4(e)  Cyber events, as more particularly defined in Section 4.2, including business interruption arising
+therefrom.
+
+Result 5
+Distance: 1.3849736452102661
+Article: ARTICLE 17 — SUNSET AND RUN-OFF
+Clause: 
+Page: 8
+Treaty: TRT-2026-003
+Text:
+ARTICLE 17 — SUNSET AND RUN-OFF
+The Reinsurer shall have no liability in respect of any Loss Occurrence first advised to it more than thirty-six
+months after the expiry of the Period.
+This Article shall not apply where the Company has given notice of a potential circumstance under Article 8
+within the Period.
+Property Catastrophe Excess of Loss Programme
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/cedera$ 
 7. What are the exclusions under TRT-2026-005?
