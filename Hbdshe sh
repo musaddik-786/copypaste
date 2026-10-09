@@ -1,5 +1,6 @@
 Below is my conversation with calude and there are some issue that we pointed out in the codebase and what is been shown in UI also there are someother issues and gaps so go throuhg the belowoconerasation and make a good ppt so that thrid person understand s what actualy is the problrm in what agent 
 so for all the agents i think there is a currentl flow that claude has explained us as well you can refer that 
+so my first thing that i asked to claude 
 
 here i ran this
  
@@ -44,7 +45,9 @@ so basivally i am concerned that our agents are passing the data correclty withi
 Repair vs replacement agent, setellement recommendation agent, financial leakage
 
 so these are my genuine doubts 
- 
+
+
+this is what it anserwed
 This is a great set of questions — let me actually trace the code for all three agents rather than guess. Starting with Settlement Recommendation:
 Let's look at recommend_settlement first — this is the key function to answer whether it's genuinely calculating or just copying:
 Now let's check how the Repair vs Replacement agent itself generates its cost estimates and confidence score:
