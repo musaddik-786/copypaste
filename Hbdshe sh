@@ -1,35 +1,263 @@
-FIELDS USER PROVIDES (via Voice/Text during FNOL)
+Below is my conversation with calude and there are some issue that we pointed out in the codebase and what is been shown in UI also there are someother issues and gaps so go throuhg the belowoconerasation and make a good ppt so that thrid person understand s what actualy is the problrm in what agent 
 
-policy_number - User provides this at the very beginning
-incident_date - User tells agent when incident happened
-incident_location - User describes where it happened
-loss_type - User describes what happened (collision, theft etc.)
-damage_description - User describes the damage
-estimated_loss_amount - User estimates the damage cost
-third_party_involved - User says yes or no
-third_party_details - User provides other party info if involved
-police_report_number - User provides if they filed a report
-contact_number - User provides
-email - User provides
+here i ran this
+ 
+this i used for backend when i deployed it 
+/home/JarvisClaims/Ramakrishna/Jarvis_claims_agents_v3_copy_new
+ 
+this i used as frontend which is deployed 
+/home/JarvisClaims/Ramakrishna/claims-solution-integration
+ 
+000-00-003829
+ 
+before running the setllement recomendation ai analysis i ran the normal run ai analyisis whcih gave the Net Payable (Replacement)$14,349
+in AI Claims Analysis summary section , so my doubt is that in 
+Settlement Amount$14,349
+Final Settlement (Adjuster)$14,349
+ 
+is our agent calculating these amounts and how come the agents amount calcualted is getting equal to Net Payable (Replacement)$14,349
+ 
+one more thing here i can see the notes under setllement recommendation agent
+Notes
+The business rules confirmed coverage for the fire loss and determined replacement as the appropriate action. The settlement amount of 14349.0 aligns with the confirmed cause and severity, and the claim meets the criteria for straightforward processing based on the provided STP score and other risk assessments.
+ 
+are these actually genuine i mean how is our setleemnet recommendation agent actually is working and are we showing it correclt yon the UI
+ 
+now for the same claim number the financial leakge got calculated 
+ 
+here i am having a doubt as you said earlier that for replacement we are running the same query so 
+exact same SQL query — SUM(replacement_costs.total_replacement_estimate) for that claim — once in _get_settlement_amount() and again in _get_actual_cost_from_ai().
+So they will always be the same number, and variance will always be exactly 0%, for any Replace-decision claim, as long as vendor dispatch hasn't run yet (no expert_estimates row). It's not a coincidence or close-data thing — it's guaranteed by the code.
 
-FIELDS AUTO-FETCHED FROM DATABASE
+so here tell me arent we considering the amoint that our agent has calcualted which is repair vs replacment agent ? so that it can be compared with the actual amount of replacement, ??
 
-These are fetched automatically using the policy_number the user provided above:
+i rememebr we are not doing that because our AI agent was actually giving a lot of differnt answer than what it has to give i mean the value was a lot different that what the actual amount of replacement that has to be compared with 
 
-From motor_policy_details table:
+i htink all of this is happeining because we are considering differnt tables for our repair vs replacment agent and differnt tables for loss assessment agent (i am not sure about the agent names) which is actually having some factors that can affect the actual cost of repair and replacement that we are condiering currently in settlement recommendation agent, dont fix anything you can answer my doubts and suggest what should we do 
 
-policyholder_name
+here we are getting suggestion as AI Recommendation: Replacement — Confidence: 85%
 
-From motor_vehicle_details table:
+under repair vs replacement page for the same claim number what is the logic behind that
+.
+so basivally i am concerned that our agents are passing the data correclty within each other? and in the UI I hope we are showing the actual data that our Agents are generating
+Repair vs replacement agent, setellement recommendation agent, financial leakage
 
-vehicle_make
-vehicle_model
-vehicle_year
-license_plate
-vin
-driver_name
-driver_license
+so these are my genuine doubts 
+ 
+This is a great set of questions — let me actually trace the code for all three agents rather than guess. Starting with Settlement Recommendation:
+Let's look at recommend_settlement first — this is the key function to answer whether it's genuinely calculating or just copying:
+Now let's check how the Repair vs Replacement agent itself generates its cost estimates and confidence score:
+This was worth digging into — I traced all three agents' actual code, and your suspicions are largely correct. Here's exactly what's happening, backed by the code:
+1. Is Settlement Recommendation genuinely calculating, or copying a number?
+Genuinely calculating — but only the dollar amount, not the decision of which number to use (more on that below). The actual Python logic:
+net_payable = replace_net   # when Replace is chosen
+settlement_amount = min(net_payable, remaining_coverage_limit)
+This happens in pure Python, before the LLM is ever called. The LLM's prompt explicitly says: "The settlement amount has ALREADY been calculated by the business rules. DO NOT recalculate any numbers... Use the values exactly as provided." So the LLM is only generating the natural-language sentence ("Notes") around a number it's forbidden from touching — the Notes text is genuinely LLM-written each time, not a static template, but it's constrained to paraphrase, not verify.
+2. Why does Settlement Amount exactly equal "Net Payable (Replacement)" from the earlier AI Claims Analysis summary?
+Because they're the same formula computed twice, not a coincidence. Both ultimately call the same helper, resolve_repair_vs_replacement():
+replace_total = SUM(replacement_costs.total_replacement_estimate)
+replace_net = replace_total - deductible
+Whatever populated "Net Payable (Replacement)" earlier and whatever Settlement Recommendation computed both trace back to this one function. That's why they match exactly — $16,875 − $2,526 = $14,349, both places.
+3. Here's the part that confirms your suspicion directly
+In recommend_settlement(), there's this:
+repair_replace = _get_repair_vs_replace(claim_id)   # reads repair_vs_replacement_decisions table
+print("repair_replace =", repair_replace)            # ...only used for a debug log line
+rvr = resolve_repair_vs_replacement(cur_rvr, claim_id)  # ← this is what's ACTUALLY used
+is_replacement = rvr["is_replacement"]
+Settlement Recommendation fetches the Repair-vs-Replacement agent's actual stored decision — and then never uses it for anything except a debug print. It re-derives its own "is this Repair or Replace" verdict completely independently, straight from the raw loss_assessments/replacement_costs tables, using its own formula:
+is_replacement = replace_net < repair_net   # whichever costs the insurer less, wins
+In your test, both happened to agree (Replace), so it looked like clean data hand-off. But if an adjuster had manually overridden the decision in repair_vs_replacement_decisions.decision (e.g. forced "Repair" for a business reason), Settlement Recommendation would silently ignore that override and use its own recalculation instead. That's a real data-passing gap between these two agents.
+4. Your Financial Leakage doubt — you remembered correctly
+You're right that Financial Leakage isn't comparing against a genuinely independent "actual" cost. For Replace-decision claims pre-dispatch, its "actual cost" is the exact same replacement_costs sum that resolve_repair_vs_replacement() and the Repair-vs-Replace agent itself both already used. There's no real ground-truth cross-check happening — it's the same AI-estimated number being compared against itself. The only genuinely independent value anywhere in this pipeline is a real vendor invoice (expert_estimates), which only exists after dispatch.
+5. Repair vs Replacement page — the actual logic
+Per damaged item, one single LLM call generates both repair_cost and replacement_cost together:
+prompt = f"""Estimate realistic repair and replacement costs ...
+Item Type: {item_type}, Item Age: {item_age}, Severity: {severity}, 
+Adjuster's Notes: {adjuster_notes}, Initial Damage Estimate: ${estimated_cost}"""
+There's no real pricing database behind this — it's an unconstrained LLM guess per item, which matches what you remembered ("the AI agent was giving a lot of different answers"). These per-item numbers get summed into totals.
+The final Repair vs Replace recommendation, though, is a deterministic rule on top of those LLM totals — not an LLM judgment:
+if total_repair_cost < (total_replacement_cost * 0.40): "Repair"
+elif total_replacement_cost <= (total_repair_cost * 1.25): "Replace"
+elif useful_life_remaining < 3: "Replace"
+else: "Replace"   # ← note: the fallback is ALSO "Replace"
+Worth noticing: structurally, this can basically never recommend "Repair" unless repair cost comes in under 40% of replacement cost — every other branch, including the final else, resolves to "Replace."
+And "Confidence: 85%" is not an AI confidence measure at all — it's pure arithmetic:
+confidence_score = min(1.0, 0.5 + |repair_cost - replacement_cost| / replacement_cost)
+It literally just measures how far apart the two cost guesses are. A bigger gap between repair and replacement costs produces a higher "confidence" score. It says nothing about whether either estimate is realistic.
+6. Is the UI showing the real generated data?
+Yes — I didn't find any place where the UI fabricates or mismatches what the backend actually computed. Every number shown (Repair vs Replace totals, Net Payable, Settlement Amount, Leakage figures) traces back faithfully to real values written to the database. The concerns are entirely on the backend/agent-design side, not a UI display bug:
+Per-item costs are ungrounded LLM guesses (no pricing reference).
+"Confidence" is a cost-gap ratio, not a real confidence signal.
+Settlement Recommendation bypasses the Repair-vs-Replace agent's own stored decision and recalculates independently — the two agents can diverge, and nothing in the system would catch it.
+Financial Leakage's "actual" cost pre-dispatch isn't independent of the "estimated" cost it's being compared against.
+No changes made, as requested — this is purely the trace-through you asked for.
 
-ALL OF THE ABOVE GETS SAVED TO:
 
-motor_fnol_submissions table
+Then i provided it a flow of my older setllement recommendation agent it gave below response and i asked it to check di dthe codebase changed for the same
+
+You're right — and now I can show you exactly where it diverges from this original design.
+The slides show the original intended flow
+Step 7, as documented: settlement_amount = MIN(net_payable, remaining_coverage_limit), where net_payable comes from a single source — loss_estimation_outputs.net_payable (Step 2), already computed upstream by the Loss Estimation Agent. The Repair vs Replace decision (Step 4) is read, but per this design it's just context for the notes — it was never meant to recalculate the number.
+What the current code actually does — confirmed different
+estimation = _get_loss_estimation(claim_id)          # Step 2 — read, as documented
+repair_replace = _get_repair_vs_replace(claim_id)    # Step 4 — read, but...
+print("repair_replace =", repair_replace)            # ...only ever used in a debug print
+# Determine correct net_payable by comparing actual net payables (not stored agent decision)
+rvr = resolve_repair_vs_replacement(cur_rvr, claim_id)   # ← an ADDED step, not in the original design
+is_replacement = rvr["is_replacement"]
+if is_replacement:
+    net_payable = rvr["replace_net"]       # ← bypasses loss_estimation_outputs.net_payable entirely
+else:
+    net_payable = float(estimation.get("net_payable") or 0)   # only falls back to the documented source here
+So there's now a whole extra calculation step — resolve_repair_vs_replacement() — that doesn't exist anywhere in these slides. It independently re-derives its own repair-vs-replace verdict from raw loss_assessments/replacement_costs tables, and whenever that re-derived verdict is "Replace," it throws away the Loss Estimation Agent's net_payable ($26,300 in your example) and substitutes its own freshly-calculated replace_net instead. The documented design never does this substitution — it trusts loss_estimation_outputs.net_payable as the single source of truth, always.
+This is also the literal comment left in the code: "Determine correct net_payable by comparing actual net payables (not stored agent decision)" — someone explicitly added this override after the fact, deviating from the original 7-step design these slides describe.
+So to directly answer you: no, it is not working the same as originally designed. The original design had one authoritative number (loss_estimation_outputs.net_payable) flowing straight into Step 7. The current code has a second, competing calculation path that silently overrides it for Replace-decision claims — which is also exactly why it lines up with the Repair-vs-Replace agent's replacement_costs number rather than the Loss Estimation Agent's own net_payable, as I showed in my last message.
+ 
+Not quite "no power of its own" — but also not "taking values from the Repair vs Replace agent" either. It's a third thing, and it's worth being precise about which:
+What it does NOT do: read the Repair vs Replace agent's actual output (repair_vs_replacement_decisions.decision, recommended_action, or confidence_score). It fetches that row (_get_repair_vs_replace) but only ever prints it to a debug log — never uses it in the math. So it's not "borrowing" that agent's conclusion.
+What it actually does: independently recomputes its own repair-vs-replace verdict from scratch, using the same raw tables (loss_assessments, replacement_costs) that the Repair vs Replace agent also populates — but with its own separate formula (resolve_repair_vs_replacement(), whichever net payable is lower wins). So Settlement Recommendation has its own calculation engine; it just happens to draw on the same underlying source data as the other agent, not that agent's finished decision.
+What is genuinely still its own:
+The coverage-limit cap: settlement_amount = min(net_payable, remaining_coverage_limit) — this enforcement doesn't exist anywhere else.
+The natural-language notes (real LLM call each time, just constrained not to touch numbers).
+Reading fraud snapshot / adjuster findings for context in those notes.
+What it lost relative to the original design: the one number it was supposed to trust unconditionally — loss_estimation_outputs.net_payable, the Loss Estimation Agent's own authoritative output — now gets silently discarded and replaced whenever its own re-derived verdict says "Replace."
+So the more accurate way to put it: Settlement Recommendation isn't powerless, but its headline number (is it Repair or Replace, and what's the net payable) is no longer sourced from either of the two agents that were supposed to own that decision (Loss Estimation, and Repair vs Replace) — it's a third, parallel recalculation over their shared raw ingredients, which happens to agree with the Repair vs Replace agent's totals only because both formulas are built on the same replacement_costs table, not because they're actually wired together.
+ 
+Let me verify the Loss Estimation Agent's own logic too (the source of loss_estimation_outputs), since that's the piece I haven't directly traced yet, to give you a fully accurate sequence:
+Let me verify exactly which table write_estimate targets (the actual decision/recommendation persistence), to keep the example precise:
+Now I have the complete picture, fully traced through the actual code. Here's the full sequence with a concrete dummy example — a Fire claim, 2 damaged items (Kitchen Cabinets, Flooring), $1,000 deductible, High severity.
+STEP 1 — Loss Assessment Agent (run_loss_assessment)
+Reads:
+damage_items table → Cabinets: estimated_cost=$8,000, Flooring: estimated_cost=$4,000
+policy_details → deductible=$1,000
+claims → severity="High"
+Calculates:
+total_parts_cost = 8000 + 4000 = $12,000
+total_labor_cost = 12000 × 0.30 = $3,600                    (hardcoded 30% rule)
+depreciation_percent = 15%                                   (lookup table by severity)
+[LLM call → subrogation_likelihood, confidence_score=0.82, recommendation text]
+ai_estimated_loss = parts + labor = 12000 + 3600 = $15,600
+depreciation_amount = 12000 × 15% = $1,800
+net_payable = max(0, 15600 − 1800 − 1000) = $12,800
+Writes to two tables:
+Table	Key fields written
+loss_assessments	total_parts_cost=12000, total_labor_cost=3600, depreciation_percent=15, deductible=1000, confidence_score=0.82
+loss_estimation_outputs	ai_estimated_loss=15600, deductible=1000, net_payable=12800, confidence=0.82
+This net_payable = $12,800 is supposed to be the one authoritative number for everything downstream.
+STEP 2 — Repair vs Replace Agent (compare_repair_vs_replace)
+Reads: same 2 damage items (independently of Step 1 — doesn't read loss_assessments at all).
+Calculates — one LLM call per item, no connection to Step 1's numbers:
+Cabinets  → LLM guesses: repair_cost=$3,200, replacement_cost=$9,500
+Flooring  → LLM guesses: repair_cost=$2,100, replacement_cost=$5,200
+total_repair_cost = 3200 + 2100 = $5,300
+total_replacement_cost = 9500 + 5200 = $14,700
+Rule: is 5300 < 0.4 × 14700 (= 5880)?  → YES → recommendation = "Repair"
+ratio_gap = |5300 − 14700| / 14700 = 0.64
+confidence_score = min(1.0, 0.5 + 0.64) = 1.0  (→ shown as "100%")
+Writes to three tables:
+Table	Key fields written
+repair_costs	one row per item — Cabinets=3200, Flooring=2100 (sum=$5,300)
+replacement_costs	one row per item — Cabinets=9500, Flooring=5200 (sum=$14,700)
+estimates	repair_cost=5300, replacement_cost=14700, recommendation="Repair", confidence_score=1.0 ← this is what the Repair vs Replace
+page displays
+repair_vs_replacement_decisions	recommended_action="Repair" (written separately once the orchestrator persists the agent's output here — the adjuster's later Approve/Override writes to
+decision in this same table)
+Notice: nothing here reads Step 1's $12,800. This agent's cost guesses ($5,300 / $14,700) are completely independent of the Loss Assessment Agent's numbers ($12,000 parts / $3,600 labor). Two unrelated LLM calls estimating the same damage, with no cross-check between them.
+STEP 3 — Settlement Recommendation Agent (recommend_settlement)
+Reads 6 sources (as your slides describe): claims, loss_estimation_outputs, policy_details, repair_vs_replacement_decisions, fraud_risk_snapshots, adjuster_findings.
+But then it does an extra, undocumented step — resolve_repair_vs_replacement() — which re-reads loss_assessments and replacement_costs directly and recomputes its own verdict from scratch, ignoring the repair_vs_replacement_decisions row it just read:
+repair_net  = (parts + labor) − depreciation − deductible
+            = (12000+3600) − 1800 − 1000 = $12,800   (same formula as Step 1 → same answer, coincidentally)
+replace_net = SUM(replacement_costs) − deductible
+            = 14700 − 1000 = $13,700
+is_replacement = (replace_net < repair_net)?  → 13700 < 12800? → NO → Repair wins
+Since is_replacement = False this time, it falls back to the Step 1 number:
+net_payable = loss_estimation_outputs.net_payable = $12,800   ✅ (the intended source, used only in this branch)
+settlement_amount = min(12800, remaining_coverage_limit [e.g. $50,000]) = $12,800
+[LLM call] — writes a sentence describing this, explicitly forbidden from changing any number.
+Writes to:
+Table	Key fields written
+ai_decision_recommendations	settlement_amount=12800, net_payable=12800, deductible=1000, final_decesion_repair_vs_replacement="Repair" (its own re-derived verdict, not the stored agent decision), stp_score, recommended_action (LLM text)
+This is the branch where things stayed consistent — because is_replacement came out False here too, it fell back to Step 1's real number. But flip the example slightly (say replacement_costs totaled $13,000 instead of $14,700): replace_net = 13000−1000=12000, which IS less than repair_net=12800 → is_replacement flips to True → it would then use replace_net=$12,000 instead of Step 1's $12,800, silently discarding the Loss Assessment Agent's number, even though the Repair vs Replace page itself is still showing "Repair" as its official recommendation (since its own threshold rule, based on $5,300 vs $14,700, never changed). That's the exact inconsistency you ran into with your Replace-decision test claims earlier in this conversation.
+STEP 4 — Financial Leakage Agent (score_leakage)
+Reads: repair_vs_replacement_decisions.decision (or falls back to .recommended_action) = "Repair"
+total_estimated_cost = _get_settlement_amount(claim, "Repair")
+                      → reads loss_assessments → returns parts+labor DIRECTLY = 12000+3600 = $15,600
+                        (⚠ no depreciation, no deductible applied here — unlike Step 3!)
+total_actual_cost = _get_actual_cost_from_ai(claim, "Repair")
+                   → SUM(repair_costs.total_repair_estimate) = 3200+2100 = $5,300
+                     (no vendor dispatch yet → using Repair vs Replace agent's own LLM guess)
+variance = (5300 − 15600) / 15600 × 100 = −34.0%
+leakage_score = min(int(max(−34, 0) × 2), 100) = 0        (negative variance floored to 0, the bug you found earlier)
+leakage_risk = "Low"
+Why you're confused — three agents, three different "estimated cost" figures, same claim
+Agent	"Estimated cost" it uses	Value in this example	Includes deductible/depreciation?
+Loss Assessment	parts+labor, net of deductible+depreciation	$12,800	Yes
+Settlement Recommendation	same as above (in this branch)	$12,800	Yes
+Financial Leakage	raw parts+labor, gross	$15,600	No
+Repair vs Replace page	its own independent LLM guess	$5,300 (repair) / $14,700 (replace)	No
+All four numbers describe "the cost of this claim," but none of them are forced to agree with each other, because each agent reads a different combination of tables and applies a different formula — some net of deductible, some gross, some from an entirely separate LLM call that never saw the other agents' numbers. That's the structural root of the confusion you've been running into across Settlement Recommendation, Repair vs Replace, and Financial Leakage — not a bug in any single calculation, but a lack of one shared, agreed-upon "cost of this claim" number that all four agents are required to use consistently.
+ 
+Let me trace the actual UI data-fetching so I can map each number to its exact page/section correctly, rather than guess:
+Let me check one more thing — whether the Repair vs Replace page itself shows the agent's raw stored numbers, or yet another recalculation:
+This dig surfaced something even more significant than what I found earlier — the UI layer adds its own, fourth independent recalculation, and the "Confidence" label you see is borrowed from a completely different agent than you'd think. Let me give you the full corrected picture, UI included, same dummy example throughout.
+Dummy example (same as before): Fire claim, 2 damaged items
+Cabinets (est. $8,000), Flooring (est. $4,000), policy deductible = $1,000, severity = High.
+STEP 1 — Loss Assessment Agent (run_loss_assessment)
+Writes:
+loss_assessments: parts=12000, labor=3600, depreciation%=15, deductible=1000, confidence_score=0.82
+loss_estimation_outputs: ai_estimated_loss=15600, deductible=1000, net_payable=12800, repair_recommended="Yes", confidence=0.82
+STEP 2 — Repair vs Replace Agent (compare_repair_vs_replace)
+Writes:
+repair_costs / replacement_costs: per-item LLM guesses, totals $5,300 / $14,700
+estimates: recommendation="Repair" (its own 0.4×/1.25× threshold rule), confidence_score=1.0 (its own ratio-gap formula)
+repair_vs_replacement_decisions: recommended_action="Repair"
+STEP 3 — Settlement Recommendation Agent (recommend_settlement)
+Re-derives its own verdict via resolve_repair_vs_replacement() (reads loss_assessments + replacement_costs directly — ignores estimates/repair_vs_replacement_decisions entirely). Writes:
+ai_decision_recommendations: settlement_amount=12800, net_payable=12800, final_decesion_repair_vs_replacement="Repair", recommended_action=(LLM sentence)
+STEP 4 — Financial Leakage Agent (score_leakage)
+Reads repair_vs_replacement_decisions.decision. Writes:
+financial_leakage_score: total_estimated_cost=15600, total_actual_cost=5300, overall_variance_percent=-34.0, leakage_score=0, leakage_risk="Low"
+All four of the above are what I told you last time. Here's what I missed — the UI layer itself.
+Now — what you actually SEE on screen, and where each number really comes from
+Page: Loss Assessment → "AI Claim Analysis Summary" card
+Served by one aggregate endpoint in vite-plugins/adjuster.ts that joins 7 tables in one query batch. Field by field:
+UI Label	Actual source	In our example
+Replacement Total Cost	replacement_costs SUM	$14,700
+Deductible Applied	loss_assessments.deductible	$1,000
+Net Payable	computed fresh in the frontend (replaceTotal − deductible, or
+loss_estimation_outputs.net_payable if Repair)	$12,800 (Repair case)
+Reserve Recommendation	adjuster_findings.system_recommended_reserve	(separate field, Adjuster-entered)
+Repair vs Replace	NOT estimates.recommendation. NOT
+repair_vs_replacement_decisions. Recomputed in
+adjuster.ts (_earlyRec) using the same net-payable-comparison formula as Settlement Recommendation's Python code — duplicated independently in TypeScript	"Repair"
+STP Readiness Score	ai_decision_recommendations.stp_score, falling back to segmentation_result_output.stp_score	—
+Confidence (on this card)	ai_decision_recommendations.confidence, falling back to loss_estimation_outputs.confidence	82% (Loss Assessment's own confidence)
+Page: Repair vs Replacement (the dedicated page you screenshotted)
+Served by a separate, second endpoint (handleRepairVsReplacement). This is the one that answers your actual question:
+const recommendation =
+  loss.repair_recommended === "no" ? "Replacement" : "Repair";   // ← loss_estimation_outputs (Loss Assessment Agent!)
+const confidence = loss ? Math.round(loss.confidence * 100) : null;  // ← ALSO loss_estimation_outputs.confidence
+// then, if loss_assessments + replacement_costs exist:
+netPayableRecommendation = replacementNetPayable <= repairNetPayable ? "Replacement" : "Repair";  
+// ^ yet ANOTHER independent net-payable-comparison recalculation, 3rd/4th time this exact formula appears
+UI Label	Actual source	In our example
+Total Cost (Repair)	repair_costs SUM	$5,300
+Total Cost (Replacement)	replacement_costs SUM	$14,700
+AI Recommendation	netPayableRecommendation — frontend-computed net-payable comparison, overriding the fallback
+loss_estimation_outputs.repair_recommended	"Repair" (coincidentally agrees here)
+Confidence: 85%	loss_estimation_outputs.confidence — the 
+Loss Assessment Agent's own confidence in its parts/labor estimate	82% in our example — nothing to do with how close the repair/replace cost guesses are
+This is the key correction to what I told you earlier. I previously said "Confidence" on this page was the Repair vs Replace agent's own ratio-gap formula (min(1.0, 0.5 + |gap|/replacement)) — that formula is real and does get computed and saved to estimates.confidence_score, but the Repair vs Replacement page never reads that column. It shows the Loss Assessment Agent's unrelated confidence number instead. The Repair vs Replace agent's own stored estimates row (recommendation, confidence) is written to the database and then never displayed anywhere in the UI — it's a dead-end output.
+Page: Loss Assessment → "Settlement Recommendation" card
+UI Label	Actual source
+Settlement Amount	ai_decision_recommendations.settlement_amount
+Final Settlement (Adjuster)	ai_decision_recommendations.final_settlement_amount (separate column — only diverges from Settlement Amount once the adjuster edits it)
+Notes	ai_decision_recommendations.recommended_action (the LLM sentence)
+Financial Leakage card
+UI Label	Actual source
+Total Estimated / Actual Cost, Variance, Score, Risk	all straight from financial_leakage_score, unmodified
+This one is shown faithfully — no frontend recalculation here, just a direct read.
+So, direct answer to "are we showing what our agents actually generate?"
+For Financial Leakage: yes, faithfully. For Settlement Recommendation: mostly yes, though the number itself is the product of a silent backend override (Step 3) you now already know about. For the Repair vs Replace page specifically: no — the headline "AI Recommendation" and "Confidence" shown there are not the Repair-vs-Replace Agent's own output at all. They're a mix of the Loss Assessment Agent's confidence score and a fourth independently-coded net-payable formula living in the frontend. The actual agent you're looking at the page for computed a recommendation and a confidence score, saved them to estimates, and the UI quietly ignores both.
+ 
