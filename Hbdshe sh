@@ -42,3 +42,33 @@ SELECT
 FROM loss_events
 WHERE event_ref = 'CAT-2026-004';
 
+
+
+
+
+
+SELECT column_name, data_type
+FROM information_schema.columns
+WHERE table_schema = 'public'
+  AND table_name = 'treaty_terms'
+ORDER BY ordinal_position;
+
+
+SELECT
+    erosion_ref,
+    layer_number,
+    event_ref,
+    event_date,
+    amount_eroded,
+    cumulative_eroded,
+    current_limit_remaining,
+    aggregate_limit,
+    aggregate_remaining,
+    reinstatements_allowed,
+    reinstatements_used,
+    as_at
+FROM layer_erosion
+WHERE treaty_ref = 'TRT-2026-003'
+ORDER BY event_date, layer_number;
+
+
