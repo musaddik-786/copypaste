@@ -1,3 +1,221 @@
+YES, man. You’re absolutely right. And I need to correct my approach here.
+
+Our goal with Cedera was never simply to build the perfect AI application from day one. We’re deliberately going to make technically reasonable but ultimately flawed decisions, encounter their limitations, investigate the failures, and improve the architecture. That’s how we develop genuine engineering stories for interviews.
+
+I remember the strategy now. We had already planned the wrong turns and the migrations. I should have connected our current work to that plan instead of presenting everything as a straightforward implementation roadmap.
+
+1. Our actual strategy: Build → Break → Investigate → Improve
+
+Every deliberate wrong turn should follow this sequence:
+
+1. Make a plausible technical decision. Choose a simpler approach that a developer might reasonably choose when starting a project.
+2. Implement it and make it work. We need a functioning baseline, not an imaginary failure.
+3. Find its limitations. Create a concrete scenario that exposes the weakness.
+4. Investigate the root cause. Use logs, test results, measurements, and code analysis.
+5. Implement the better approach. Make the architectural change for a specific reason.
+6. Compare the results. Demonstrate what improved and what trade-offs remain.
+7. Document the decision. Record it in DECISIONS.md and turn it into an interview story.
+
+The critical distinction is that we’re not randomly writing bad code. We’re conducting controlled engineering experiments.
+
+We must also be honest in interviews: if we intentionally chose a simple baseline, we explain that it was a deliberate experiment. We don’t pretend an accidental production failure happened when it didn’t.
+
+⸻
+
+2. The deliberate wrong turns we planned for Cedera
+
+This is the sequence we established earlier.
+
+Phase	Deliberately simple approach	Limitation we want to investigate	Improvement	Interview story
+1. Foundation	Start with a straightforward backend and database	Identify the limitations that emerge as requirements grow	Establish reliable foundations	Backend and data modeling
+2. Document retrieval	Basic PDF ingestion, naive chunking, and Chroma similarity search	Poor clause boundaries, imprecise retrieval, and filtering limitations	Clause-aware chunking, then investigate hybrid retrieval and pgvector migration	Why a working RAG baseline wasn’t sufficient
+3. Treaty Q&A	Basic retrieval followed by an LLM answer	Answers may be incomplete or insufficiently grounded	Improve evidence handling and answer generation	Grounded AI and hallucination control
+4. Structured output	Ask the LLM to return JSON through prompting	Invalid JSON, missing fields, and inconsistent types	Pydantic validation and structured outputs	Reliable LLM integration
+5. Retrieval quality	Vector similarity alone	Relevant clauses aren’t always ranked first	BM25 + vector retrieval, MMR, and reranking where justified	Retrieval evaluation and hybrid search
+6. Bordereaux processing	Synchronous processing	Long-running workloads can block requests and complicate retries	Celery + Redis	Asynchronous processing
+7. Agent architecture	One agent with many tools	Tool selection becomes difficult to manage as responsibilities grow	Supervisor and specialized agents	Multi-agent orchestration
+8. Evaluation	Rely on manual inspection and a few examples	We cannot reliably measure regressions or overall quality	Golden dataset and automated evaluation	Evaluation-driven AI engineering
+9. Agent state	In-memory state	State may be lost across restarts or interrupted workflows	Persistent checkpointing	Durable, recoverable agent workflows
+10. Production	Basic local implementation	Deployment, observability, reliability, and governance gaps	Production-oriented deployment and monitoring	Taking an AI prototype toward production
+
+Important: The improvements are planned destinations, not evidence that every migration has already happened.
+
+We need to preserve the order and use each stage to produce evidence before moving on.
+
+⸻
+
+3. Where our current work fits into this strategy
+
+Let’s take our actual RAG work as an example.
+
+Wrong turn 1: Basic RAG
+
+We started with a conventional pipeline:
+
+Treaty PDF
+    ↓
+Extract text
+    ↓
+Split text into chunks
+    ↓
+Generate embeddings
+    ↓
+Store in Chroma
+    ↓
+Retrieve by similarity
+
+This was our initial baseline.
+
+We tested the pipeline rather than assuming it worked.
+
+Investigation 1: Chunking matters
+
+We then moved toward clause-aware chunking because treaty wording needs to retain its legal and business context.
+
+Our later recorded baseline contained 226 chunks across six treaty PDFs.
+
+That gave us a concrete implementation to evaluate.
+
+Investigation 2: Retrieval isn’t perfect
+
+We tested questions against specific treaty provisions.
+
+For example:
+
+* The relevant Article 4(b) content for TRT-2026-001 appeared at rank 2.
+* The relevant Article 4(b) content for TRT-2026-003 appeared at rank 3.
+* The relevant Business Covered provision for TRT-2026-005 appeared at rank 1.
+
+These observations establish a retrieval baseline for those tests. They don’t prove that every query fails or that hybrid retrieval will necessarily improve every result.
+
+The next deliberate experiment
+
+We should now investigate how the baseline behaves on a carefully chosen evaluation set.
+
+For example, we can test:
+
+* Exact clause questions.
+* Questions using synonyms instead of treaty terminology.
+* Questions about exclusions.
+* Questions about endorsements that modify original wording.
+* Questions requiring a particular treaty rather than a similar treaty.
+* Questions where several clauses are relevant.
+
+We measure the baseline, identify specific failures, and then introduce hybrid retrieval.
+
+That produces a defensible interview story:
+
+I began with a conventional vector-based RAG pipeline. I evaluated retrieval against representative treaty questions and discovered that semantic similarity alone did not consistently prioritize the precise clause needed. I used those results to motivate an investigation into hybrid retrieval, combining lexical and semantic search, with further ranking improvements where evaluation justified them.
+
+Notice how much stronger that is than simply saying, “I used Chroma and embeddings.”
+
+The investigation is the story. The code is the evidence.
+
+⸻
+
+4. And the recovery handler?
+
+The recovery handler is a different kind of engineering challenge.
+
+Here, the objective is not to deliberately make the financial calculations wrong and leave them that way. We need to maintain a correct financial baseline.
+
+We can still investigate alternative approaches, but the experiment must be controlled.
+
+For example:
+
+Hypothesis: Using a treaty’s original layer limit is sufficient to calculate recovery.
+
+Experiment: Compare the result with a catastrophe scenario where the layer has already experienced erosion.
+
+Expected discovery: The original limit may overstate the available recovery.
+
+Correction: Incorporate the appropriate historical erosion data and enforce the actual attachment, available limit, aggregate limit, and layer sequencing rules.
+
+Evidence: Test the implementation against CAT-2026-004, for which our expected results include £7.1 million in total XoL recovery.
+
+That becomes an interview story about discovering why a simplistic financial model was insufficient and replacing it with a model that accounts for state and contractual constraints.
+
+But we must not manufacture a failure if the current implementation already handles the scenario correctly. First inspect and test it.
+
+⸻
+
+5. One thing we must do throughout the project: maintain DECISIONS.md
+
+This file is essential to our strategy.
+
+Every deliberate wrong turn should be recorded while we perform it—not reconstructed from memory months later.
+
+For each experiment, we should capture:
+
+Decision ID:
+Feature:
+Initial approach:
+Why we chose it:
+Expected behavior:
+Test scenario:
+Observed result:
+Root cause:
+Improved approach:
+Before-and-after measurements:
+Trade-offs:
+Interview takeaway:
+
+For example, our RAG experiment would document the initial similarity-search approach, the observed clause-ranking results, the retrieval improvements we subsequently test, and the measurements that support the final decision.
+
+This ensures we can answer interview questions such as:
+
+* Why did you choose this architecture?
+* What alternatives did you consider?
+* How did you discover the limitation?
+* What evidence justified changing the design?
+* What trade-offs did the new approach introduce?
+* How did you verify that the improvement worked?
+
+We should be able to answer these questions using our own implementation and test results.
+
+⸻
+
+6. Our rule from now on
+
+Before every major implementation, I will explicitly tell you:
+
+A. Current state: What we have actually implemented and verified.
+
+B. Deliberate decision: Whether we’re introducing a simple baseline or improving an existing implementation.
+
+C. Expected limitation: What we want to investigate, without pretending we already know the result.
+
+D. Experiment: The exact scenario and tests we’ll run.
+
+E. Evidence: What we will measure and record.
+
+F. Improvement: The architectural change justified by the findings.
+
+G. Interview story: How to explain the decision, investigation, results, and trade-offs honestly.
+
+And I will review Claude’s recommendations critically rather than automatically accepting them.
+
+One final point, man.
+
+Our objective isn’t to accumulate the most sophisticated technologies. It’s to demonstrate why the architecture evolved.
+
+Chroma, pgvector, LangGraph, Celery, Redis, Pydantic, and evaluation frameworks are not achievements merely because we use them. Each should enter the project when our experiment demonstrates a reason for it—or when a clear requirement justifies it.
+
+We have already established a useful RAG baseline and identified retrieval limitations. We also have defined financial rules and expected recovery scenarios.
+
+Now we need to continue deliberately, preserve the evidence, and turn each meaningful engineering decision into a credible interview story.
+
+We are building Cedera twice: first as a working system, and second as a documented engineering journey that proves we understand why it works.
+
+
+
+
+
+
+
+
+
+
 Man, let’s pause the coding for a moment.
 
 You’re right to ask this. We’ve been discussing PostgreSQL, treaty clauses, Chroma, RAG, XoL recovery, Claude’s code reviews, and SQL queries. We’ve been solving individual problems, but I haven’t consistently brought you back to the bigger picture: what we’re building, why we’re building it, what we’ve completed, and how each step becomes an interview story. That’s on me.
