@@ -15,3 +15,69 @@ FROM information_schema.columns
 WHERE table_schema = 'public'
   AND table_name = 'layer_erosion'
 ORDER BY ordinal_position;
+
+
+
+Take a breath. Here's exactly where you stand — one clear picture.
+
+---
+
+## What you have built
+
+**1. The database** (Azure PostgreSQL — live, working)
+All 16 tables exist and are seeded. Treaties, policies, losses, layer erosion, everything. You verified this yourself just now.
+
+**2. The MCP server** (the API layer)
+One handler working: Treaty. It can look up treaties, list terms, find exclusions, get clauses. It runs via FastAPI at port 7720.
+
+**3. The RAG pipeline** (document retrieval)
+226 chunks from 6 treaty PDFs ingested into Chroma. You can search treaty wording by question.
+
+**That's it. Nothing else is built yet.** No Recovery handler. No Cession handler. No agents.
+
+---
+
+## What you are building RIGHT NOW
+
+The **Recovery handler** — the piece of Python that answers: *"How much can we recover from reinsurers after a catastrophe?"*
+
+This is Phase 1 work. No AI involved. Pure database lookups and arithmetic.
+
+You are doing it in two steps deliberately:
+1. **Baseline** (wrong on purpose): calculate recovery ignoring prior erosion → produces £7.9m for CAT-2026-004
+2. **Fix**: add erosion check → produces correct £7.1m
+
+The wrong answer is the point. That gap is your interview story.
+
+---
+
+## What just happened right now
+
+You ran two SQL queries and got the real column names. Here's what they confirmed:
+
+**`treaty_exclusions` actual columns:**
+```
+exclusion_id, treaty_ref, clause_ref, exclusion_name, description
+```
+No `exclusion_ref`, no `article_ref`, no `exclusion_type`.
+
+**`layer_erosion` actual columns:**
+```
+erosion_ref, treaty_ref, layer_number, event_ref, event_date,
+amount_eroded, cumulative_eroded, current_limit_remaining,
+aggregate_limit, aggregate_remaining, reinstatements_allowed,
+reinstatements_used, currency, as_at
+```
+`current_limit_remaining` confirmed ✓
+
+This also revealed a bug in the existing `list_exclusions` handler — it queries `ORDER BY exclusion_ref` but that column doesn't exist; it's `exclusion_id`. This needs fixing before that tool works.
+
+---
+
+## Your one next action
+
+Send these column results to GPT and say:
+
+> **"Here are the confirmed column names. Now give me the final versions of these three files — handler.py (baseline only), recovery_router.py, and the test script — using the correct column names. Show me the code before writing anything to disk."**
+
+That's it. One task. GPT writes three files, shows them to you, you paste them here for my review, then you write them to disk.
