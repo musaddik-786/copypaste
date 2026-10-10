@@ -1,74 +1,11 @@
-SELECT table_schema, table_name
-FROM information_schema.tables
-WHERE table_schema = 'public'
-  AND table_name IN ('policies', 'cedera_policies')
-ORDER BY table_name;
-
-
-
-SELECT *
-FROM treaty_exclusions
-WHERE treaty_ref = 'TRT-2026-003';
-
-
-
 SELECT
-    erosion_ref,
     treaty_ref,
     layer_number,
-    event_ref,
-    event_date,
-    amount_eroded,
-    cumulative_eroded,
-    current_limit_remaining,
-    aggregate_remaining,
-    reinstatements_used,
-    as_at
-FROM layer_erosion
-WHERE treaty_ref = 'TRT-2026-003'
-ORDER BY event_date, layer_number;
-
-
-SELECT
-    event_ref,
-    peril,
-    event_date,
-    total_gross_loss,
-    total_proportional_recovery,
-    total_net_retained_loss,
-    affected_policy_count,
-    cat_programme_ref,
-    exclusion_note
-FROM loss_events
-WHERE event_ref = 'CAT-2026-004';
-
-
-
-
-
-
-SELECT column_name, data_type
-FROM information_schema.columns
-WHERE table_schema = 'public'
-  AND table_name = 'treaty_terms'
-ORDER BY ordinal_position;
-
-
-SELECT
-    erosion_ref,
-    layer_number,
-    event_ref,
-    event_date,
-    amount_eroded,
-    cumulative_eroded,
-    current_limit_remaining,
+    attachment_point,
+    layer_limit,
+    event_limit,
     aggregate_limit,
-    aggregate_remaining,
-    reinstatements_allowed,
-    reinstatements_used,
-    as_at
-FROM layer_erosion
+    reinstatements
+FROM treaty_terms
 WHERE treaty_ref = 'TRT-2026-003'
-ORDER BY event_date, layer_number;
-
-
+ORDER BY layer_number;
