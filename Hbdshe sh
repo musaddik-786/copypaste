@@ -1,11 +1,256 @@
-SELECT
-    treaty_ref,
-    layer_number,
-    attachment_point,
-    layer_limit,
-    event_limit,
-    aggregate_limit,
-    reinstatements
-FROM treaty_terms
-WHERE treaty_ref = 'TRT-2026-003'
-ORDER BY layer_number;
+Man, absolutely. Before we touch the code, let’s bring Claude up to speed so we’re both working from the same project state.
+
+Copy and paste the following message into Claude. It explains what we’ve verified, preserves our deliberate-wrong-turn strategy, and defines the next steps without asking Claude to start coding prematurely.
+
+⸻
+
+Message to Claude: Cedera Project Update and Next Steps
+
+Hey Claude, I want to align you on the current state of our Cedera — Reinsurance Treaty Intelligence Platform project before we proceed with the Recovery MCP handler.
+
+1. Our overall development strategy
+
+An important reminder: we are deliberately taking controlled wrong turns to develop genuine engineering and architectural interview stories.
+
+Our approach is:
+
+1. Implement a reasonable baseline.
+2. Test it against concrete scenarios.
+3. Identify and reproduce its limitations.
+4. Investigate the root cause.
+5. Implement an improved solution.
+6. Compare the results and document the architectural decision.
+7. Capture the experience as an interview story.
+
+We are not randomly writing bad code. Every wrong turn should have a clear hypothesis, a reproducible experiment, and measurable evidence.
+
+Do not prematurely implement the final architecture or silently fix every limitation before we have investigated it. Equally, do not introduce artificial failures without documenting that they are deliberate experiments.
+
+2. What we have accomplished so far
+
+PostgreSQL foundation
+
+We moved the project toward PostgreSQL as our structured database.
+
+The database contains treaty, policy, cession, loss-event, recovery, layer-erosion, and other business data.
+
+We have been verifying the live database rather than blindly trusting earlier SQL files.
+
+Treaty ingestion and baseline RAG
+
+We established a PDF ingestion pipeline:
+
+Treaty PDFs
+    ↓
+Text extraction
+    ↓
+Clause-aware chunking
+    ↓
+Azure OpenAI embeddings
+    ↓
+Chroma vector database
+    ↓
+Semantic retrieval
+
+The recorded clause-aware ingestion produced 226 chunks across six treaty PDFs.
+
+We evaluated representative retrieval queries and observed that relevant clauses were not always ranked first. For example, the relevant Article 4(b) results for TRT-2026-001 and TRT-2026-003 appeared at ranks 2 and 3, respectively.
+
+We consider the baseline retrieval evaluation complete for the tested queries, not the entire RAG system.
+
+Hybrid retrieval remains a future improvement to be justified through additional evaluation.
+
+Business rules
+
+We have established deterministic calculation rules for quota-share, surplus, and excess-of-loss reinsurance.
+
+Our synthetic scenarios also cover prior layer erosion, treaty exclusions, and coverage eligibility.
+
+The LLM must not be responsible for performing the financial calculations. Those calculations must remain deterministic and testable.
+
+⸻
+
+3. Current investigation: Recovery MCP
+
+We are now preparing to implement and test the recovery calculation handler.
+
+Before writing it, we performed live PostgreSQL checks and obtained the following findings.
+
+A. Policy table
+
+The live database contains:
+
+public.cedera_policies
+
+This differs from the policies table defined in the earlier SQL file we examined.
+
+Use the verified live schema where relevant.
+
+B. Treaty exclusions
+
+The query:
+
+SELECT *
+FROM treaty_exclusions
+WHERE treaty_ref = 'TRT-2026-003';
+
+returned no data rows in the displayed results.
+
+We therefore have not found seeded exclusion records for this treaty in treaty_exclusions.
+
+Before inserting anything, inspect the current handler, existing seed scripts, treaty clauses, and relevant source documents. We need to avoid duplicating or inventing contractual exclusions.
+
+C. Treaty-term schema
+
+We verified the actual columns in treaty_terms.
+
+Relevant fields include:
+
+treaty_ref
+layer_number
+attachment_point
+layer_limit
+event_limit
+aggregate_limit
+reinstatements
+
+The verified values for TRT-2026-003 are:
+
+Layer	Attachment point	Layer limit	Event limit	Aggregate limit	Reinstatements
+1	£500,000	£500,000	£500,000	£1,000,000	1
+2	£1,000,000	£4,000,000	£4,000,000	£12,000,000	2
+3	£5,000,000	£15,000,000	£15,000,000	£30,000,000	1
+
+These are actual database values, not proposed values.
+
+D. Historical erosion
+
+We queried the erosion history for TRT-2026-003.
+
+The records show prior cumulative erosion before CAT-2026-004 of:
+
+Layer	Prior cumulative erosion	Remaining layer limit before CAT-2026-004
+1	£500,000	£500,000
+2	£800,000	£3,200,000
+3	£0	£15,000,000
+
+The table also contains erosion records for CAT-2026-004 itself. These must not be confused with prior erosion when calculating the event’s recovery.
+
+We need to understand the temporal semantics of event_date and as_at, and use the correct pre-event state.
+
+Do not calculate recoveries using the original layer limits alone.
+
+E. Known catastrophe scenario
+
+The live database returned the following values for CAT-2026-004:
+
+Field	Value
+Peril	Windstorm
+Event date	2026-09-14
+Gross loss	£14,250,000
+Proportional recovery	£5,850,000
+Net retained loss	£8,400,000
+Affected policy count	6
+
+The established expected XoL recovery for this synthetic scenario is £7.1 million:
+
+* Layer 1: £500,000
+* Layer 2: £3,200,000
+* Layer 3: £3,400,000
+
+We must verify that the implementation reproduces these results using the actual contractual mechanics, correct layer sequencing, historical erosion, and relevant limits.
+
+Do not assume that simply applying the entire net retained loss independently to every layer is correct.
+
+⸻
+
+4. The deliberate wrong-turn experiment we want to preserve
+
+We want to investigate the limitations of a simplistic recovery calculation.
+
+Initial hypothesis: Applying the net retained loss to each layer using its attachment point and original limit may be sufficient.
+
+We will test this baseline against CAT-2026-004.
+
+We then need to determine whether the baseline mishandles:
+
+* Historical erosion.
+* Event and aggregate limits.
+* Layer sequencing.
+* Coverage eligibility.
+* Treaty exclusions.
+
+We must identify which failures actually occur, record the evidence, and then implement justified improvements.
+
+The expected £7.1 million recovery is our known scenario result.
+
+Do not claim the baseline fails in a particular way until we run it and inspect the results.
+
+⸻
+
+5. Additional business scenarios to preserve
+
+We also have two important scenarios for future recovery tests.
+
+CAT-2026-002 — Flood
+
+Our established expected outcome is no recovery under the catastrophe XoL treaty because of the relevant flood exclusion, while proportional recoveries remain possible under applicable proportional treaties.
+
+We must verify the actual wording and data before implementing that decision.
+
+LOSS-2026-011 — Single-policy event
+
+The synthetic scenario affects only one policy. The CAT treaty requires at least two original policies for the relevant Business Covered condition.
+
+This is an eligibility condition, not automatically an exclusion.
+
+The recovery logic must distinguish these concepts.
+
+⸻
+
+6. What I want you to do next
+
+Do not write or modify code yet.
+
+First:
+
+1. Review the current project files, especially MCP/recovery_mcp/handler.py, if it exists.
+2. Inspect the existing database helper and connection/row-handling conventions.
+3. Inspect the recovery router and its expected request and response models.
+4. Inspect the existing treaty-exclusion seed scripts and relevant treaty documents.
+5. Review how layer_erosion is populated, including how current_limit_remaining, aggregate_remaining, and as_at are calculated.
+6. Identify the exact files and functions involved in the recovery workflow.
+
+Then report:
+
+* What currently exists.
+* What is missing.
+* What assumptions in the previous recovery-handler draft would be incorrect.
+* How to implement a controlled baseline experiment without corrupting the existing project.
+* Which tests should be run first.
+* How we will compare the baseline and improved calculation.
+* What evidence we should capture for the interview story.
+
+Present your findings and proposed code changes before writing anything to disk.
+
+Please independently verify the assumptions rather than simply agreeing with this summary.
+
+Our immediate goal is to understand the current recovery implementation, establish a reproducible baseline, and then improve it based on evidence.
+
+⸻
+
+7. What we’ll do after Claude responds
+
+Man, we’ll treat Claude’s response as a code-review proposal, not as unquestionable truth.
+
+We’ll compare its findings with our verified database results and the deliberate-wrong-turn strategy.
+
+Our next milestone is:
+
+Recovery MCP: inspect → establish baseline → reproduce limitations → improve → test → document the interview story.
+
+We will not jump straight into hybrid retrieval, LangGraph orchestration, or another architectural migration while this investigation is underway.
+
+And once we’ve completed this recovery milestone, we’ll record the decision, the evidence, the final implementation, and the interview explanation so that our engineering journey remains coherent.
+
+Send this to Claude first, then share its response with me.
