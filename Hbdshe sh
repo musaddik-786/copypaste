@@ -1,188 +1,538 @@
-inshared what you said with gpt it said the below thing
+Yes — full picture confirmed. Let me state back what I now understand so GPT can verify we're all aligned.
 
-Man, yes—I know exactly which architecture PDF you’re referring to now. I checked our previous project context and located the original document in your ChatGPT Library.
+---
 
-It’s Cedera_Architecture.pdf — Cedera | Reinsurance Treaty Intelligence: Technical Architecture. We also created a separate Cedera_Claude_Architecture_Review_Brief.pdf to help Claude review the original architecture.
+**What the strategy actually is:**
 
-And you’re right: the original document explicitly establishes our development philosophy:
+GPT writes code with deliberate gaps. We document each gap as it produces a wrong answer. We fix it. That's the interview story. The gaps are not accidental — they're controlled experiments.
 
-Build it wrong first, then migrate.
+**For the recovery handler, the two deliberate gaps in sequence are:**
 
-This isn’t an approach we invented recently. It’s a core requirement of your architecture.
+**Gap 1 (now):** Baseline uses `treaty_terms.layer_limit` — ignores prior erosion.
+- CAT-2026-004 produces £7,900,000 instead of £7,100,000
+- Fix: read `current_limit_remaining` from `layer_erosion`
+- Story: "I got £7.9m, traced the delta to Layer 2 prior erosion, fixed the handler to read from layer_erosion"
 
-1. What the original architecture requires
+**Gap 2 (next):** Improved handler still doesn't check exclusions before arithmetic.
+- CAT-2026-002 (flood) produces a non-zero recovery instead of NIL
+- Fix: handler calls `list_exclusions` and matches peril before doing arithmetic
+- Story: "My recovery handler was architecturally incorrect — it would compute a recovery for a peril that was contractually excluded. The check has to be deterministic and inside the handler, not in the agent's reasoning chain"
 
-The PDF defines a ten-phase journey from an empty repository to a deployed system. It deliberately introduces simpler approaches before migrating to better ones.
+This maps directly to what the architecture review said: *"The exclusion check must happen in the handler, not only in the agent's reasoning chain."*
 
-Some of its explicit examples are:
+**LOSS-2026-011 (single policy) is a third gap** — the Business Covered check. Different article, different fix.
 
-Phase	Deliberate wrong turn	Planned improvement
-1. Foundation	Build the deterministic backend before introducing AI	Establish reliable calculations and APIs
-2. Treaty ingestion	Start with Chroma	Migrate to PostgreSQL with pgvector
-3. Treaty Agent	Introduce the first agent using LangGraph and MCP	Establish a working tool-calling workflow
-4. Cession Agent	Experience fragile, hand-parsed LLM JSON	Migrate to Pydantic structured output
-5. Retrieval quality	Rely on similarity search	Introduce hybrid retrieval and reranking
-6. Bordereaux	Start with synchronous processing	Introduce Celery and Redis after encountering scalability limitations
-7. Multi-agent system	Start with one agent handling many tools	Introduce a supervisor and specialized agents
-8. Evaluation	Establish a basic working system	Add systematic evaluation and regression testing
-9. Guardrails	Develop the workflow before introducing all safeguards	Add approval gates, durable state and security controls
-10. Deployment	Start with a working implementation	Add deployment, tracing, performance measurement and optimization
+**The proposal I gave GPT is correct for Gap 1 only.** The baseline handler deliberately omits exclusions and eligibility — those come after we document the erosion story first.
 
-These examples come directly from the architecture plan and its rationale.
-
-The important point is that we’re supposed to experience and document the transition, not skip directly to the final architecture.
-
-2. How this affects our current recovery-handler work
-
-Claude’s findings are useful, but we need to keep them aligned with the original plan.
-
-Our current investigation is part of the deterministic foundation: understanding how recovery calculations should work before we build more agentic behavior around them.
-
-The proposed experiment is:
-
-1. Implement the simple recovery calculation using the original treaty layer limits.
-2. Run it against CAT-2026-004.
-3. Capture the result.
-4. Investigate the impact of historical layer erosion.
-5. Improve the calculation.
-6. Test the improved result against our expected £7.1 million recovery.
-7. Document the decision and the interview story.
-
-One correction we need to preserve: the original architecture is our design authority, but the live PostgreSQL schema is our source of truth for the current database. Where they differ, we must document the discrepancy rather than blindly copying either one.
-
-And we must not confuse a deliberately simplified baseline with the final recovery engine.
-
-3. What I want us to do next
-
-Claude has already inspected the files and reported that recovery_mcp/handler.py and recovery_router.py do not exist in the repository it examined.
-
-Before writing them, we should follow the sequence you established:
-
-First: Review Claude’s findings against the original architecture.
-
-Second: Agree on the exact baseline experiment and expected output.
-
-Third: Prepare the proposed seed SQL, handler, router and test script.
-
-Fourth: Review all four pieces of code before writing any files.
-
-Fifth: Run the baseline, record its actual behavior, and only then implement the improvement.
-
-We should also preserve the original architecture’s broader rule: handlers own business logic and deterministic calculations; routers provide the tool/API surface; agents orchestrate rather than calculate financial amounts themselves. Cedera_Claude_Architecture_Review_Brief.pdf
-
-Man, the PDF is our roadmap—not just a reference document. I’ll use it as the authority for the phases, deliberate wrong turns and intended interview stories as we continue Cedera.
+Tell GPT: the proposal is approved. Write the four files — `recovery_mcp/handler.py`, `recovery_router.py`, the seed SQL, and the test script — then run the test and paste the output here so we can document the wrong answer before fixing it.
 
 
-then i asked gpt what should i do next it said the below thing
+Here is the complete recovery experiment proposal. Nothing written to disk — everything for review first.
 
-Man, your next step is to get Claude to finalize the recovery experiment proposal—not to start coding yet. We’ve verified the database values, and Claude has inspected the project files. Now we need to turn that into our next deliberate wrong turn, following Cedera_Architecture.pdf.
+---
 
-I’ll guide you one step at a time.
+## Recovery MCP: Complete Proposal
 
-Step 1 — Send this message to Claude
+### 1. Baseline formula and expected output — validated
 
-Claude has already provided its findings, so don’t ask it to repeat the investigation. Send this follow-up:
+GPT's independent check is correct. Applying the naive formula to each layer independently:
 
-⸻
+```
+recovery = max(0, min(net_retained_loss - attachment_point, layer_limit))
+```
 
-Claude, let’s finalize the Recovery MCP experiment before writing any files.
+For CAT-2026-004 (net retained loss = £8,400,000):
 
-We need to follow the deliberate-wrong-turn methodology defined in our Cedera_Architecture.pdf: build a simple baseline, demonstrate its limitation, investigate the cause, and then improve it.
+| Layer | Attachment | Original Limit | Loss above attachment | Naive result |
+|---|---|---|---|---|
+| 1 | £500,000 | £500,000 | £7,900,000 | **£500,000** |
+| 2 | £1,000,000 | £4,000,000 | £7,400,000 | **£4,000,000** ← wrong |
+| 3 | £5,000,000 | £15,000,000 | £3,400,000 | **£3,400,000** |
+| **Total** | | | | **£7,900,000** |
 
-We have verified the following against the live PostgreSQL database:
+Baseline total: **£7,900,000**. Expected correct total: **£7,100,000**. Delta: **£800,000** (exactly the amount Layer 2 was eroded by Windstorm Ashley).
 
-* Policy table: cedera_policies.
-* No matching exclusion records were returned for TRT-2026-003.
-* treaty_terms contains attachment_point, layer_limit, event_limit, aggregate_limit, and reinstatements.
-* CAT-2026-004 has £14.25m gross loss, £5.85m proportional recovery, and £8.4m net retained loss.
-* Its established expected XoL recovery is £7.1m: Layer 1 £0.5m, Layer 2 £3.2m, and Layer 3 £3.4m.
-* Before CAT-2026-004, Layer 2 had £3.2m remaining after £800k of prior erosion.
+**Important clarification on layer sequencing**: this formula is architecturally correct for stacked XoL — attachment points are cumulative from the ground up, so applying the full net retained loss to each layer's own attachment independently is the right contractual model. The error is not the sequencing, it is using `layer_limit` (inception limit) instead of `current_limit_remaining` (available limit after prior events). That is the only thing the baseline gets wrong.
 
-Proposed baseline experiment
+---
 
-Start with the deliberately simplified calculation:
+### 2. Treaty terms and pre-event erosion — as verified by GPT's SQL checks
 
-recovery = max(
-    0,
-    min(net_retained_loss - attachment_point, layer_limit)
+**TRT-2026-003 treaty_terms:**
+
+| Layer | attachment_point | layer_limit | event_limit | aggregate_limit | reinstatements |
+|---|---|---|---|---|---|
+| 1 | £500,000 | £500,000 | £500,000 | £1,000,000 | 1 |
+| 2 | £1,000,000 | £4,000,000 | £4,000,000 | £12,000,000 | 2 |
+| 3 | £5,000,000 | £15,000,000 | £15,000,000 | £30,000,000 | 1 |
+
+**layer_erosion before CAT-2026-004 (event_date 2026-09-14):**
+
+| Layer | cumulative_eroded | current_limit_remaining |
+|---|---|---|
+| 1 | £500,000 | £500,000 |
+| 2 | £800,000 | £3,200,000 |
+| 3 | £0 | £15,000,000 |
+
+---
+
+### 3. Proposed `recovery_mcp/handler.py`
+
+**Baseline version — deliberately ignores prior erosion.**
+
+```python
+import logging
+from decimal import Decimal
+from typing import Optional
+
+from common.db import get_db_connection
+from psycopg2.extras import RealDictCursor
+
+log = logging.getLogger(__name__)
+
+
+def get_event(event_ref: str) -> dict:
+    connection = None
+    cursor = None
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(cursor_factory=RealDictCursor)
+        cursor.execute(
+            """
+            SELECT event_ref, event_name, peril, event_date,
+                   total_gross_loss, total_net_retained_loss,
+                   affected_policy_count, cat_programme_ref, exclusion_note
+            FROM loss_events
+            WHERE event_ref = %s
+            """,
+            (event_ref,),
+        )
+        row = cursor.fetchone()
+        if not row:
+            return {"status": "not_found", "message": f"Event {event_ref} not found"}
+        return {"status": "success", "data": dict(row)}
+    except Exception:
+        log.exception("get_event failed for %s", event_ref)
+        raise
+    finally:
+        if cursor:
+            cursor.close()
+        if connection:
+            connection.close()
+
+
+def calculate_xol_recovery(
+    event_ref: str,
+    treaty_ref: str,
+    layer_number: int,
+    as_at_date: Optional[str] = None,
+) -> dict:
+    """
+    BASELINE — deliberately uses treaty_terms.layer_limit without
+    checking prior erosion from layer_erosion.
+    Known limitation: overstates recovery when a layer has prior erosion.
+    Improvement: read current_limit_remaining from layer_erosion (next iteration).
+    """
+    connection = None
+    cursor = None
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(cursor_factory=RealDictCursor)
+
+        # Step 1: Get the loss event
+        cursor.execute(
+            """
+            SELECT total_net_retained_loss, peril, affected_policy_count
+            FROM loss_events
+            WHERE event_ref = %s
+            """,
+            (event_ref,),
+        )
+        event = cursor.fetchone()
+        if not event:
+            return {"status": "not_found", "message": f"Event {event_ref} not found"}
+
+        net_retained_loss = Decimal(str(event["total_net_retained_loss"]))
+
+        # Step 2: Get treaty layer terms
+        cursor.execute(
+            """
+            SELECT attachment_point, layer_limit, event_limit, aggregate_limit
+            FROM treaty_terms
+            WHERE treaty_ref = %s AND layer_number = %s
+            """,
+            (treaty_ref, layer_number),
+        )
+        terms = cursor.fetchone()
+        if not terms:
+            return {
+                "status": "not_found",
+                "message": f"No terms for {treaty_ref} layer {layer_number}",
+            }
+
+        attachment = Decimal(str(terms["attachment_point"]))
+        layer_limit = Decimal(str(terms["layer_limit"]))
+        event_limit = Decimal(str(terms["event_limit"]))
+
+        # Step 3: Naive calculation — uses original layer_limit, no erosion
+        # DELIBERATE BASELINE: does not read current_limit_remaining
+        effective_limit = min(layer_limit, event_limit)
+        loss_above_attachment = max(Decimal("0"), net_retained_loss - attachment)
+        recoverable = min(loss_above_attachment, effective_limit)
+
+        calculation_basis = {
+            "method": "naive_xol_baseline_v1",
+            "warning": "BASELINE — does not account for prior layer erosion",
+            "event_ref": event_ref,
+            "treaty_ref": treaty_ref,
+            "layer_number": layer_number,
+            "net_retained_loss": str(net_retained_loss),
+            "attachment_point": str(attachment),
+            "layer_limit_at_inception": str(layer_limit),
+            "event_limit": str(event_limit),
+            "effective_limit_used": str(effective_limit),
+            "loss_above_attachment": str(loss_above_attachment),
+            "recoverable_amount": str(recoverable),
+        }
+
+        return {
+            "status": "success",
+            "recoverable_amount": float(recoverable),
+            "calculation_basis": calculation_basis,
+        }
+
+    except Exception:
+        log.exception(
+            "calculate_xol_recovery failed for %s / %s layer %s",
+            event_ref, treaty_ref, layer_number,
+        )
+        raise
+    finally:
+        if cursor:
+            cursor.close()
+        if connection:
+            connection.close()
+
+
+def calculate_aggregate_position(
+    treaty_ref: str,
+    layer_number: int,
+    as_at_date: str,
+) -> dict:
+    """
+    Reads layer_erosion ordered by event_date to return the current
+    available limit before as_at_date.
+    This IS the correct implementation — this function is not the
+    deliberate wrong turn; calculate_xol_recovery is.
+    """
+    connection = None
+    cursor = None
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(cursor_factory=RealDictCursor)
+
+        cursor.execute(
+            """
+            SELECT event_ref, event_date, amount_eroded,
+                   cumulative_eroded, current_limit_remaining,
+                   aggregate_remaining
+            FROM layer_erosion
+            WHERE treaty_ref = %s
+              AND layer_number = %s
+              AND event_date < %s
+            ORDER BY event_date DESC
+            LIMIT 1
+            """,
+            (treaty_ref, layer_number, as_at_date),
+        )
+        erosion = cursor.fetchone()
+
+        if not erosion:
+            cursor.execute(
+                """
+                SELECT layer_limit, aggregate_limit
+                FROM treaty_terms
+                WHERE treaty_ref = %s AND layer_number = %s
+                """,
+                (treaty_ref, layer_number),
+            )
+            terms = cursor.fetchone()
+            if not terms:
+                return {
+                    "status": "not_found",
+                    "message": f"No terms for {treaty_ref} layer {layer_number}",
+                }
+            return {
+                "status": "success",
+                "data": {
+                    "treaty_ref": treaty_ref,
+                    "layer_number": layer_number,
+                    "as_at_date": as_at_date,
+                    "cumulative_eroded": 0.0,
+                    "current_limit_remaining": float(terms["layer_limit"]),
+                    "aggregate_remaining": float(terms["aggregate_limit"]),
+                    "prior_events": 0,
+                },
+            }
+
+        return {
+            "status": "success",
+            "data": {
+                "treaty_ref": treaty_ref,
+                "layer_number": layer_number,
+                "as_at_date": as_at_date,
+                "cumulative_eroded": float(erosion["cumulative_eroded"]),
+                "current_limit_remaining": float(erosion["current_limit_remaining"]),
+                "aggregate_remaining": float(erosion["aggregate_remaining"]),
+                "most_recent_prior_event": erosion["event_ref"],
+            },
+        }
+
+    except Exception:
+        log.exception(
+            "calculate_aggregate_position failed for %s layer %s as_at %s",
+            treaty_ref, layer_number, as_at_date,
+        )
+        raise
+    finally:
+        if cursor:
+            cursor.close()
+        if connection:
+            connection.close()
+```
+
+---
+
+### 4. Proposed `recovery_router.py`
+
+```python
+import logging
+from fastapi import APIRouter
+from pydantic import BaseModel
+from typing import Optional
+
+from recovery_mcp import handler
+
+log = logging.getLogger(__name__)
+
+router = APIRouter()
+
+
+class GetEventRequest(BaseModel):
+    event_ref: str
+
+
+@router.post("/get_event", operation_id="get_event")
+def get_event(req: GetEventRequest):
+    """Returns loss event details: peril, net retained loss, affected policy count."""
+    return handler.get_event(req.event_ref)
+
+
+class CalculateXolRecoveryRequest(BaseModel):
+    event_ref: str
+    treaty_ref: str
+    layer_number: int
+    as_at_date: Optional[str] = None
+
+
+@router.post("/calculate_xol_recovery", operation_id="calculate_xol_recovery")
+def calculate_xol_recovery(req: CalculateXolRecoveryRequest):
+    """
+    Calculates XoL recovery for one treaty layer.
+    Baseline: uses inception layer limit, not current available limit.
+    """
+    return handler.calculate_xol_recovery(
+        req.event_ref,
+        req.treaty_ref,
+        req.layer_number,
+        req.as_at_date,
+    )
+
+
+class CalculateAggregatePositionRequest(BaseModel):
+    treaty_ref: str
+    layer_number: int
+    as_at_date: str
+
+
+@router.post("/calculate_aggregate_position", operation_id="calculate_aggregate_position")
+def calculate_aggregate_position(req: CalculateAggregatePositionRequest):
+    """Returns available limit after prior erosion, as at a given date."""
+    return handler.calculate_aggregate_position(
+        req.treaty_ref,
+        req.layer_number,
+        req.as_at_date,
+    )
+```
+
+---
+
+### 5. Proposed seed SQL for `treaty_exclusions`
+
+**This must be verified against the treaty PDFs before running.** The `exclusion_note` in `loss_events` for CAT-2026-002 reads: *"Flood and inundation are excluded from TRT-2026-003 by Article 4(b)."* That justifies this seed — but confirm the exact wording against the TRT-2026-003 PDF before inserting.
+
+```sql
+-- Seed exclusions for TRT-2026-003 (CAT XoL programme)
+-- Verify Article 4(b) and 4(a) wording against treaty PDF before running.
+INSERT INTO treaty_exclusions (exclusion_ref, treaty_ref, exclusion_name, exclusion_type, description, article_ref)
+VALUES
+    ('EXC-2026-001', 'TRT-2026-003', 'Flood and Inundation', 'peril',
+     'Flood, inundation and storm surge are excluded. No recovery arises for losses caused by or arising from flood or inundation.',
+     'Article 4(b)'),
+    ('EXC-2026-002', 'TRT-2026-003', 'War and Civil Commotion', 'peril',
+     'War, invasion, acts of foreign enemies, hostilities, civil war, rebellion, revolution, insurrection, military or usurped power are excluded.',
+     'Article 4(a)')
+ON CONFLICT (exclusion_ref) DO NOTHING;
+```
+
+---
+
+### 6. Test script
+
+```python
+# tests/test_recovery_baseline.py
+"""
+Baseline experiment — CAT-2026-004 (Windstorm Cerys).
+Run BEFORE adding erosion to document the wrong answer.
+"""
+import sys, os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'cedera', 'MCP'))
+
+from recovery_mcp.handler import calculate_xol_recovery, calculate_aggregate_position
+
+EVENT_REF = "CAT-2026-004"
+TREATY_REF = "TRT-2026-003"
+AS_AT = "2026-09-14"
+
+NAIVE_EXPECTED   = {1: 500_000, 2: 4_000_000, 3: 3_400_000}  # baseline (wrong)
+CORRECT_EXPECTED = {1: 500_000, 2: 3_200_000, 3: 3_400_000}  # after erosion fix
+
+def run():
+    print("=== CAT-2026-004 Baseline Experiment ===\n")
+    total = 0
+    for layer in [1, 2, 3]:
+        result = calculate_xol_recovery(EVENT_REF, TREATY_REF, layer, AS_AT)
+        if result["status"] != "success":
+            print(f"Layer {layer}: ERROR — {result}")
+            continue
+        amount = result["recoverable_amount"]
+        total += amount
+        naive = NAIVE_EXPECTED[layer]
+        flag = "OK" if abs(amount - naive) < 1 else "MISMATCH"
+        print(f"Layer {layer}: £{amount:>12,.0f}  (naive expected £{naive:>12,.0f})  [{flag}]")
+
+    print(f"\nBaseline total:  £{total:>12,.0f}")
+    print(f"Correct total:   £  7,100,000")
+    print(f"Overstatement:   £{total - 7_100_000:>12,.0f}")
+
+    print("\n=== Aggregate position check (should show erosion) ===")
+    for layer in [1, 2, 3]:
+        pos = calculate_aggregate_position(TREATY_REF, layer, AS_AT)
+        if pos["status"] == "success":
+            d = pos["data"]
+            print(f"Layer {layer}: remaining £{d['current_limit_remaining']:>12,.0f}  "
+                  f"(eroded £{d['cumulative_eroded']:>12,.0f})")
+
+if __name__ == "__main__":
+    run()
+```
+
+---
+
+### 7. Improvement plan (post-baseline)
+
+After recording the baseline wrong answer, the single change to `calculate_xol_recovery` is:
+
+**Replace step 2 with:**
+```python
+# Step 2: Get inception terms
+cursor.execute(
+    "SELECT attachment_point, layer_limit, event_limit FROM treaty_terms "
+    "WHERE treaty_ref = %s AND layer_number = %s",
+    (treaty_ref, layer_number),
 )
+terms = cursor.fetchone()
 
-Do not incorporate historical erosion into this initial baseline.
+# Step 2b: Override with current available limit from layer_erosion
+if as_at_date:
+    cursor.execute(
+        "SELECT current_limit_remaining FROM layer_erosion "
+        "WHERE treaty_ref = %s AND layer_number = %s AND event_date < %s "
+        "ORDER BY event_date DESC LIMIT 1",
+        (treaty_ref, layer_number, as_at_date),
+    )
+    erosion = cursor.fetchone()
+    available_limit = (
+        Decimal(str(erosion["current_limit_remaining"]))
+        if erosion else Decimal(str(terms["layer_limit"]))
+    )
+else:
+    available_limit = Decimal(str(terms["layer_limit"]))
 
-Before implementing it, independently validate the proposed expected baseline output. In particular, confirm whether applying this formula independently to all three layers produces the claimed £7.9m total. Do not assume that result is correct.
+# Use available_limit instead of layer_limit in the formula
+effective_limit = min(available_limit, Decimal(str(terms["event_limit"])))
+```
 
-Also distinguish a deliberately simplified baseline from a valid final XoL calculation. Confirm how attachment points, layer sequencing, event limits, aggregate limits, and prior erosion affect the expected result.
+Update `calculation_basis["method"]` to `"xol_with_erosion_v2"` and add `"current_limit_remaining"` to the basis. Then run the test again — it must produce £7,100,000.
 
-Your task
+---
 
-Prepare a proposal containing:
+### 8. DECISIONS.md entry
 
-1. The exact baseline formula and its expected output for CAT-2026-004.
-2. The current treaty terms and pre-event erosion values used in the experiment.
-3. The proposed recovery_mcp/handler.py.
-4. The proposed recovery_router.py, following the existing router conventions.
-5. The proposed exclusion seed SQL, after checking the actual treaty wording and existing seed scripts.
-6. A test script that records the baseline result.
-7. The subsequent improvement plan and regression tests.
-8. A DECISIONS.md entry documenting the hypothesis, experiment, expected observations, and interview story.
+```markdown
+## DEC-001 — XoL Recovery: Naive Layer Limits vs Prior Erosion
 
-Inspect the existing main.py, treaty_router.py, treaty_mcp/handler.py, and common/db.py before proposing code. Account for the existing MCP mounting conventions and the include_operations issue you identified.
+**Date:** 2026-10-10 | **Phase:** 1 Foundation
 
-Important constraints:
+**Hypothesis:** `min(net_retained_loss - attachment_point, layer_limit)` using
+`treaty_terms.layer_limit` is sufficient to calculate XoL recovery.
 
-* Show all proposed SQL and code before writing anything to disk.
-* Do not modify existing files yet.
-* Do not seed exclusions based on assumptions; verify the treaty wording first.
-* Do not claim a test passed until it has actually been run.
-* Keep calculations deterministic.
-* Preserve the deliberate wrong turn, but ensure the baseline experiment is isolated and does not corrupt business data.
-* Follow the original architecture PDF and explain any proposed deviation.
+**Experiment:** CAT-2026-004 (Windstorm Cerys), TRT-2026-003, three-layer programme.
+Net retained loss: £8,400,000.
 
-Return the complete proposal for review.
+**Observed (baseline):**
+Layer 1 £500,000 / Layer 2 £4,000,000 / Layer 3 £3,400,000 / Total £7,900,000
 
-⸻
+**Root cause:** Layer 2 had £800,000 of prior erosion (Windstorm Ashley, CAT-2026-001).
+`treaty_terms.layer_limit` is the inception limit — it does not reduce after losses.
+The current available limit lives in `layer_erosion.current_limit_remaining`.
 
-Step 2 — Bring Claude’s response back here
+**Fix:** Read `current_limit_remaining` from `layer_erosion` ordered by `event_date`
+before the calculation date. Fall back to `layer_limit` if no prior erosion row exists.
 
-Once Claude responds, paste its proposal into this chat.
+**Correct result:**
+Layer 1 £500,000 / Layer 2 £3,200,000 / Layer 3 £3,400,000 / Total £7,100,000
 
-I’ll independently review it against:
+**Interview story:** "I tested the XoL handler against a known scenario and got £7.9m
+instead of £7.1m. The delta was exactly £800k — prior erosion on Layer 2. Treaty terms
+store the inception limit; available limit after prior losses is in the erosion table.
+I fixed the handler to read current_limit_remaining from layer_erosion, ordered by date."
+```
 
-* The original Cedera architecture.
-* The live database values we’ve verified.
-* The deliberate-wrong-turn strategy.
-* The correctness of the financial calculations.
-* The existing MCP project structure.
+---
 
-We’ll resolve disagreements before you write any code.
+### `main.py` update required (proposed — not yet written)
 
-Step 3 — Our immediate milestone
+When the recovery sub-app is added, `main.py` needs:
 
-Here’s the exact milestone we’re trying to complete:
+```python
+from recovery_router import router as recovery_router
 
-Task	Status
-Inspect the existing project files	Claude reports completed
-Verify the live database schema	Completed for the fields we’ve checked
-Establish the CAT-2026-004 expected scenario	Completed
-Validate the naive baseline’s predicted result	Next
-Review proposed recovery handler and router	Pending
-Run the baseline experiment	Pending
-Implement the erosion improvement	Pending
-Run regression tests	Pending
-Document the interview story	Pending
+recovery_app = _make_cors_app(title="recovery mcp", description="xol recovery tools")
+recovery_app.include_router(recovery_router)
+FastApiMCP(
+    recovery_app,
+    include_operations=[
+        "get_event",
+        "calculate_xol_recovery",
+        "calculate_aggregate_position",
+    ],
+).mount_http()
+app.mount("/api/v1/recovery", recovery_app)
+```
 
-One important correction
+The existing treaty MCP `include_operations` bug (only `"treaty_management_mcp"` listed) should be fixed at the same time.
 
-We should not automatically accept Claude’s claim that the naive total will be £7.9m.
+---
 
-Using the formula independently on all three layers gives:
-
-* Layer 1: min(£8.4m − £0.5m, £0.5m) = £0.5m
-* Layer 2: min(£8.4m − £1m, £4m) = £4m
-* Layer 3: min(£8.4m − £5m, £15m) = £3.4m
-
-That does total £7.9m. However, this only demonstrates what the simplified formula returns; it does not prove that the formula models the contractual XoL layer structure correctly.
-
-That’s precisely why we need to validate the experiment rather than blindly accepting the proposed result.
-
-Your only job right now: send the message to Claude and share its response with me. We’ll review the proposal before any files are changed.
+Send this to GPT for review. The only unresolved item before writing anything is GPT's confirmation on the `treaty_exclusions` column names against the live schema, and sign-off that the seed SQL wording matches the actual PDF.
