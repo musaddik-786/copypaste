@@ -1,16 +1,104 @@
-(venv) JarvisClaims@JarvisClaims:~/Musaddique/cederanew/cederanew$ cd tests/
-(venv) JarvisClaims@JarvisClaims:~/Musaddique/cederanew/cederanew/tests$ python3 test_recovery.py 
-Running recovery handler tests...
+"""
+Seed fixes for two missing data points required by recovery tests.
 
-  PASS  test_cat_2026_004_total
-  PASS  test_cat_2026_004_layer2_erosion
-  FAIL  test_cat_2026_002_flood_excluded
-        Flood event must return NIL on cat XoL — got £500,000
-Cause: exclusion check skipped or Article 4(b) not seeded in treaty_exclusions.
-  FAIL  test_loss_2026_011_single_policy
-        Single-policy fire must return NIL on cat XoL — got £500,000
-Cause: Business Covered policy-count check missing.
-  PASS  test_aggregate_position_layer2_before_cerys
+Fix 1: Insert flood exclusion for TRT-2026-003 (Article 4(b))
+        test_cat_2026_002_flood_excluded expects NIL recovery.
 
-3 passed, 2 failed.
-(venv) JarvisClaims@JarvisClaims:~/Musaddique/cederanew/cederanew/tests$ 
+Fix 2: Set cat_programme_ref on LOSS-2026-011 to TRT-2026-003
+        test_loss_2026_011_single_policy expects NIL (Business Covered: <2 policies).
+
+Run from cederanew/MCP:
+    python seed_fix.py
+"""
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "common"))
+
+from common.db import get_db_connection
+
+
+def run():
+    connection = None
+    cursor = None
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor()
+
+        # ── Fix 1: Flood exclusion for TRT-2026-003 ──────────────────────────
+        # Check if it already exists to make this script idempotent
+        cursor.execute(
+            """
+            SELECT exclusion_id FROM treaty_exclusions
+            WHERE treaty_ref = 'TRT-2026-003'
+              AND exclusion_name ILIKE '%Flood%'
+            """,
+        )
+        existing = cursor.fetchone()
+
+        if existing:
+            print("Fix 1: flood exclusion already present — skipping")
+        else:
+            cursor.execute(
+                """
+                INSERT INTO treaty_exclusions
+                    (treaty_ref, clause_ref, exclusion_name, description)
+                VALUES (%s, %s, %s, %s)
+                """,
+                (
+                    "TRT-2026-003",
+                    "Article 4(b)",
+                    "Flood and Inundation",
+                    (
+                        "Loss or damage directly or indirectly caused by flood, "
+                        "inundation, rising of water bodies, storm surge, or "
+                        "overflow of any body of water is excluded from coverage "
+                        "under this contract."
+                    ),
+                ),
+            )
+            print("Fix 1: inserted flood exclusion for TRT-2026-003 Article 4(b)")
+
+        # ── Fix 2: Set cat_programme_ref on LOSS-2026-011 ────────────────────
+        # Without this the Business Covered check (cat_programme_ref == treaty_ref)
+        # never fires because cat_programme_ref is NULL.
+        cursor.execute(
+            "SELECT cat_programme_ref, affected_policy_count FROM loss_events WHERE event_ref = 'LOSS-2026-011'",
+        )
+        event = cursor.fetchone()
+
+        if not event:
+            print("Fix 2: LOSS-2026-011 not found in loss_events — check seed data")
+        else:
+            print(
+                f"Fix 2: LOSS-2026-011 before — cat_programme_ref={event['cat_programme_ref']}, "
+                f"affected_policy_count={event['affected_policy_count']}"
+            )
+            cursor.execute(
+                """
+                UPDATE loss_events
+                SET cat_programme_ref = 'TRT-2026-003',
+                    affected_policy_count = 1
+                WHERE event_ref = 'LOSS-2026-011'
+                """,
+            )
+            print("Fix 2: LOSS-2026-011 updated — cat_programme_ref=TRT-2026-003, affected_policy_count=1")
+
+        connection.commit()
+        print("\nAll fixes committed. Re-run tests.")
+
+    except Exception as e:
+        if connection:
+            connection.rollback()
+        print(f"ERROR — rolled back: {e}")
+        raise
+    finally:
+        if cursor:
+            cursor.close()
+        if connection:
+            connection.close()
+
+
+if __name__ == "__main__":
+    run()
