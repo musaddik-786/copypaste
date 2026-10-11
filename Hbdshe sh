@@ -1,3 +1,13 @@
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/cederanew/cederanew/MCP$ python3 main.py 
+INFO:     Started server process [9937]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:7720 (Press CTRL+C to quit)
+INFO:     127.0.0.1:35738 - "GET /api/v1/recovery/mcp/sse HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:35740 - "GET /api/v1/recovery/mcp/sse HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:35742 - "GET /api/v1/recovery/mcp/sse HTTP/1.1" 404 Not Found
+
+
 (venv) JarvisClaims@JarvisClaims:~/Musaddique/cederanew/cederanew/tests$ python3 test_recovery_agent.py 
 Recovery Agent smoke tests
 ========================================
@@ -9,27 +19,7 @@ FAIL  test_flood_nil: Server error '500 Internal Server Error' for url 'http://l
 For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500
 
 0 passed, 3 failed.
-(venv) JarvisCl
-
-(venv) JarvisClaims@JarvisClaims:~/Musaddique/cederanew/cederanew/RecoveryAgent$ python3 server.py 
-Starting Recovery Agent on http://localhost:8914
-MCP tools at: http://localhost:7720/api/v1/recovery/mcp/sse
-API docs at:  http://localhost:8914/docs
-INFO:     Started server process [9397]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     Uvicorn running on http://0.0.0.0:8914 (Press CTRL+C to quit)
-INFO:     127.0.0.1:50300 - "GET /tools HTTP/1.1" 500 Internal Server Error
-ERROR:    Exception in ASGI application
-  + Exception Group Traceback (most recent call last):
-  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 422, in run_asgi
-  |     result = await app(  # type: ignore[func-returns-value]
-  |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 63, in __call__
-  |     return await self.app(scope, receive, send)
-  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/applications.py", line 1216, in __call__
-  |     await super().__call__(scope, receive, send)
+(venv) JarvisCl  |     await super().__call__(scope, receive, send)
   |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/applications.py", line 96, in __call__
   |     await self.middleware_stack(scope, receive, send)
   |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/middleware/errors.py", line 186, in __call__
@@ -101,72 +91,15 @@ ERROR:    Exception in ASGI application
   | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
   +-+---------------- 1 ----------------
     | Traceback (most recent call last):
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_transports/default.py", line 101, in map_httpcore_exceptions
-    |     yield
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_transports/default.py", line 394, in handle_async_request
-    |     resp = await self._pool.handle_async_request(req)
-    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpcore/_async/connection_pool.py", line 256, in handle_async_request
-    |     raise exc from None
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpcore/_async/connection_pool.py", line 236, in handle_async_request
-    |     response = await connection.handle_async_request(
-    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpcore/_async/connection.py", line 101, in handle_async_request
-    |     raise exc
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpcore/_async/connection.py", line 78, in handle_async_request
-    |     stream = await self._connect(request)
-    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpcore/_async/connection.py", line 124, in _connect
-    |     stream = await self._network_backend.connect_tcp(**kwargs)
-    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpcore/_backends/auto.py", line 31, in connect_tcp
-    |     return await self._backend.connect_tcp(
-    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpcore/_backends/anyio.py", line 113, in connect_tcp
-    |     with map_exceptions(exc_map):
-    |   File "/usr/lib/python3.11/contextlib.py", line 155, in __exit__
-    |     self.gen.throw(typ, value, traceback)
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpcore/_exceptions.py", line 14, in map_exceptions
-    |     raise to_exc(exc) from exc
-    | httpcore.ConnectError: All connection attempts failed
-    | 
-    | The above exception was the direct cause of the following exception:
-    | 
-    | Traceback (most recent call last):
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/mcp/client/sse.py", line 80, in sse_client
-    |     async with sse_within_origin(client, url) as event_source:
-    |   File "/usr/lib/python3.11/contextlib.py", line 204, in __aenter__
-    |     return await anext(self.gen)
-    |            ^^^^^^^^^^^^^^^^^^^^^
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/mcp/shared/_httpx_utils.py", line 165, in sse_within_origin
-    |     async with stream_within_origin(client, "GET", url, headers=merged) as response:
-    |   File "/usr/lib/python3.11/contextlib.py", line 204, in __aenter__
-    |     return await anext(self.gen)
-    |            ^^^^^^^^^^^^^^^^^^^^^
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/mcp/shared/_httpx_utils.py", line 132, in stream_within_origin
-    |     response = await client.send(request, stream=True, follow_redirects=False)
-    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_client.py", line 1629, in send
-    |     response = await self._send_handling_auth(
-    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_client.py", line 1657, in _send_handling_auth
-    |     response = await self._send_handling_redirects(
-    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_client.py", line 1694, in _send_handling_redirects
-    |     response = await self._send_single_request(request)
-    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_client.py", line 1730, in _send_single_request
-    |     response = await transport.handle_async_request(request)
-    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_transports/default.py", line 393, in handle_async_request
-    |     with map_httpcore_exceptions():
-    |   File "/usr/lib/python3.11/contextlib.py", line 155, in __exit__
-    |     self.gen.throw(typ, value, traceback)
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_transports/default.py", line 118, in map_httpcore_exceptions
-    |     raise mapped_exc(message) from exc
-    | httpx.ConnectError: All connection attempts failed
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/mcp/client/sse.py", line 81, in sse_client
+    |     event_source.response.raise_for_status()
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_models.py", line 829, in raise_for_status
+    |     raise HTTPStatusError(message, request=request, response=self)
+    | httpx.HTTPStatusError: Client error '404 Not Found' for url 'http://localhost:7720/api/v1/recovery/mcp/sse'
+    | For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/404
     +------------------------------------
-INFO:     127.0.0.1:50312 - "POST /ask HTTP/1.1" 500 Internal Server Error
+INFO:httpx:HTTP Request: GET http://localhost:7720/api/v1/recovery/mcp/sse "HTTP/1.1 404 Not Found"
+INFO:     127.0.0.1:40396 - "POST /ask HTTP/1.1" 500 Internal Server Error
 ERROR:    Exception in ASGI application
   + Exception Group Traceback (most recent call last):
   |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 422, in run_asgi
@@ -248,72 +181,15 @@ ERROR:    Exception in ASGI application
   | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
   +-+---------------- 1 ----------------
     | Traceback (most recent call last):
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_transports/default.py", line 101, in map_httpcore_exceptions
-    |     yield
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_transports/default.py", line 394, in handle_async_request
-    |     resp = await self._pool.handle_async_request(req)
-    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpcore/_async/connection_pool.py", line 256, in handle_async_request
-    |     raise exc from None
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpcore/_async/connection_pool.py", line 236, in handle_async_request
-    |     response = await connection.handle_async_request(
-    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpcore/_async/connection.py", line 101, in handle_async_request
-    |     raise exc
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpcore/_async/connection.py", line 78, in handle_async_request
-    |     stream = await self._connect(request)
-    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpcore/_async/connection.py", line 124, in _connect
-    |     stream = await self._network_backend.connect_tcp(**kwargs)
-    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpcore/_backends/auto.py", line 31, in connect_tcp
-    |     return await self._backend.connect_tcp(
-    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpcore/_backends/anyio.py", line 113, in connect_tcp
-    |     with map_exceptions(exc_map):
-    |   File "/usr/lib/python3.11/contextlib.py", line 155, in __exit__
-    |     self.gen.throw(typ, value, traceback)
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpcore/_exceptions.py", line 14, in map_exceptions
-    |     raise to_exc(exc) from exc
-    | httpcore.ConnectError: All connection attempts failed
-    | 
-    | The above exception was the direct cause of the following exception:
-    | 
-    | Traceback (most recent call last):
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/mcp/client/sse.py", line 80, in sse_client
-    |     async with sse_within_origin(client, url) as event_source:
-    |   File "/usr/lib/python3.11/contextlib.py", line 204, in __aenter__
-    |     return await anext(self.gen)
-    |            ^^^^^^^^^^^^^^^^^^^^^
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/mcp/shared/_httpx_utils.py", line 165, in sse_within_origin
-    |     async with stream_within_origin(client, "GET", url, headers=merged) as response:
-    |   File "/usr/lib/python3.11/contextlib.py", line 204, in __aenter__
-    |     return await anext(self.gen)
-    |            ^^^^^^^^^^^^^^^^^^^^^
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/mcp/shared/_httpx_utils.py", line 132, in stream_within_origin
-    |     response = await client.send(request, stream=True, follow_redirects=False)
-    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_client.py", line 1629, in send
-    |     response = await self._send_handling_auth(
-    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_client.py", line 1657, in _send_handling_auth
-    |     response = await self._send_handling_redirects(
-    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_client.py", line 1694, in _send_handling_redirects
-    |     response = await self._send_single_request(request)
-    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_client.py", line 1730, in _send_single_request
-    |     response = await transport.handle_async_request(request)
-    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_transports/default.py", line 393, in handle_async_request
-    |     with map_httpcore_exceptions():
-    |   File "/usr/lib/python3.11/contextlib.py", line 155, in __exit__
-    |     self.gen.throw(typ, value, traceback)
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_transports/default.py", line 118, in map_httpcore_exceptions
-    |     raise mapped_exc(message) from exc
-    | httpx.ConnectError: All connection attempts failed
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/mcp/client/sse.py", line 81, in sse_client
+    |     event_source.response.raise_for_status()
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_models.py", line 829, in raise_for_status
+    |     raise HTTPStatusError(message, request=request, response=self)
+    | httpx.HTTPStatusError: Client error '404 Not Found' for url 'http://localhost:7720/api/v1/recovery/mcp/sse'
+    | For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/404
     +------------------------------------
-INFO:     127.0.0.1:50328 - "POST /ask HTTP/1.1" 500 Internal Server Error
+INFO:httpx:HTTP Request: GET http://localhost:7720/api/v1/recovery/mcp/sse "HTTP/1.1 404 Not Found"
+INFO:     127.0.0.1:40408 - "POST /ask HTTP/1.1" 500 Internal Server Error
 ERROR:    Exception in ASGI application
   + Exception Group Traceback (most recent call last):
   |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 422, in run_asgi
@@ -395,68 +271,10 @@ ERROR:    Exception in ASGI application
   | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
   +-+---------------- 1 ----------------
     | Traceback (most recent call last):
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_transports/default.py", line 101, in map_httpcore_exceptions
-    |     yield
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_transports/default.py", line 394, in handle_async_request
-    |     resp = await self._pool.handle_async_request(req)
-    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpcore/_async/connection_pool.py", line 256, in handle_async_request
-    |     raise exc from None
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpcore/_async/connection_pool.py", line 236, in handle_async_request
-    |     response = await connection.handle_async_request(
-    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpcore/_async/connection.py", line 101, in handle_async_request
-    |     raise exc
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpcore/_async/connection.py", line 78, in handle_async_request
-    |     stream = await self._connect(request)
-    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpcore/_async/connection.py", line 124, in _connect
-    |     stream = await self._network_backend.connect_tcp(**kwargs)
-    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpcore/_backends/auto.py", line 31, in connect_tcp
-    |     return await self._backend.connect_tcp(
-    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpcore/_backends/anyio.py", line 113, in connect_tcp
-    |     with map_exceptions(exc_map):
-    |   File "/usr/lib/python3.11/contextlib.py", line 155, in __exit__
-    |     self.gen.throw(typ, value, traceback)
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpcore/_exceptions.py", line 14, in map_exceptions
-    |     raise to_exc(exc) from exc
-    | httpcore.ConnectError: All connection attempts failed
-    | 
-    | The above exception was the direct cause of the following exception:
-    | 
-    | Traceback (most recent call last):
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/mcp/client/sse.py", line 80, in sse_client
-    |     async with sse_within_origin(client, url) as event_source:
-    |   File "/usr/lib/python3.11/contextlib.py", line 204, in __aenter__
-    |     return await anext(self.gen)
-    |            ^^^^^^^^^^^^^^^^^^^^^
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/mcp/shared/_httpx_utils.py", line 165, in sse_within_origin
-    |     async with stream_within_origin(client, "GET", url, headers=merged) as response:
-    |   File "/usr/lib/python3.11/contextlib.py", line 204, in __aenter__
-    |     return await anext(self.gen)
-    |            ^^^^^^^^^^^^^^^^^^^^^
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/mcp/shared/_httpx_utils.py", line 132, in stream_within_origin
-    |     response = await client.send(request, stream=True, follow_redirects=False)
-    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_client.py", line 1629, in send
-    |     response = await self._send_handling_auth(
-    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_client.py", line 1657, in _send_handling_auth
-    |     response = await self._send_handling_redirects(
-    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_client.py", line 1694, in _send_handling_redirects
-    |     response = await self._send_single_request(request)
-    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_client.py", line 1730, in _send_single_request
-    |     response = await transport.handle_async_request(request)
-    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_transports/default.py", line 393, in handle_async_request
-    |     with map_httpcore_exceptions():
-    |   File "/usr/lib/python3.11/contextlib.py", line 155, in __exit__
-    |     self.gen.throw(typ, value, traceback)
-    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_transports/default.py", line 118, in map_httpcore_exceptions
-    |     raise mapped_exc(message) from exc
-    | httpx.ConnectError: All connection attempts failed
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/mcp/client/sse.py", line 81, in sse_client
+    |     event_source.response.raise_for_status()
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_models.py", line 829, in raise_for_status
+    |     raise HTTPStatusError(message, request=request, response=self)
+    | httpx.HTTPStatusError: Client error '404 Not Found' for url 'http://localhost:7720/api/v1/recovery/mcp/sse'
+    | For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/404
     +------------------------------------
