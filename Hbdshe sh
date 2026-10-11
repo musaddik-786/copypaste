@@ -1,310 +1,302 @@
-# ─────────────────────────────────────────────────────────────────────────────
-# server.py  —  Recovery Agent
-#
-# This is the AI layer. It sits on top of the recovery tools.
-# Its only job is:
-#   1. Receive a plain-English question from the analyst
-#   2. Decide which tools to call and in what order
-#   3. Call the tools (which talk to the database)
-#   4. Write a plain-English answer explaining the results
-#
-# IT NEVER CALCULATES ANYTHING ITSELF.
-# Every number in its answer came from a tool call.
-#
-# How to run (two terminals needed):
-#
-#   Terminal 1 — start the MCP server (the tools):
-#     cd ~/Musaddique/cederanew/cederanew/MCP
-#     python main.py
-#     → runs on port 7720
-#
-#   Terminal 2 — start this agent:
-#     cd ~/Musaddique/cederanew/cederanew/RecoveryAgent
-#     python server.py
-#     → runs on port 8914
-#
-#   Then ask it something:
-#     curl -X POST http://localhost:8914/ask \
-#       -H "Content-Type: application/json" \
-#       -d '{"question": "How much can we recover on the Cerys windstorm?"}'
-# ─────────────────────────────────────────────────────────────────────────────
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/cederanew/cederanew/tests$ python3 test_recovery_agent.py 
+Recovery Agent smoke tests
+========================================
+PASS — 5 tools: ['get_event', 'list_applicable_treaties', 'calculate_xol_recovery', 'calculate_aggregate_position', 'check_reinstatements']
+FAIL  test_cerys_windstorm: Server error '500 Internal Server Error' for url 'http://localhost:8914/ask'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500
+FAIL  test_flood_nil: Server error '500 Internal Server Error' for url 'http://localhost:8914/ask'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500
 
-import logging
-import os
-import sys
-
-# Add the MCP folder to Python's path so we can find common/db.py if needed
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "MCP"))
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "MCP", "common"))
-
-# Load environment variables from the .env file (Azure credentials, API keys)
-from dotenv import load_dotenv, find_dotenv
-load_dotenv(find_dotenv())
-
-import uvicorn                                          # Web server
-from fastapi import FastAPI                             # API framework
-from fastapi.middleware.cors import CORSMiddleware      # Allow browser requests
-from pydantic import BaseModel                          # Data validation
-from typing import Optional
-
-# LangChain + LangGraph — the AI orchestration libraries
-from langchain_openai import AzureChatOpenAI            # Azure OpenAI (NOT standard OpenAI)
-from langchain_core.messages import SystemMessage       # For the system prompt
-from langgraph.prebuilt import create_react_agent       # Builds the agent loop
-from langchain_mcp_adapters.client import MultiServerMCPClient  # Connects to MCP tools
-
-log = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
+1 passed, 2 failed.
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# MCP Server URL
-#
-# The MCP server (main.py) runs on port 7720.
-# Our recovery tools are mounted at /api/v1/recovery.
-# FastApiMCP exposes them at /mcp/sse (SSE = Server-Sent Events, a streaming protocol).
-#
-# So the full URL is: http://localhost:7720/api/v1/recovery/mcp/sse
-# ─────────────────────────────────────────────────────────────────────────────
-MCP_BASE = os.getenv("MCP_BASE_URL", "http://localhost:7720")
-# FastApiMCP mount_http() creates a streamable-HTTP endpoint at /mcp on the sub-app.
-# Full path: /api/v1/recovery/mcp  (no /sse suffix — that was SSE transport, not used here)
-RECOVERY_MCP_URL = f"{MCP_BASE}/api/v1/recovery/mcp"
+venv) JarvisClaims@JarvisClaims:~/Musaddique/cederanew/cederanew/RecoveryAgent$ python3 server.py 
+Starting Recovery Agent on http://localhost:8914
+MCP tools at: http://localhost:7720/api/v1/recovery/mcp  (transport: streamable_http)
+API docs at:  http://localhost:8914/docs
+INFO:     Started server process [10533]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8914 (Press CTRL+C to quit)
+INFO:httpx:HTTP Request: POST http://localhost:7720/api/v1/recovery/mcp "HTTP/1.1 200 OK"
+INFO:mcp.client.streamable_http:Received session ID: 0f4a891f44644524b9f182cb59accd67
+INFO:mcp.client.streamable_http:Negotiated protocol version: 2025-11-25
+INFO:httpx:HTTP Request: POST http://localhost:7720/api/v1/recovery/mcp "HTTP/1.1 202 Accepted"
+INFO:httpx:HTTP Request: POST http://localhost:7720/api/v1/recovery/mcp "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: DELETE http://localhost:7720/api/v1/recovery/mcp "HTTP/1.1 200 OK"
+INFO:     127.0.0.1:52288 - "GET /tools HTTP/1.1" 200 OK
+INFO:httpx:HTTP Request: POST http://localhost:7720/api/v1/recovery/mcp "HTTP/1.1 200 OK"
+INFO:mcp.client.streamable_http:Received session ID: 57798595e7644cff884855a6c464174a
+INFO:mcp.client.streamable_http:Negotiated protocol version: 2025-11-25
+INFO:httpx:HTTP Request: POST http://localhost:7720/api/v1/recovery/mcp "HTTP/1.1 202 Accepted"
+INFO:httpx:HTTP Request: POST http://localhost:7720/api/v1/recovery/mcp "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: DELETE http://localhost:7720/api/v1/recovery/mcp "HTTP/1.1 200 OK"
+INFO:__main__:Recovery agent loaded 5 tools from MCP: ['get_event', 'list_applicable_treaties', 'calculate_xol_recovery', 'calculate_aggregate_position', 'check_reinstatements']
+/home/JarvisClaims/Musaddique/cederanew/cederanew/RecoveryAgent/server.py:222: LangGraphDeprecatedSinceV10: create_react_agent has been moved to `langchain.agents`. Please update your import to `from langchain.agents import create_agent`. Deprecated in LangGraph V1.0 to be removed in V2.0.
+  agent = create_react_agent(
+INFO:httpx2:HTTP Request: POST https://azureclaimsopenai.openai.azure.com/openai/deployments/gpt-4o/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 404 Not Found"
+INFO:     127.0.0.1:52294 - "POST /ask HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/langchain_openai/chat_models/base.py", line 2282, in _agenerate
+    raw_response = await self.async_client.with_raw_response.create(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/openai/_legacy_response.py", line 386, in wrapped
+    return cast(LegacyAPIResponse[R], await func(*args, **kwargs))
+                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/openai/resources/chat/completions/completions.py", line 2952, in create
+    return await self._post(
+           ^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/openai/_base_client.py", line 2053, in post
+    return await self.request(cast_to, opts, stream=stream, stream_cls=stream_cls)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/openai/_base_client.py", line 1838, in request
+    raise self._make_status_error_from_response(err.response) from None
+openai.NotFoundError: Error code: 404 - {'error': {'type': 'invalid_request_error', 'code': 'DeploymentNotFound', 'message': 'The API deployment for this resource does not exist. If you created the deployment within the last 5 minutes, please wait a moment and try again.'}}
 
+The above exception was the direct cause of the following exception:
 
-# ─────────────────────────────────────────────────────────────────────────────
-# System Prompt
-#
-# This is the instruction set we give the AI before it sees any question.
-# It tells the agent:
-#   - What role it plays
-#   - What tools to use and in what order
-#   - What NOT to do (never invent numbers)
-#   - How to format the answer
-# ─────────────────────────────────────────────────────────────────────────────
-SYSTEM_PROMPT = """You are a reinsurance recovery specialist for Cedera, a treaty intelligence platform.
-
-Your job is to answer questions about XoL (excess of loss) reinsurance recoveries.
-You work for the reinsurer (e.g. Swiss Re) and calculate how much they owe the
-insurance company (e.g. GoCompare) after a major loss event like a storm.
-
-CRITICAL RULE: You NEVER produce a recovery amount, premium, or any financial
-figure from your own knowledge. Every number must come from a tool call.
-If you guess a number, the answer will be wrong and the company could overpay or underpay.
-
-WHEN ASKED ABOUT A RECOVERY, follow this sequence:
-
-Step 1 — call get_event
-  Find out: what was the peril? how big was the loss? how many policies were affected?
-
-Step 2 — call list_applicable_treaties
-  Find which XoL treaties were active on the event date.
-
-Step 3 — call calculate_xol_recovery for each layer (1, 2, 3)
-  Do this for each relevant treaty and layer combination.
-  Each call returns: recoverable_amount + calculation_basis (the full audit trail).
-
-Step 4 — summarise clearly
-  Show a table: layer | attachment | available limit | recovery amount
-  Show the total at the bottom.
-  If Layer 2 was eroded by a prior event, say so and name that prior event.
-
-IF A RECOVERY IS NIL:
-  - Say clearly whether it's because: (a) the peril is excluded by a clause,
-    or (b) the Business Covered condition was not met (too few policies affected).
-  - Cite the clause reference (e.g. "Article 4(b)") from the tool result.
-  - Do NOT invent clause wording. Only cite what the tool returned.
-
-TONE: Be precise and professional. Show the maths. An analyst reading your answer
-should be able to check every number against the tool results.
-"""
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# FastAPI App
-#
-# This is the HTTP server for the Recovery Agent.
-# It runs on port 8914 (per the Cedera architecture spec).
-# ─────────────────────────────────────────────────────────────────────────────
-app = FastAPI(
-    title="Cedera Recovery Agent",
-    description="AI agent for XoL reinsurance recovery calculations",
-    docs_url="/docs",   # Visit http://localhost:8914/docs to see the API
-)
-
-# CORSMiddleware lets browser-based UIs call this API
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],    # In production this would be restricted
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Data models for the /ask endpoint
-# ─────────────────────────────────────────────────────────────────────────────
-
-class AskRequest(BaseModel):
-    question: str              # The plain-English question from the analyst
-    thread_id: Optional[str] = None  # Optional: for conversation tracking
-
-
-class AskResponse(BaseModel):
-    answer: str                # The agent's plain-English answer
-    tool_calls_made: int       # How many tool calls the agent made (for transparency)
-    thread_id: Optional[str]
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# POST /ask  —  The main endpoint
-#
-# This is where the magic happens.
-# 1. Receive a question
-# 2. Connect to the MCP tools
-# 3. Create the LangGraph agent
-# 4. Run the agent (it calls tools automatically)
-# 5. Return the answer
-# ─────────────────────────────────────────────────────────────────────────────
-@app.post("/ask", response_model=AskResponse)
-async def ask(req: AskRequest):
-    """
-    Ask a plain-English question about XoL recoveries.
-
-    Example: {"question": "How much can we recover on the Cerys windstorm CAT-2026-004?"}
-
-    The agent will:
-    - Call get_event to look up the storm
-    - Call list_applicable_treaties to find active XoL contracts
-    - Call calculate_xol_recovery for each layer
-    - Return a clear summary with the total recovery
-    """
-
-    # ── Set up the AI model ───────────────────────────────────────────────────
-    # We use AzureChatOpenAI (not standard OpenAI) because our Azure deployment
-    # credentials are in the .env file.
-    # temperature=0 means deterministic output — same input always gives same output.
-    # This is required for tool-calling agents so they don't "improvise".
-    llm = AzureChatOpenAI(
-        azure_deployment=os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o"),
-        api_version=os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-01"),
-        temperature=0,      # Must be 0 for tool-calling agents
-        azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
-        api_key=os.getenv("AZURE_OPENAI_API_KEY"),
-    )
-
-    # ── Connect to the MCP tools ──────────────────────────────────────────────
-    # langchain-mcp-adapters >= 0.1.0 changed its API.
-    # The old "async with" pattern no longer works.
-    # New pattern: create the client, then await get_tools() directly.
-    # (See DECISIONS.md — this is the kind of library version change that breaks
-    # things silently in production and becomes a real interview story.)
-    # FastApiMCP uses the MCP streamable-HTTP transport (not SSE).
-    # transport="streamable_http" tells the client to use POST-based MCP protocol.
-    mcp_client = MultiServerMCPClient(
-        {
-            "recovery": {
-                "url": RECOVERY_MCP_URL,
-                "transport": "streamable_http",
-            }
-        }
-    )
-
-    # await is needed because fetching tools is an async network call
-    tools = await mcp_client.get_tools()
-    log.info("Recovery agent loaded %d tools from MCP: %s",
-             len(tools), [t.name for t in tools])
-
-    # ── Build the LangGraph agent ─────────────────────────────────────────
-    # create_react_agent builds a ReAct loop:
-    #   Reason → Act (call a tool) → Observe (read result) → Reason again...
-    # It keeps looping until it has enough information to answer.
-    agent = create_react_agent(
-        llm,
-        tools,
-        prompt=SystemMessage(content=SYSTEM_PROMPT),
-    )
-
-    # ── Run the agent ─────────────────────────────────────────────────────
-    # ainvoke = async invoke (non-blocking)
-    # We pass the user's question as a "user" message
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 422, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 63, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/applications.py", line 1216, in __call__
+    await super().__call__(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/applications.py", line 96, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/telemetry/_asgi.py", line 151, in __call__
+    await self.app(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/middleware/cors.py", line 91, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/middleware/cors.py", line 149, in simple_response
+    await self.app(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/routing.py", line 676, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/routing.py", line 2786, in app
+    await route.handle(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/routing.py", line 1310, in handle
+    await super().handle(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/routing.py", line 282, in handle
+    await self.app(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/routing.py", line 165, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/routing.py", line 151, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/routing.py", line 727, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/routing.py", line 360, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/cederanew/RecoveryAgent/server.py", line 231, in ask
     result = await agent.ainvoke(
-        {"messages": [{"role": "user", "content": req.question}]}
-    )
+             ^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/langgraph/pregel/main.py", line 4155, in ainvoke
+    async for chunk in self.astream(
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/langgraph/pregel/main.py", line 3505, in astream
+    async for _ in runner.atick(
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/langgraph/pregel/_runner.py", line 397, in atick
+    await arun_with_retry(
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/langgraph/pregel/_retry.py", line 744, in arun_with_retry
+    return await task.proc.ainvoke(task.input, config)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/langgraph/_internal/_runnable.py", line 756, in ainvoke
+    input = await asyncio.create_task(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/langgraph/_internal/_runnable.py", line 513, in ainvoke
+    ret = await asyncio.create_task(coro, context=context)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/langgraph/prebuilt/chat_agent_executor.py", line 707, in acall_model
+    response = cast(AIMessage, await static_model.ainvoke(model_input, config))  # type: ignore[union-attr]
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/langchain_core/runnables/base.py", line 3500, in ainvoke
+    input_ = await coro_with_context(part(), context, create_task=True)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/langchain_core/runnables/base.py", line 6031, in ainvoke
+    return await self.bound.ainvoke(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/langchain_core/language_models/chat_models.py", line 511, in ainvoke
+    llm_result = await self.agenerate_prompt(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/langchain_core/language_models/chat_models.py", line 1888, in agenerate_prompt
+    return await self.agenerate(
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/langchain_core/language_models/chat_models.py", line 1846, in agenerate
+    raise exceptions[0]
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/langchain_core/language_models/chat_models.py", line 2179, in _agenerate_with_cache
+    result = await self._agenerate(
+             ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/langchain_openai/chat_models/base.py", line 2289, in _agenerate
+    _handle_openai_api_error(e)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/langchain_openai/chat_models/base.py", line 732, in _handle_openai_api_error
+    raise OpenAIModelNotFoundError(
+langchain_openai.chat_models.base.OpenAIModelNotFoundError: Error code: 404 - {'error': {'type': 'invalid_request_error', 'code': 'DeploymentNotFound', 'message': 'The API deployment for this resource does not exist. If you created the deployment within the last 5 minutes, please wait a moment and try again.'}}
+During task with name 'agent' and id '561a8235-6f16-c2e4-c52f-e73dc6cf68c4'
+INFO:httpx:HTTP Request: POST http://localhost:7720/api/v1/recovery/mcp "HTTP/1.1 200 OK"
+INFO:mcp.client.streamable_http:Received session ID: f66f7d46650a4a1899ad4d9dbe3cd19c
+INFO:mcp.client.streamable_http:Negotiated protocol version: 2025-11-25
+INFO:httpx:HTTP Request: POST http://localhost:7720/api/v1/recovery/mcp "HTTP/1.1 202 Accepted"
+INFO:httpx:HTTP Request: POST http://localhost:7720/api/v1/recovery/mcp "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: DELETE http://localhost:7720/api/v1/recovery/mcp "HTTP/1.1 200 OK"
+INFO:__main__:Recovery agent loaded 5 tools from MCP: ['get_event', 'list_applicable_treaties', 'calculate_xol_recovery', 'calculate_aggregate_position', 'check_reinstatements']
+/home/JarvisClaims/Musaddique/cederanew/cederanew/RecoveryAgent/server.py:222: LangGraphDeprecatedSinceV10: create_react_agent has been moved to `langchain.agents`. Please update your import to `from langchain.agents import create_agent`. Deprecated in LangGraph V1.0 to be removed in V2.0.
+  agent = create_react_agent(
+INFO:httpx2:HTTP Request: POST https://azureclaimsopenai.openai.azure.com/openai/deployments/gpt-4o/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 404 Not Found"
+INFO:     127.0.0.1:52310 - "POST /ask HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/langchain_openai/chat_models/base.py", line 2282, in _agenerate
+    raw_response = await self.async_client.with_raw_response.create(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/openai/_legacy_response.py", line 386, in wrapped
+    return cast(LegacyAPIResponse[R], await func(*args, **kwargs))
+                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/openai/resources/chat/completions/completions.py", line 2952, in create
+    return await self._post(
+           ^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/openai/_base_client.py", line 2053, in post
+    return await self.request(cast_to, opts, stream=stream, stream_cls=stream_cls)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/openai/_base_client.py", line 1838, in request
+    raise self._make_status_error_from_response(err.response) from None
+openai.NotFoundError: Error code: 404 - {'error': {'type': 'invalid_request_error', 'code': 'DeploymentNotFound', 'message': 'The API deployment for this resource does not exist. If you created the deployment within the last 5 minutes, please wait a moment and try again.'}}
 
-    # ── Extract the answer ────────────────────────────────────────────────────
-    messages = result["messages"]
-    answer = messages[-1].content   # The last message is the agent's final answer
+The above exception was the direct cause of the following exception:
 
-    # Count tool calls made (for transparency — the analyst can see how many
-    # database lookups were made to produce this answer)
-    tool_calls_made = sum(
-        1 for m in messages
-        if hasattr(m, "tool_calls") and m.tool_calls
-    )
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 422, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 63, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/applications.py", line 1216, in __call__
+    await super().__call__(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/applications.py", line 96, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/telemetry/_asgi.py", line 151, in __call__
+    await self.app(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/middleware/cors.py", line 91, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/middleware/cors.py", line 149, in simple_response
+    await self.app(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/routing.py", line 676, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/routing.py", line 2786, in app
+    await route.handle(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/routing.py", line 1310, in handle
+    await super().handle(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/routing.py", line 282, in handle
+    await self.app(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/routing.py", line 165, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/routing.py", line 151, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/routing.py", line 727, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/routing.py", line 360, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/cederanew/RecoveryAgent/server.py", line 231, in ask
+    result = await agent.ainvoke(
+             ^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/langgraph/pregel/main.py", line 4155, in ainvoke
+    async for chunk in self.astream(
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/langgraph/pregel/main.py", line 3505, in astream
+    async for _ in runner.atick(
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/langgraph/pregel/_runner.py", line 397, in atick
+    await arun_with_retry(
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/langgraph/pregel/_retry.py", line 744, in arun_with_retry
+    return await task.proc.ainvoke(task.input, config)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/langgraph/_internal/_runnable.py", line 756, in ainvoke
+    input = await asyncio.create_task(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/langgraph/_internal/_runnable.py", line 513, in ainvoke
+    ret = await asyncio.create_task(coro, context=context)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/langgraph/prebuilt/chat_agent_executor.py", line 707, in acall_model
+    response = cast(AIMessage, await static_model.ainvoke(model_input, config))  # type: ignore[union-attr]
+                               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/langchain_core/runnables/base.py", line 3500, in ainvoke
+    input_ = await coro_with_context(part(), context, create_task=True)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/langchain_core/runnables/base.py", line 6031, in ainvoke
+    return await self.bound.ainvoke(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/langchain_core/language_models/chat_models.py", line 511, in ainvoke
+    llm_result = await self.agenerate_prompt(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/langchain_core/language_models/chat_models.py", line 1888, in agenerate_prompt
+    return await self.agenerate(
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/langchain_core/language_models/chat_models.py", line 1846, in agenerate
+    raise exceptions[0]
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/langchain_core/language_models/chat_models.py", line 2179, in _agenerate_with_cache
+    result = await self._agenerate(
+             ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/langchain_openai/chat_models/base.py", line 2289, in _agenerate
+    _handle_openai_api_error(e)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/langchain_openai/chat_models/base.py", line 732, in _handle_openai_api_error
+    raise OpenAIModelNotFoundError(
+langchain_openai.chat_models.base.OpenAIModelNotFoundError: Error code: 404 - {'error': {'type': 'invalid_request_error', 'code': 'DeploymentNotFound', 'message': 'The API deployment for this resource does not exist. If you created the deployment within the last 5 minutes, please wait a moment and try again.'}}
+During task with name 'agent' and id '980782a9-1423-a661-e626-cd6b24db7e5e'
 
-    return AskResponse(
-        answer=answer,
-        tool_calls_made=tool_calls_made,
-        thread_id=req.thread_id,
-    )
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# GET /health
-#
-# Quick check that the agent server is running.
-# Also shows the MCP URL it's trying to connect to.
-# ─────────────────────────────────────────────────────────────────────────────
-@app.get("/health")
-def health():
-    return {
-        "status": "healthy",
-        "service": "recovery-agent",
-        "port": 8914,
-        "mcp_url": RECOVERY_MCP_URL,
-    }
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# GET /tools
-#
-# Lists the tools currently available to the agent.
-# Useful for debugging — if a tool is missing from this list,
-# the agent can't use it (check main.py include_operations).
-# ─────────────────────────────────────────────────────────────────────────────
-@app.get("/tools")
-async def list_tools():
-    """Lists the MCP tools available to this agent."""
-    mcp_client = MultiServerMCPClient(
-        {
-            "recovery": {
-                "url": RECOVERY_MCP_URL,
-                "transport": "streamable_http",
-            }
-        }
-    )
-    tools = await mcp_client.get_tools()
-    return {
-        "count": len(tools),
-        "tools": [
-            {"name": t.name, "description": t.description}
-            for t in tools
-        ],
-    }
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Entry point — runs when you do: python server.py
-# ─────────────────────────────────────────────────────────────────────────────
-if __name__ == "__main__":
-    print("Starting Recovery Agent on http://localhost:8914")
-    print(f"MCP tools at: {RECOVERY_MCP_URL}  (transport: streamable_http)")
-    print("API docs at:  http://localhost:8914/docs")
-    uvicorn.run(app, host="0.0.0.0", port=8914)
-
-
-
-
-
-curl http://localhost:8914/tools
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/cederanew/cederanew/MCP$ python3 main.py 
+INFO:     Started server process [10476]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:7720 (Press CTRL+C to quit)
+INFO:     127.0.0.1:48536 - "POST /api/v1/recovery/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48536 - "POST /api/v1/recovery/mcp HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:48564 - "POST /api/v1/recovery/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48564 - "DELETE /api/v1/recovery/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48548 - "GET /api/v1/recovery/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48578 - "POST /api/v1/recovery/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48578 - "POST /api/v1/recovery/mcp HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:48594 - "POST /api/v1/recovery/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48594 - "DELETE /api/v1/recovery/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48588 - "GET /api/v1/recovery/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48610 - "POST /api/v1/recovery/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48610 - "POST /api/v1/recovery/mcp HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:48622 - "POST /api/v1/recovery/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48622 - "DELETE /api/v1/recovery/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48612 - "GET /api/v1/recovery/mcp HTTP/1.1" 200 OK
