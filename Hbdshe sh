@@ -1,11 +1,216 @@
-(venv) JarvisClaims@JarvisClaims:~/Musaddique/cederanew/cederanew/tests$ python3 test_recovery.py 
-Running recovery handler tests...
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/cederanew/cederanew/RecoveryAgent$ python3 server.py 
+Starting Recovery Agent on http://localhost:8914
+MCP tools at: http://localhost:7720/api/v1/recovery/mcp/sse
+API docs at:  http://localhost:8914/docs
+INFO:     Started server process [8024]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8914 (Press CTRL+C to quit)
+INFO:     127.0.0.1:34500 - "GET /tools HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 422, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 63, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/applications.py", line 1216, in __call__
+    await super().__call__(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/applications.py", line 96, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/telemetry/_asgi.py", line 151, in __call__
+    await self.app(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/middleware/cors.py", line 91, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/middleware/cors.py", line 149, in simple_response
+    await self.app(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/routing.py", line 676, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/routing.py", line 2786, in app
+    await route.handle(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/routing.py", line 1310, in handle
+    await super().handle(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/routing.py", line 282, in handle
+    await self.app(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/routing.py", line 165, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/routing.py", line 151, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/routing.py", line 727, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/routing.py", line 360, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/cederanew/RecoveryAgent/server.py", line 273, in list_tools
+    async with MultiServerMCPClient(
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/langchain_mcp_adapters/client.py", line 361, in __aenter__
+    raise NotImplementedError(ASYNC_CONTEXT_MANAGER_ERROR)
+NotImplementedError: As of langchain-mcp-adapters 0.1.0, MultiServerMCPClient cannot be used as a context manager (e.g., async with MultiServerMCPClient(...)). Instead, you can do one of the following:
+1. client = MultiServerMCPClient(...)
+   tools = await client.get_tools()
+2. client = MultiServerMCPClient(...)
+   async with client.session(server_name) as session:
+       tools = await load_mcp_tools(session)
+INFO:     127.0.0.1:34502 - "POST /ask HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 422, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 63, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/applications.py", line 1216, in __call__
+    await super().__call__(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/applications.py", line 96, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/telemetry/_asgi.py", line 151, in __call__
+    await self.app(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/middleware/cors.py", line 91, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/middleware/cors.py", line 149, in simple_response
+    await self.app(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/routing.py", line 676, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/routing.py", line 2786, in app
+    await route.handle(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/routing.py", line 1310, in handle
+    await super().handle(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/routing.py", line 282, in handle
+    await self.app(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/routing.py", line 165, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/routing.py", line 151, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/routing.py", line 727, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/routing.py", line 360, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/cederanew/RecoveryAgent/server.py", line 198, in ask
+    async with MultiServerMCPClient(
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/langchain_mcp_adapters/client.py", line 361, in __aenter__
+    raise NotImplementedError(ASYNC_CONTEXT_MANAGER_ERROR)
+NotImplementedError: As of langchain-mcp-adapters 0.1.0, MultiServerMCPClient cannot be used as a context manager (e.g., async with MultiServerMCPClient(...)). Instead, you can do one of the following:
+1. client = MultiServerMCPClient(...)
+   tools = await client.get_tools()
+2. client = MultiServerMCPClient(...)
+   async with client.session(server_name) as session:
+       tools = await load_mcp_tools(session)
+INFO:     127.0.0.1:34506 - "POST /ask HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 422, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 63, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/applications.py", line 1216, in __call__
+    await super().__call__(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/applications.py", line 96, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/telemetry/_asgi.py", line 151, in __call__
+    await self.app(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/middleware/cors.py", line 91, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/middleware/cors.py", line 149, in simple_response
+    await self.app(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/routing.py", line 676, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/routing.py", line 2786, in app
+    await route.handle(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/routing.py", line 1310, in handle
+    await super().handle(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/routing.py", line 282, in handle
+    await self.app(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/routing.py", line 165, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/routing.py", line 151, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/routing.py", line 727, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/routing.py", line 360, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/cederanew/cederanew/RecoveryAgent/server.py", line 198, in ask
+    async with MultiServerMCPClient(
+  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/langchain_mcp_adapters/client.py", line 361, in __aenter__
+    raise NotImplementedError(ASYNC_CONTEXT_MANAGER_ERROR)
+NotImplementedError: As of langchain-mcp-adapters 0.1.0, MultiServerMCPClient cannot be used as a context manager (e.g., async with MultiServerMCPClient(...)). Instead, you can do one of the following:
+1. client = MultiServerMCPClient(...)
+   tools = await client.get_tools()
+2. client = MultiServerMCPClient(...)
+   async with client.session(server_name) as session:
+       tools = await load_mcp_tools(session)
 
-  PASS  test_cat_2026_004_total
-  PASS  test_cat_2026_004_layer2_erosion
-  PASS  test_cat_2026_002_flood_excluded
-  PASS  test_loss_2026_011_single_policy
-  PASS  test_aggregate_position_layer2_before_cerys
 
-5 passed, 0 failed.
+
+
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/cederanew/cederanew/tests$ python3 test_recovery_agent.py 
+Recovery Agent smoke tests
+========================================
+FAIL  test_tools_endpoint: Server error '500 Internal Server Error' for url 'http://localhost:8914/tools'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500
+FAIL  test_cerys_windstorm: Server error '500 Internal Server Error' for url 'http://localhost:8914/ask'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500
+FAIL  test_flood_nil: Server error '500 Internal Server Error' for url 'http://localhost:8914/ask'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500
+
+0 passed, 3 failed.
 (venv) JarvisClaims@JarvisClaims:~/Musaddique/cederanew/cederanew/tests$ 
