@@ -1,490 +1,462 @@
-# ─────────────────────────────────────────────────────────────────────────────
-# server.py  —  Recovery Agent
-#
-# This is the AI layer. It sits on top of the recovery tools.
-# Its only job is:
-#   1. Receive a plain-English question from the analyst
-#   2. Decide which tools to call and in what order
-#   3. Call the tools (which talk to the database)
-#   4. Write a plain-English answer explaining the results
-#
-# IT NEVER CALCULATES ANYTHING ITSELF.
-# Every number in its answer came from a tool call.
-#
-# How to run (two terminals needed):
-#
-#   Terminal 1 — start the MCP server (the tools):
-#     cd ~/Musaddique/cederanew/cederanew/MCP
-#     python main.py
-#     → runs on port 7720
-#
-#   Terminal 2 — start this agent:
-#     cd ~/Musaddique/cederanew/cederanew/RecoveryAgent
-#     python server.py
-#     → runs on port 8914
-#
-#   Then ask it something:
-#     curl -X POST http://localhost:8914/ask \
-#       -H "Content-Type: application/json" \
-#       -d '{"question": "How much can we recover on the Cerys windstorm?"}'
-# ─────────────────────────────────────────────────────────────────────────────
-
-import logging
-import os
-import sys
-
-# Add the MCP folder to Python's path so we can find common/db.py if needed
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "MCP"))
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "MCP", "common"))
-
-# Load environment variables from the .env file (Azure credentials, API keys)
-from dotenv import load_dotenv, find_dotenv
-load_dotenv(find_dotenv())
-
-import uvicorn                                          # Web server
-from fastapi import FastAPI                             # API framework
-from fastapi.middleware.cors import CORSMiddleware      # Allow browser requests
-from pydantic import BaseModel                          # Data validation
-from typing import Optional
-
-# LangChain + LangGraph — the AI orchestration libraries
-from langchain_openai import AzureChatOpenAI            # Azure OpenAI (NOT standard OpenAI)
-from langchain_core.messages import SystemMessage       # For the system prompt
-from langgraph.prebuilt import create_react_agent       # Builds the agent loop
-from langchain_mcp_adapters.client import MultiServerMCPClient  # Connects to MCP tools
-
-log = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# MCP Server URL
-#
-# The MCP server (main.py) runs on port 7720.
-# Our recovery tools are mounted at /api/v1/recovery.
-# FastApiMCP exposes them at /mcp/sse (SSE = Server-Sent Events, a streaming protocol).
-#
-# So the full URL is: http://localhost:7720/api/v1/recovery/mcp/sse
-# ─────────────────────────────────────────────────────────────────────────────
-MCP_BASE = os.getenv("MCP_BASE_URL", "http://localhost:7720")
-RECOVERY_MCP_URL = f"{MCP_BASE}/api/v1/recovery/mcp/sse"
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# System Prompt
-#
-# This is the instruction set we give the AI before it sees any question.
-# It tells the agent:
-#   - What role it plays
-#   - What tools to use and in what order
-#   - What NOT to do (never invent numbers)
-#   - How to format the answer
-# ─────────────────────────────────────────────────────────────────────────────
-SYSTEM_PROMPT = """You are a reinsurance recovery specialist for Cedera, a treaty intelligence platform.
-
-Your job is to answer questions about XoL (excess of loss) reinsurance recoveries.
-You work for the reinsurer (e.g. Swiss Re) and calculate how much they owe the
-insurance company (e.g. GoCompare) after a major loss event like a storm.
-
-CRITICAL RULE: You NEVER produce a recovery amount, premium, or any financial
-figure from your own knowledge. Every number must come from a tool call.
-If you guess a number, the answer will be wrong and the company could overpay or underpay.
-
-WHEN ASKED ABOUT A RECOVERY, follow this sequence:
-
-Step 1 — call get_event
-  Find out: what was the peril? how big was the loss? how many policies were affected?
-
-Step 2 — call list_applicable_treaties
-  Find which XoL treaties were active on the event date.
-
-Step 3 — call calculate_xol_recovery for each layer (1, 2, 3)
-  Do this for each relevant treaty and layer combination.
-  Each call returns: recoverable_amount + calculation_basis (the full audit trail).
-
-Step 4 — summarise clearly
-  Show a table: layer | attachment | available limit | recovery amount
-  Show the total at the bottom.
-  If Layer 2 was eroded by a prior event, say so and name that prior event.
-
-IF A RECOVERY IS NIL:
-  - Say clearly whether it's because: (a) the peril is excluded by a clause,
-    or (b) the Business Covered condition was not met (too few policies affected).
-  - Cite the clause reference (e.g. "Article 4(b)") from the tool result.
-  - Do NOT invent clause wording. Only cite what the tool returned.
-
-TONE: Be precise and professional. Show the maths. An analyst reading your answer
-should be able to check every number against the tool results.
-"""
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# FastAPI App
-#
-# This is the HTTP server for the Recovery Agent.
-# It runs on port 8914 (per the Cedera architecture spec).
-# ─────────────────────────────────────────────────────────────────────────────
-app = FastAPI(
-    title="Cedera Recovery Agent",
-    description="AI agent for XoL reinsurance recovery calculations",
-    docs_url="/docs",   # Visit http://localhost:8914/docs to see the API
-)
-
-# CORSMiddleware lets browser-based UIs call this API
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],    # In production this would be restricted
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Data models for the /ask endpoint
-# ─────────────────────────────────────────────────────────────────────────────
-
-class AskRequest(BaseModel):
-    question: str              # The plain-English question from the analyst
-    thread_id: Optional[str] = None  # Optional: for conversation tracking
-
-
-class AskResponse(BaseModel):
-    answer: str                # The agent's plain-English answer
-    tool_calls_made: int       # How many tool calls the agent made (for transparency)
-    thread_id: Optional[str]
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# POST /ask  —  The main endpoint
-#
-# This is where the magic happens.
-# 1. Receive a question
-# 2. Connect to the MCP tools
-# 3. Create the LangGraph agent
-# 4. Run the agent (it calls tools automatically)
-# 5. Return the answer
-# ─────────────────────────────────────────────────────────────────────────────
-@app.post("/ask", response_model=AskResponse)
-async def ask(req: AskRequest):
-    """
-    Ask a plain-English question about XoL recoveries.
-
-    Example: {"question": "How much can we recover on the Cerys windstorm CAT-2026-004?"}
-
-    The agent will:
-    - Call get_event to look up the storm
-    - Call list_applicable_treaties to find active XoL contracts
-    - Call calculate_xol_recovery for each layer
-    - Return a clear summary with the total recovery
-    """
-
-    # ── Set up the AI model ───────────────────────────────────────────────────
-    # We use AzureChatOpenAI (not standard OpenAI) because our Azure deployment
-    # credentials are in the .env file.
-    # temperature=0 means deterministic output — same input always gives same output.
-    # This is required for tool-calling agents so they don't "improvise".
-    llm = AzureChatOpenAI(
-        azure_deployment=os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o"),
-        api_version=os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-01"),
-        temperature=0,      # Must be 0 for tool-calling agents
-        azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
-        api_key=os.getenv("AZURE_OPENAI_API_KEY"),
-    )
-
-    # ── Connect to the MCP tools ──────────────────────────────────────────────
-    # langchain-mcp-adapters >= 0.1.0 changed its API.
-    # The old "async with" pattern no longer works.
-    # New pattern: create the client, then await get_tools() directly.
-    # (See DECISIONS.md — this is the kind of library version change that breaks
-    # things silently in production and becomes a real interview story.)
-    mcp_client = MultiServerMCPClient(
-        {
-            "recovery": {
-                "url": RECOVERY_MCP_URL,
-                "transport": "sse",   # SSE = Server-Sent Events (streaming)
-            }
-        }
-    )
-
-    # await is needed because fetching tools is an async network call
-    tools = await mcp_client.get_tools()
-    log.info("Recovery agent loaded %d tools from MCP: %s",
-             len(tools), [t.name for t in tools])
-
-    # ── Build the LangGraph agent ─────────────────────────────────────────
-    # create_react_agent builds a ReAct loop:
-    #   Reason → Act (call a tool) → Observe (read result) → Reason again...
-    # It keeps looping until it has enough information to answer.
-    agent = create_react_agent(
-        llm,
-        tools,
-        prompt=SystemMessage(content=SYSTEM_PROMPT),
-    )
-
-    # ── Run the agent ─────────────────────────────────────────────────────
-    # ainvoke = async invoke (non-blocking)
-    # We pass the user's question as a "user" message
-    result = await agent.ainvoke(
-        {"messages": [{"role": "user", "content": req.question}]}
-    )
-
-    # ── Extract the answer ────────────────────────────────────────────────────
-    messages = result["messages"]
-    answer = messages[-1].content   # The last message is the agent's final answer
-
-    # Count tool calls made (for transparency — the analyst can see how many
-    # database lookups were made to produce this answer)
-    tool_calls_made = sum(
-        1 for m in messages
-        if hasattr(m, "tool_calls") and m.tool_calls
-    )
-
-    return AskResponse(
-        answer=answer,
-        tool_calls_made=tool_calls_made,
-        thread_id=req.thread_id,
-    )
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# GET /health
-#
-# Quick check that the agent server is running.
-# Also shows the MCP URL it's trying to connect to.
-# ─────────────────────────────────────────────────────────────────────────────
-@app.get("/health")
-def health():
-    return {
-        "status": "healthy",
-        "service": "recovery-agent",
-        "port": 8914,
-        "mcp_url": RECOVERY_MCP_URL,
-    }
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# GET /tools
-#
-# Lists the tools currently available to the agent.
-# Useful for debugging — if a tool is missing from this list,
-# the agent can't use it (check main.py include_operations).
-# ─────────────────────────────────────────────────────────────────────────────
-@app.get("/tools")
-async def list_tools():
-    """Lists the MCP tools available to this agent."""
-    mcp_client = MultiServerMCPClient(
-        {
-            "recovery": {
-                "url": RECOVERY_MCP_URL,
-                "transport": "sse",
-            }
-        }
-    )
-    tools = await mcp_client.get_tools()
-    return {
-        "count": len(tools),
-        "tools": [
-            {"name": t.name, "description": t.description}
-            for t in tools
-        ],
-    }
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Entry point — runs when you do: python server.py
-# ─────────────────────────────────────────────────────────────────────────────
-if __name__ == "__main__":
-    print("Starting Recovery Agent on http://localhost:8914")
-    print(f"MCP tools at: {RECOVERY_MCP_URL}")
-    print("API docs at:  http://localhost:8914/docs")
-    uvicorn.run(app, host="0.0.0.0", port=8914)
-
-
-
-
-
-
-
-
-# Cedera — Engineering Decisions
-
-These are interview stories: each entry follows the format
-**symptom → measurement → change → result**.
-
----
-
-## DEC-001 · Wrong turns are architectural, not financial
-
-**Symptom**: Early planning proposed deliberately writing incorrect XoL recovery
-logic (e.g., skip the exclusion check, ignore prior erosion) to create "fix it later"
-stories. The test scenario where Layer 2 pays £3.2m instead of £4m was treated as
-a deliberate bug to introduce rather than a correct answer to prove.
-
-**Measurement**: GPT confirmed the CAT-2026-004 expected total is £7.1m. Any
-implementation that uses `treaty_terms.layer_limit` instead of
-`layer_erosion.current_limit_remaining` silently returns £7.9m — a confident wrong
-answer handed to the agent, which then narrates it as fact with no error.
-
-**Change**: Redefined "deliberate wrong turn" to mean *technical and architectural*
-choices only: Chroma→pgvector, synchronous→Celery, one-agent→supervisor pattern.
-Business calculations are correct from day one. The wrong answers (£7.9m, false
-recovery on flooded risk) become TEST CASES that prove correctness, not TODOs to
-introduce and fix.
-
-**Result**: Recovery handler passes three golden-set scenarios on first build.
-Interview story: "I had to convince the team that the wrong-turn methodology
-applies to infrastructure choices, not to financial arithmetic. Getting £7.1m right
-from the start and having a test that catches £7.9m is actually the more defensible
-engineering position."
-
----
-
-## DEC-002 · `list_exclusions` ordered by non-existent column
-
-**Symptom**: Treaty handler's `list_exclusions` query used `ORDER BY exclusion_ref`
-but the live Azure PostgreSQL table has `exclusion_id` as the primary key column.
-No syntax error at import time — the failure would only surface at runtime when an
-agent called the tool.
-
-**Measurement**: `\d treaty_exclusions` in psql confirmed columns:
-`exclusion_id, treaty_ref, clause_ref, exclusion_name, description`.
-Column `exclusion_ref` does not exist.
-
-**Change**: Fixed to `ORDER BY exclusion_id` in `treaty_mcp/handler.py`.
-
-**Result**: `list_exclusions` no longer throws `column "exclusion_ref" does not exist`
-at query time. FastApiMCP silently exposes the tool regardless — there would have been
-no startup warning, only a 500 at agent call time.
-
----
-
-## DEC-003 · `include_operations` whitelist only listed one tool
-
-**Symptom**: `main.py` mounted the treaty sub-app with
-`include_operations=["treaty_management_mcp"]`. FastApiMCP only exposes tools whose
-`operation_id` appears in that list. The four other treaty endpoints
-(`list_treaties`, `get_treaty_terms`, `list_exclusions`, `get_clause`) were
-invisible to the agent with no error, warning, or log line.
-
-**Measurement**: Calling `GET /api/v1/treaty/mcp` returned a tools manifest with
-exactly one entry. The Treaty Agent would only be able to call `get_treaty`.
-
-**Change**: Added all five operation_ids to the whitelist in `main.py`.
-
-**Result**: All five treaty tools appear in the MCP manifest. This is the canonical
-silent failure mode for FastApiMCP — a missing operation_id is invisible until you
-inspect the manifest. Interview story: "The agent passed eval on happy-path but
-couldn't list treaties or fetch clauses. No error anywhere — I had to read the MCP
-spec to realise the whitelist was the gating mechanism."
-
----
-
-## DEC-004 · Treaty MCP mounted at wrong path
-
-**Symptom**: `main.py` mounted the treaty sub-app at `/api/v1/treaty_management_mcp`.
-The CLAUDE.md spec defines the Recovery Agent's tool calls as targeting
-`/api/v1/treaty` to call `list_exclusions` and `get_clause`.
-
-**Measurement**: Any agent or test client hitting `/api/v1/treaty/*` got a 404.
-
-**Change**: Mount path changed to `/api/v1/treaty` in `main.py`.
-
-**Result**: Treaty tools reachable at the documented path.
-
----
-
-## DEC-005 · Chroma relative path breaks from any non-ingestion working directory
-
-**Symptom**: `ingestion/chroma_store.py` set `CHROMA_PATH = "./chroma_db"`.
-When the module is imported from `MCP/main.py` or from a test, the relative path
-resolves to the caller's working directory, not the `ingestion/` directory where the
-actual database lives.
-
-**Measurement**: Starting uvicorn from `MCP/` caused chromadb to create a fresh empty
-`chroma_db/` in `MCP/` rather than reading the populated one in `ingestion/`.
-Similarity searches returned zero results with no error.
-
-**Change**: `CHROMA_PATH = Path(__file__).resolve().parent / "chroma_db"` — always
-resolves relative to the file, regardless of working directory at call time.
-
-**Result**: Chroma reads the correct database from any invocation context.
-Phase 5 interview story: "Hybrid retrieval was added to fix recall, but the
-underlying issue was that Phase 2 ingestion and Phase 3 retrieval were pointing at
-different databases on disk. The migration to pgvector in Phase 5 eliminated this
-class of problem entirely."
-
----
-
-## DEC-006 · XoL recovery exclusion check must precede arithmetic
-
-**Symptom (by design)**: A naive implementation calculates `loss_above_attachment`
-first, then checks exclusions. The LLM is handed a non-zero figure for a flood event
-on TRT-2026-003, which it narrates as a valid recovery. Article 4(b) excludes flood,
-so the correct answer is NIL.
-
-**Measurement**: `test_cat_2026_002_flood_excluded` catches this: if the exclusion
-check runs after the arithmetic step, the returned `recoverable_amount` is non-zero.
-
-**Change**: Enforced sequence in `recovery_mcp/handler.py`: Business Covered check →
-exclusion check → layer terms → erosion lookup → arithmetic. The function returns
-early at steps 2 or 3 with `recoverable_amount=0` and a `reason` field that the
-agent uses to construct its narrative.
-
-**Result**: The LLM never sees a financial figure it shouldn't narrate.
-Rule encoded in `CLAUDE.md`: "The model only writes the narrative explanation of a
-result it was given." This is the enforcement mechanism.
-
----
-
-## DEC-008 · langchain-mcp-adapters 0.1.0 removed async context manager support
-
-**Symptom**: Recovery Agent threw `NotImplementedError` on every request:
-`MultiServerMCPClient cannot be used as a context manager`.
-Server started fine — the error only appeared when an actual request hit `/ask` or `/tools`.
-
-**Measurement**: 0/3 smoke tests passed. All 500s. The traceback pointed to
-`async with MultiServerMCPClient(...)` which had worked in earlier versions.
-
-**Change**: Replaced `async with` pattern with the new direct call pattern:
-```python
-# Old (broke in 0.1.0):
-async with MultiServerMCPClient({...}) as client:
-    tools = client.get_tools()
-
-# New (correct for >= 0.1.0):
-client = MultiServerMCPClient({...})
-tools = await client.get_tools()
-```
-
-**Result**: `/tools` and `/ask` both return 200. Agent loads tools correctly.
-Interview story: "A minor version bump in a library silently changed the async
-interface. The server started without errors — the breakage only surfaced at
-request time. This is why smoke tests that actually hit the endpoints matter more
-than just checking that the server starts."
-
----
-
-## DEC-007 · Prior erosion from layer_erosion, not treaty_terms
-
-**Symptom (by design)**: `treaty_terms.layer_limit` for TRT-2026-003 Layer 2 = £4m.
-CAT-2026-004 arrives after Ashley eroded £0.8m. A handler that reads
-`treaty_terms.layer_limit` returns £4m available — and calculates £7.9m recovery.
-
-**Measurement**: `layer_erosion.current_limit_remaining` = £3.2m for Layer 2 before
-Cerys. The test `test_cat_2026_004_layer2_erosion` fails on any implementation that
-reads `treaty_terms` instead.
-
-**Change**: `calculate_xol_recovery` reads
-```sql
-SELECT current_limit_remaining FROM layer_erosion
-WHERE treaty_ref = %s AND layer_number = %s AND event_date < %s
-ORDER BY event_date DESC LIMIT 1
-```
-Falls back to `treaty_terms.layer_limit` only when no prior erosion row exists.
-
-**Result**: CAT-2026-004 total = £7.1m. Correct.
-
-
-
-
-
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/cederanew/cederanew/tests$ python3 test_recovery_agent.py 
+Recovery Agent smoke tests
+========================================
+FAIL  test_tools_endpoint: Server error '500 Internal Server Error' for url 'http://localhost:8914/tools'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500
+FAIL  test_cerys_windstorm: Server error '500 Internal Server Error' for url 'http://localhost:8914/ask'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500
+FAIL  test_flood_nil: Server error '500 Internal Server Error' for url 'http://localhost:8914/ask'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500
+
+0 passed, 3 failed.
+(venv) JarvisCl
+
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/cederanew/cederanew/RecoveryAgent$ python3 server.py 
+Starting Recovery Agent on http://localhost:8914
+MCP tools at: http://localhost:7720/api/v1/recovery/mcp/sse
+API docs at:  http://localhost:8914/docs
+INFO:     Started server process [9397]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8914 (Press CTRL+C to quit)
+INFO:     127.0.0.1:50300 - "GET /tools HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+  + Exception Group Traceback (most recent call last):
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 422, in run_asgi
+  |     result = await app(  # type: ignore[func-returns-value]
+  |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 63, in __call__
+  |     return await self.app(scope, receive, send)
+  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/applications.py", line 1216, in __call__
+  |     await super().__call__(scope, receive, send)
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/applications.py", line 96, in __call__
+  |     await self.middleware_stack(scope, receive, send)
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/middleware/errors.py", line 186, in __call__
+  |     raise exc
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/middleware/errors.py", line 164, in __call__
+  |     await self.app(scope, receive, _send)
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/telemetry/_asgi.py", line 151, in __call__
+  |     await self.app(scope, receive, send)
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/middleware/cors.py", line 91, in __call__
+  |     await self.simple_response(scope, receive, send, request_headers=headers)
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/middleware/cors.py", line 149, in simple_response
+  |     await self.app(scope, receive, send)
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+  |     await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+  |     raise exc
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+  |     await app(scope, receive, sender)
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+  |     await self.app(scope, receive, send)
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/routing.py", line 676, in __call__
+  |     await self.middleware_stack(scope, receive, send)
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/routing.py", line 2786, in app
+  |     await route.handle(scope, receive, send)
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/routing.py", line 1310, in handle
+  |     await super().handle(scope, receive, send)
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/routing.py", line 282, in handle
+  |     await self.app(scope, receive, send)
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/routing.py", line 165, in app
+  |     await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+  |     raise exc
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+  |     await app(scope, receive, sender)
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/routing.py", line 151, in app
+  |     response = await f(request)
+  |                ^^^^^^^^^^^^^^^^
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/routing.py", line 727, in app
+  |     raw_response = await run_endpoint_function(
+  |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/routing.py", line 360, in run_endpoint_function
+  |     return await dependant.call(**values)
+  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/home/JarvisClaims/Musaddique/cederanew/cederanew/RecoveryAgent/server.py", line 283, in list_tools
+  |     tools = await mcp_client.get_tools()
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/langchain_mcp_adapters/client.py", line 213, in get_tools
+  |     tools_list = await asyncio.gather(*load_mcp_tool_tasks)
+  |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/langchain_mcp_adapters/tools.py", line 590, in load_mcp_tools
+  |     async with create_session(
+  |   File "/usr/lib/python3.11/contextlib.py", line 204, in __aenter__
+  |     return await anext(self.gen)
+  |            ^^^^^^^^^^^^^^^^^^^^^
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/langchain_mcp_adapters/sessions.py", line 449, in create_session
+  |     async with _create_sse_session(**params) as session:
+  |   File "/usr/lib/python3.11/contextlib.py", line 204, in __aenter__
+  |     return await anext(self.gen)
+  |            ^^^^^^^^^^^^^^^^^^^^^
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/langchain_mcp_adapters/sessions.py", line 304, in _create_sse_session
+  |     async with (
+  |   File "/usr/lib/python3.11/contextlib.py", line 204, in __aenter__
+  |     return await anext(self.gen)
+  |            ^^^^^^^^^^^^^^^^^^^^^
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/mcp/client/sse.py", line 74, in sse_client
+  |     async with anyio.create_task_group() as tg:
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 847, in __aexit__
+  |     raise BaseExceptionGroup(
+  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+  +-+---------------- 1 ----------------
+    | Traceback (most recent call last):
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_transports/default.py", line 101, in map_httpcore_exceptions
+    |     yield
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_transports/default.py", line 394, in handle_async_request
+    |     resp = await self._pool.handle_async_request(req)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpcore/_async/connection_pool.py", line 256, in handle_async_request
+    |     raise exc from None
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpcore/_async/connection_pool.py", line 236, in handle_async_request
+    |     response = await connection.handle_async_request(
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpcore/_async/connection.py", line 101, in handle_async_request
+    |     raise exc
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpcore/_async/connection.py", line 78, in handle_async_request
+    |     stream = await self._connect(request)
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpcore/_async/connection.py", line 124, in _connect
+    |     stream = await self._network_backend.connect_tcp(**kwargs)
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpcore/_backends/auto.py", line 31, in connect_tcp
+    |     return await self._backend.connect_tcp(
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpcore/_backends/anyio.py", line 113, in connect_tcp
+    |     with map_exceptions(exc_map):
+    |   File "/usr/lib/python3.11/contextlib.py", line 155, in __exit__
+    |     self.gen.throw(typ, value, traceback)
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpcore/_exceptions.py", line 14, in map_exceptions
+    |     raise to_exc(exc) from exc
+    | httpcore.ConnectError: All connection attempts failed
+    | 
+    | The above exception was the direct cause of the following exception:
+    | 
+    | Traceback (most recent call last):
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/mcp/client/sse.py", line 80, in sse_client
+    |     async with sse_within_origin(client, url) as event_source:
+    |   File "/usr/lib/python3.11/contextlib.py", line 204, in __aenter__
+    |     return await anext(self.gen)
+    |            ^^^^^^^^^^^^^^^^^^^^^
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/mcp/shared/_httpx_utils.py", line 165, in sse_within_origin
+    |     async with stream_within_origin(client, "GET", url, headers=merged) as response:
+    |   File "/usr/lib/python3.11/contextlib.py", line 204, in __aenter__
+    |     return await anext(self.gen)
+    |            ^^^^^^^^^^^^^^^^^^^^^
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/mcp/shared/_httpx_utils.py", line 132, in stream_within_origin
+    |     response = await client.send(request, stream=True, follow_redirects=False)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_client.py", line 1629, in send
+    |     response = await self._send_handling_auth(
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_client.py", line 1657, in _send_handling_auth
+    |     response = await self._send_handling_redirects(
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_client.py", line 1694, in _send_handling_redirects
+    |     response = await self._send_single_request(request)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_client.py", line 1730, in _send_single_request
+    |     response = await transport.handle_async_request(request)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_transports/default.py", line 393, in handle_async_request
+    |     with map_httpcore_exceptions():
+    |   File "/usr/lib/python3.11/contextlib.py", line 155, in __exit__
+    |     self.gen.throw(typ, value, traceback)
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_transports/default.py", line 118, in map_httpcore_exceptions
+    |     raise mapped_exc(message) from exc
+    | httpx.ConnectError: All connection attempts failed
+    +------------------------------------
+INFO:     127.0.0.1:50312 - "POST /ask HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+  + Exception Group Traceback (most recent call last):
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 422, in run_asgi
+  |     result = await app(  # type: ignore[func-returns-value]
+  |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 63, in __call__
+  |     return await self.app(scope, receive, send)
+  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/applications.py", line 1216, in __call__
+  |     await super().__call__(scope, receive, send)
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/applications.py", line 96, in __call__
+  |     await self.middleware_stack(scope, receive, send)
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/middleware/errors.py", line 186, in __call__
+  |     raise exc
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/middleware/errors.py", line 164, in __call__
+  |     await self.app(scope, receive, _send)
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/telemetry/_asgi.py", line 151, in __call__
+  |     await self.app(scope, receive, send)
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/middleware/cors.py", line 91, in __call__
+  |     await self.simple_response(scope, receive, send, request_headers=headers)
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/middleware/cors.py", line 149, in simple_response
+  |     await self.app(scope, receive, send)
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+  |     await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+  |     raise exc
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+  |     await app(scope, receive, sender)
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+  |     await self.app(scope, receive, send)
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/routing.py", line 676, in __call__
+  |     await self.middleware_stack(scope, receive, send)
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/routing.py", line 2786, in app
+  |     await route.handle(scope, receive, send)
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/routing.py", line 1310, in handle
+  |     await super().handle(scope, receive, send)
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/routing.py", line 282, in handle
+  |     await self.app(scope, receive, send)
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/routing.py", line 165, in app
+  |     await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+  |     raise exc
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+  |     await app(scope, receive, sender)
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/routing.py", line 151, in app
+  |     response = await f(request)
+  |                ^^^^^^^^^^^^^^^^
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/routing.py", line 727, in app
+  |     raw_response = await run_endpoint_function(
+  |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/routing.py", line 360, in run_endpoint_function
+  |     return await dependant.call(**values)
+  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/home/JarvisClaims/Musaddique/cederanew/cederanew/RecoveryAgent/server.py", line 210, in ask
+  |     tools = await mcp_client.get_tools()
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/langchain_mcp_adapters/client.py", line 213, in get_tools
+  |     tools_list = await asyncio.gather(*load_mcp_tool_tasks)
+  |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/langchain_mcp_adapters/tools.py", line 590, in load_mcp_tools
+  |     async with create_session(
+  |   File "/usr/lib/python3.11/contextlib.py", line 204, in __aenter__
+  |     return await anext(self.gen)
+  |            ^^^^^^^^^^^^^^^^^^^^^
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/langchain_mcp_adapters/sessions.py", line 449, in create_session
+  |     async with _create_sse_session(**params) as session:
+  |   File "/usr/lib/python3.11/contextlib.py", line 204, in __aenter__
+  |     return await anext(self.gen)
+  |            ^^^^^^^^^^^^^^^^^^^^^
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/langchain_mcp_adapters/sessions.py", line 304, in _create_sse_session
+  |     async with (
+  |   File "/usr/lib/python3.11/contextlib.py", line 204, in __aenter__
+  |     return await anext(self.gen)
+  |            ^^^^^^^^^^^^^^^^^^^^^
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/mcp/client/sse.py", line 74, in sse_client
+  |     async with anyio.create_task_group() as tg:
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 847, in __aexit__
+  |     raise BaseExceptionGroup(
+  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+  +-+---------------- 1 ----------------
+    | Traceback (most recent call last):
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_transports/default.py", line 101, in map_httpcore_exceptions
+    |     yield
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_transports/default.py", line 394, in handle_async_request
+    |     resp = await self._pool.handle_async_request(req)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpcore/_async/connection_pool.py", line 256, in handle_async_request
+    |     raise exc from None
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpcore/_async/connection_pool.py", line 236, in handle_async_request
+    |     response = await connection.handle_async_request(
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpcore/_async/connection.py", line 101, in handle_async_request
+    |     raise exc
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpcore/_async/connection.py", line 78, in handle_async_request
+    |     stream = await self._connect(request)
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpcore/_async/connection.py", line 124, in _connect
+    |     stream = await self._network_backend.connect_tcp(**kwargs)
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpcore/_backends/auto.py", line 31, in connect_tcp
+    |     return await self._backend.connect_tcp(
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpcore/_backends/anyio.py", line 113, in connect_tcp
+    |     with map_exceptions(exc_map):
+    |   File "/usr/lib/python3.11/contextlib.py", line 155, in __exit__
+    |     self.gen.throw(typ, value, traceback)
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpcore/_exceptions.py", line 14, in map_exceptions
+    |     raise to_exc(exc) from exc
+    | httpcore.ConnectError: All connection attempts failed
+    | 
+    | The above exception was the direct cause of the following exception:
+    | 
+    | Traceback (most recent call last):
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/mcp/client/sse.py", line 80, in sse_client
+    |     async with sse_within_origin(client, url) as event_source:
+    |   File "/usr/lib/python3.11/contextlib.py", line 204, in __aenter__
+    |     return await anext(self.gen)
+    |            ^^^^^^^^^^^^^^^^^^^^^
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/mcp/shared/_httpx_utils.py", line 165, in sse_within_origin
+    |     async with stream_within_origin(client, "GET", url, headers=merged) as response:
+    |   File "/usr/lib/python3.11/contextlib.py", line 204, in __aenter__
+    |     return await anext(self.gen)
+    |            ^^^^^^^^^^^^^^^^^^^^^
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/mcp/shared/_httpx_utils.py", line 132, in stream_within_origin
+    |     response = await client.send(request, stream=True, follow_redirects=False)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_client.py", line 1629, in send
+    |     response = await self._send_handling_auth(
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_client.py", line 1657, in _send_handling_auth
+    |     response = await self._send_handling_redirects(
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_client.py", line 1694, in _send_handling_redirects
+    |     response = await self._send_single_request(request)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_client.py", line 1730, in _send_single_request
+    |     response = await transport.handle_async_request(request)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_transports/default.py", line 393, in handle_async_request
+    |     with map_httpcore_exceptions():
+    |   File "/usr/lib/python3.11/contextlib.py", line 155, in __exit__
+    |     self.gen.throw(typ, value, traceback)
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_transports/default.py", line 118, in map_httpcore_exceptions
+    |     raise mapped_exc(message) from exc
+    | httpx.ConnectError: All connection attempts failed
+    +------------------------------------
+INFO:     127.0.0.1:50328 - "POST /ask HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+  + Exception Group Traceback (most recent call last):
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 422, in run_asgi
+  |     result = await app(  # type: ignore[func-returns-value]
+  |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 63, in __call__
+  |     return await self.app(scope, receive, send)
+  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/applications.py", line 1216, in __call__
+  |     await super().__call__(scope, receive, send)
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/applications.py", line 96, in __call__
+  |     await self.middleware_stack(scope, receive, send)
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/middleware/errors.py", line 186, in __call__
+  |     raise exc
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/middleware/errors.py", line 164, in __call__
+  |     await self.app(scope, receive, _send)
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/telemetry/_asgi.py", line 151, in __call__
+  |     await self.app(scope, receive, send)
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/middleware/cors.py", line 91, in __call__
+  |     await self.simple_response(scope, receive, send, request_headers=headers)
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/middleware/cors.py", line 149, in simple_response
+  |     await self.app(scope, receive, send)
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+  |     await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+  |     raise exc
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+  |     await app(scope, receive, sender)
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+  |     await self.app(scope, receive, send)
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/routing.py", line 676, in __call__
+  |     await self.middleware_stack(scope, receive, send)
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/routing.py", line 2786, in app
+  |     await route.handle(scope, receive, send)
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/routing.py", line 1310, in handle
+  |     await super().handle(scope, receive, send)
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/routing.py", line 282, in handle
+  |     await self.app(scope, receive, send)
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/routing.py", line 165, in app
+  |     await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+  |     raise exc
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+  |     await app(scope, receive, sender)
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/routing.py", line 151, in app
+  |     response = await f(request)
+  |                ^^^^^^^^^^^^^^^^
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/routing.py", line 727, in app
+  |     raw_response = await run_endpoint_function(
+  |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/fastapi/routing.py", line 360, in run_endpoint_function
+  |     return await dependant.call(**values)
+  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/home/JarvisClaims/Musaddique/cederanew/cederanew/RecoveryAgent/server.py", line 210, in ask
+  |     tools = await mcp_client.get_tools()
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/langchain_mcp_adapters/client.py", line 213, in get_tools
+  |     tools_list = await asyncio.gather(*load_mcp_tool_tasks)
+  |                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/langchain_mcp_adapters/tools.py", line 590, in load_mcp_tools
+  |     async with create_session(
+  |   File "/usr/lib/python3.11/contextlib.py", line 204, in __aenter__
+  |     return await anext(self.gen)
+  |            ^^^^^^^^^^^^^^^^^^^^^
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/langchain_mcp_adapters/sessions.py", line 449, in create_session
+  |     async with _create_sse_session(**params) as session:
+  |   File "/usr/lib/python3.11/contextlib.py", line 204, in __aenter__
+  |     return await anext(self.gen)
+  |            ^^^^^^^^^^^^^^^^^^^^^
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/langchain_mcp_adapters/sessions.py", line 304, in _create_sse_session
+  |     async with (
+  |   File "/usr/lib/python3.11/contextlib.py", line 204, in __aenter__
+  |     return await anext(self.gen)
+  |            ^^^^^^^^^^^^^^^^^^^^^
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/mcp/client/sse.py", line 74, in sse_client
+  |     async with anyio.create_task_group() as tg:
+  |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/anyio/_backends/_asyncio.py", line 847, in __aexit__
+  |     raise BaseExceptionGroup(
+  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+  +-+---------------- 1 ----------------
+    | Traceback (most recent call last):
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_transports/default.py", line 101, in map_httpcore_exceptions
+    |     yield
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_transports/default.py", line 394, in handle_async_request
+    |     resp = await self._pool.handle_async_request(req)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpcore/_async/connection_pool.py", line 256, in handle_async_request
+    |     raise exc from None
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpcore/_async/connection_pool.py", line 236, in handle_async_request
+    |     response = await connection.handle_async_request(
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpcore/_async/connection.py", line 101, in handle_async_request
+    |     raise exc
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpcore/_async/connection.py", line 78, in handle_async_request
+    |     stream = await self._connect(request)
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpcore/_async/connection.py", line 124, in _connect
+    |     stream = await self._network_backend.connect_tcp(**kwargs)
+    |              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpcore/_backends/auto.py", line 31, in connect_tcp
+    |     return await self._backend.connect_tcp(
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpcore/_backends/anyio.py", line 113, in connect_tcp
+    |     with map_exceptions(exc_map):
+    |   File "/usr/lib/python3.11/contextlib.py", line 155, in __exit__
+    |     self.gen.throw(typ, value, traceback)
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpcore/_exceptions.py", line 14, in map_exceptions
+    |     raise to_exc(exc) from exc
+    | httpcore.ConnectError: All connection attempts failed
+    | 
+    | The above exception was the direct cause of the following exception:
+    | 
+    | Traceback (most recent call last):
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/mcp/client/sse.py", line 80, in sse_client
+    |     async with sse_within_origin(client, url) as event_source:
+    |   File "/usr/lib/python3.11/contextlib.py", line 204, in __aenter__
+    |     return await anext(self.gen)
+    |            ^^^^^^^^^^^^^^^^^^^^^
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/mcp/shared/_httpx_utils.py", line 165, in sse_within_origin
+    |     async with stream_within_origin(client, "GET", url, headers=merged) as response:
+    |   File "/usr/lib/python3.11/contextlib.py", line 204, in __aenter__
+    |     return await anext(self.gen)
+    |            ^^^^^^^^^^^^^^^^^^^^^
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/mcp/shared/_httpx_utils.py", line 132, in stream_within_origin
+    |     response = await client.send(request, stream=True, follow_redirects=False)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_client.py", line 1629, in send
+    |     response = await self._send_handling_auth(
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_client.py", line 1657, in _send_handling_auth
+    |     response = await self._send_handling_redirects(
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_client.py", line 1694, in _send_handling_redirects
+    |     response = await self._send_single_request(request)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_client.py", line 1730, in _send_single_request
+    |     response = await transport.handle_async_request(request)
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_transports/default.py", line 393, in handle_async_request
+    |     with map_httpcore_exceptions():
+    |   File "/usr/lib/python3.11/contextlib.py", line 155, in __exit__
+    |     self.gen.throw(typ, value, traceback)
+    |   File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/httpx/_transports/default.py", line 118, in map_httpcore_exceptions
+    |     raise mapped_exc(message) from exc
+    | httpx.ConnectError: All connection attempts failed
+    +------------------------------------
