@@ -1,50 +1,365 @@
-(venv) JarvisClaims@JarvisClaims:~/Musaddique/cederanew/cederanew/tests$ python3 test_recovery_agent.py 
-Recovery Agent smoke tests
-========================================
-PASS — 5 tools: ['get_event', 'list_applicable_treaties', 'calculate_xol_recovery', 'calculate_aggregate_position', 'check_reinstatements']
-
-Cerys answer:
-Here is the XoL recovery calculation for the Cerys windstorm event (CAT-2026-004):
-
-Event details:
-- Peril: Windstorm
-- Net retained loss: £8,400,000
-- Affected policies: 6
-
-Applicable treaties:
-- TRT-2026-003 (Property XoL, Sable Re consortium)
-- TRT-2026-005 (Casualty XoL, Harbourline Re) — not applicable to this event
-
-Recovery by layer:
-
-| Treaty         | Layer | Attachment | Available Limit | Recovery Amount | Notes                                      |
-|----------------|-------|------------|-----------------|-----------------|---------------------------------------------|
-| TRT-2026-003   | 1     | £500,000   | £500,000        | £500,000        |                                            |
-| TRT-2026-003   | 2     | £1,000,000 | £3,200,000      | £3,200,000      | £800,000 eroded by prior event(s)          |
-| TRT-2026-003   | 3     | £5,000,000 | £15,000,000     | £3,400,000      |                                            |
-| TRT-2026-005   | 1-3   | —          | —               | £0              | Not covered: Business Covered not met¹      |
-
-Total recovery: £7,100,000
-
-¹ TRT-2026-005 (Casualty XoL) does not respond because the event’s cat programme reference is TRT-2026-003, not TRT-2026-005. This is a Business Covered condition (see calculation_basis: "result": "ineligible").
-
-Calculation basis for each layer is available for audit. If you need the detailed step-by-step arithmetic for any layer, let me know.
-
-PASS — tool calls made: 3
-
-Flood answer:
-No recovery is available under TRT-2026-003 for the River Trent flood (CAT-2026-002).
-
-Reason: Flood and inundation are excluded from TRT-2026-003 by Article 4(b). The peril is not covered, so no claim can be made under this treaty for this event.
-
+Musaddique Lalkot
+📷
+Excellent catch! There IS a bug here. Let me explain both scenarios and point out the critical flaw.
+SCENARIO 1: ADJUSTER APPROVES REPLACEMENT (Your Current Scenario)
+Settlement Recommendation Card Shows:
+Settlement Amount:           $14,349
+Final Settlement (Adjuster): $14,349
+Deductible Applied:          $2,526
+Remaining Coverage Limit:    $650,000
+STP Score:                   85
+Recommended Action: "Proceed with replacement and pay the settlement amount of 14349.0."
+Notes: "...replacement is appropriate...final settlement amount of 14349.0..."
+FLOW:
+Step 1: Settlement Recommendation Agent calculates
+        Decision = Replace (cheaper: $14,349 vs $15,762)
+        settlement_amount = $14,349
+        
+Step 2: Stored in ai_decision_recommendations
+        settlement_amount = $14,349
+        final_decesion_repair_vs_replacement = "Replace"
+Step 3: UI displays this data
+Step 4: Adjuster sees it and clicks "Approve"
+Step 5: System writes to repair_vs_replacement_decisions
+        decision = "Replace"
+        
+Step 6: Final Settlement (Adjuster) = $14,349 ✓ (matches)
+Everything consistent here. ✅
+SCENARIO 2: ADJUSTER OVERRIDES TO REPAIR (Even Though Agent Suggested Replace)
+Settlement Recommendation Card STILL Shows:
+Settlement Amount:           $14,349  ← WRONG! Based on Replace decision
+Final Settlement (Adjuster): $14,349  ← WRONG!
+Deductible Applied:          $2,526
+Remaining Coverage Limit:    $650,000
+STP Score:                   85
+Recommended Action: "Proceed with replacement and pay..."  ← WRONG!
+Notes: "...replacement is appropriate..."  ← WRONG!
+BUT Adjuster Decision Panel Shows:
+System Recommendation:  Replacement
+Adjuster Override:      Repair  ← ADJUSTER CHANGED THIS
+Final Recommendation:   Repair  ← Now it says Repair
+THE BUG:
+Adjuster selected "Repair" in the override, but:
+Settlement Amount = $14,349  ← This is the NET payable for REPLACEMENT
+                             (parts: $16,875 - deductible: $2,526)
+But the decision is now REPAIR, so it should be:
+Settlement Amount = $15,762  ← NET payable for REPAIR
+                             ((parts + labor: $21,613) - depreciation: $3,325 - deductible: $2,526)
+The system is showing settlement amount for REPLACE decision
+but recording a REPAIR decision.
+This is a DATA MISMATCH!
+THE EXACT BUG BREAKDOWN:
+What SHOULD Happen (Correct Logic):
+If Adjuster Selects Replace:
+Settlement Amount = $14,349  (replacement net payable)
+Final Decision = "Replace"
+Deductible = $2,526
+Status = CONSISTENT ✓
+If Adjuster Selects Repair:
+Settlement Amount = $15,762  (repair net payable)
+Final Decision = "Repair"
+Deductible = $2,526
+Status = CONSISTENT ✓
+What ACTUALLY Happens (Buggy Logic):
+If Agent Recommended Replace and Adjuster Clicks Approve:
+Settlement Amount = $14,349  (based on Replace)
+Final Decision = "Replace"
+Status = OK ✓
+If Agent Recommended Replace but Adjuster Overrides to Repair:
+Settlement Amount = $14,349  (STILL based on Replace!) ❌
+Final Decision = "Repair"  (adjuster override) ⚠️
+Status = MISMATCH ❌
+The settlement amount doesn't re-derive based on the new decision!
+It stays frozen at the original Replace-based amount.
+WHY THIS IS A BUG:
+Scenario: Agent says Replace ($14,349), Adjuster says Repair
+What gets written to the database:
+repair_vs_replacement_decisions.decision = "Repair"
+ai_decision_recommendations.settlement_amount = $14,349  ← still the Replace amount!
+Later when claim is processed:
+System reads: decision = "Repair", settlement = $14,349
+But Repair should settle at $15,762, not $14,349
+This is a $1,413 underpayment!
+THE ROOT CAUSE:
+Looking at the code flow:
+Settlement Recommendation Agent calculates settlement_amount based on the decision
+This gets stored in ai_decision_recommendations.settlement_amount
+Adjuster Decision Panel shows an override dropdown
+But the override dropdown ONLY updates repair_vs_replacement_decisions.decision
+It does NOT recalculate ai_decision_recommendations.settlement_amount
+So:
+ai_decision_recommendations = $14,349 (Replace-based, unchanged)
+repair_vs_replacement_decisions.decision = "Repair" (adjuster override)
+These two are now out of sync!
+THE CORRECT BEHAVIOR SHOULD BE:
+When adjuster clicks "Save Loss Assessment" with a DIFFERENT decision than what the agent recommended:
+Step 1: Adjuster selects "Repair" override
+Step 2: System should:
+        - Write "Repair" to repair_vs_replacement_decisions
+        - RECALCULATE settlement_amount for Repair
+        - Update ai_decision_recommendations to settlement_amount = $15,762
+        - Update recommended_action text to mention "repair" instead of "replacement"
+        - Update notes to match the new decision
+Step 3: UI should immediately reflect the new settlement amount
+But instead:
+Step 1: Adjuster selects "Repair"
+Step 2: System only writes "Repair" to repair_vs_replacement_decisions
+        
+Step 3: ai_decision_recommendations stays at $14,349 (stale!)
+Step 4: Next time the claim is reviewed, it shows:
+        Settlement Amount: $14,349 (wrong - for Replace, not Repair)
+        Decision: Repair
+        → MISMATCH
+COMPARISON TABLE — Showing the Bug:
+State	Settlement Amount	Decision	Consistent?
+Agent recommends Replace, adjuster approves	$14,349	Replace	✅ YES
+Agent recommends Replace, adjuster overrides to Repair	$14,349	Repair	❌ NO - BUG!
+Agent recommends Repair, adjuster approves	$15,762	Repair	✅ YES
+Agent recommends Repair, adjuster overrides to Replace	$15,762	Replace	❌ NO - BUG!
+THE FIX NEEDED:
+When adjuster overrides the decision, the system should:
+if adjuster_override != agent_recommendation:
+    # Recalculate settlement amount for the new decision
+    if adjuster_override == "Replace":
+        new_settlement = replacement_net_payable
+        new_action = "Proceed with replacement..."
+    else:  # Repair
+        new_settlement = repair_net_payable
+        new_action = "Proceed with repair..."
+    
+    # Update BOTH tables
+    UPDATE ai_decision_recommendations 
+    SET settlement_amount = new_settlement,
+        recommended_action = new_action,
+        final_decesion_repair_vs_replacement = adjuster_override
+    
+    UPDATE repair_vs_replacement_decisions
+    SET decision = adjuster_override
 Summary:
-- Peril: Flood
-- Exclusion: Article 4(b) (as cited in the event data)
-- Recovery: Nil
-
-If you need further details or wish to check other treaties, please let me know.
-
-PASS — tool calls made: 1
-
-3 passed, 0 failed.
-(venv) JarvisClaims@JarvisClaims:~/Musaddique/cederanew/cederanew/tests$ 
+The Bug: When an adjuster overrides the agent's decision (e.g., agent says Replace, adjuster says Repair), the settlement amount doesn't recalculate. It stays at the original decision's amount, creating a mismatch between the decision and the settlement amount.
+Impact: If adjuster overrides Replace→Repair, settlement stays at $14,349 (wrong for Repair, should be $15,762), leading to potential underpayment by $1,413.
+Great catch — this is a real data consistency bug!
+ 
+YES! The bug happens in BOTH directions, but with opposite financial impact!
+Let me show you the reverse scenario:
+REVERSE SCENARIO: Agent Suggests Repair, Adjuster Overrides to Replace
+(Hypothetical — if repair net payable were cheaper than replacement)
+Settlement Recommendation Card Shows:
+Settlement Amount:           $15,762  ← Based on REPAIR decision
+Final Settlement (Adjuster): $15,762
+Deductible Applied:          $2,526
+Remaining Coverage Limit:    $650,000
+STP Score:                   85
+Recommended Action: "Proceed with repair and pay the settlement amount of 15762.0."
+Notes: "...repair is the appropriate action..."
+Adjuster Decision Panel Shows:
+System Recommendation:  Repair
+Adjuster Override:      Replace  ← ADJUSTER CHANGED THIS
+Final Recommendation:   Replace  ← Now it says Replace
+THE BUG (Opposite Direction):
+Adjuster selected "Replace" in the override, but:
+Settlement Amount = $15,762  ← This is the NET payable for REPAIR
+                             ((parts + labor) - depreciation - deductible)
+But the decision is now REPLACE, so it should be:
+Settlement Amount = $14,349  ← NET payable for REPLACEMENT
+                             (replacement_total - deductible)
+The system is showing settlement amount for REPAIR decision
+but recording a REPLACE decision.
+This is a DATA MISMATCH in the OPPOSITE DIRECTION!
+SIDE-BY-SIDE COMPARISON — The Bug in Both Directions:
+Scenario	Agent Recommends	Adjuster Overrides To	Settlement Stored	Should Be	Difference	Impact
+Forward	Replace ($14,349)	Repair	$14,349	$15,762	-$1,413	UNDERPAYMENT
+Reverse	Repair ($15,762)	Replace	$15,762	$14,349	+$1,413	OVERPAYMENT
+THE CRITICAL DIFFERENCE:
+Direction 1: Replace → Repair Override
+Adjuster says "Repair" but settlement is $14,349 (Replace amount)
+Insurer UNDERPAYS the claim by $1,413
+→ Policyholder loses money
+→ Bad for customer satisfaction
+Direction 2: Repair → Replace Override
+Adjuster says "Replace" but settlement is $15,762 (Repair amount)
+Insurer OVERPAYS the claim by $1,413
+→ Insurer loses money
+→ Bad for company financials
+Why It Happens in BOTH Directions:
+The root cause is the same:
+Settlement Recommendation Agent calculates settlement_amount based on 
+the CURRENT decision and stores it in ai_decision_recommendations.
+When adjuster overrides the decision via the Adjuster Decision Panel,
+ONLY repair_vs_replacement_decisions.decision gets updated.
+ai_decision_recommendations.settlement_amount NEVER gets recalculated.
+So in BOTH directions, settlement_amount becomes STALE and MISMATCHED.
+The Database State After Override (Both Scenarios):
+Scenario 1: Agent said Replace, Adjuster said Repair
+repair_vs_replacement_decisions.decision = "Repair"  ← Updated
+ai_decision_recommendations.settlement_amount = $14,349  ← STALE (for Replace!)
+ai_decision_recommendations.final_decesion_repair_vs_replacement = "Replace"  ← STALE
+Result: $1,413 UNDERPAYMENT
+Scenario 2: Agent said Repair, Adjuster said Replace
+repair_vs_replacement_decisions.decision = "Replace"  ← Updated
+ai_decision_recommendations.settlement_amount = $15,762  ← STALE (for Repair!)
+ai_decision_recommendations.final_decesion_repair_vs_replacement = "Repair"  ← STALE
+Result: $1,413 OVERPAYMENT
+Which Direction is Worse?
+The Reverse (Repair→Replace Override) is WORSE because:
+Overpayment is more visible - Finance teams will notice outgoing payments exceed estimates
+It's a direct financial loss to the insurance company
+Audit trails show inconsistency - decision says Replace but amounts are for Repair
+Harder to catch in manual review - adjuster might not notice they approved $15,762 for a Replace decision
+Whereas underpayment might go unnoticed by the policyholder if they don't review the settlement.
+The Complete Bug Picture:
+Settlement Recommendation Agent → Calculates & stores settlement_amount based on decision
+                                   ↓
+Adjuster Decision Panel → Can override the decision
+                          ↓
+BUG: Overriding the decision does NOT recalculate settlement_amount
+     
+Result: Both tables get out of sync, causing $1,413 error in EITHER direction
+        - Underpayment if Replace→Repair
+        - Overpayment if Repair→Replace
+So YES — the bug is bidirectional, equally present in both scenarios, and creates financial errors in both directions. The only difference is whether it's an underpayment or overpayment.
+ 
+YES! Absolutely! This bug CASCADES into Financial Leakage Agent and corrupts its calculations significantly!
+Let me show you exactly how in BOTH scenarios:
+SCENARIO A: Agent Said Replace, Adjuster Overrode to Repair
+The Stale Data:
+Database State After Override:
+  repair_vs_replacement_decisions.decision = "Repair"  ← Updated
+  ai_decision_recommendations.settlement_amount = $14,349  ← STALE (for Replace!)
+Financial Leakage Agent Runs:
+Step 1: Reads the Decision
+decision = "Repair"  ← From repair_vs_replacement_decisions
+→ "I need to calculate variance for REPAIR path"
+Step 2: Calculates Estimated Cost (for Repair)
+total_estimated_cost = loss_assessments.ai_estimated_loss
+                     = $21,613  (parts + labor, gross)
+Step 3: Calculates Actual Cost (for Repair)
+total_actual_cost = SUM(repair_costs.total_repair_estimate)
+                  = $15,704  (Repair vs Replace Agent's per-item LLM estimates)
+Step 4: Calculate Variance
+variance = (actual - estimated) / estimated × 100
+         = ($15,704 - $21,613) / $21,613 × 100
+         = -27.3%
+leakage_score = min(int(max(-27.3, 0) × 2), 100) = 0  (floored to 0)
+leakage_risk = "Low"
+Step 5: THEN — Compares Against Stale settlement_amount
+Reads: ai_decision_recommendations.settlement_amount = $14,349
+       ↑ This was calculated for REPLACE decision!
+       ↑ NOT for Repair!
+Recommendation note says:
+"Score compares settlement amount ($14,349) against AI-computed 
+Repair cost ($15,704)."
+But this is WRONG! $14,349 is the REPLACE settlement!
+The Corrupted Output:
+What Financial Leakage shows:
+  Estimated: $21,613 (for Repair) ✓
+  Actual: $15,704 (for Repair) ✓
+  Settlement comparison: $14,349 (for REPLACE!) ✗
+  Variance: -27.3% (calculated correctly for Repair)
+  
+But the comparison text uses the wrong settlement amount!
+This creates MISLEADING analysis:
+  It says variance is -27.3% against repair costs
+  But the settlement_amount shown is for Replace, not Repair
+  
+A reviewer looking at this might think:
+"Wow, -27.3% variance, that's a big underpayment risk!"
+But actually, the settlement SHOULD be $15,762 for Repair, not $14,349!
+The Real vs False Comparison:
+What's Shown	What Should Be Shown
+Settlement: $14,349 (Replace)	Settlement: $15,762 (Repair)
+Repair costs: $15,704	Repair costs: $15,704
+Variance: ($15,704-$14,349)/$14,349 = +9.4%	Variance: ($15,704-$15,762)/$15,762 = -0.4%
+Risk: "Low" (but for wrong reason!)	Risk: "Low" (correct)
+The variance is calculated CORRECTLY for Repair ($15,704 vs $21,613 = -27.3%), but then compared against the WRONG settlement amount ($14,349 instead of $15,762)!
+SCENARIO B: Agent Said Repair, Adjuster Overrode to Replace
+The Stale Data:
+Database State After Override:
+  repair_vs_replacement_decisions.decision = "Replace"  ← Updated
+  ai_decision_recommendations.settlement_amount = $15,762  ← STALE (for Repair!)
+Financial Leakage Agent Runs:
+Step 1: Reads the Decision
+decision = "Replace"  ← From repair_vs_replacement_decisions
+→ "I need to calculate variance for REPLACE path"
+Step 2: Calculates Estimated Cost (for Replace)
+total_estimated_cost = SUM(replacement_costs.total_replacement_estimate)
+                     = $16,875  (Repair vs Replace Agent's replacement estimates)
+Step 3: Calculates Actual Cost (for Replace)
+total_actual_cost = SUM(replacement_costs.total_replacement_estimate)
+                  = $16,875  (Same query! Pre-dispatch)
+Step 4: Calculate Variance
+variance = ($16,875 - $16,875) / $16,875 × 100
+         = 0%
+leakage_score = 0
+leakage_risk = "Low"
+Step 5: THEN — Compares Against Stale settlement_amount
+Reads: ai_decision_recommendations.settlement_amount = $15,762
+       ↑ This was calculated for REPAIR decision!
+       ↑ NOT for Replace!
+Recommendation note says:
+"Score compares settlement amount ($15,762) against AI-computed 
+Replace cost ($16,875)."
+But this is WRONG! $15,762 is the REPAIR settlement!
+The Replace settlement should be $14,349!
+The Corrupted Output:
+What Financial Leakage shows:
+  Estimated: $16,875 (for Replace) ✓
+  Actual: $16,875 (for Replace) ✓
+  Settlement comparison: $15,762 (for REPAIR!) ✗
+  Variance: 0% (calculated correctly for Replace pre-dispatch)
+  
+But the settlement_amount shown is WRONG!
+A reviewer looking at this might think:
+"Settlement is $15,762, replacement costs are $16,875, 
+so there's a $1,113 overpayment risk."
+But actually, the correct Replace settlement is $14,349!
+The real overpayment risk is ($16,875 - $14,349) = $2,526!
+The Real vs False Comparison:
+What's Shown	What Should Be Shown
+Settlement: $15,762 (Repair)	Settlement: $14,349 (Replace)
+Replacement costs: $16,875	Replacement costs: $16,875
+Variance: ($16,875-$15,762)/$15,762 = +7.1%	Variance: ($16,875-$14,349)/$14,349 = +17.6%
+Risk: "Low"	Risk: "Medium" or "High"!
+The variance is showing +7.1% (minor overpayment), but the REAL overpayment is +17.6%! The risk level assessment is completely WRONG!
+SIDE-BY-SIDE COMPARISON — How the Bug Cascades
+Aspect	Scenario A: Replace→Repair	Scenario B: Repair→Replace
+Agent Recommends	Replace ($14,349)	Repair ($15,762)
+Adjuster Overrides To	Repair	Replace
+Stored Decision	Repair ✓	Replace ✓
+Stored Settlement (STALE)	$14,349 (for Replace!) ✗	$15,762 (for Repair!) ✗
+Financial Leakage Reads Decision	Repair	Replace
+FL Calculates Estimated	$21,613 (Repair parts+labor) ✓	$16,875 (Replace total) ✓
+FL Calculates Actual	$15,704 (Repair costs) ✓	$16,875 (Replace costs) ✓
+FL Calculates Variance	($15,704-$21,613)/$21,613 = -27.3%	($16,875-$16,875)/$16,875 = 0%
+FL Compares Settlement	$14,349 (WRONG - for Replace!) ✗	$15,762 (WRONG - for Repair!) ✗
+FL Shows Variance vs Settlement	($15,704-$14,349)/$14,349 = +9.4% (FALSE!)	($16,875-$15,762)/$15,762 = +7.1% (FALSE!)
+Correct Variance vs Settlement	($15,704-$15,762)/$15,762 = -0.4% (Underpayment)	($16,875-$14,349)/$14,349 = +17.6% (Overpayment)
+Financial Impact	Shows +9.4% overpayment, actually -0.4% underpayment	Shows +7.1% overpayment, actually +17.6% overpayment
+THE CASCADING DAMAGE:
+Scenario A Impact: Repair Path with Stale Replace Settlement
+Financial Leakage says: "9.4% overpayment risk, score Low"
+Reality: "-0.4% underpayment risk"
+→ INVERTS the risk assessment!
+→ Insurance company thinks they're overpaying when actually underpaying!
+→ Won't flag the issue for review
+Scenario B Impact: Replace Path with Stale Repair Settlement
+Financial Leakage says: "7.1% overpayment risk, score Low"
+Reality: "17.6% overpayment risk, score Medium/High"
+→ UNDERSTATES the risk by 2.5x!
+→ Insurance company thinks it's minor when it's actually significant
+→ Won't escalate for review
+→ $2,526 overpayment goes undetected!
+Summary: How the Bug Cascades to Financial Leakage
+Settlement Recommendation Agent calculates settlement_amount for one decision (e.g., Replace = $14,349)
+Adjuster overrides the decision (e.g., to Repair), but settlement_amount stays stale
+Database now has mismatch:
+decision = "Repair"
+settlement_amount = $14,349 (for Replace!)
+Financial Leakage Agent reads the decision ("Repair") but compares against the stale settlement_amount ($14,349 for Replace!)
+Result: CORRUPTED VARIANCE CALCULATION
+Compares wrong settlement amount against the right decision
+Produces misleading leakage risk assessments
+Can either understate or overstate the actual financial risk
+In Scenario B, understates overpayment risk by 2.5x ($7.1% vs $17.6%)
+The bug doesn't just break Settlement Recommendation — it cascades down and corrupts Financial Leakage Agent's risk calculations! 🚨
+ 
