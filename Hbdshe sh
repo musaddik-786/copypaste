@@ -228,6 +228,21 @@ export default function LossAssessment() {
     return json;
   };
 
+  // Silently persist the current adjusterOverride/notes to the DB before any
+  // analysis run so agents always read the adjuster's latest decision.
+  const ensureDecisionSaved = async () => {
+    if (!selectedClaimId) return;
+    try {
+      await fetch(`/api/adjuster/save-loss-assessment?claimNumber=${selectedClaimId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ adjusterOverride, notes: adjusterNotes }),
+      });
+    } catch {
+      // Best-effort — never block analysis on a save failure.
+    }
+  };
+
   // Best-effort: ask the orchestrator to continue the adjuster workflow for
   // this claim. Waits up to `waitMs` for the run to finish so fresh results
   // land in the DB before we reload, but never cancels the stream — it keeps
@@ -408,6 +423,7 @@ export default function LossAssessment() {
   const runReserveAnalysis = async () => {
     if (reserveBusy || !selectedClaimId) return;
     setReserveBusy(true);
+    await ensureDecisionSaved();
     try {
       // Runs through the orchestrator's own /reserve-analysis endpoint — a
       // small, dedicated flow (scoped tools + prompt, single awaited JSON
@@ -451,6 +467,7 @@ export default function LossAssessment() {
   const runSettlementAnalysis = async () => {
     if (settlementBusy || !selectedClaimId) return;
     setSettlementBusy(true);
+    await ensureDecisionSaved();
     try {
       // Runs through the orchestrator's own /settlement-analysis endpoint —
       // same pattern as Reserve: scoped tools + a dedicated prompt, single
@@ -493,6 +510,7 @@ export default function LossAssessment() {
   const runLeakageAnalysis = async () => {
     if (leakageBusy || !selectedClaimId) return;
     setLeakageBusy(true);
+    await ensureDecisionSaved();
     try {
       // Runs through the orchestrator's own /financial-leakage-analysis
       // endpoint — which now also runs Payment Eligibility and a read-only
@@ -1221,6 +1239,8 @@ export default function LossAssessment() {
                 <button
                   onClick={() =>
                     runOrchestrator("Run AI Analysis", async () => {
+                      // Persist adjuster's current decision before agents read the DB.
+                      await ensureDecisionSaved();
                       // Best-effort: resume the orchestrator workflow from loss
                       // assessment (same as "Continue Workflow" after a HITL
                       // decision). Never block the UI — bounded wait, ignore errors.
