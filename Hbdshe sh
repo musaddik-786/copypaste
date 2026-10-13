@@ -1,35 +1,13 @@
-JarvisClaims@JarvisClaims:~/Musaddique$ cd ~/Musaddique/cederanew/cederanew && python3 -c "
+Now I have the exact schema. Let me also check if there's a `treaty_documents` table (needed for the `document_id` foreign key):
+
+```bash
+cd ~/Musaddique/cederanew/cederanew && python3 -c "
 from MCP.common.db import get_db_connection
 conn = get_db_connection()
 cur = conn.cursor()
-cur.execute(\"SELECT column_name, data_type FROM information_schema.columns WHERE table_name IN ('treaty_clauses','treaty_exclusions') ORDER BY table_name, ordinal_position\")
-for row in cur.fetchall(): print(row)
+cur.execute(\"SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'treaty_documents' ORDER BY ordinal_position\")
+rows = cur.fetchall()
+print('treaty_documents columns:', rows if rows else 'TABLE DOES NOT EXIST')
 cur.close(); conn.close()
 "
-RealDictRow([('column_name', 'clause_id'), ('data_type', 'bigint')])
-RealDictRow([('column_name', 'clause_id'), ('data_type', 'bigint')])
-RealDictRow([('column_name', 'treaty_ref'), ('data_type', 'character varying')])
-RealDictRow([('column_name', 'treaty_ref'), ('data_type', 'character varying')])
-RealDictRow([('column_name', 'document_id'), ('data_type', 'bigint')])
-RealDictRow([('column_name', 'document_id'), ('data_type', 'bigint')])
-RealDictRow([('column_name', 'clause_ref'), ('data_type', 'character varying')])
-RealDictRow([('column_name', 'clause_ref'), ('data_type', 'character varying')])
-RealDictRow([('column_name', 'clause_title'), ('data_type', 'text')])
-RealDictRow([('column_name', 'clause_title'), ('data_type', 'text')])
-RealDictRow([('column_name', 'clause_text'), ('data_type', 'text')])
-RealDictRow([('column_name', 'clause_text'), ('data_type', 'text')])
-RealDictRow([('column_name', 'page_number'), ('data_type', 'integer')])
-RealDictRow([('column_name', 'page_number'), ('data_type', 'integer')])
-RealDictRow([('column_name', 'embedding'), ('data_type', 'USER-DEFINED')])
-RealDictRow([('column_name', 'embedding'), ('data_type', 'USER-DEFINED')])
-RealDictRow([('column_name', 'exclusion_id'), ('data_type', 'bigint')])
-RealDictRow([('column_name', 'exclusion_id'), ('data_type', 'bigint')])
-RealDictRow([('column_name', 'treaty_ref'), ('data_type', 'character varying')])
-RealDictRow([('column_name', 'treaty_ref'), ('data_type', 'character varying')])
-RealDictRow([('column_name', 'clause_ref'), ('data_type', 'character varying')])
-RealDictRow([('column_name', 'clause_ref'), ('data_type', 'character varying')])
-RealDictRow([('column_name', 'exclusion_name'), ('data_type', 'text')])
-RealDictRow([('column_name', 'exclusion_name'), ('data_type', 'text')])
-RealDictRow([('column_name', 'description'), ('data_type', 'text')])
-RealDictRow([('column_name', 'description'), ('data_type', 'text')])
-JarvisClaims@JarvisClaims:~/Musaddique/cederanew/cederanew$ 
+```
