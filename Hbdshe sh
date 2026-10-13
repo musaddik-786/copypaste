@@ -1,3 +1,90 @@
-{finalRecommendation.toLowerCase().startsWith("replace")
-  ? "Net Payable (Replacement)"
-  : "Net Payable (Repair)"}
+server.py
+
+from mcp.server.fastmcp import FastMCP
+
+mcp = FastMCP("Claims Server")
+
+CLAIMS = {
+    "CLM001": {
+        "claim_id": "CLM001",
+        "policy_id": "POL1001",
+        "status": "OPEN",
+        "estimated_amount": 18500
+    },
+    "CLM002": {
+        "claim_id": "CLM002",
+        "policy_id": "POL1002",
+        "status": "CLOSED",
+        "estimated_amount": 75000
+    }
+}
+
+
+@mcp.tool()
+def get_claim(claim_id: str) -> dict:
+    """Retrieve claim details using a claim ID."""
+
+    claim = CLAIMS.get(claim_id)
+
+    if claim is None:
+        return {
+            "error": f"Claim {claim_id} not found"
+        }
+
+    return claim
+
+
+if __name__ == "__main__":
+    mcp.run(transport="stdio")
+
+
+
+client.py
+import asyncio
+import sys
+
+from mcp import ClientSession, StdioServerParameters
+from mcp.client.stdio import stdio_client
+
+
+async def main():
+
+    server_params = StdioServerParameters(
+        command=sys.executable,
+        args=["server.py"]
+    )
+
+    async with stdio_client(server_params) as (read, write):
+
+        async with ClientSession(read, write) as session:
+
+            # Establish the MCP session using the SDK.
+            await session.initialize()
+
+            # 1. Discover available tools.
+            tools_result = await session.list_tools()
+
+            print("\nAvailable tools:")
+
+            for tool in tools_result.tools:
+                print(f"- {tool.name}: {tool.description}")
+
+            # 2. Call a tool.
+            print("\nCalling get_claim...")
+
+            result = await session.call_tool(
+                "get_claim",
+                {
+                    "claim_id": "CLM001"
+                }
+            )
+
+            print("\nTool result:")
+
+            for item in result.content:
+                if hasattr(item, "text"):
+                    print(item.text)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
