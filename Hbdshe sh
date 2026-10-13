@@ -1,3 +1,6 @@
+cd ~/Musaddique/cederanew/cederanew && python3 -m ingestion.ingest_to_postgres --treaty TRT-2026-003
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # ingest_to_postgres.py  —  Treaty PDF → PostgreSQL ingestion pipeline
 #
