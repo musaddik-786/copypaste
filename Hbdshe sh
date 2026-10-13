@@ -1,26 +1,54 @@
-(venv) JarvisClaims@JarvisClaims:~/Musaddique/cederanew/cederanew$ cd ~/Musaddique/cederanew/cederanew && python3 -m ingestion.ingest_to_postgres --treaty TRT-2026-003
-INFO Found 1 PDFs to process
-INFO ============================================================
-INFO Processing TRT-2026-003_Property_Catastrophe_XoL.pdf  (treaty_ref: TRT-2026-003)
-INFO   Extracted 9 pages
-INFO   Chunked into 38 pieces
-INFO   Generating embeddings (this calls Azure OpenAI)...
-INFO HTTP Request: POST https://azureclaimsopenai.openai.azure.com/openai/deployments/text-embedding-3-large-claims/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
-INFO   Generated 38 embeddings
-INFO   Registered new document: document_id=1
-ERROR   FAILED — rolling back
-Traceback (most recent call last):
-  File "/home/JarvisClaims/Musaddique/cederanew/cederanew/ingestion/ingest_to_postgres.py", line 294, in ingest_pdf
-    insert_clauses(cursor, treaty_ref, doc_id, chunks, vectors)
-  File "/home/JarvisClaims/Musaddique/cederanew/cederanew/ingestion/ingest_to_postgres.py", line 169, in insert_clauses
-    cursor.execute(
-  File "/home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages/psycopg2/extras.py", line 236, in execute
-    return super().execute(query, vars)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-psycopg2.errors.DataException: expected 1536 dimensions, not 3072
+Run these three checks one by one and read the output carefully.
 
-ERROR FAILED: TRT-2026-003_Property_Catastrophe_XoL.pdf — expected 1536 dimensions, not 3072
+---
 
-INFO ============================================================
-INFO Done: 0 succeeded, 1 failed
-(venv) JarvisClaims@JarvisClaims:~/Musaddique/cederanew/cederanew$ 
+**Check 1 — did the document register?**
+
+```bash
+cd ~/Musaddique/cederanew/cederanew && python3 -c "
+from MCP.common.db import get_db_connection
+conn = get_db_connection()
+cur = conn.cursor()
+cur.execute(\"SELECT * FROM treaty_documents WHERE treaty_ref = 'TRT-2026-003'\")
+for row in cur.fetchall(): print(dict(row))
+cur.close(); conn.close()
+"
+```
+
+You should see 1 row with the PDF filename and document_id.
+
+---
+
+**Check 2 — how many clauses were stored, and what do they look like?**
+
+```bash
+cd ~/Musaddique/cederanew/cederanew && python3 -c "
+from MCP.common.db import get_db_connection
+conn = get_db_connection()
+cur = conn.cursor()
+cur.execute(\"SELECT clause_id, clause_ref, clause_title, LEFT(clause_text, 80) as text_preview FROM treaty_clauses WHERE treaty_ref = 'TRT-2026-003' ORDER BY clause_id\")
+for row in cur.fetchall(): print(dict(row))
+cur.close(); conn.close()
+"
+```
+
+You should see one row per article. The `clause_title` should match what you'd see in the PDF — things like `ARTICLE 1 — DEFINITIONS`, `ARTICLE 4 — EXCLUSIONS`. The `text_preview` should show the start of the actual wording.
+
+---
+
+**Check 3 — were the exclusions extracted?**
+
+```bash
+cd ~/Musaddique/cederanew/cederanew && python3 -c "
+from MCP.common.db import get_db_connection
+conn = get_db_connection()
+cur = conn.cursor()
+cur.execute(\"SELECT * FROM treaty_exclusions WHERE treaty_ref = 'TRT-2026-003'\")
+for row in cur.fetchall(): print(dict(row))
+cur.close(); conn.close()
+"
+```
+
+You should see at least one row for Article 4(b) — Flood and Inundation. That's the exclusion that makes the River Trent flood return NIL.
+
+Paste the output of all three and we'll verify whether the data looks right before running all 6 PDFs.
