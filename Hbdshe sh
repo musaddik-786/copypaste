@@ -1,7 +1,4 @@
-Now I have the exact schema. Let me also check if there's a `treaty_documents` table (needed for the `document_id` foreign key):
-
-```bash
-cd ~/Musaddique/cederanew/cederanew && python3 -c "
+JarvisClaims@JarvisClaims:~/Musaddique/cederanew/cederanew$ cd ~/Musaddique/cederanew/cederanew && python3 -c "
 from MCP.common.db import get_db_connection
 conn = get_db_connection()
 cur = conn.cursor()
@@ -10,4 +7,5 @@ rows = cur.fetchall()
 print('treaty_documents columns:', rows if rows else 'TABLE DOES NOT EXIST')
 cur.close(); conn.close()
 "
-```
+treaty_documents columns: [RealDictRow([('column_name', 'document_id'), ('data_type', 'bigint')]), RealDictRow([('column_name', 'document_id'), ('data_type', 'bigint')]), RealDictRow([('column_name', 'treaty_ref'), ('data_type', 'character varying')]), RealDictRow([('column_name', 'treaty_ref'), ('data_type', 'character varying')]), RealDictRow([('column_name', 'document_name'), ('data_type', 'text')]), RealDictRow([('column_name', 'document_name'), ('data_type', 'text')]), RealDictRow([('column_name', 'document_type'), ('data_type', 'character varying')]), RealDictRow([('column_name', 'document_type'), ('data_type', 'character varying')]), RealDictRow([('column_name', 'storage_uri'), ('data_type', 'text')]), RealDictRow([('column_name', 'storage_uri'), ('data_type', 'text')]), RealDictRow([('column_name', 'version'), ('data_type', 'character varying')]), RealDictRow([('column_name', 'version'), ('data_type', 'character varying')]), RealDictRow([('column_name', 'effective_date'), ('data_type', 'date')]), RealDictRow([('column_name', 'effective_date'), ('data_type', 'date')])]
+JarvisClaims@JarvisClaims:~/Musaddique/cederanew/cederanew$ 
