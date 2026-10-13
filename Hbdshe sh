@@ -1,1 +1,55 @@
-cd ~/Musaddique/cederanew/cederanew && python3 -m pytest tests/test_recovery.py -v
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/cederanew/cederanew$ pip install pytest
+Collecting pytest
+  Using cached pytest-9.1.1-py3-none-any.whl (386 kB)
+Collecting iniconfig>=1.0.1
+  Downloading iniconfig-2.3.1-py3-none-any.whl (7.6 kB)
+Requirement already satisfied: packaging>=22 in /home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages (from pytest) (26.3)
+Collecting pluggy<2,>=1.5
+  Using cached pluggy-1.6.0-py3-none-any.whl (20 kB)
+Requirement already satisfied: pygments>=2.7.2 in /home/JarvisClaims/Musaddique/cederanew/venv/lib/python3.11/site-packages (from pytest) (2.21.0)
+Installing collected packages: pluggy, iniconfig, pytest
+Successfully installed iniconfig-2.3.1 pluggy-1.6.0 pytest-9.1.1
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/cederanew/cederanew$ cd ~/Musaddique/cederanew/cederanew && python3 -m pytest tests/test_recovery.py -v
+======================================================================= test session starts ========================================================================
+platform linux -- Python 3.11.2, pytest-9.1.1, pluggy-1.6.0 -- /home/JarvisClaims/Musaddique/cederanew/venv/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/JarvisClaims/Musaddique/cederanew/cederanew
+plugins: langsmith-0.14.7, anyio-4.15.1, arize-phoenix-client-3.5.0
+collected 5 items                                                                                                                                                  
+
+tests/test_recovery.py::test_cat_2026_004_total FAILED                                                                                                       [ 20%]
+tests/test_recovery.py::test_cat_2026_004_layer2_erosion FAILED                                                                                              [ 40%]
+tests/test_recovery.py::test_cat_2026_002_flood_excluded PASSED                                                                                              [ 60%]
+tests/test_recovery.py::test_loss_2026_011_single_policy PASSED                                                                                              [ 80%]
+tests/test_recovery.py::test_aggregate_position_layer2_before_cerys PASSED                                                                                   [100%]
+
+============================================================================= FAILURES =============================================================================
+_____________________________________________________________________ test_cat_2026_004_total ______________________________________________________________________
+
+    def test_cat_2026_004_total():
+        total = 0.0
+        for layer in [1, 2, 3]:
+            r = calculate_xol_recovery("CAT-2026-004", "TRT-2026-003", layer)
+            assert r["status"] == "success", f"Layer {layer}: {r}"
+>           assert r.get("eligible"), f"Layer {layer} should be eligible, got: {r}"
+E           AssertionError: Layer 1 should be eligible, got: {'status': 'success', 'recoverable_amount': 0.0, 'eligible': False, 'reason': 'peril_excluded', 'note': "Peril 'Windstorm' is excluded under 4(b): 4(b)  Flood, inundation, the escape of water from the normal confines of any natural or artificial watercourse,.", 'calculation_basis': {'event_ref': 'CAT-2026-004', 'treaty_ref': 'TRT-2026-003', 'layer_number': 1, 'check': 'exclusion', 'peril': 'Windstorm', 'exclusion_name': '4(b)  Flood, inundation, the escape of water from the normal confines of any natural or artificial watercourse,', 'clause_ref': '4(b)', 'result': 'excluded'}}
+E           assert False
+E            +  where False = <built-in method get of dict object at 0x7fc56cb13200>('eligible')
+E            +    where <built-in method get of dict object at 0x7fc56cb13200> = {'status': 'success', 'recoverable_amount': 0.0, 'eligible': False, 'reason': 'peril_excluded', ...}.get
+
+tests/test_recovery.py:36: AssertionError
+_________________________________________________________________ test_cat_2026_004_layer2_erosion _________________________________________________________________
+
+    def test_cat_2026_004_layer2_erosion():
+        """Layer 2 specifically must return £3.2m, not £4m."""
+        r = calculate_xol_recovery("CAT-2026-004", "TRT-2026-003", 2)
+        assert r["status"] == "success"
+>       assert r["eligible"]
+E       assert False
+
+tests/test_recovery.py:49: AssertionError
+===================================================================== short test summary info ======================================================================
+FAILED tests/test_recovery.py::test_cat_2026_004_total - AssertionError: Layer 1 should be eligible, got: {'status': 'success', 'recoverable_amount': 0.0, 'eligible': False, 'reason': 'peril_excluded', 'note': "Peril...
+FAILED tests/test_recovery.py::test_cat_2026_004_layer2_erosion - assert False
+=================================================================== 2 failed, 3 passed in 0.51s ====================================================================
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/cederanew/cederanew$ 
