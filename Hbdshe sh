@@ -1,1 +1,78 @@
-cd ~/Musaddique/cederanew/cederanew && python3 -m ingestion.ingest_to_postgres
+
+I hope you knwo we also need a ggood interview story in our developement and we are not supposed to make all of it in one go just wanted you to recall what we discussde earlier on this, 
+
+also below is the repsonse
+
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/cederanew/cederanew$ cd ~/Musaddique/cederanew/cederanew && python3 -m ingestion.ingest_to_postgres
+INFO Found 6 PDFs to process
+INFO ============================================================
+INFO Processing TRT-2026-001_Property_Quota_Share.pdf  (treaty_ref: TRT-2026-001)
+INFO   Extracted 7 pages
+INFO   Chunked into 38 pieces
+INFO   Generating embeddings (this calls Azure OpenAI)...
+INFO HTTP Request: POST https://azureclaimsopenai.openai.azure.com/openai/deployments/text-embedding-3-large-claims/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO   Generated 38 embeddings
+INFO   Registered new document: document_id=3
+INFO   Inserted 38 clause rows into treaty_clauses
+INFO   Found 9 exclusion chunks to process
+INFO   Exclusions: 9 inserted, 0 already existed (skipped)
+INFO   Committed to database ✓
+INFO Processing TRT-2026-002_Property_Surplus.pdf  (treaty_ref: TRT-2026-002)
+INFO   Extracted 7 pages
+INFO   Chunked into 38 pieces
+INFO   Generating embeddings (this calls Azure OpenAI)...
+INFO HTTP Request: POST https://azureclaimsopenai.openai.azure.com/openai/deployments/text-embedding-3-large-claims/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO   Generated 38 embeddings
+INFO   Registered new document: document_id=4
+INFO   Inserted 38 clause rows into treaty_clauses
+INFO   Found 8 exclusion chunks to process
+INFO   Exclusions: 8 inserted, 0 already existed (skipped)
+INFO   Committed to database ✓
+INFO Processing TRT-2026-003_Property_Catastrophe_XoL.pdf  (treaty_ref: TRT-2026-003)
+INFO   Extracted 9 pages
+INFO   Chunked into 38 pieces
+INFO   Generating embeddings (this calls Azure OpenAI)...
+INFO HTTP Request: POST https://azureclaimsopenai.openai.azure.com/openai/deployments/text-embedding-3-large-claims/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO   Generated 38 embeddings
+INFO   Document already registered: document_id=2
+INFO   Deleted 38 old clause rows before reinserting
+INFO   Inserted 38 clause rows into treaty_clauses
+INFO   Found 11 exclusion chunks to process
+INFO   Exclusions: 0 inserted, 11 already existed (skipped)
+INFO   Committed to database ✓
+INFO Processing TRT-2026-004_Marine_Cargo_Quota_Share.pdf  (treaty_ref: TRT-2026-004)
+INFO   Extracted 7 pages
+INFO   Chunked into 38 pieces
+INFO   Generating embeddings (this calls Azure OpenAI)...
+INFO HTTP Request: POST https://azureclaimsopenai.openai.azure.com/openai/deployments/text-embedding-3-large-claims/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO   Generated 38 embeddings
+INFO   Registered new document: document_id=5
+INFO   Inserted 38 clause rows into treaty_clauses
+INFO   Found 9 exclusion chunks to process
+INFO   Exclusions: 9 inserted, 0 already existed (skipped)
+INFO   Committed to database ✓
+INFO Processing TRT-2026-005_Casualty_Risk_XoL.pdf  (treaty_ref: TRT-2026-005)
+INFO   Extracted 7 pages
+INFO   Chunked into 37 pieces
+INFO   Generating embeddings (this calls Azure OpenAI)...
+INFO HTTP Request: POST https://azureclaimsopenai.openai.azure.com/openai/deployments/text-embedding-3-large-claims/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO   Generated 37 embeddings
+INFO   Registered new document: document_id=6
+INFO   Inserted 37 clause rows into treaty_clauses
+INFO   Found 10 exclusion chunks to process
+INFO   Exclusions: 10 inserted, 0 already existed (skipped)
+INFO   Committed to database ✓
+INFO Processing TRT-2026-006_Engineering_Surplus.pdf  (treaty_ref: TRT-2026-006)
+INFO   Extracted 7 pages
+INFO   Chunked into 37 pieces
+INFO   Generating embeddings (this calls Azure OpenAI)...
+INFO HTTP Request: POST https://azureclaimsopenai.openai.azure.com/openai/deployments/text-embedding-3-large-claims/embeddings?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+INFO   Generated 37 embeddings
+INFO   Registered new document: document_id=7
+INFO   Inserted 37 clause rows into treaty_clauses
+INFO   Found 8 exclusion chunks to process
+INFO   Exclusions: 8 inserted, 0 already existed (skipped)
+INFO   Committed to database ✓
+INFO ============================================================
+INFO Done: 6 succeeded, 0 failed
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/cederanew/cederanew$ 
