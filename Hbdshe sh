@@ -1,11 +1,359 @@
-JarvisClaims@JarvisClaims:~/Musaddique/cederanew/cederanew$ cd ~/Musaddique/cederanew/cederanew && python3 -c "
-from MCP.common.db import get_db_connection
-conn = get_db_connection()
-cur = conn.cursor()
-cur.execute(\"SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'treaty_documents' ORDER BY ordinal_position\")
-rows = cur.fetchall()
-print('treaty_documents columns:', rows if rows else 'TABLE DOES NOT EXIST')
-cur.close(); conn.close()
-"
-treaty_documents columns: [RealDictRow([('column_name', 'document_id'), ('data_type', 'bigint')]), RealDictRow([('column_name', 'document_id'), ('data_type', 'bigint')]), RealDictRow([('column_name', 'treaty_ref'), ('data_type', 'character varying')]), RealDictRow([('column_name', 'treaty_ref'), ('data_type', 'character varying')]), RealDictRow([('column_name', 'document_name'), ('data_type', 'text')]), RealDictRow([('column_name', 'document_name'), ('data_type', 'text')]), RealDictRow([('column_name', 'document_type'), ('data_type', 'character varying')]), RealDictRow([('column_name', 'document_type'), ('data_type', 'character varying')]), RealDictRow([('column_name', 'storage_uri'), ('data_type', 'text')]), RealDictRow([('column_name', 'storage_uri'), ('data_type', 'text')]), RealDictRow([('column_name', 'version'), ('data_type', 'character varying')]), RealDictRow([('column_name', 'version'), ('data_type', 'character varying')]), RealDictRow([('column_name', 'effective_date'), ('data_type', 'date')]), RealDictRow([('column_name', 'effective_date'), ('data_type', 'date')])]
-JarvisClaims@JarvisClaims:~/Musaddique/cederanew/cederanew$ 
+# ─────────────────────────────────────────────────────────────────────────────
+# ingest_to_postgres.py  —  Treaty PDF → PostgreSQL ingestion pipeline
+#
+# This is the pipeline that turns a treaty PDF into queryable data.
+#
+# What it does for each PDF:
+#   1. Register the PDF in treaty_documents  (so we know which file it came from)
+#   2. Extract text page by page             (using loaders.py / pypdf)
+#   3. Split into article-level chunks       (using clause_chunker.py)
+#   4. Generate an embedding for each chunk  (using Azure OpenAI embeddings)
+#   5. Write every chunk to treaty_clauses   (text + embedding, for vector search)
+#   6. Write exclusion chunks to treaty_exclusions  (for the exclusion check)
+#
+# Why this matters:
+#   Without this pipeline, the exclusion check relies on manually seeded CSV data.
+#   With this pipeline, uploading a new treaty PDF makes it fully queryable
+#   — no manual data entry needed.
+#
+# How to run:
+#   cd ~/Musaddique/cederanew/cederanew
+#   python3 -m ingestion.ingest_to_postgres
+#
+# Or for a single treaty:
+#   python3 -m ingestion.ingest_to_postgres --treaty TRT-2026-003
+# ─────────────────────────────────────────────────────────────────────────────
+
+import argparse
+import logging
+import re
+import sys
+import os
+from datetime import date
+from pathlib import Path
+
+# Add the MCP folder to the path so we can import common/db.py
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "MCP"))
+
+from dotenv import load_dotenv
+load_dotenv()
+
+from ingestion.loaders import load_pdf
+from ingestion.clause_chunker import chunk_documents
+from ingestion.embedder import get_embeddings
+from common.db import get_db_connection
+
+log = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+
+# Where the treaty PDFs live on disk
+# This resolves relative to THIS file — works from any working directory
+PDF_DIR = Path(__file__).resolve().parent.parent / "cedera-data" / "treaties"
+
+# Keywords that identify an exclusions article
+# e.g. "ARTICLE 4 — EXCLUSIONS AND LIMITATIONS"
+EXCLUSION_KEYWORDS = ["exclusion", "excluded", "not covered", "exception"]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Helper: is this chunk from an exclusions article?
+# ─────────────────────────────────────────────────────────────────────────────
+def is_exclusion_chunk(chunk: dict) -> bool:
+    """
+    Returns True if this chunk comes from an article about exclusions.
+
+    We check the article header (e.g. "ARTICLE 4 — EXCLUSIONS").
+    We also check the clause text itself in case the header is missing.
+    """
+    article = (chunk.get("article") or "").lower()
+    text    = (chunk.get("text")    or "").lower()
+
+    return any(kw in article or kw in text[:200] for kw in EXCLUSION_KEYWORDS)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Helper: extract treaty_ref from filename
+# e.g. "TRT-2026-003_Catastrophe_XL.pdf" → "TRT-2026-003"
+# ─────────────────────────────────────────────────────────────────────────────
+def extract_treaty_ref(pdf_path: Path) -> str:
+    match = re.match(r"(TRT-\d{4}-\d{3})", pdf_path.name)
+    if not match:
+        raise ValueError(f"Cannot extract treaty_ref from filename: {pdf_path.name}")
+    return match.group(1)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Step 1: Register the PDF in treaty_documents
+#
+# treaty_documents is a catalogue of every document we've ingested.
+# If we've already ingested this PDF, we reuse the existing document_id.
+# This makes the pipeline idempotent — safe to run twice.
+# ─────────────────────────────────────────────────────────────────────────────
+def upsert_document(cursor, treaty_ref: str, pdf_path: Path) -> int:
+    """
+    Insert or retrieve a treaty_documents row.
+    Returns the document_id to use as a foreign key in treaty_clauses.
+    """
+
+    # Check if this document already exists
+    cursor.execute(
+        "SELECT document_id FROM treaty_documents WHERE treaty_ref = %s AND document_name = %s",
+        (treaty_ref, pdf_path.name),
+    )
+    existing = cursor.fetchone()
+
+    if existing:
+        log.info("  Document already registered: document_id=%s", existing["document_id"])
+        return existing["document_id"]
+
+    # Insert a new document record
+    cursor.execute(
+        """
+        INSERT INTO treaty_documents
+            (treaty_ref, document_name, document_type, storage_uri, version, effective_date)
+        VALUES
+            (%s, %s, %s, %s, %s, %s)
+        RETURNING document_id
+        """,
+        (
+            treaty_ref,
+            pdf_path.name,
+            "treaty_wording",           # document_type
+            str(pdf_path.resolve()),    # storage_uri — local path for now
+            "1.0",                      # version
+            date(2026, 1, 1),           # effective_date — start of treaty year
+        ),
+    )
+    doc_id = cursor.fetchone()["document_id"]
+    log.info("  Registered new document: document_id=%s", doc_id)
+    return doc_id
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Step 5: Write chunks to treaty_clauses
+#
+# Each chunk = one article or sub-clause from the PDF.
+# We store the text AND the embedding vector so:
+#   - Exact lookup: WHERE treaty_ref = %s AND clause_ref = %s
+#   - Similarity search: ORDER BY embedding <-> %s (pgvector cosine distance)
+# ─────────────────────────────────────────────────────────────────────────────
+def insert_clauses(cursor, treaty_ref: str, document_id: int, chunks: list, vectors: list):
+    """
+    Insert all chunks into treaty_clauses.
+
+    We DELETE existing clauses for this document first — so re-running
+    the pipeline replaces old data cleanly (idempotent).
+    """
+
+    # Clear old data for this document so we don't get duplicates
+    cursor.execute(
+        "DELETE FROM treaty_clauses WHERE treaty_ref = %s AND document_id = %s",
+        (treaty_ref, document_id),
+    )
+    deleted = cursor.rowcount
+    if deleted:
+        log.info("  Deleted %d old clause rows before reinserting", deleted)
+
+    inserted = 0
+    for chunk, vector in zip(chunks, vectors):
+
+        # clause_ref: use the sub-clause ref if the chunker found one (e.g. "4(b)")
+        # otherwise use the article header (e.g. "ARTICLE 4")
+        clause_ref = chunk.get("clause_ref") or chunk.get("article") or "unknown"
+
+        # clause_title: the article header (e.g. "ARTICLE 4 — EXCLUSIONS")
+        clause_title = chunk.get("article") or ""
+
+        cursor.execute(
+            """
+            INSERT INTO treaty_clauses
+                (treaty_ref, document_id, clause_ref, clause_title, clause_text, page_number, embedding)
+            VALUES
+                (%s, %s, %s, %s, %s, %s, %s)
+            """,
+            (
+                treaty_ref,
+                document_id,
+                clause_ref[:100],           # cap length to fit varchar
+                clause_title[:500],
+                chunk["text"],
+                chunk.get("page_number"),
+                vector,                     # pgvector accepts a Python list directly
+            ),
+        )
+        inserted += 1
+
+    log.info("  Inserted %d clause rows into treaty_clauses", inserted)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Step 6: Write exclusion chunks to treaty_exclusions
+#
+# The exclusion check in recovery_mcp/handler.py queries treaty_exclusions.
+# This step extracts those rows automatically from the PDF content.
+#
+# Before this pipeline existed, exclusions were seeded manually from a CSV.
+# Now uploading a PDF populates them automatically.
+# ─────────────────────────────────────────────────────────────────────────────
+def insert_exclusions(cursor, treaty_ref: str, chunks: list):
+    """
+    For chunks that come from an exclusions article, write to treaty_exclusions.
+
+    We only insert exclusions that don't already exist (by treaty_ref + clause_ref)
+    so existing manually-seeded rows are preserved.
+    """
+
+    exclusion_chunks = [c for c in chunks if is_exclusion_chunk(c)]
+    log.info("  Found %d exclusion chunks to process", len(exclusion_chunks))
+
+    inserted = skipped = 0
+
+    for chunk in exclusion_chunks:
+
+        clause_ref = chunk.get("clause_ref") or chunk.get("article") or "unknown"
+        clause_ref = clause_ref[:100]
+
+        # The first line of the text is the name; the rest is the description
+        lines = chunk["text"].strip().splitlines()
+        exclusion_name = lines[0][:500] if lines else clause_ref
+        description    = chunk["text"]
+
+        # Check if this exclusion already exists — don't overwrite manual seeds
+        cursor.execute(
+            "SELECT exclusion_id FROM treaty_exclusions WHERE treaty_ref = %s AND clause_ref = %s",
+            (treaty_ref, clause_ref),
+        )
+        if cursor.fetchone():
+            skipped += 1
+            continue
+
+        cursor.execute(
+            """
+            INSERT INTO treaty_exclusions (treaty_ref, clause_ref, exclusion_name, description)
+            VALUES (%s, %s, %s, %s)
+            """,
+            (treaty_ref, clause_ref, exclusion_name, description),
+        )
+        inserted += 1
+
+    log.info("  Exclusions: %d inserted, %d already existed (skipped)", inserted, skipped)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Main pipeline: process one PDF
+# ─────────────────────────────────────────────────────────────────────────────
+def ingest_pdf(pdf_path: Path):
+    """
+    Run the full ingestion pipeline for one treaty PDF.
+
+    Steps:
+      1. Extract treaty_ref from filename
+      2. Extract text from PDF (page by page)
+      3. Chunk into articles/clauses
+      4. Generate embeddings
+      5. Write to treaty_clauses
+      6. Write exclusion chunks to treaty_exclusions
+    """
+
+    treaty_ref = extract_treaty_ref(pdf_path)
+    log.info("Processing %s  (treaty_ref: %s)", pdf_path.name, treaty_ref)
+
+    # ── Step 2: Extract text ─────────────────────────────────────────────────
+    documents = load_pdf(str(pdf_path))
+    log.info("  Extracted %d pages", len(documents))
+
+    # ── Step 3: Chunk into articles ──────────────────────────────────────────
+    chunks = chunk_documents(documents)
+    log.info("  Chunked into %d pieces", len(chunks))
+
+    if not chunks:
+        log.warning("  No chunks produced — skipping %s", pdf_path.name)
+        return
+
+    # ── Step 4: Generate embeddings ──────────────────────────────────────────
+    # One embedding per chunk. Azure OpenAI text-embedding-3-small, 1536 dims.
+    log.info("  Generating embeddings (this calls Azure OpenAI)...")
+    embedding_model = get_embeddings()
+    texts   = [c["text"] for c in chunks]
+    vectors = embedding_model.embed_documents(texts)
+    log.info("  Generated %d embeddings", len(vectors))
+
+    # ── Steps 5 + 6: Write to PostgreSQL ────────────────────────────────────
+    connection = None
+    cursor = None
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor()
+
+        # Register the document (or get existing document_id)
+        doc_id = upsert_document(cursor, treaty_ref, pdf_path)
+
+        # Write all chunks to treaty_clauses
+        insert_clauses(cursor, treaty_ref, doc_id, chunks, vectors)
+
+        # Write exclusion chunks to treaty_exclusions
+        insert_exclusions(cursor, treaty_ref, chunks)
+
+        # Commit everything — if anything above failed, nothing is written
+        connection.commit()
+        log.info("  Committed to database ✓")
+
+    except Exception:
+        log.exception("  FAILED — rolling back")
+        if connection:
+            connection.rollback()
+        raise
+
+    finally:
+        if cursor:
+            cursor.close()
+        if connection:
+            connection.close()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Entry point
+# ─────────────────────────────────────────────────────────────────────────────
+def main():
+    parser = argparse.ArgumentParser(description="Ingest treaty PDFs into PostgreSQL")
+    parser.add_argument(
+        "--treaty",
+        help="Process only this treaty (e.g. TRT-2026-003). Omit to process all.",
+    )
+    args = parser.parse_args()
+
+    if not PDF_DIR.exists():
+        log.error("PDF directory not found: %s", PDF_DIR)
+        log.error("Make sure cedera-data/treaties/ exists relative to this file.")
+        sys.exit(1)
+
+    pdf_files = sorted(PDF_DIR.glob("*.pdf"))
+    if not pdf_files:
+        log.error("No PDFs found in %s", PDF_DIR)
+        sys.exit(1)
+
+    # Filter to a single treaty if --treaty was passed
+    if args.treaty:
+        pdf_files = [p for p in pdf_files if args.treaty in p.name]
+        if not pdf_files:
+            log.error("No PDF found for treaty %s in %s", args.treaty, PDF_DIR)
+            sys.exit(1)
+
+    log.info("Found %d PDFs to process", len(pdf_files))
+    log.info("=" * 60)
+
+    success = failed = 0
+    for pdf_path in pdf_files:
+        try:
+            ingest_pdf(pdf_path)
+            success += 1
+        except Exception as e:
+            log.error("FAILED: %s — %s", pdf_path.name, e)
+            failed += 1
+
+    log.info("=" * 60)
+    log.info("Done: %d succeeded, %d failed", success, failed)
+
+
+if __name__ == "__main__":
+    main()
