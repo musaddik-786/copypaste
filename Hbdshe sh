@@ -1,32 +1,12 @@
-I am providing you with 2 things, first is my current database information along with tables and schema related information in the md file and the other is a document which consists of the decisioning rules for the Cross sell and Up sell scenarios now here for eg there is a rule in the document under this section
- 
- 3.1 Motor Insurance Upsell Rules
-Rule UP-CAR-01: No-Claims Discount (NCD) Protection Rider
- 
-Qualification Criteria:
-1. Primary policy is Car Insurance with Full Comprehensive coverage. 
- 
-so for this rule to qualify we need what type of policy it is ie the lob which is Car Insurance in this criteria and also what type of coverage it is ie here it is Full Comprehensive coverage so we need 2 columns in some table so that this criteria we can check similarly 
-for 
-Claims Frequency: Exactly 0 at-fault claims in the preceding 36 months.
-for here we might need at fault claims column which will have integer as column type so that we can store integers in it , similarly we might need months column (i am not sure what the name of the column should be ) where we should have some months data right?
- 
-so my point is for checking these multiple rules we need different tables and different columns so as i have already shared with you my current database and all of the tables it has along with the scema information etc , now we need to identify on top of these tables and ts corrersponding columns how many new tables and new columns and exactly which once are required so that we can check all the rules that are mentioned in the document for "3. Upsell Decisioning Rules (Coverage Upgrades & Add-on Riders)" and "4. Cross-Sell Decisioning Rules (Companion Standalone Policies)"in cross sell there is a table itself for the rules for eg 
- 
- 
-CS-CAR-01 
-	
-Car Insurance 
-	
-Single-policy holder; lives in rented flat or home; no active liability policy on record. 
- 
-here we have to check whether the policyholder is single or not so we might need a column in some table for that , similarly we have to check whether the policy holder lives in rented flat or home so we need a column for it in some table, similarly to check active policies (in this column there can be possibilities of liability , home , motor etc, based on the document you can decide)
- 
- 
-so my ask is we need for checking these multiple rules we need different tables and different columns so as i have already shared with you my current database and all of the tables it has along with the scema information etc , now we need to identify on top of these tables and ts corrersponding columns how many new tables and new columns and exactly which once are required so that we can check all the rules that are mentioned in the document for "3. Upsell Decisioning Rules (Coverage Upgrades & Add-on Riders)" and "4. Cross-Sell Decisioning Rules (Companion Standalone Policies)"in cross sell there is a table itself for the rules for eg 
-and all possible values that we can have for those particualar columns 
- 
-so now in total you need to create all the tables and columns on top of my existing database tables and columns required along with the required schema along with some data in those tables so that all different scenairos of checks can be possible 
- 
-please make sure you dont miss any rules also you dont create duplicate columns or tables there can be Boolean columns etc anything can be possible so that we can check all the rules also what all possible values can my that particualr column have so that so and so rule can be checked this information is also required provide that as well 
- 
+cd ~/Musaddique/cederanew/cederanew/MCP && python3 -c "
+import sys; sys.path.insert(0,'.'); sys.path.insert(0,'common')
+from dotenv import load_dotenv, find_dotenv; load_dotenv(find_dotenv())
+from common.db import get_db_connection
+conn = get_db_connection(); cur = conn.cursor()
+for t in ['policies','cessions','treaties','treaty_terms']:
+    cur.execute('SELECT column_name, data_type FROM information_schema.columns WHERE table_name=%s ORDER BY ordinal_position',(t,))
+    print(f'\n=== {t} ===')
+    [print(f'  {r[\"column_name\"]} ({r[\"data_type\"]})')  for r in cur.fetchall()]
+cur.execute('SELECT * FROM policies LIMIT 2'); [print(dict(r)) for r in cur.fetchall()]
+cur.close(); conn.close()
+"
