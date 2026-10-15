@@ -1,0 +1,470 @@
+{
+  "_comment": "Golden decision tests. BAC-xx = BRD acceptance criteria; SCN-xx = BRD/prototype scenarios; X-xx = architect edge cases. 'set' overrides dot-paths on the base persona; 'remove' deletes list items. Every rule change must keep this suite green (CI gate).",
+  "as_of": "2026-10-13",
+  "tests": [
+    {
+      "id": "BAC-01",
+      "title": "No renewal quote generated -> agent does not trigger",
+      "base": "DAVID_MILLER",
+      "set": {
+        "quote.status": "NOT_QUOTED"
+      },
+      "expect": {
+        "status": "NOT_TRIGGERED"
+      }
+    },
+    {
+      "id": "BAC-02",
+      "title": "Quote generated -> evaluation runs and candidates appear",
+      "base": "DAVID_MILLER",
+      "expect": {
+        "status": "RECOMMENDATIONS_AVAILABLE"
+      }
+    },
+    {
+      "id": "BAC-03",
+      "title": "Full Comprehensive already held -> comprehensive upgrade dropped ALREADY_COVERED",
+      "base": "DAVID_MILLER",
+      "expect": {
+        "outcomes": {
+          "UP-CAR-01": "ALREADY_COVERED",
+          "UP-CAR-02": "COVERED_BY_ENDORSEMENT"
+        }
+      }
+    },
+    {
+      "id": "BAC-04",
+      "title": "Roadside declined 4 months ago (cooldown 6m) -> COOLDOWN_ACTIVE",
+      "base": "DAVID_MILLER",
+      "set": {
+        "history.declines": [
+          {
+            "product_code": "CAR_ROADSIDE",
+            "declined_at": "2026-06-13",
+            "source": "CUSTOMER"
+          }
+        ]
+      },
+      "expect": {
+        "outcomes": {
+          "UP-CAR-05": "COOLDOWN_ACTIVE"
+        }
+      }
+    },
+    {
+      "id": "BAC-05",
+      "title": "Roadside declined 8 months ago -> cooldown expired, proceeds to ranking",
+      "base": "DAVID_MILLER",
+      "set": {
+        "history.declines": [
+          {
+            "product_code": "CAR_ROADSIDE",
+            "declined_at": "2026-02-13",
+            "source": "CUSTOMER"
+          }
+        ]
+      },
+      "expect": {
+        "outcomes": {
+          "UP-CAR-05": "ELIGIBLE"
+        }
+      }
+    },
+    {
+      "id": "BAC-06",
+      "title": "Active grievance -> universal suppression",
+      "base": "DAVID_MILLER",
+      "set": {
+        "conduct.open_complaint": true
+      },
+      "expect": {
+        "status": "SUPPRESSED",
+        "suppression_includes": [
+          "GK-03:GRIEVANCE_ACTIVE"
+        ],
+        "primary": null
+      }
+    },
+    {
+      "id": "BAC-07",
+      "title": "2 at-fault claims in 24m -> motor upgrades disqualified (complaint cleared to isolate the rule)",
+      "base": "MARK_STEVENS",
+      "set": {
+        "conduct.open_complaint": false,
+        "conduct.disputed_claim_in_lookback": false,
+        "conduct.open_claim_in_settlement": false,
+        "vehicle.market_value": 9000,
+        "vehicle.age_years": 6
+      },
+      "expect": {
+        "outcomes": {
+          "UP-CAR-01": "DISQUALIFIED_RISK",
+          "UP-CAR-02": "DISQUALIFIED_RISK"
+        },
+        "not_selected": [
+          "UP-CAR-01",
+          "UP-CAR-02"
+        ]
+      }
+    },
+    {
+      "id": "BAC-08",
+      "title": "Building insurance for verified apartment tenant -> TARGET_MARKET_MISMATCH",
+      "base": "SARAH_JENKINS",
+      "expect": {
+        "outcomes": {
+          "CS-HOM-02": "TARGET_MARKET_MISMATCH"
+        }
+      }
+    },
+    {
+      "id": "BAC-09",
+      "title": "Personal Liability (P1) outranks Roadside (P3)",
+      "base": "DAVID_MILLER",
+      "remove": {
+        "portfolio.active_products": [
+          "LIAB_PRIVATE"
+        ]
+      },
+      "expect": {
+        "primary": "CS-LIA-01",
+        "outcomes": {
+          "UP-CAR-05": "ELIGIBLE"
+        }
+      }
+    },
+    {
+      "id": "BAC-10",
+      "title": "Cross-sell itemises standalone premium and bundle saving",
+      "base": "SARAH_JENKINS",
+      "expect": {
+        "primary": "CS-LIA-01",
+        "pricing": {
+          "CS-LIA-01": {
+            "base_renewal_premium": "515.00",
+            "companion_standalone_annual": "57.00",
+            "bundle_discount_pct": "5",
+            "bundle_saving_annual": "28.60",
+            "net_annual_total": "543.40",
+            "incremental_monthly_equiv": "4.75",
+            "presentation": "SEPARATE_POLICY_ITEMISED"
+          }
+        }
+      }
+    },
+    {
+      "id": "SCN-01",
+      "title": "BRD Scenario 1 / prototype David: PA primary, NCD alternative",
+      "base": "DAVID_MILLER",
+      "expect": {
+        "primary": "CS-ACC-01",
+        "alternative": "UP-CAR-04",
+        "pricing": {
+          "UP-CAR-04": {
+            "incremental_annual": "45.60",
+            "incremental_monthly_equiv": "3.80",
+            "net_annual_total": "490.60"
+          },
+          "CS-ACC-01": {
+            "bundle_saving_annual": "25.37",
+            "net_annual_total": "482.03"
+          }
+        }
+      }
+    },
+    {
+      "id": "SCN-02",
+      "title": "BRD Scenario 2 / Sarah: Personal Liability primary, Contents alternative",
+      "base": "SARAH_JENKINS",
+      "expect": {
+        "primary": "CS-LIA-01",
+        "alternative": "CS-HOM-01",
+        "outcomes": {
+          "UP-CAR-04": "ELIGIBLE"
+        }
+      }
+    },
+    {
+      "id": "SCN-03",
+      "title": "BRD Scenario 3 / Robert: Contents (bundle tie-break) primary, Flood alternative",
+      "base": "ROBERT_TAYLOR",
+      "expect": {
+        "primary": "CS-HOM-01",
+        "alternative": "UP-HOM-01",
+        "pricing": {
+          "UP-HOM-01": {
+            "net_annual_total": "695.20"
+          },
+          "CS-HOM-01": {
+            "bundle_saving_annual": "38.00",
+            "net_annual_total": "722.00"
+          }
+        }
+      }
+    },
+    {
+      "id": "SCN-04",
+      "title": "BRD Scenario 4 / Mark: grievance + dispute + open claim -> strict suppression",
+      "base": "MARK_STEVENS",
+      "expect": {
+        "status": "SUPPRESSED",
+        "suppression_includes": [
+          "GK-03:GRIEVANCE_ACTIVE",
+          "GK-04:DISPUTE_ACTIVE",
+          "GK-05:CLAIM_IN_SETTLEMENT"
+        ]
+      }
+    },
+    {
+      "id": "SCN-05",
+      "title": "Prototype Elena: P1 Personal Liability gap found; Car cross-sell alternative; Building blocked by data integrity",
+      "base": "ELENA_ROSTOVA",
+      "expect": {
+        "primary": "CS-LIA-01",
+        "alternative": "CS-CAR-01",
+        "outcomes": {
+          "CS-PET-01": "COVERED_BY_ENDORSEMENT",
+          "CS-HOM-02": "DATA_INTEGRITY_FAIL",
+          "UP-PET-01": "ALREADY_COVERED"
+        },
+        "pricing": {
+          "CS-CAR-01": {
+            "bundle_discount_pct": "10",
+            "bundle_saving_annual": "70.80",
+            "net_annual_total": "637.20"
+          }
+        }
+      }
+    },
+    {
+      "id": "X-01",
+      "title": "Advisory consent revoked -> suppressed",
+      "base": "SARAH_JENKINS",
+      "set": {
+        "consent.advisory_renewal": "REVOKED"
+      },
+      "expect": {
+        "status": "SUPPRESSED",
+        "suppression_includes": [
+          "GK-01:CONSENT_NOT_GRANTED"
+        ]
+      }
+    },
+    {
+      "id": "X-02",
+      "title": "Consent status missing -> fail closed (suppressed)",
+      "base": "SARAH_JENKINS",
+      "set": {
+        "consent.advisory_renewal": null
+      },
+      "expect": {
+        "status": "SUPPRESSED",
+        "suppression_includes": [
+          "GK-01:DATA_INTEGRITY"
+        ]
+      }
+    },
+    {
+      "id": "X-03",
+      "title": "Payment arrears -> suppressed",
+      "base": "ROBERT_TAYLOR",
+      "set": {
+        "account.payment_status": "ARREARS"
+      },
+      "expect": {
+        "status": "SUPPRESSED",
+        "suppression_includes": [
+          "GK-02:ACCOUNT_NOT_IN_GOOD_STANDING"
+        ]
+      }
+    },
+    {
+      "id": "X-04",
+      "title": "ZUeRS zone 4 -> underwriting referral, never auto-recommended",
+      "base": "ROBERT_TAYLOR",
+      "set": {
+        "property.zuers_zone": 4
+      },
+      "expect": {
+        "outcomes": {
+          "UP-HOM-01": "REFERRAL_REQUIRED"
+        },
+        "primary": "CS-HOM-01",
+        "alternative": null
+      }
+    },
+    {
+      "id": "X-05",
+      "title": "Zone 2 without certified backwater valve -> flood not triggered",
+      "base": "ROBERT_TAYLOR",
+      "set": {
+        "property.backwater_valve_certified": false
+      },
+      "expect": {
+        "outcomes": {
+          "UP-HOM-01": "NOT_TRIGGERED"
+        }
+      }
+    },
+    {
+      "id": "X-06",
+      "title": "Exclusion group: Driver Injury rider and Personal Accident never shown together",
+      "base": "DAVID_MILLER",
+      "set": {
+        "customer.has_dependants": true
+      },
+      "expect": {
+        "outcomes": {
+          "UP-CAR-06": "ELIGIBLE",
+          "CS-ACC-01": "ELIGIBLE"
+        },
+        "selection": {
+          "CS-ACC-01": "PRIMARY",
+          "UP-CAR-06": "EXCLUDED_BY_GROUP"
+        }
+      }
+    },
+    {
+      "id": "X-07",
+      "title": "Unverified mileage -> mileage-based rules fail closed; NCD becomes primary",
+      "base": "DAVID_MILLER",
+      "set": {
+        "unverified_facts": [
+          "vehicle.annual_km"
+        ]
+      },
+      "expect": {
+        "outcomes": {
+          "UP-CAR-05": "DATA_INTEGRITY_FAIL",
+          "CS-ACC-01": "DATA_INTEGRITY_FAIL"
+        },
+        "primary": "UP-CAR-04",
+        "alternative": null
+      }
+    },
+    {
+      "id": "X-08",
+      "title": "No verified PAS price -> recommendation withheld (BR-12)",
+      "base": "DAVID_MILLER",
+      "set": {
+        "pas_quotes.CAR_NCD_PROTECTION.verified": false
+      },
+      "expect": {
+        "outcomes": {
+          "UP-CAR-04": "DISQUALIFIED_NO_VERIFIED_PRICE"
+        },
+        "alternative": "UP-CAR-05"
+      }
+    },
+    {
+      "id": "X-09",
+      "title": "Companion-line cooldown is 12 months (declined PL 9 months ago)",
+      "base": "SARAH_JENKINS",
+      "set": {
+        "history.declines": [
+          {
+            "product_code": "LIAB_PRIVATE",
+            "declined_at": "2026-01-10",
+            "source": "CUSTOMER"
+          }
+        ]
+      },
+      "expect": {
+        "outcomes": {
+          "CS-LIA-01": "COOLDOWN_ACTIVE"
+        },
+        "primary": "CS-HOM-01"
+      }
+    },
+    {
+      "id": "X-10",
+      "title": "Letter already dispatched -> window closed",
+      "base": "SARAH_JENKINS",
+      "set": {
+        "quote.letter_dispatched": true
+      },
+      "expect": {
+        "status": "NOT_TRIGGERED"
+      }
+    },
+    {
+      "id": "X-11",
+      "title": "DRAFT rule never fires (UP-HOM-05 valuables)",
+      "base": "ROBERT_TAYLOR",
+      "expect": {
+        "outcomes": {
+          "UP-HOM-05": "RULE_INACTIVE"
+        }
+      }
+    },
+    {
+      "id": "X-12",
+      "title": "Vulnerability hold suppresses all outreach",
+      "base": "ELENA_ROSTOVA",
+      "set": {
+        "conduct.vulnerability_hold": true
+      },
+      "expect": {
+        "status": "SUPPRESSED",
+        "suppression_includes": [
+          "GK-06:VULNERABILITY_HOLD"
+        ]
+      }
+    },
+    {
+      "id": "X-13",
+      "title": "Elena confirms a detached house -> Building eligible, ranking unchanged",
+      "base": "ELENA_ROSTOVA",
+      "set": {
+        "customer.dwelling_type": "DETACHED"
+      },
+      "expect": {
+        "outcomes": {
+          "CS-HOM-02": "ELIGIBLE"
+        },
+        "primary": "CS-LIA-01",
+        "alternative": "CS-CAR-01"
+      }
+    },
+    {
+      "id": "X-14",
+      "title": "Letter due date passed -> operational window closed",
+      "base": "DAVID_MILLER",
+      "set": {
+        "quote.days_to_letter_due": -1
+      },
+      "expect": {
+        "status": "NOT_TRIGGERED"
+      }
+    },
+    {
+      "id": "X-15",
+      "title": "External vehicle declared 30 months ago -> too old to rely on (D-14)",
+      "base": "ELENA_ROSTOVA",
+      "set": {
+        "external.declaration_age_months": 30
+      },
+      "expect": {
+        "outcomes": {
+          "CS-CAR-01": "NOT_TRIGGERED"
+        },
+        "primary": "CS-LIA-01",
+        "alternative": "CS-HOM-01"
+      }
+    },
+    {
+      "id": "X-16",
+      "title": "Vulnerability flag missing -> fail closed (suppressed)",
+      "base": "SARAH_JENKINS",
+      "set": {
+        "conduct.vulnerability_hold": null
+      },
+      "expect": {
+        "status": "SUPPRESSED",
+        "suppression_includes": [
+          "GK-06:DATA_INTEGRITY"
+        ]
+      }
+    }
+  ]
+}

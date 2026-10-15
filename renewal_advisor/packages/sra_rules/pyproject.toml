@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sra-rules"
+version = "1.0.0"
+description = "Smart Renewal Advisor - deterministic decision engine (JsonLogic subset + trace). No I/O, no clock, no LLM."
+requires-python = ">=3.12"
+dependencies = []
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+sra_rules = ["py.typed"]

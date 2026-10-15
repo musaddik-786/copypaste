@@ -1,0 +1,1538 @@
+{
+  "catalog_id": "SRA-RULES",
+  "version": "1.0.0-draft",
+  "status": "DRAFT",
+  "jurisdiction": "DE",
+  "currency": "EUR",
+  "effective_from": "2026-11-01",
+  "description": "Reconciled Smart Renewal Advisor rule catalog. Merges BRD v1.0 (Business Baseline) and 'Smart Renewal Advisor Rules' document. Every rule carries source_refs to the BA document IDs it supersedes and open_decisions that need BA/Compliance sign-off. Conditions are JsonLogic; parameters are referenced as {\"var\": \"params.<key>\"}.",
+  "parameters": {
+    "cooldown_rider_months": {
+      "value": 6,
+      "type": "int",
+      "source": "BRD BR-06",
+      "decision": "D-03"
+    },
+    "cooldown_companion_months": {
+      "value": 12,
+      "type": "int",
+      "source": "BRD BR-06",
+      "decision": "D-03"
+    },
+    "grievance_lookback_days": {
+      "value": 180,
+      "type": "int",
+      "source": "RULES BR-03"
+    },
+    "risk_gate_at_fault_24m_max": {
+      "value": 1,
+      "type": "int",
+      "source": "BRD 5 / RULES BR-05",
+      "decision": "D-05"
+    },
+    "full_comp_min_vehicle_value": {
+      "value": 8000,
+      "type": "decimal",
+      "source": "RULES UP-CAR-02"
+    },
+    "full_comp_max_vehicle_age": {
+      "value": 8,
+      "type": "int",
+      "source": "RULES UP-CAR-02"
+    },
+    "full_comp_max_claims_36m": {
+      "value": 1,
+      "type": "int",
+      "source": "RULES UP-CAR-02"
+    },
+    "partial_comp_min_vehicle_value": {
+      "value": 4000,
+      "type": "decimal",
+      "source": "ARCHITECT (BRD silent)",
+      "decision": "D-06"
+    },
+    "partial_comp_max_vehicle_age": {
+      "value": 12,
+      "type": "int",
+      "source": "ARCHITECT (BRD silent)",
+      "decision": "D-06"
+    },
+    "tier_upgrade_max_vehicle_age": {
+      "value": 3,
+      "type": "int",
+      "source": "BRD UP-CAR-03"
+    },
+    "ncd_min_bonus_tier": {
+      "value": 8,
+      "type": "int",
+      "source": "RULES UP-CAR-01 (BRD says 4)",
+      "decision": "D-04"
+    },
+    "ncd_max_at_fault_36m": {
+      "value": 0,
+      "type": "int",
+      "source": "RULES UP-CAR-01 (BRD: 12m)",
+      "decision": "D-04"
+    },
+    "roadside_min_annual_km": {
+      "value": 12000,
+      "type": "int",
+      "source": "RULES UP-CAR-03 (BRD 15,000)",
+      "decision": "D-07"
+    },
+    "roadside_max_household_vehicles": {
+      "value": 1,
+      "type": "int",
+      "source": "RULES UP-CAR-03"
+    },
+    "pa_min_annual_km": {
+      "value": 15000,
+      "type": "int",
+      "source": "RULES CS-CAR-02"
+    },
+    "flood_max_auto_zone": {
+      "value": 3,
+      "type": "int",
+      "source": "RULES UP-HOM-01 (ZUeRS GK1-3)",
+      "decision": "D-08"
+    },
+    "flood_valve_required_from_zone": {
+      "value": 2,
+      "type": "int",
+      "source": "RULES UP-HOM-01",
+      "decision": "D-08"
+    },
+    "building_tier_min_age_years": {
+      "value": 20,
+      "type": "int",
+      "source": "BRD UP-HOM-02"
+    },
+    "pet_vet_max_age_years": {
+      "value": 7,
+      "type": "int",
+      "source": "RULES UP-PET-01"
+    },
+    "pet_vet_max_claims_24m": {
+      "value": 1,
+      "type": "int",
+      "source": "RULES UP-PET-01"
+    },
+    "max_recommendations": {
+      "value": 2,
+      "type": "int",
+      "source": "BRD BR-08 (1 primary + 1 alternative)"
+    },
+    "rounding_mode": {
+      "value": "ROUND_HALF_UP",
+      "type": "enum",
+      "source": "ARCHITECT (kaufmaennisches Runden)"
+    },
+    "external_vehicle_max_declaration_age_months": {
+      "value": 24,
+      "type": "int",
+      "source": "ARCHITECT",
+      "decision": "D-14"
+    }
+  },
+  "priority_tiers": {
+    "P1": "Existential liability gap (unlimited personal liability exposure)",
+    "P2": "Major asset or income protection gap",
+    "P3": "Coverage enhancement / convenience rider"
+  },
+  "ranking": {
+    "order_by": [
+      "priority_tier ASC",
+      "bundle_saving_annual DESC",
+      "sequence ASC",
+      "rule_id ASC"
+    ],
+    "max_primary": 1,
+    "max_alternative": 1,
+    "one_per_exclusion_group": true,
+    "source": "BRD BR-08, BR-09; BAC-09",
+    "decision": "D-09"
+  },
+  "window_rule": {
+    "id": "W-01",
+    "name": "Renewal quote trigger & operational window",
+    "source_refs": [
+      "BRD BR-01",
+      "BAC-01",
+      "BAC-02"
+    ],
+    "when": {
+      "and": [
+        {
+          "==": [
+            {
+              "var": "quote.status"
+            },
+            "QUOTED"
+          ]
+        },
+        {
+          "==": [
+            {
+              "var": "quote.letter_dispatched"
+            },
+            false
+          ]
+        },
+        {
+          ">=": [
+            {
+              "var": "quote.days_to_letter_due"
+            },
+            0
+          ]
+        }
+      ]
+    },
+    "outcome_if_false": "NOT_TRIGGERED"
+  },
+  "gatekeepers": [
+    {
+      "id": "GK-01",
+      "name": "Advisory consent verification",
+      "status": "ACTIVE",
+      "suppress_when": {
+        "!=": [
+          {
+            "var": "consent.advisory_renewal"
+          },
+          "GRANTED"
+        ]
+      },
+      "required_facts": [
+        "consent.advisory_renewal"
+      ],
+      "reason_code": "CONSENT_NOT_GRANTED",
+      "source_refs": [
+        "BRD BR-07",
+        "RULES BR-01"
+      ],
+      "regulatory_refs": [
+        "GDPR-ART-6",
+        "GDPR-ART-7",
+        "GDPR-ART-21",
+        "UWG-7"
+      ]
+    },
+    {
+      "id": "GK-02",
+      "name": "Account standing & arrears",
+      "status": "ACTIVE",
+      "suppress_when": {
+        "!=": [
+          {
+            "var": "account.payment_status"
+          },
+          "CURRENT"
+        ]
+      },
+      "required_facts": [
+        "account.payment_status"
+      ],
+      "reason_code": "ACCOUNT_NOT_IN_GOOD_STANDING",
+      "source_refs": [
+        "RULES BR-02",
+        "BRD Account_Standing"
+      ],
+      "regulatory_refs": [
+        "IDD-ART-17"
+      ]
+    },
+    {
+      "id": "GK-03",
+      "name": "Open formal complaint",
+      "status": "ACTIVE",
+      "suppress_when": {
+        "==": [
+          {
+            "var": "conduct.open_complaint"
+          },
+          true
+        ]
+      },
+      "required_facts": [
+        "conduct.open_complaint"
+      ],
+      "reason_code": "GRIEVANCE_ACTIVE",
+      "source_refs": [
+        "BRD BR-04",
+        "RULES BR-03",
+        "BAC-06"
+      ],
+      "regulatory_refs": [
+        "IDD-ART-17",
+        "EIOPA-AI-OPINION-2025"
+      ]
+    },
+    {
+      "id": "GK-04",
+      "name": "Disputed claim or litigation within lookback",
+      "status": "ACTIVE",
+      "suppress_when": {
+        "or": [
+          {
+            "==": [
+              {
+                "var": "conduct.disputed_claim_in_lookback"
+              },
+              true
+            ]
+          },
+          {
+            "==": [
+              {
+                "var": "conduct.open_litigation"
+              },
+              true
+            ]
+          }
+        ]
+      },
+      "required_facts": [
+        "conduct.disputed_claim_in_lookback",
+        "conduct.open_litigation"
+      ],
+      "reason_code": "DISPUTE_ACTIVE",
+      "source_refs": [
+        "RULES BR-03",
+        "RULES BR-05 (property litigation)"
+      ],
+      "regulatory_refs": [
+        "IDD-ART-17"
+      ]
+    },
+    {
+      "id": "GK-05",
+      "name": "Sensitive open claims journey",
+      "status": "ACTIVE",
+      "suppress_when": {
+        "==": [
+          {
+            "var": "conduct.open_claim_in_settlement"
+          },
+          true
+        ]
+      },
+      "required_facts": [
+        "conduct.open_claim_in_settlement"
+      ],
+      "reason_code": "CLAIM_IN_SETTLEMENT",
+      "source_refs": [
+        "BRD BR-05"
+      ],
+      "regulatory_refs": [
+        "IDD-ART-17"
+      ],
+      "open_decisions": [
+        "D-02"
+      ]
+    },
+    {
+      "id": "GK-06",
+      "name": "Customer vulnerability hold",
+      "status": "ACTIVE",
+      "suppress_when": {
+        "==": [
+          {
+            "var": "conduct.vulnerability_hold"
+          },
+          true
+        ]
+      },
+      "required_facts": [
+        "conduct.vulnerability_hold"
+      ],
+      "reason_code": "VULNERABILITY_HOLD",
+      "source_refs": [
+        "ARCHITECT (not in BA docs)"
+      ],
+      "regulatory_refs": [
+        "IDD-ART-17",
+        "EIOPA-AI-OPINION-2025"
+      ],
+      "open_decisions": [
+        "D-10"
+      ],
+      "note": "Recommended addition. Flag only - never store the vulnerability reason in this system (possible GDPR Art. 9 data)."
+    }
+  ],
+  "candidate_filters": [
+    {
+      "order": 1,
+      "id": "EL-01",
+      "name": "Strict non-duplication",
+      "outcome": "ALREADY_COVERED",
+      "source_refs": [
+        "BRD BR-02",
+        "BAC-03"
+      ]
+    },
+    {
+      "order": 2,
+      "id": "EL-02",
+      "name": "Endorsement overlap",
+      "outcome": "COVERED_BY_ENDORSEMENT",
+      "source_refs": [
+        "BRD BR-03"
+      ]
+    },
+    {
+      "order": 3,
+      "id": "EL-03",
+      "name": "Cooldown enforcement",
+      "outcome": "COOLDOWN_ACTIVE",
+      "source_refs": [
+        "BRD BR-06",
+        "RULES BR-04",
+        "BAC-04",
+        "BAC-05"
+      ]
+    },
+    {
+      "order": 4,
+      "id": "EL-06",
+      "name": "Data integrity gate",
+      "outcome": "DATA_INTEGRITY_FAIL",
+      "source_refs": [
+        "BRD 5 Data Integrity Gate"
+      ]
+    },
+    {
+      "order": 5,
+      "id": "EL-05",
+      "name": "Risk quality gate",
+      "outcome": "DISQUALIFIED_RISK",
+      "source_refs": [
+        "BRD 5 Risk Quality Gate",
+        "RULES BR-05",
+        "BAC-07"
+      ],
+      "when_risky": {
+        ">": [
+          {
+            "var": "claims.at_fault_24m"
+          },
+          {
+            "var": "params.risk_gate_at_fault_24m_max"
+          }
+        ]
+      },
+      "applies_to_risk_class": [
+        "MOTOR_UPGRADE"
+      ]
+    },
+    {
+      "order": 6,
+      "id": "QUAL",
+      "name": "Opportunity qualification",
+      "outcome": "NOT_TRIGGERED"
+    },
+    {
+      "order": 7,
+      "id": "EL-04",
+      "name": "Target market (IDD POG)",
+      "outcome": "TARGET_MARKET_MISMATCH",
+      "source_refs": [
+        "RULES BR-06",
+        "BAC-08"
+      ]
+    },
+    {
+      "order": 8,
+      "id": "PR-01",
+      "name": "Verified incremental pricing",
+      "outcome": "DISQUALIFIED_NO_VERIFIED_PRICE",
+      "source_refs": [
+        "BRD BR-12"
+      ]
+    }
+  ],
+  "products": {
+    "CAR_POLICY": {
+      "lob": "CAR",
+      "kind": "BASE",
+      "name_en": "Car Insurance",
+      "name_de": "Kfz-Versicherung",
+      "cooldown_class": "COMPANION",
+      "target_market": {
+        "==": [
+          true,
+          true
+        ]
+      }
+    },
+    "CAR_COV_PARTIAL": {
+      "lob": "CAR",
+      "kind": "COVERAGE",
+      "name_en": "Partial Comprehensive (Teilkasko)",
+      "name_de": "Teilkasko",
+      "cooldown_class": "RIDER"
+    },
+    "CAR_COV_FULL": {
+      "lob": "CAR",
+      "kind": "COVERAGE",
+      "name_en": "Full Comprehensive (Vollkasko)",
+      "name_de": "Vollkasko",
+      "cooldown_class": "RIDER"
+    },
+    "CAR_TIER_COMFORT": {
+      "lob": "CAR",
+      "kind": "TIER",
+      "name_en": "Car Comfort Package",
+      "name_de": "Kfz Komfort",
+      "cooldown_class": "RIDER"
+    },
+    "CAR_NCD_PROTECTION": {
+      "lob": "CAR",
+      "kind": "RIDER",
+      "name_en": "No-Claims Discount Protection",
+      "name_de": "Rabattschutz",
+      "cooldown_class": "RIDER"
+    },
+    "CAR_ROADSIDE": {
+      "lob": "CAR",
+      "kind": "RIDER",
+      "name_en": "Roadside Assistance & Breakdown Mobility",
+      "name_de": "Schutzbrief",
+      "cooldown_class": "RIDER"
+    },
+    "CAR_DRIVER_INJURY": {
+      "lob": "CAR",
+      "kind": "RIDER",
+      "name_en": "Driver Personal Injury Cover",
+      "name_de": "Fahrerschutz",
+      "cooldown_class": "RIDER"
+    },
+    "CAR_GLASS": {
+      "lob": "CAR",
+      "kind": "RIDER",
+      "name_en": "Glass Protection",
+      "name_de": "Glasschutz",
+      "cooldown_class": "RIDER"
+    },
+    "HOME_BUILDING": {
+      "lob": "HOME_BUILDING",
+      "kind": "BASE",
+      "name_en": "Residential Building Insurance",
+      "name_de": "Wohngebaeudeversicherung",
+      "cooldown_class": "COMPANION",
+      "target_market": {
+        "and": [
+          {
+            "in": [
+              {
+                "var": "customer.occupancy"
+              },
+              [
+                "OWNER_OCCUPIER",
+                "LANDLORD"
+              ]
+            ]
+          },
+          {
+            "!=": [
+              {
+                "var": "customer.dwelling_type"
+              },
+              "APARTMENT"
+            ]
+          }
+        ]
+      },
+      "target_market_note": "Apartment (condominium) buildings are insured by the owners' association (WEG), not the individual unit owner."
+    },
+    "HOME_BLD_NATHAZ": {
+      "lob": "HOME_BUILDING",
+      "kind": "RIDER",
+      "name_en": "Extended Natural Hazards / Flood Cover (Building)",
+      "name_de": "Elementarschaden (Gebaeude)",
+      "cooldown_class": "RIDER"
+    },
+    "HOME_BLD_TIER_COMFORT": {
+      "lob": "HOME_BUILDING",
+      "kind": "TIER",
+      "name_en": "Building Comfort Package",
+      "name_de": "Gebaeude Komfort",
+      "cooldown_class": "RIDER"
+    },
+    "HOME_CONTENTS": {
+      "lob": "HOME_CONTENTS",
+      "kind": "BASE",
+      "name_en": "Home Contents Insurance",
+      "name_de": "Hausratversicherung",
+      "cooldown_class": "COMPANION",
+      "target_market": {
+        "in": [
+          {
+            "var": "customer.occupancy"
+          },
+          [
+            "OWNER_OCCUPIER",
+            "TENANT"
+          ]
+        ]
+      }
+    },
+    "HOME_CNT_NATHAZ": {
+      "lob": "HOME_CONTENTS",
+      "kind": "RIDER",
+      "name_en": "Natural Hazards Cover for Contents",
+      "name_de": "Elementarschaden (Hausrat)",
+      "cooldown_class": "RIDER"
+    },
+    "HOME_CNT_BICYCLE": {
+      "lob": "HOME_CONTENTS",
+      "kind": "RIDER",
+      "name_en": "Comprehensive Bicycle & E-Bike Cover",
+      "name_de": "Fahrrad- und E-Bike-Schutz",
+      "cooldown_class": "RIDER"
+    },
+    "HOME_CNT_VALUABLES": {
+      "lob": "HOME_CONTENTS",
+      "kind": "RIDER",
+      "name_en": "High-Value Valuables Extension",
+      "name_de": "Wertsachen-Erweiterung",
+      "cooldown_class": "RIDER"
+    },
+    "LIAB_PRIVATE": {
+      "lob": "LIABILITY",
+      "kind": "BASE",
+      "name_en": "Personal Liability Insurance",
+      "name_de": "Privathaftpflichtversicherung",
+      "cooldown_class": "COMPANION"
+    },
+    "LIAB_DOG": {
+      "lob": "PET_LIAB",
+      "kind": "BASE",
+      "name_en": "Dog Owner Liability Insurance",
+      "name_de": "Hundehalterhaftpflicht",
+      "cooldown_class": "COMPANION",
+      "target_market": {
+        "==": [
+          {
+            "var": "customer.dog_owner"
+          },
+          true
+        ]
+      }
+    },
+    "LIAB_HORSE": {
+      "lob": "PET_LIAB",
+      "kind": "BASE",
+      "name_en": "Horse Owner Liability Insurance",
+      "name_de": "Pferdehalterhaftpflicht",
+      "cooldown_class": "COMPANION",
+      "target_market": {
+        "==": [
+          {
+            "var": "customer.horse_owner"
+          },
+          true
+        ]
+      }
+    },
+    "PET_HEALTH_SURGERY": {
+      "lob": "PET_HEALTH",
+      "kind": "BASE",
+      "name_en": "Pet Health & Surgery Cover",
+      "name_de": "Tier-OP-Versicherung",
+      "cooldown_class": "COMPANION",
+      "target_market": {
+        "or": [
+          {
+            "==": [
+              {
+                "var": "customer.dog_owner"
+              },
+              true
+            ]
+          },
+          {
+            "==": [
+              {
+                "var": "customer.cat_owner"
+              },
+              true
+            ]
+          }
+        ]
+      }
+    },
+    "PET_HEALTH_COMPREHENSIVE": {
+      "lob": "PET_HEALTH",
+      "kind": "TIER",
+      "name_en": "Comprehensive Veterinary Health Rider",
+      "name_de": "Tierkrankenvollschutz",
+      "cooldown_class": "RIDER"
+    },
+    "PERSONAL_ACCIDENT": {
+      "lob": "ACCIDENT",
+      "kind": "BASE",
+      "name_en": "Personal Accident Insurance",
+      "name_de": "Private Unfallversicherung",
+      "cooldown_class": "COMPANION",
+      "scope_flag": "EXTENSION_PRODUCT_NOT_IN_BRD_SCOPE",
+      "open_decisions": [
+        "D-01"
+      ]
+    }
+  },
+  "bundle_discounts": {
+    "basis": "pct x (quoted renewal premium of renewing policy + standalone companion premium)",
+    "source": "RULES section 4 cross-sell pricing architecture",
+    "decision": "D-11",
+    "by_companion_product": {
+      "LIAB_PRIVATE": 5,
+      "PERSONAL_ACCIDENT": 5,
+      "HOME_CONTENTS": 5,
+      "HOME_BUILDING": 5,
+      "LIAB_DOG": 5,
+      "LIAB_HORSE": 5,
+      "PET_HEALTH_SURGERY": 5,
+      "CAR_POLICY": 10
+    }
+  },
+  "rules": [
+    {
+      "id": "UP-CAR-01",
+      "name": "Upgrade to Full Comprehensive",
+      "type": "UPSELL",
+      "lob": "CAR",
+      "status": "ACTIVE",
+      "product_code": "CAR_COV_FULL",
+      "priority_tier": "P2",
+      "sequence": 10,
+      "exclusion_group": "CAR_COVERAGE",
+      "risk_class": "MOTOR_UPGRADE",
+      "required_facts": [
+        "policy.coverage_level",
+        "vehicle.market_value",
+        "vehicle.age_years",
+        "claims.claims_12m",
+        "claims.claims_36m",
+        "claims.at_fault_24m"
+      ],
+      "when": {
+        "and": [
+          {
+            "in": [
+              {
+                "var": "policy.coverage_level"
+              },
+              [
+                "TPL",
+                "PARTIAL"
+              ]
+            ]
+          },
+          {
+            ">=": [
+              {
+                "var": "vehicle.market_value"
+              },
+              {
+                "var": "params.full_comp_min_vehicle_value"
+              }
+            ]
+          },
+          {
+            "<=": [
+              {
+                "var": "vehicle.age_years"
+              },
+              {
+                "var": "params.full_comp_max_vehicle_age"
+              }
+            ]
+          },
+          {
+            "==": [
+              {
+                "var": "claims.claims_12m"
+              },
+              0
+            ]
+          },
+          {
+            "<=": [
+              {
+                "var": "claims.claims_36m"
+              },
+              {
+                "var": "params.full_comp_max_claims_36m"
+              }
+            ]
+          }
+        ]
+      },
+      "source_refs": [
+        "BRD UP-CAR-01",
+        "BRD UP-CAR-02",
+        "RULES UP-CAR-02"
+      ]
+    },
+    {
+      "id": "UP-CAR-02",
+      "name": "Upgrade Third-Party to Partial Comprehensive",
+      "type": "UPSELL",
+      "lob": "CAR",
+      "status": "ACTIVE",
+      "product_code": "CAR_COV_PARTIAL",
+      "priority_tier": "P2",
+      "sequence": 20,
+      "exclusion_group": "CAR_COVERAGE",
+      "risk_class": "MOTOR_UPGRADE",
+      "required_facts": [
+        "policy.coverage_level",
+        "vehicle.market_value",
+        "vehicle.age_years",
+        "claims.at_fault_24m"
+      ],
+      "when": {
+        "and": [
+          {
+            "==": [
+              {
+                "var": "policy.coverage_level"
+              },
+              "TPL"
+            ]
+          },
+          {
+            ">=": [
+              {
+                "var": "vehicle.market_value"
+              },
+              {
+                "var": "params.partial_comp_min_vehicle_value"
+              }
+            ]
+          },
+          {
+            "<=": [
+              {
+                "var": "vehicle.age_years"
+              },
+              {
+                "var": "params.partial_comp_max_vehicle_age"
+              }
+            ]
+          }
+        ]
+      },
+      "source_refs": [
+        "BRD UP-CAR-01"
+      ],
+      "open_decisions": [
+        "D-06"
+      ]
+    },
+    {
+      "id": "UP-CAR-03",
+      "name": "Package tier Smart to Comfort (near-new vehicle)",
+      "type": "UPSELL",
+      "lob": "CAR",
+      "status": "ACTIVE",
+      "product_code": "CAR_TIER_COMFORT",
+      "priority_tier": "P3",
+      "sequence": 30,
+      "risk_class": "MOTOR_UPGRADE",
+      "required_facts": [
+        "policy.coverage_level",
+        "policy.tier",
+        "vehicle.age_years",
+        "claims.at_fault_24m"
+      ],
+      "when": {
+        "and": [
+          {
+            "==": [
+              {
+                "var": "policy.coverage_level"
+              },
+              "FULL"
+            ]
+          },
+          {
+            "==": [
+              {
+                "var": "policy.tier"
+              },
+              "SMART"
+            ]
+          },
+          {
+            "<=": [
+              {
+                "var": "vehicle.age_years"
+              },
+              {
+                "var": "params.tier_upgrade_max_vehicle_age"
+              }
+            ]
+          }
+        ]
+      },
+      "source_refs": [
+        "BRD UP-CAR-03"
+      ]
+    },
+    {
+      "id": "UP-CAR-04",
+      "name": "No-Claims Discount Protection rider",
+      "type": "UPSELL",
+      "lob": "CAR",
+      "status": "ACTIVE",
+      "product_code": "CAR_NCD_PROTECTION",
+      "priority_tier": "P3",
+      "sequence": 10,
+      "required_facts": [
+        "policy.coverage_level",
+        "motor.bonus_tier",
+        "claims.at_fault_36m"
+      ],
+      "when": {
+        "and": [
+          {
+            "==": [
+              {
+                "var": "policy.coverage_level"
+              },
+              "FULL"
+            ]
+          },
+          {
+            ">=": [
+              {
+                "var": "motor.bonus_tier"
+              },
+              {
+                "var": "params.ncd_min_bonus_tier"
+              }
+            ]
+          },
+          {
+            "<=": [
+              {
+                "var": "claims.at_fault_36m"
+              },
+              {
+                "var": "params.ncd_max_at_fault_36m"
+              }
+            ]
+          }
+        ]
+      },
+      "source_refs": [
+        "BRD UP-CAR-04",
+        "RULES UP-CAR-01"
+      ],
+      "open_decisions": [
+        "D-04"
+      ]
+    },
+    {
+      "id": "UP-CAR-05",
+      "name": "Roadside Assistance & Breakdown Mobility",
+      "type": "UPSELL",
+      "lob": "CAR",
+      "status": "ACTIVE",
+      "product_code": "CAR_ROADSIDE",
+      "priority_tier": "P3",
+      "sequence": 20,
+      "required_facts": [
+        "vehicle.annual_km",
+        "customer.household_vehicle_count"
+      ],
+      "when": {
+        "and": [
+          {
+            ">=": [
+              {
+                "var": "vehicle.annual_km"
+              },
+              {
+                "var": "params.roadside_min_annual_km"
+              }
+            ]
+          },
+          {
+            "<=": [
+              {
+                "var": "customer.household_vehicle_count"
+              },
+              {
+                "var": "params.roadside_max_household_vehicles"
+              }
+            ]
+          }
+        ]
+      },
+      "source_refs": [
+        "BRD UP-CAR-05",
+        "RULES UP-CAR-03"
+      ],
+      "open_decisions": [
+        "D-07"
+      ]
+    },
+    {
+      "id": "UP-CAR-06",
+      "name": "Driver Personal Injury Cover",
+      "type": "UPSELL",
+      "lob": "CAR",
+      "status": "ACTIVE",
+      "product_code": "CAR_DRIVER_INJURY",
+      "priority_tier": "P2",
+      "sequence": 40,
+      "exclusion_group": "DRIVER_PERSONAL_INJURY",
+      "required_facts": [
+        "customer.primary_earner",
+        "customer.has_dependants"
+      ],
+      "when": {
+        "and": [
+          {
+            "==": [
+              {
+                "var": "customer.primary_earner"
+              },
+              true
+            ]
+          },
+          {
+            "==": [
+              {
+                "var": "customer.has_dependants"
+              },
+              true
+            ]
+          }
+        ]
+      },
+      "source_refs": [
+        "BRD UP-CAR-06"
+      ]
+    },
+    {
+      "id": "UP-HOM-01",
+      "name": "Extended Natural Hazards / Flood (Building)",
+      "type": "UPSELL",
+      "lob": "HOME_BUILDING",
+      "status": "ACTIVE",
+      "product_code": "HOME_BLD_NATHAZ",
+      "priority_tier": "P2",
+      "sequence": 10,
+      "required_facts": [
+        "property.zuers_zone",
+        "claims.open_water_claim_24m"
+      ],
+      "referral_when": {
+        ">": [
+          {
+            "var": "property.zuers_zone"
+          },
+          {
+            "var": "params.flood_max_auto_zone"
+          }
+        ]
+      },
+      "when": {
+        "and": [
+          {
+            "<=": [
+              {
+                "var": "property.zuers_zone"
+              },
+              {
+                "var": "params.flood_max_auto_zone"
+              }
+            ]
+          },
+          {
+            "or": [
+              {
+                "<": [
+                  {
+                    "var": "property.zuers_zone"
+                  },
+                  {
+                    "var": "params.flood_valve_required_from_zone"
+                  }
+                ]
+              },
+              {
+                "==": [
+                  {
+                    "var": "property.backwater_valve_certified"
+                  },
+                  true
+                ]
+              }
+            ]
+          },
+          {
+            "==": [
+              {
+                "var": "claims.open_water_claim_24m"
+              },
+              false
+            ]
+          }
+        ]
+      },
+      "source_refs": [
+        "BRD UP-HOM-01",
+        "RULES UP-HOM-01"
+      ],
+      "open_decisions": [
+        "D-08"
+      ]
+    },
+    {
+      "id": "UP-HOM-02",
+      "name": "Building tier Smart to Comfort",
+      "type": "UPSELL",
+      "lob": "HOME_BUILDING",
+      "status": "ACTIVE",
+      "product_code": "HOME_BLD_TIER_COMFORT",
+      "priority_tier": "P3",
+      "sequence": 20,
+      "required_facts": [
+        "policy.tier",
+        "property.building_age_years"
+      ],
+      "when": {
+        "and": [
+          {
+            "==": [
+              {
+                "var": "policy.tier"
+              },
+              "SMART"
+            ]
+          },
+          {
+            "or": [
+              {
+                ">=": [
+                  {
+                    "var": "property.building_age_years"
+                  },
+                  {
+                    "var": "params.building_tier_min_age_years"
+                  }
+                ]
+              },
+              {
+                "==": [
+                  {
+                    "var": "property.has_solar_or_heatpump"
+                  },
+                  true
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "source_refs": [
+        "BRD UP-HOM-02"
+      ]
+    },
+    {
+      "id": "UP-HOM-03",
+      "name": "Natural Hazards for Contents",
+      "type": "UPSELL",
+      "lob": "HOME_CONTENTS",
+      "status": "ACTIVE",
+      "product_code": "HOME_CNT_NATHAZ",
+      "priority_tier": "P3",
+      "sequence": 10,
+      "required_facts": [
+        "property.basement_or_ground_floor_storage"
+      ],
+      "when": {
+        "==": [
+          {
+            "var": "property.basement_or_ground_floor_storage"
+          },
+          true
+        ]
+      },
+      "source_refs": [
+        "BRD UP-HOM-03"
+      ]
+    },
+    {
+      "id": "UP-HOM-04",
+      "name": "Comprehensive Bicycle & E-Bike Cover",
+      "type": "UPSELL",
+      "lob": "HOME_CONTENTS",
+      "status": "ACTIVE",
+      "product_code": "HOME_CNT_BICYCLE",
+      "priority_tier": "P3",
+      "sequence": 20,
+      "required_facts": [
+        "customer.high_value_bike_owner"
+      ],
+      "when": {
+        "==": [
+          {
+            "var": "customer.high_value_bike_owner"
+          },
+          true
+        ]
+      },
+      "source_refs": [
+        "BRD UP-HOM-04"
+      ]
+    },
+    {
+      "id": "UP-HOM-05",
+      "name": "High-Value Valuables Extension",
+      "type": "UPSELL",
+      "lob": "HOME_CONTENTS",
+      "status": "DRAFT",
+      "product_code": "HOME_CNT_VALUABLES",
+      "priority_tier": "P3",
+      "sequence": 30,
+      "required_facts": [
+        "property.floor_area_sqm"
+      ],
+      "when": {
+        ">=": [
+          {
+            "var": "property.floor_area_sqm"
+          },
+          120
+        ]
+      },
+      "source_refs": [
+        "RULES UP-HOM-02"
+      ],
+      "open_decisions": [
+        "D-12"
+      ],
+      "note": "DRAFT: floor area alone is a weak demands-and-needs proxy (IDD Art. 20). Needs a declared-valuables fact before activation."
+    },
+    {
+      "id": "UP-PET-01",
+      "name": "Surgery to Comprehensive Veterinary Health",
+      "type": "UPSELL",
+      "lob": "PET_HEALTH",
+      "status": "ACTIVE",
+      "product_code": "PET_HEALTH_COMPREHENSIVE",
+      "priority_tier": "P3",
+      "sequence": 10,
+      "required_facts": [
+        "pet.cover_tier",
+        "pet.age_years",
+        "claims.pet_claims_24m"
+      ],
+      "when": {
+        "and": [
+          {
+            "==": [
+              {
+                "var": "pet.cover_tier"
+              },
+              "SURGERY"
+            ]
+          },
+          {
+            "<=": [
+              {
+                "var": "pet.age_years"
+              },
+              {
+                "var": "params.pet_vet_max_age_years"
+              }
+            ]
+          },
+          {
+            "<=": [
+              {
+                "var": "claims.pet_claims_24m"
+              },
+              {
+                "var": "params.pet_vet_max_claims_24m"
+              }
+            ]
+          }
+        ]
+      },
+      "source_refs": [
+        "RULES UP-PET-01"
+      ]
+    },
+    {
+      "id": "CS-LIA-01",
+      "name": "Personal Liability Insurance",
+      "type": "CROSS_SELL",
+      "status": "ACTIVE",
+      "product_code": "LIAB_PRIVATE",
+      "priority_tier": "P1",
+      "sequence": 10,
+      "required_facts": [
+        "customer.household_type"
+      ],
+      "when": {
+        "in": [
+          {
+            "var": "customer.household_type"
+          },
+          [
+            "SINGLE",
+            "COUPLE",
+            "FAMILY",
+            "SINGLE_PARENT"
+          ]
+        ]
+      },
+      "source_refs": [
+        "BRD CS-CAR-02",
+        "BRD CS-HOM-01",
+        "RULES CS-CAR-01"
+      ],
+      "open_decisions": [
+        "D-13"
+      ]
+    },
+    {
+      "id": "CS-PET-01",
+      "name": "Dog Owner Liability Insurance",
+      "type": "CROSS_SELL",
+      "status": "ACTIVE",
+      "product_code": "LIAB_DOG",
+      "priority_tier": "P1",
+      "sequence": 20,
+      "required_facts": [
+        "customer.dog_owner"
+      ],
+      "when": {
+        "==": [
+          {
+            "var": "customer.dog_owner"
+          },
+          true
+        ]
+      },
+      "source_refs": [
+        "BRD CS-CAR-03"
+      ]
+    },
+    {
+      "id": "CS-PET-02",
+      "name": "Horse Owner Liability Insurance",
+      "type": "CROSS_SELL",
+      "status": "ACTIVE",
+      "product_code": "LIAB_HORSE",
+      "priority_tier": "P1",
+      "sequence": 30,
+      "required_facts": [
+        "customer.horse_owner"
+      ],
+      "when": {
+        "==": [
+          {
+            "var": "customer.horse_owner"
+          },
+          true
+        ]
+      },
+      "source_refs": [
+        "BRD 3.4 (product only)"
+      ]
+    },
+    {
+      "id": "CS-HOM-01",
+      "name": "Home Contents Insurance",
+      "type": "CROSS_SELL",
+      "status": "ACTIVE",
+      "product_code": "HOME_CONTENTS",
+      "priority_tier": "P2",
+      "sequence": 10,
+      "required_facts": [
+        "customer.occupancy"
+      ],
+      "when": {
+        "in": [
+          {
+            "var": "customer.occupancy"
+          },
+          [
+            "OWNER_OCCUPIER",
+            "TENANT",
+            "LANDLORD"
+          ]
+        ]
+      },
+      "source_refs": [
+        "BRD CS-CAR-01 (tenant)",
+        "BRD CS-LIA-01",
+        "RULES CS-HOM-01"
+      ],
+      "open_decisions": [
+        "D-13"
+      ]
+    },
+    {
+      "id": "CS-HOM-02",
+      "name": "Residential Building Insurance",
+      "type": "CROSS_SELL",
+      "status": "ACTIVE",
+      "product_code": "HOME_BUILDING",
+      "priority_tier": "P2",
+      "sequence": 20,
+      "required_facts": [
+        "customer.occupancy",
+        "customer.dwelling_type"
+      ],
+      "when": {
+        "in": [
+          {
+            "var": "customer.occupancy"
+          },
+          [
+            "OWNER_OCCUPIER",
+            "TENANT",
+            "LANDLORD"
+          ]
+        ]
+      },
+      "source_refs": [
+        "BRD CS-CAR-01 (owner)",
+        "BAC-08"
+      ],
+      "note": "Qualification is deliberately broad; the product target market (EL-04) removes tenants and apartment owners. Defence in depth."
+    },
+    {
+      "id": "CS-CAR-01",
+      "name": "Car Insurance (declared external vehicle)",
+      "type": "CROSS_SELL",
+      "status": "ACTIVE",
+      "product_code": "CAR_POLICY",
+      "priority_tier": "P2",
+      "sequence": 30,
+      "required_facts": [
+        "external.declared_external_vehicle",
+        "external.declaration_age_months"
+      ],
+      "when": {
+        "and": [
+          {
+            "==": [
+              {
+                "var": "external.declared_external_vehicle"
+              },
+              true
+            ]
+          },
+          {
+            "<=": [
+              {
+                "var": "external.declaration_age_months"
+              },
+              {
+                "var": "params.external_vehicle_max_declaration_age_months"
+              }
+            ]
+          }
+        ]
+      },
+      "source_refs": [
+        "BRD CS-HOM-02",
+        "RULES CS-PET-01"
+      ],
+      "open_decisions": [
+        "D-14"
+      ]
+    },
+    {
+      "id": "CS-ACC-01",
+      "name": "Personal Accident Insurance",
+      "type": "CROSS_SELL",
+      "status": "ACTIVE",
+      "product_code": "PERSONAL_ACCIDENT",
+      "priority_tier": "P2",
+      "sequence": 40,
+      "exclusion_group": "DRIVER_PERSONAL_INJURY",
+      "applies_when_holding": [
+        "CAR_POLICY"
+      ],
+      "required_facts": [
+        "vehicle.annual_km",
+        "customer.primary_earner"
+      ],
+      "when": {
+        "and": [
+          {
+            ">=": [
+              {
+                "var": "vehicle.annual_km"
+              },
+              {
+                "var": "params.pa_min_annual_km"
+              }
+            ]
+          },
+          {
+            "==": [
+              {
+                "var": "customer.primary_earner"
+              },
+              true
+            ]
+          }
+        ]
+      },
+      "source_refs": [
+        "RULES CS-CAR-02"
+      ],
+      "open_decisions": [
+        "D-01"
+      ]
+    },
+    {
+      "id": "CS-PET-03",
+      "name": "Pet Health & Surgery Insurance",
+      "type": "CROSS_SELL",
+      "status": "ACTIVE",
+      "product_code": "PET_HEALTH_SURGERY",
+      "priority_tier": "P3",
+      "sequence": 10,
+      "required_facts": [
+        "customer.dog_owner"
+      ],
+      "when": {
+        "or": [
+          {
+            "==": [
+              {
+                "var": "customer.dog_owner"
+              },
+              true
+            ]
+          },
+          {
+            "==": [
+              {
+                "var": "customer.cat_owner"
+              },
+              true
+            ]
+          }
+        ]
+      },
+      "source_refs": [
+        "RULES CS-LIA-01"
+      ],
+      "note": "RULES doc offered this to horse owners; the BRD product covers dogs and cats only. Horse removed via target market."
+    }
+  ]
+}

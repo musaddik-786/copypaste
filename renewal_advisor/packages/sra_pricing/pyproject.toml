@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sra-pricing"
+version = "1.0.0"
+description = "Smart Renewal Advisor - deterministic pricing & bundle calculator (Decimal, ROUND_HALF_UP). No I/O, no LLM."
+requires-python = ">=3.12"
+dependencies = []
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+sra_pricing = ["py.typed"]

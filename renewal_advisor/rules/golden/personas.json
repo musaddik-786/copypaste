@@ -1,0 +1,469 @@
+{
+  "_comment": "Decision Contexts (derived facts) for the five prototype personas. Produced in production by the Fact Builder from the PAS/CRM Policy Snapshot. Prices are PAS-verified quotes (mock). DELTA vs prototype is documented per persona.",
+  "DAVID_MILLER": {
+    "_delta_vs_prototype": "Adds Personal Liability (POL-LIA-31877) to holdings so BRD Scenario 1 (NCD) still surfaces; without it, CS-LIA-01 (P1) would correctly become primary.",
+    "quote": {
+      "quote_id": "QUO-2026-88129",
+      "policy_id": "POL-CAR-440192",
+      "status": "QUOTED",
+      "created_at": "2026-10-13",
+      "letter_due": "2026-10-26",
+      "letter_dispatched": false,
+      "days_to_letter_due": 13
+    },
+    "customer": {
+      "customer_id": "CUST-90124",
+      "occupancy": "TENANT",
+      "dwelling_type": "APARTMENT",
+      "household_type": "COUPLE",
+      "primary_earner": true,
+      "has_dependants": false,
+      "dog_owner": false,
+      "cat_owner": false,
+      "horse_owner": false,
+      "household_vehicle_count": 1,
+      "high_value_bike_owner": false
+    },
+    "consent": {
+      "advisory_renewal": "GRANTED"
+    },
+    "account": {
+      "payment_status": "CURRENT"
+    },
+    "conduct": {
+      "open_complaint": false,
+      "disputed_claim_in_lookback": false,
+      "open_litigation": false,
+      "open_claim_in_settlement": false,
+      "vulnerability_hold": false
+    },
+    "policy": {
+      "lob": "CAR",
+      "coverage_level": "FULL",
+      "tier": "COMFORT",
+      "expiring_premium": 420.0,
+      "renewal_premium": 445.0
+    },
+    "vehicle": {
+      "description": "2021 VW Golf",
+      "market_value": 18500,
+      "age_years": 5,
+      "annual_km": 15000
+    },
+    "motor": {
+      "bonus_tier": 12
+    },
+    "claims": {
+      "claims_12m": 0,
+      "claims_36m": 0,
+      "at_fault_24m": 0,
+      "at_fault_36m": 0
+    },
+    "portfolio": {
+      "active_products": [
+        "CAR_POLICY",
+        "CAR_COV_FULL",
+        "CAR_TIER_COMFORT",
+        "CAR_GLASS",
+        "HOME_CONTENTS",
+        "LIAB_PRIVATE"
+      ],
+      "embedded_covers": [
+        "CAR_COV_PARTIAL"
+      ]
+    },
+    "external": {
+      "declared_external_vehicle": false
+    },
+    "history": {
+      "declines": []
+    },
+    "pas_quotes": {
+      "CAR_NCD_PROTECTION": {
+        "annual_gross": 45.6,
+        "verified": true
+      },
+      "CAR_ROADSIDE": {
+        "annual_gross": 39.0,
+        "verified": true
+      },
+      "CAR_DRIVER_INJURY": {
+        "annual_gross": 30.0,
+        "verified": true
+      },
+      "PERSONAL_ACCIDENT": {
+        "annual_gross": 62.4,
+        "verified": true
+      },
+      "LIAB_PRIVATE": {
+        "annual_gross": 57.0,
+        "verified": true
+      }
+    },
+    "unverified_facts": []
+  },
+  "SARAH_JENKINS": {
+    "_delta_vs_prototype": "None. Engine additionally surfaces Home Contents (P2) as the alternative.",
+    "quote": {
+      "quote_id": "QUO-2026-91402",
+      "policy_id": "POL-CAR-771204",
+      "status": "QUOTED",
+      "created_at": "2026-10-13",
+      "letter_due": "2026-10-21",
+      "letter_dispatched": false,
+      "days_to_letter_due": 8
+    },
+    "customer": {
+      "customer_id": "CUST-38192",
+      "occupancy": "TENANT",
+      "dwelling_type": "APARTMENT",
+      "household_type": "SINGLE",
+      "primary_earner": true,
+      "has_dependants": false,
+      "dog_owner": false,
+      "cat_owner": false,
+      "horse_owner": false,
+      "household_vehicle_count": 1,
+      "high_value_bike_owner": false
+    },
+    "consent": {
+      "advisory_renewal": "GRANTED"
+    },
+    "account": {
+      "payment_status": "CURRENT"
+    },
+    "conduct": {
+      "open_complaint": false,
+      "disputed_claim_in_lookback": false,
+      "open_litigation": false,
+      "open_claim_in_settlement": false,
+      "vulnerability_hold": false
+    },
+    "policy": {
+      "lob": "CAR",
+      "coverage_level": "FULL",
+      "tier": "COMFORT",
+      "expiring_premium": 490.0,
+      "renewal_premium": 515.0
+    },
+    "vehicle": {
+      "description": "2022 Audi A3",
+      "market_value": 24000,
+      "age_years": 4,
+      "annual_km": 12000
+    },
+    "motor": {
+      "bonus_tier": 8
+    },
+    "claims": {
+      "claims_12m": 0,
+      "claims_36m": 0,
+      "at_fault_24m": 0,
+      "at_fault_36m": 0
+    },
+    "portfolio": {
+      "active_products": [
+        "CAR_POLICY",
+        "CAR_COV_FULL",
+        "CAR_TIER_COMFORT",
+        "CAR_ROADSIDE"
+      ],
+      "embedded_covers": [
+        "CAR_COV_PARTIAL"
+      ]
+    },
+    "external": {
+      "declared_external_vehicle": false
+    },
+    "history": {
+      "declines": []
+    },
+    "pas_quotes": {
+      "LIAB_PRIVATE": {
+        "annual_gross": 57.0,
+        "verified": true
+      },
+      "HOME_CONTENTS": {
+        "annual_gross": 96.0,
+        "verified": true
+      },
+      "HOME_BUILDING": {
+        "annual_gross": 310.0,
+        "verified": true
+      },
+      "CAR_NCD_PROTECTION": {
+        "annual_gross": 52.8,
+        "verified": true
+      }
+    },
+    "unverified_facts": []
+  },
+  "ROBERT_TAYLOR": {
+    "_delta_vs_prototype": "Prototype labels Home Contents as an 'Upsell'; it is a CROSS_SELL (new policy). Bundle saving corrected from 37.75 to 38.00; net from 722.45 to 722.00.",
+    "quote": {
+      "quote_id": "QUO-2026-72810",
+      "policy_id": "POL-HOM-883109",
+      "status": "QUOTED",
+      "created_at": "2026-10-13",
+      "letter_due": "2026-11-04",
+      "letter_dispatched": false,
+      "days_to_letter_due": 22
+    },
+    "customer": {
+      "customer_id": "CUST-55102",
+      "occupancy": "OWNER_OCCUPIER",
+      "dwelling_type": "DETACHED",
+      "household_type": "COUPLE",
+      "primary_earner": true,
+      "has_dependants": false,
+      "dog_owner": false,
+      "cat_owner": false,
+      "horse_owner": false,
+      "household_vehicle_count": null,
+      "high_value_bike_owner": false
+    },
+    "consent": {
+      "advisory_renewal": "GRANTED"
+    },
+    "account": {
+      "payment_status": "CURRENT"
+    },
+    "conduct": {
+      "open_complaint": false,
+      "disputed_claim_in_lookback": false,
+      "open_litigation": false,
+      "open_claim_in_settlement": false,
+      "vulnerability_hold": false
+    },
+    "policy": {
+      "lob": "HOME_BUILDING",
+      "tier": "COMFORT",
+      "expiring_premium": 580.0,
+      "renewal_premium": 610.0
+    },
+    "property": {
+      "description": "Detached house, built 2012, 160 sqm",
+      "zuers_zone": 2,
+      "backwater_valve_certified": true,
+      "building_age_years": 14,
+      "has_solar_or_heatpump": false,
+      "floor_area_sqm": 160,
+      "basement_or_ground_floor_storage": true
+    },
+    "claims": {
+      "claims_12m": 0,
+      "claims_36m": 0,
+      "at_fault_24m": 0,
+      "at_fault_36m": 0,
+      "open_water_claim_24m": false
+    },
+    "portfolio": {
+      "active_products": [
+        "HOME_BUILDING",
+        "HOME_BLD_TIER_COMFORT",
+        "LIAB_PRIVATE"
+      ],
+      "embedded_covers": []
+    },
+    "external": {
+      "declared_external_vehicle": false
+    },
+    "history": {
+      "declines": []
+    },
+    "pas_quotes": {
+      "HOME_BLD_NATHAZ": {
+        "annual_gross": 85.2,
+        "verified": true
+      },
+      "HOME_CONTENTS": {
+        "annual_gross": 150.0,
+        "verified": true
+      }
+    },
+    "unverified_facts": []
+  },
+  "MARK_STEVENS": {
+    "_delta_vs_prototype": "None. Suppressed by GK-03, GK-04 and GK-05 (all evaluated for a complete audit trace).",
+    "quote": {
+      "quote_id": "QUO-2026-44019",
+      "policy_id": "POL-CAR-118420",
+      "status": "QUOTED",
+      "created_at": "2026-10-13",
+      "letter_due": "2026-10-16",
+      "letter_dispatched": false,
+      "days_to_letter_due": 3
+    },
+    "customer": {
+      "customer_id": "CUST-22941",
+      "occupancy": "TENANT",
+      "dwelling_type": "APARTMENT",
+      "household_type": "SINGLE",
+      "primary_earner": true,
+      "has_dependants": false,
+      "dog_owner": false,
+      "cat_owner": false,
+      "horse_owner": false,
+      "household_vehicle_count": 1,
+      "high_value_bike_owner": false
+    },
+    "consent": {
+      "advisory_renewal": "GRANTED"
+    },
+    "account": {
+      "payment_status": "CURRENT"
+    },
+    "conduct": {
+      "open_complaint": true,
+      "disputed_claim_in_lookback": true,
+      "open_litigation": false,
+      "open_claim_in_settlement": true,
+      "vulnerability_hold": false
+    },
+    "policy": {
+      "lob": "CAR",
+      "coverage_level": "TPL",
+      "tier": "SMART",
+      "expiring_premium": 310.0,
+      "renewal_premium": 340.0
+    },
+    "vehicle": {
+      "description": "2017 Ford Focus",
+      "market_value": 7500,
+      "age_years": 9,
+      "annual_km": 18000
+    },
+    "motor": {
+      "bonus_tier": 2
+    },
+    "claims": {
+      "claims_12m": 1,
+      "claims_36m": 2,
+      "at_fault_24m": 2,
+      "at_fault_36m": 2
+    },
+    "portfolio": {
+      "active_products": [
+        "CAR_POLICY"
+      ],
+      "embedded_covers": []
+    },
+    "external": {
+      "declared_external_vehicle": false
+    },
+    "history": {
+      "declines": []
+    },
+    "pas_quotes": {
+      "CAR_COV_PARTIAL": {
+        "annual_gross": 120.0,
+        "verified": true
+      },
+      "CAR_COV_FULL": {
+        "annual_gross": 260.0,
+        "verified": true
+      },
+      "LIAB_PRIVATE": {
+        "annual_gross": 57.0,
+        "verified": true
+      }
+    },
+    "unverified_facts": []
+  },
+  "ELENA_ROSTOVA": {
+    "_delta_vs_prototype": "Engine finds a P1 Personal Liability gap the prototype missed (her pet policy embeds dog-keeper liability only). Car cross-sell becomes the ALTERNATIVE. Dwelling type is unknown, so Building cross-sell is blocked by the Data Integrity Gate.",
+    "quote": {
+      "quote_id": "QUO-2026-61849",
+      "policy_id": "POL-PET-559201",
+      "status": "QUOTED",
+      "created_at": "2026-10-13",
+      "letter_due": "2026-11-09",
+      "letter_dispatched": false,
+      "days_to_letter_due": 27
+    },
+    "customer": {
+      "customer_id": "CUST-77310",
+      "occupancy": "OWNER_OCCUPIER",
+      "dwelling_type": null,
+      "household_type": "COUPLE",
+      "primary_earner": null,
+      "has_dependants": null,
+      "dog_owner": true,
+      "cat_owner": false,
+      "horse_owner": false,
+      "household_vehicle_count": 1,
+      "high_value_bike_owner": false
+    },
+    "consent": {
+      "advisory_renewal": "GRANTED"
+    },
+    "account": {
+      "payment_status": "CURRENT"
+    },
+    "conduct": {
+      "open_complaint": false,
+      "disputed_claim_in_lookback": false,
+      "open_litigation": false,
+      "open_claim_in_settlement": false,
+      "vulnerability_hold": false
+    },
+    "policy": {
+      "lob": "PET_HEALTH",
+      "tier": "COMFORT",
+      "expiring_premium": 185.0,
+      "renewal_premium": 198.0
+    },
+    "pet": {
+      "species": "DOG",
+      "breed": "Golden Retriever",
+      "age_years": 3,
+      "cover_tier": "COMPREHENSIVE"
+    },
+    "claims": {
+      "claims_12m": 0,
+      "claims_36m": 0,
+      "at_fault_24m": 0,
+      "at_fault_36m": 0,
+      "pet_claims_24m": 0
+    },
+    "portfolio": {
+      "active_products": [
+        "PET_HEALTH_SURGERY",
+        "PET_HEALTH_COMPREHENSIVE"
+      ],
+      "embedded_covers": [
+        "LIAB_DOG"
+      ]
+    },
+    "external": {
+      "declared_external_vehicle": true,
+      "vehicle_description": "2023 BMW X3",
+      "external_cover": "TPL",
+      "declared_at": "2026-06-02",
+      "declared_via": "CSR_CALL",
+      "declaration_age_months": 4
+    },
+    "history": {
+      "declines": []
+    },
+    "pas_quotes": {
+      "LIAB_PRIVATE": {
+        "annual_gross": 57.0,
+        "verified": true
+      },
+      "CAR_POLICY": {
+        "annual_gross": 510.0,
+        "verified": true
+      },
+      "HOME_CONTENTS": {
+        "annual_gross": 132.0,
+        "verified": true
+      },
+      "HOME_BUILDING": {
+        "annual_gross": 420.0,
+        "verified": true
+      }
+    },
+    "unverified_facts": []
+  }
+}

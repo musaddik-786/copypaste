@@ -1,0 +1,5 @@
+Metadata-Version: 2.4
+Name: sra-rules
+Version: 1.0.0
+Summary: Smart Renewal Advisor - deterministic decision engine (JsonLogic subset + trace). No I/O, no clock, no LLM.
+Requires-Python: >=3.12
