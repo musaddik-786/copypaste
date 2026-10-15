@@ -1,5 +1,19 @@
-DROP SCHEMA IF EXISTS sra CASCADE;
-DROP SCHEMA IF EXISTS src CASCADE;
-DROP SCHEMA IF EXISTS rules CASCADE;
-DROP SCHEMA IF EXISTS ref CASCADE;
-DROP SCHEMA IF EXISTS audit CASCADE;
+9:30:15 AM
+Started executing query at Line 1
+BEGIN
+9:30:16 AM
+Started executing query at Line 1425
+INSERT 0 10
+9:30:16 AM
+Started executing query at Line 1477
+INSERT 0 1
+9:30:16 AM
+Started executing query at Line 1486
+INSERT 0 52
+9:30:16 AM
+Started executing query at Line 1550
+INSERT 0 52
+9:30:17 AM
+Started executing query at Line 1615
+invalid input syntax for type uuid: "s0000000-0000-0000-0000-000000000001"
+Total execution time: 00:00:01.761
