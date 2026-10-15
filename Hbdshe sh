@@ -1,1 +1,29 @@
-pip install -e packages/sra_pricing -e packages/sra_rules pytest hypothesis --ignore-requires-python
+```bash
+python -m pytest packages/sra_rules/tests/ packages/sra_pricing/tests/ -v
+```
+
+That's it — one command runs all 136 tests across both packages with full output.
+
+If you want to run them one file at a time:
+
+```bash
+python -m pytest packages/sra_rules/tests/test_contract.py -v
+```
+
+```bash
+python -m pytest packages/sra_rules/tests/test_engine_semantics.py -v
+```
+
+```bash
+python -m pytest packages/sra_rules/tests/test_cooldown_boundary.py -v
+```
+
+```bash
+python -m pytest packages/sra_rules/tests/test_differential.py -v
+```
+
+```bash
+python -m pytest packages/sra_pricing/tests/ -v
+```
+
+The differential test (`test_differential.py`) runs 400 random cases so it takes a bit longer than the others — that's normal.
