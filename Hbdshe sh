@@ -1,2 +1,1 @@
-ERROR: Package 'sra-pricing' requires a different Python: 3.11.2 not in '>=3.12'
-(.venv) JarvisClaims@JarvisClaims:~/Saikiran/renewal_advisor$ 
+pip install -e packages/sra_pricing -e packages/sra_rules pytest hypothesis --ignore-requires-python
