@@ -1,4 +1,15 @@
+SET search_path TO cross_sell_newdb, public;
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
+CREATE SCHEMA IF NOT EXISTS ref;
+CREATE SCHEMA IF NOT EXISTS src;
+CREATE SCHEMA IF NOT EXISTS rules;
+CREATE SCHEMA IF NOT EXISTS sra;
+CREATE SCHEMA IF NOT EXISTS audit;
+
+etc etc..
+
+but i am gettnig below error
 8:28:31 AM
 Started executing query at Line 1
 SET
