@@ -1,21 +1,5 @@
-SET search_path TO cross_sell_newdb, public;
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
-
-CREATE SCHEMA IF NOT EXISTS ref;
-CREATE SCHEMA IF NOT EXISTS src;
-CREATE SCHEMA IF NOT EXISTS rules;
-CREATE SCHEMA IF NOT EXISTS sra;
-CREATE SCHEMA IF NOT EXISTS audit;
-
-etc etc..
-
-but i am gettnig below error
-8:28:31 AM
-Started executing query at Line 1
-SET
-8:28:32 AM
-Started executing query at Line 2131
-extension "pgcrypto" is not allow-listed for users in Azure Database for PostgreSQL
-HINT: to learn how to allow an extension or see the list of allowed extensions, please refer to https://go.microsoft.com/fwlink/?linkid=2301063
-Total execution time: 00:00:00.972
-
+DROP SCHEMA IF EXISTS sra CASCADE;
+DROP SCHEMA IF EXISTS src CASCADE;
+DROP SCHEMA IF EXISTS rules CASCADE;
+DROP SCHEMA IF EXISTS ref CASCADE;
+DROP SCHEMA IF EXISTS audit CASCADE;
