@@ -1,12 +1,26 @@
-cd ~/Musaddique/cederanew/cederanew/MCP && python3 -c "
-import sys; sys.path.insert(0,'.'); sys.path.insert(0,'common')
-from dotenv import load_dotenv, find_dotenv; load_dotenv(find_dotenv())
-from common.db import get_db_connection
-conn = get_db_connection(); cur = conn.cursor()
-for t in ['policies','cessions','treaties','treaty_terms']:
-    cur.execute('SELECT column_name, data_type FROM information_schema.columns WHERE table_name=%s ORDER BY ordinal_position',(t,))
-    print(f'\n=== {t} ===')
-    [print(f'  {r[\"column_name\"]} ({r[\"data_type\"]})')  for r in cur.fetchall()]
-cur.execute('SELECT * FROM policies LIMIT 2'); [print(dict(r)) for r in cur.fetchall()]
-cur.close(); conn.close()
-"
+Yes, already there. Two test suites — `sra_rules` and `sra_pricing`. Run them like this:
+
+**Run all tests at once (from the renewal_advisor folder):**
+
+```bash
+cd "C:\Users\admin\Downloads\database\renewal_advisor"
+python -m pytest packages/sra_rules/tests/ packages/sra_pricing/tests/ -v
+```
+
+**Or run just one package:**
+
+```bash
+python -m pytest packages/sra_rules/tests/ -v
+```
+
+```bash
+python -m pytest packages/sra_pricing/tests/ -v
+```
+
+**Or run a specific test file:**
+
+```bash
+python -m pytest packages/sra_rules/tests/test_contract.py -v
+```
+
+I already ran all of these earlier and got **136/136 passed** — but you can run them yourself now so you can show your manager the output. The `-v` flag gives you the full list of every test name and its result.
