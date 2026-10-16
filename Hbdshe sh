@@ -1,90 +1,29 @@
-do you think we can integrate the codebase of my manager"C:\Users\admin\Downloads\database\renewal_advisor" wihth the database that we have seeded 1 and seeded 2 and will the codebase will be sufficient to cover all the rules from the document
+The README said it opens at `http://127.0.0.1:8000/console` — open that in your browser first to see the console UI.
 
-Honest answer — yes it can be integrated, but there is one missing piece that needs to be built first. Let me break it down clearly.
+Then test the API:
 
-What exists and what’s missing
-The engine takes a Python dict (the decision context) as input and returns a decision. It has no database connection — that’s by design.
+**1 — Check the server is alive:**
+```bash
+curl http://127.0.0.1:8000/health
+```
 
-The database has all the customer data in src.* tables from our seed.
+**2 — Get a quote ID from your database:**
+```bash
+curl http://127.0.0.1:8000/renewal-quotes -H "X-Dev-User: officer1"
+```
 
-The missing piece is called the Fact Builder — a component that reads from the database and produces the dict the engine expects. It is not in the codebase. Your manager’s codebase explicitly says in comments: “schema is REPLACED by integration adapters, notably the Fact Builder.”
+This returns the queue of renewal quotes. Pick a `quoteId` from the response.
 
-The gap between database columns and engine keys
-The engine expects keys like this:
+**3 — Trigger an evaluation (the main test):**
+```bash
+curl -X POST http://127.0.0.1:8000/renewal-quotes/<quoteId>/evaluations -H "X-Dev-User: officer1"
+```
 
-Engine expects	Database has
-conduct.open_complaint	src.claim.status = 'DISPUTED' or complaint table
-motor.bonus_tier	src.insured_vehicle.bonus_tier
-vehicle.annual_km	src.insured_vehicle.annual_km
-claims.at_fault_24m	COUNT of src.claim where at_fault=true and loss_date >= now()-24mo
-portfolio.active_products	src.policy_module rows joined to policy
-history.declines	sra.recommendation_decline table
-quote.days_to_letter_due	src.renewal_quote.letter_due - today (computed)
-pas_quotes.PRODUCT.annual_gross	NOT in our seed at all
-conduct.vulnerability_hold	NOT in our schema at all
-unverified_facts	No mechanism in schema
-What needs to be built to integrate
-A Python function like this:
+This runs the full engine against your seeded customer — reads from DB, builds context, runs all 4 stages, returns the decision with recommendations.
 
-def build_context(customer_id, policy_id, db_connection) -> dict:
-    # 1. read src.customer
-    # 2. read src.policy + src.insured_vehicle
-    # 3. count src.claim by at_fault + date window
-    # 4. read src.renewal_quote
-    # 5. read src.policy_module → build portfolio.active_products list
-    # 6. read sra.recommendation_decline → build history.declines list
-    # 7. read src.customer_declared_fact → build external vehicle info
-    # 8. fetch PAS quotes (from rating_quote table or external system)
-    # return the flat dict the engine expects
-Then the full pipeline becomes:
+**4 — Run the pure engine tests (no DB needed):**
+```bash
+pytest packages/sra_rules/tests/ packages/sra_pricing/tests/ -v
+```
 
-Database → Fact Builder → decision context dict → Rule Engine → DecisionResult → sra.policy_snapshot
-Will the codebase cover all rules from the document?
-Yes — already confirmed earlier. All original document rules are covered. The catalog actually has more rules than the document. The only exception is UP-HOM-05 (Valuables) which is DRAFT and won’t fire.
-
-Summary
-Question	Answer
-Can it be integrated with the seeded database?	Yes, but the Fact Builder needs to be written first
-Is the rule engine complete?	Yes, 136 tests pass, all document rules covered
-What’s the biggest gap?	pas_quotes (PAS verified prices) and vulnerability_hold flag don’t exist in our schema yet
-How much work is the Fact Builder?	Moderate — mostly SQL queries + Python dict assembly, no complex logic
-so you mean the codebase will coorectly give outputs for our customers that we have in our database correcltly??
-
-customer_outcome_reference.md.
-
-Honestly — not exactly, no. Two separate problems:
-
-Problem 1 — Fact Builder doesn’t exist yet
-Right now the engine cannot connect to the database at all. Even if you run it, it has no way to read T001–T052’s data. The Fact Builder needs to be built first.
-
-Problem 2 — Some seed customers were designed against old rule logic
-Even after the Fact Builder is built, some customers will give different outcomes than what’s in the reference file because the catalog changed:
-
-Customer	What we designed	What engine will actually give	Why
-T009	DISQUALIFIED_RISK (demerit_points=5)	Probably ELIGIBLE	Catalog has no rule that uses demerit_points at all
-T029	ELIGIBLE (UP-HOM-02)	RULE_INACTIVE	UP-HOM-05 is DRAFT in catalog
-T030	DISQUALIFIED_RISK (UP-HOM-02)	RULE_INACTIVE	Same — DRAFT
-T034	ELIGIBLE (CS-CAR-01 tenant trigger)	Probably NOT_TRIGGERED	Catalog changed CS-CAR-01 to trigger on declared external vehicle, not tenant+single policy
-T035	NOT_APPLICABLE	Different outcome	Same trigger change
-T036	NOT_APPLICABLE	Different outcome	Same trigger change
-T037	ALREADY_COVERED	Different outcome	Same trigger change
-Which customers WILL give correct outcomes once Fact Builder is built
-These are solid — their logic matches the catalog exactly:
-
-T001–T006 — suppression via gatekeepers ✅
-T007 — cooldown active ✅
-T008 — at-fault claims risk gate ✅
-T010 — litigation suppression ✅
-T011 — target market mismatch ✅
-T013–T016 — NCD protection outcomes ✅
-T017–T020 — comprehensive upgrade outcomes ✅
-T021–T024 — roadside outcomes ✅
-T025–T028 — flood cover outcomes ✅
-T031–T033 — pet upgrade outcomes ✅
-T038–T041 — personal accident outcomes ✅
-T042–T045 — home contents outcomes ✅
-Bottom line
-The codebase is correct and complete. The seed data is mostly aligned with it. The two things needed before end-to-end testing works:
-
-Build the Fact Builder — reads from database, produces the context dict
-Fix or accept T009, T029/T030, T034–T037 — either update the seed to match the catalog’s actual triggers, or note them as known mismatches
+Start with Step 1 to confirm the server responds, then Step 2 to get a real quote ID. Share any output and I'll help you interpret the results.
