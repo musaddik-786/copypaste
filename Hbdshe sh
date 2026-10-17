@@ -1,4 +1,4 @@
-cd ~/Musaddique/cederanew/cederanew/MCP && python3 -c "
+JarvisClaims@JarvisClaims:~/Musaddique$ cd ~/Musaddique/cederanew/cederanew/MCP && python3 -c "
 import sys; sys.path.insert(0,'.'); sys.path.insert(0,'common')
 from dotenv import load_dotenv, find_dotenv; load_dotenv(find_dotenv())
 from common.db import get_db_connection
@@ -10,3 +10,115 @@ for t in ['policies','cessions','treaties','treaty_terms']:
 cur.execute('SELECT * FROM policies LIMIT 2'); [print(dict(r)) for r in cur.fetchall()]
 cur.close(); conn.close()
 "
+
+=== policies ===
+
+=== cessions ===
+  cession_ref (character varying)
+  cession_ref (character varying)
+  treaty_ref (character varying)
+  treaty_ref (character varying)
+  policy_ref (character varying)
+  policy_ref (character varying)
+  sum_insured (numeric)
+  sum_insured (numeric)
+  gross_premium (numeric)
+  gross_premium (numeric)
+  ceded_sum_insured (numeric)
+  ceded_sum_insured (numeric)
+  retained_sum_insured (numeric)
+  retained_sum_insured (numeric)
+  cession_percentage (numeric)
+  cession_percentage (numeric)
+  ceded_premium (numeric)
+  ceded_premium (numeric)
+  ceding_commission_pct (numeric)
+  ceding_commission_pct (numeric)
+  ceding_commission (numeric)
+  ceding_commission (numeric)
+  net_ceded_premium (numeric)
+  net_ceded_premium (numeric)
+  currency (character varying)
+  currency (character varying)
+  calculation_basis (character varying)
+  calculation_basis (character varying)
+  calculated_at (date)
+  calculated_at (date)
+
+=== treaties ===
+  treaty_ref (character varying)
+  treaty_ref (character varying)
+  treaty_name (text)
+  treaty_name (text)
+  treaty_type (character varying)
+  treaty_type (character varying)
+  class_of_business (character varying)
+  class_of_business (character varying)
+  cedent_name (text)
+  cedent_name (text)
+  reinsurer_name (text)
+  reinsurer_name (text)
+  reinsurer_share_pct (numeric)
+  reinsurer_share_pct (numeric)
+  broker_name (text)
+  broker_name (text)
+  inception_date (date)
+  inception_date (date)
+  expiry_date (date)
+  expiry_date (date)
+  currency (character varying)
+  currency (character varying)
+  status (character varying)
+  status (character varying)
+
+=== treaty_terms ===
+  term_ref (character varying)
+  term_ref (character varying)
+  treaty_ref (character varying)
+  treaty_ref (character varying)
+  layer_number (integer)
+  layer_number (integer)
+  cession_percentage (numeric)
+  cession_percentage (numeric)
+  retention_percentage (numeric)
+  retention_percentage (numeric)
+  retention_amount (numeric)
+  retention_amount (numeric)
+  number_of_lines (integer)
+  number_of_lines (integer)
+  attachment_point (numeric)
+  attachment_point (numeric)
+  layer_limit (numeric)
+  layer_limit (numeric)
+  event_limit (numeric)
+  event_limit (numeric)
+  aggregate_limit (numeric)
+  aggregate_limit (numeric)
+  max_cession_any_one_risk (numeric)
+  max_cession_any_one_risk (numeric)
+  reinstatements (integer)
+  reinstatements (integer)
+  ceding_commission_pct (numeric)
+  ceding_commission_pct (numeric)
+  profit_commission_pct (numeric)
+  profit_commission_pct (numeric)
+  profit_commission_mgmt_expense_pct (numeric)
+  profit_commission_mgmt_expense_pct (numeric)
+  deposit_premium (numeric)
+  deposit_premium (numeric)
+  minimum_premium (numeric)
+  minimum_premium (numeric)
+  rate_on_line_pct (numeric)
+  rate_on_line_pct (numeric)
+  currency (character varying)
+  currency (character varying)
+Traceback (most recent call last):
+  File "<string>", line 10, in <module>
+  File "/home/JarvisClaims/.local/lib/python3.11/site-packages/psycopg2/extras.py", line 236, in execute
+    return super().execute(query, vars)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UndefinedTable: relation "policies" does not exist
+LINE 1: SELECT * FROM policies LIMIT 2
+                      ^
+
+JarvisClaims@JarvisClaims:~/Musaddique/cederanew/cederanew/MCP$ 
