@@ -1,6 +1,8 @@
-python3 - <<'EOF'
+(.venv) JarvisClaims@JarvisClaims:~/Musaddique/Smart Renewal Advisor$ python3 - <<'EOF'
 from dotenv import dotenv_values
 config = dotenv_values('/home/JarvisClaims/Musaddique/Smart Renewal Advisor/.env')
 url = config.get('DATABASE_URL', 'NOT FOUND')
 print("Raw value repr:", repr(url))
 EOF
+Raw value repr: 'postgresql://renewaladvisor_user:RenewalAdvisor123!@claimsagenticdb.postgres.database.azure.com:5432/renewal_advisor?sslmode=require'
+(.venv) JarvisClaims@JarvisClaims:~/Musaddique/Smart Renewal Advisor$ 
