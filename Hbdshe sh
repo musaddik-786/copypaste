@@ -1,142 +1,30 @@
-(.venv) JarvisClaims@JarvisClaims:~/Musaddique/Smart Renewal Advisor$ python3 - <<'EOF'
-import os
+python3 - <<'EOF'
 from dotenv import dotenv_values
 import psycopg
 
 config = dotenv_values('/home/JarvisClaims/Musaddique/Smart Renewal Advisor/.env')
-url = config['DATABASE_URL'].split('?')[0]  # strip ?sslmode=require
-
+url = config['DATABASE_URL'].split('?')[0]
 conn = psycopg.connect(url, sslmode='require')
 cur = conn.cursor()
 
-print("=== SCHEMAS ===")
-cur.execute("SELECT schema_name FROM information_schema.schemata WHERE schema_name NOT IN ('pg_catalog','information_schema','pg_toast') ORDER BY schema_name")
-for r in cur.fetchall(): print(" ", r[0])
+tables = ['src.customer','src.policy','src.policy_module','src.insured_vehicle',
+          'src.insured_property','src.insured_animal','src.claim','src.complaint',
+          'src.consent','src.customer_declared_fact','src.rating_quote','src.renewal_quote']
 
-print("\n=== ALL TABLES ===")
-cur.execute("SELECT schemaname, tablename FROM pg_tables WHERE schemaname NOT IN ('pg_catalog','information_schema') ORDER BY schemaname, tablename")
-for r in cur.fetchall(): print(f"  {r[0]}.{r[1]}")
-
-print("\n=== ROW COUNTS ===")
-cur.execute("SELECT schemaname, tablename FROM pg_tables WHERE schemaname NOT IN ('pg_catalog','information_schema') ORDER BY schemaname, tablename")
-tables = cur.fetchall()
-for schema, table in tables:
-    cur.execute(f"SELECT COUNT(*) FROM {schema}.{table}")
-    count = cur.fetchone()[0]
-    print(f"  {schema}.{table}: {count} rows")
+for t in tables:
+    schema, table = t.split('.')
+    cur.execute("""
+        SELECT column_name, data_type, is_nullable
+        FROM information_schema.columns
+        WHERE table_schema=%s AND table_name=%s
+        ORDER BY ordinal_position
+    """, (schema, table))
+    cols = cur.fetchall()
+    print(f"\n=== {t} ===")
+    for col in cols:
+        nullable = 'NULL' if col[2]=='YES' else 'NOT NULL'
+        print(f"  {col[0]} ({col[1]}) {nullable}")
 
 cur.close()
 conn.close()
 EOF
-=== SCHEMAS ===
-  audit
-  public
-  ref
-  rules
-  sra
-  src
-
-=== ALL TABLES ===
-  audit.audit_event
-  ref.bundle_discount_rule
-  ref.defer_reason
-  ref.jurisdiction_fact
-  ref.line_of_business
-  ref.product
-  ref.product_benefit_statement
-  ref.product_document
-  ref.product_embedding
-  ref.regulatory_reference
-  ref.skip_reason
-  rules.change_request
-  rules.golden_run
-  rules.golden_test
-  rules.parameter
-  rules.rule
-  rules.ruleset
-  sra.advice_record
-  sra.alembic_version
-  sra.customer_response
-  sra.decision_run
-  sra.eval_run
-  sra.letter_dispatch
-  sra.letter_draft
-  sra.letter_section
-  sra.llm_call
-  sra.model_deployment
-  sra.narrative
-  sra.narrative_validation
-  sra.officer_action
-  sra.policy_snapshot
-  sra.pricing_scenario
-  sra.prompt_template
-  sra.recommendation
-  sra.recommendation_decline
-  sra.renewal_case
-  sra.rule_evaluation
-  sra.snapshot_fact
-  src.claim
-  src.complaint
-  src.consent
-  src.customer
-  src.customer_declared_fact
-  src.insured_animal
-  src.insured_property
-  src.insured_vehicle
-  src.policy
-  src.policy_module
-  src.rating_quote
-  src.renewal_quote
-
-=== ROW COUNTS ===
-  audit.audit_event: 30 rows
-  ref.bundle_discount_rule: 8 rows
-  ref.defer_reason: 2 rows
-  ref.jurisdiction_fact: 0 rows
-  ref.line_of_business: 7 rows
-  ref.product: 21 rows
-  ref.product_benefit_statement: 80 rows
-  ref.product_document: 0 rows
-  ref.product_embedding: 5 rows
-  ref.regulatory_reference: 20 rows
-  ref.skip_reason: 6 rows
-  rules.change_request: 0 rows
-  rules.golden_run: 0 rows
-  rules.golden_test: 42 rows
-  rules.parameter: 26 rows
-  rules.rule: 34 rows
-  rules.ruleset: 1 rows
-  sra.advice_record: 0 rows
-  sra.alembic_version: 1 rows
-  sra.customer_response: 0 rows
-  sra.decision_run: 4 rows
-  sra.eval_run: 0 rows
-  sra.letter_dispatch: 0 rows
-  sra.letter_draft: 0 rows
-  sra.letter_section: 0 rows
-  sra.llm_call: 16 rows
-  sra.model_deployment: 3 rows
-  sra.narrative: 12 rows
-  sra.narrative_validation: 84 rows
-  sra.officer_action: 0 rows
-  sra.policy_snapshot: 4 rows
-  sra.pricing_scenario: 6 rows
-  sra.prompt_template: 2 rows
-  sra.recommendation: 6 rows
-  sra.recommendation_decline: 0 rows
-  sra.renewal_case: 4 rows
-  sra.rule_evaluation: 88 rows
-  sra.snapshot_fact: 205 rows
-  src.claim: 2 rows
-  src.complaint: 1 rows
-  src.consent: 5 rows
-  src.customer: 5 rows
-  src.customer_declared_fact: 25 rows
-  src.insured_animal: 1 rows
-  src.insured_property: 2 rows
-  src.insured_vehicle: 3 rows
-  src.policy: 8 rows
-  src.policy_module: 8 rows
-  src.rating_quote: 18 rows
-  src.renewal_quote: 5 rows
-(.venv) JarvisClaims@JarvisClaims:~/Musaddique/Smart Renewal Advisor$ 
