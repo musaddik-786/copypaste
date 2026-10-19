@@ -1,3 +1,19 @@
-JarvisClaims@JarvisClaims:~/Musaddique$ grep DATABASE_URL ~/Musaddique/Smart\ Renewal\ Advisor/.env | sed 's/.*\///' | sed 's/?.*//'
-renewal_advisor
-JarvisClaims@JarvisClaims:~/Musaddique$ 
+psql "$DATABASE_URL" -c "\dn"
+2. List all tables in every schema:
+
+psql "$DATABASE_URL" -c "\dt *.*"
+3. Check row counts for key tables:
+
+psql "$DATABASE_URL" -c "
+SELECT schemaname, tablename, 
+       (xpath('/row/cnt/text()', query_to_xml('SELECT COUNT(*) AS cnt FROM '||schemaname||'.'||tablename, false, true, '')))[1]::text::int AS row_count
+FROM pg_tables
+WHERE schemaname NOT IN ('pg_catalog','information_schema')
+ORDER BY schemaname, tablename;
+"
+4. Check the sra schema specifically:
+
+psql "$DATABASE_URL" -c "SELECT * FROM sra.v_queue_kpis;"
+5. Check what src tables exist (fact builder reads these):
+
+psql "$DATABASE_URL" -c "\dt src.*"
