@@ -1,4 +1,4 @@
-cd ~/Musaddique/Smart\ Renewal\ Advisor/
+JarvisClaims@JarvisClaims:~/Musaddique$ cd ~/Musaddique/Smart\ Renewal\ Advisor/
 source .venv/bin/activate
 python3 - <<'EOF'
 import os
@@ -28,3 +28,13 @@ for schema, table in tables:
 cur.close()
 conn.close()
 EOF
+Traceback (most recent call last):
+  File "<stdin>", line 3, in <module>
+  File "/home/JarvisClaims/Musaddique/Smart Renewal Advisor/.venv/lib/python3.11/site-packages/dotenv/main.py", line 425, in load_dotenv
+    dotenv_path = find_dotenv()
+                  ^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/Smart Renewal Advisor/.venv/lib/python3.11/site-packages/dotenv/main.py", line 372, in find_dotenv
+    assert frame.f_back is not None
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError
+(.venv) JarvisClaims@JarvisClaims:~/Musaddique/Smart Renewal Advisor$ 
