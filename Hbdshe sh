@@ -1,4 +1,4 @@
-python3 - <<'EOF'
+(.venv) JarvisClaims@JarvisClaims:~/Musaddique/Smart Renewal Advisor$ python3 - <<'EOF'
 import os
 from dotenv import dotenv_values
 import psycopg
@@ -28,3 +28,115 @@ for schema, table in tables:
 cur.close()
 conn.close()
 EOF
+=== SCHEMAS ===
+  audit
+  public
+  ref
+  rules
+  sra
+  src
+
+=== ALL TABLES ===
+  audit.audit_event
+  ref.bundle_discount_rule
+  ref.defer_reason
+  ref.jurisdiction_fact
+  ref.line_of_business
+  ref.product
+  ref.product_benefit_statement
+  ref.product_document
+  ref.product_embedding
+  ref.regulatory_reference
+  ref.skip_reason
+  rules.change_request
+  rules.golden_run
+  rules.golden_test
+  rules.parameter
+  rules.rule
+  rules.ruleset
+  sra.advice_record
+  sra.alembic_version
+  sra.customer_response
+  sra.decision_run
+  sra.eval_run
+  sra.letter_dispatch
+  sra.letter_draft
+  sra.letter_section
+  sra.llm_call
+  sra.model_deployment
+  sra.narrative
+  sra.narrative_validation
+  sra.officer_action
+  sra.policy_snapshot
+  sra.pricing_scenario
+  sra.prompt_template
+  sra.recommendation
+  sra.recommendation_decline
+  sra.renewal_case
+  sra.rule_evaluation
+  sra.snapshot_fact
+  src.claim
+  src.complaint
+  src.consent
+  src.customer
+  src.customer_declared_fact
+  src.insured_animal
+  src.insured_property
+  src.insured_vehicle
+  src.policy
+  src.policy_module
+  src.rating_quote
+  src.renewal_quote
+
+=== ROW COUNTS ===
+  audit.audit_event: 30 rows
+  ref.bundle_discount_rule: 8 rows
+  ref.defer_reason: 2 rows
+  ref.jurisdiction_fact: 0 rows
+  ref.line_of_business: 7 rows
+  ref.product: 21 rows
+  ref.product_benefit_statement: 80 rows
+  ref.product_document: 0 rows
+  ref.product_embedding: 5 rows
+  ref.regulatory_reference: 20 rows
+  ref.skip_reason: 6 rows
+  rules.change_request: 0 rows
+  rules.golden_run: 0 rows
+  rules.golden_test: 42 rows
+  rules.parameter: 26 rows
+  rules.rule: 34 rows
+  rules.ruleset: 1 rows
+  sra.advice_record: 0 rows
+  sra.alembic_version: 1 rows
+  sra.customer_response: 0 rows
+  sra.decision_run: 4 rows
+  sra.eval_run: 0 rows
+  sra.letter_dispatch: 0 rows
+  sra.letter_draft: 0 rows
+  sra.letter_section: 0 rows
+  sra.llm_call: 16 rows
+  sra.model_deployment: 3 rows
+  sra.narrative: 12 rows
+  sra.narrative_validation: 84 rows
+  sra.officer_action: 0 rows
+  sra.policy_snapshot: 4 rows
+  sra.pricing_scenario: 6 rows
+  sra.prompt_template: 2 rows
+  sra.recommendation: 6 rows
+  sra.recommendation_decline: 0 rows
+  sra.renewal_case: 4 rows
+  sra.rule_evaluation: 88 rows
+  sra.snapshot_fact: 205 rows
+  src.claim: 2 rows
+  src.complaint: 1 rows
+  src.consent: 5 rows
+  src.customer: 5 rows
+  src.customer_declared_fact: 25 rows
+  src.insured_animal: 1 rows
+  src.insured_property: 2 rows
+  src.insured_vehicle: 3 rows
+  src.policy: 8 rows
+  src.policy_module: 8 rows
+  src.rating_quote: 18 rows
+  src.renewal_quote: 5 rows
+(.venv) JarvisClaims@JarvisClaims:~/Musaddique/Smart Renewal Advisor$ 
