@@ -1,3 +1,126 @@
+so we need a transcript i have 2 parts of the video the problem or the complexity with this is that these scripts are created by 2 different people and now we have to have a trascript such that these things 
+shouldnot be looked as seperate things it should be looking as a single video i hope you are getting what i am trying to say to you , also you can see the first one is a transcript and the second one is a md file that was shared to me and i was told to create a 
+script out of both and the 3rd pard is still pening some other person will be shareing the thrid part with me later so as we create scripts in the same way we need ascript for below 
+
+person1 shared so it is about creating a handoff document for testing and development team 
+
+Mukundan Madhavan
+0 minutes 5 seconds0:05
+Mukundan Madhavan 0 minutes 5 seconds
+Typically in a project with Guidewire, we receive one or two inputs from the client.
+Mukundan Madhavan 0 minutes 11 seconds
+Both of these documents are...
+Mukundan Madhavan 0 minutes 14 seconds
+important because they provide the structure of the
+Mukundan Madhavan 0 minutes 18 seconds
+product and the coverages, the hierarchy that is needed to build the mind map using XMinds. The first document is a PDS, which is a product definition specification.
+Mukundan Madhavan 0 minutes 31 seconds
+This is for a Swiss SME property and liability specification that we have created. And this provides a detailed structure along with the market specific information that is needed.
+Mukundan Madhavan 0 minutes 48 seconds
+And this provides relevant context.
+Mukundan Madhavan 0 minutes 51 seconds
+for creating the mind map. The other document, which is more of an actuarial artefact, which is also used by underwriters. This is a rater that provides both the structure as well as the...
+Mukundan Madhavan 1 minute 4 seconds
+Calculations for determining the premium, which is the rating algorithm.
+Mukundan Madhavan 1 minute 9 seconds
+Both of these documents.
+Mukundan Madhavan 1 minute 11 seconds
+I used to create the mind maps.
+Mukundan Madhavan 1 minute 17 seconds
+automatically using AI. Now here is the mind map that has been created based on the input for the SME product.
+Mukundan Madhavan 1 minute 26 seconds
+So, as you can see.
+Mukundan Madhavan 1 minute 29 seconds
+This is automatically generated using AI.
+Mukundan Madhavan 1 minute 34 seconds
+This can then be imported directly into.
+Mukundan Madhavan 1 minute 39 seconds
+the APD app. So you can see the same set of questions are available here. You can also drill through the attributes, the buildings, the locations.
+Mukundan Madhavan 1 minute 51 seconds
+So the entire list of coverages or structure has been set up within the.
+Mukundan Madhavan 1 minute 56 seconds
+We do the app.
+Mukundan Madhavan 1 minute 59 seconds
+From APD, it is then imported into Policy Centre.
+Mukundan Madhavan 2 minutes 6 seconds
+Now we move to AI and requirements.
+Mukundan Madhavan 2 minutes 10 seconds
+Normally in projects, product owners work with.
+Mukundan Madhavan 2 minutes 19 seconds
+documents or excels for defining the backlog, the features and the requirements. However, we do rapid prototyping.
+Mukundan Madhavan 2 minutes 29 seconds
+which simulates the policy centre as you can see.
+Mukundan Madhavan 2 minutes 35 seconds
+The entire.
+Mukundan Madhavan 2 minutes 37 seconds
+This, this can the entire app can be generated in a matter of a few hours.
+Mukundan Madhavan 2 minutes 43 seconds
+And this becomes the single source of truth that is referred to by the product owner, the developers, and the testers. So to give you an example.
+Mukundan Madhavan 2 minutes 56 seconds
+On the policy info screen, which is an which is an out-of-the-box guidewire screen, which requires PCF, GOSU, and other developer intervention.
+Mukundan Madhavan 3 minutes 10 seconds
+If we, if you look at the screen, you can see that it has the SSN and the preferred language. However, as part of the localization for the Swiss product.
+Mukundan Madhavan 3 minutes 22 seconds
+We want to change these two fields and implement them with Swiss alternatives. So as you can see here, the field is UID and it has a particular formatting. The earlier field has been replaced with this version and this is a dropdown. So this is the first requirement.
+Mukundan Madhavan 3 minutes 43 seconds
+that we need to implement. The second requirement.
+Mukundan Madhavan 3 minutes 47 seconds
+is on the risk analysis screen. As you can see, it has five tabs as part of this prototype. We want to introduce the 6th tab, which is the hazards and exposure tab.
+Mukundan Madhavan 3 minutes 58 seconds
+This brings in the, and as you can see.
+Mukundan Madhavan 4 minutes 4 seconds
+It actually pulls the parallel based information across the different areas and this can then feed into the underwriting decision.
+Mukundan Madhavan 4 minutes 13 seconds
+Here is the product that has been imported.
+Mukundan Madhavan 4 minutes 19 seconds
+Did this is the address?
+Mukundan Madhavan 4 minutes 23 seconds
+So once this prototype has been agreed, it also provides...
+Mukundan Madhavan 4 minutes 29 seconds
+The detailed acceptance criteria are write-up.
+Mukundan Madhavan 4 minutes 34 seconds
+The product owner and the team can iterate on this particular prototype more than once till they agree on the requirements, and then there is a formal sign-off. Once it is signed off.
+Mukundan Madhavan 4 minutes 46 seconds
+This particular prototype becomes the basis for generating the handoff documents. So moving back.
+Mukundan Madhavan 4 minutes 53 seconds
+From the prototype, we are able to generate the handoff, which includes the detailed implementation prompt.
+Mukundan Madhavan 5 minutes 7 seconds
+It also generates feature files.
+Mukundan Madhavan 5 minutes 15 seconds
+And A detailed.
+Mukundan Madhavan 5 minutes 18 seconds
+Implementation.
+Mukundan Madhavan 5 minutes 20 seconds
+specification which includes user stories, acceptance criteria, test cases, and the detailed requirement coverage.
+Mukundan Madhavan 5 minutes 30 seconds
+Just to show you an example.
+Mukundan Madhavan 5 minutes 36 seconds
+Each of the requirements has a user story written using jerkin format, the business rationale.
+Mukundan Madhavan 5 minutes 43 seconds
+The guide were target implementation artefacts like Gosu PCF, the detailed acceptance criteria, the negative cases or edge cases, associated business rules, dependencies, test cases. Now we implemented the 5th and the 6th requirement, so if I were to go down.
+Mukundan Madhavan 6 minutes 5 seconds
+So I will go through one of the requirements that we have implemented, which is the natural hazard assessment. So this is the one that we saw earlier.
+Mukundan Madhavan 6 minutes 15 seconds
+We can see that.
+Mukundan Madhavan 6 minutes 17 seconds
+The detailed acceptance criteria for success, low confidence, timeout, and all the other scenarios have been listed out.
+Mukundan Madhavan 6 minutes 27 seconds
+In detail, the next one is the policy identification.
+Mukundan Madhavan 6 minutes 35 seconds
+Now, this handoff document.
+Mukundan Madhavan 6 minutes 38 seconds
+is sent to both the developer and the tester.
+Mukundan Madhavan 6 minutes 47 seconds
+in parallel so that both of the downstream AI in development and AI in testing.
+Mukundan Madhavan 6 minutes 56 seconds
+Can can can can be initiated at the same time. Now, I'll hand it over to the AI and development story, followed by the AI and testing story.
+
+
+
+
+
+Person2 shared which is a developer story line
+
 # "From Specification to Live Screen"
 
 
