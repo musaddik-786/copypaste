@@ -1,4 +1,18 @@
-JarvisClaims@JarvisClaims:~/Musaddique$ PGURL=$(echo $DATABASE_URL | sed 's/?sslmode=require//')
+The URL has stray quote characters from how xargs exported it. Check what's actually in it:
+
+```bash
+echo "[$DATABASE_URL]"
+```
+
+Then re-export cleanly without xargs:
+
+```bash
+export DATABASE_URL=$(grep '^DATABASE_URL=' ~/Musaddique/Smart\ Renewal\ Advisor/.env | cut -d'=' -f2- | tr -d '"' | tr -d "'")
+```
+
+Then try again:
+
+```bash
+PGURL=$(echo $DATABASE_URL | sed 's/?sslmode=require//')
 PGSSLMODE=require psql "$PGURL" -c "\dn"
-" does not existnection to server at "claimsagenticdb.postgres.database.azure.com" (172.203.54.46), port 5432 failed: FATAL:  database "renewal_advisor
-JarvisClaims@JarvisClaims:~/Musaddique$ 
+```
