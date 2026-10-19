@@ -1,4 +1,4 @@
-python3 - <<'EOF'
+(.venv) JarvisClaims@JarvisClaims:~/Musaddique/Smart Renewal Advisor$ python3 - <<'EOF'
 from dotenv import dotenv_values
 import psycopg
 
@@ -28,3 +28,131 @@ for t in tables:
 cur.close()
 conn.close()
 EOF
+
+=== src.customer ===
+  customer_id (text) NOT NULL
+  full_name (text) NOT NULL
+  date_of_birth (date) NULL
+  street_address (text) NULL
+  postal_code (text) NULL
+  city (text) NULL
+  region_code (text) NULL
+  preferred_language (text) NOT NULL
+  preferred_channel (text) NOT NULL
+  occupancy (text) NULL
+  dwelling_type (text) NULL
+  household_type (text) NULL
+  primary_earner (boolean) NULL
+  has_dependants (boolean) NULL
+  household_vehicle_count (integer) NULL
+  payment_status (text) NOT NULL
+  vulnerability_hold (boolean) NOT NULL
+  created_at (timestamp with time zone) NOT NULL
+
+=== src.policy ===
+  policy_id (text) NOT NULL
+  customer_id (text) NOT NULL
+  lob_code (text) NOT NULL
+  base_product_code (text) NOT NULL
+  coverage_level (text) NULL
+  package_tier (text) NULL
+  status (text) NOT NULL
+  inception_date (date) NOT NULL
+  expiry_date (date) NOT NULL
+  annual_premium_gross (numeric) NOT NULL
+  insurance_tax (numeric) NULL
+  payment_frequency (text) NOT NULL
+
+=== src.policy_module ===
+  policy_id (text) NOT NULL
+  product_code (text) NOT NULL
+  attached_at (date) NOT NULL
+
+=== src.insured_vehicle ===
+  policy_id (text) NOT NULL
+  make_model (text) NOT NULL
+  build_year (integer) NOT NULL
+  first_registration (date) NULL
+  market_value (numeric) NULL
+  market_value_as_of (date) NULL
+  annual_km (integer) NULL
+  annual_km_verified (boolean) NOT NULL
+  bonus_tier (integer) NULL
+  penalty_points (integer) NOT NULL
+  registration_plate (text) NULL
+
+=== src.insured_property ===
+  policy_id (text) NOT NULL
+  dwelling_type (text) NULL
+  build_year (integer) NULL
+  floor_area_sqm (integer) NULL
+  zuers_zone (integer) NULL
+  heavy_rain_class (integer) NULL
+  backwater_valve_certified (boolean) NULL
+  has_solar_or_heatpump (boolean) NULL
+  basement_or_ground_floor_storage (boolean) NULL
+
+=== src.insured_animal ===
+  policy_id (text) NOT NULL
+  animal_ref (text) NOT NULL
+  species (text) NOT NULL
+  breed (text) NULL
+  birth_year (integer) NULL
+
+=== src.claim ===
+  claim_id (text) NOT NULL
+  policy_id (text) NOT NULL
+  customer_id (text) NOT NULL
+  loss_date (date) NOT NULL
+  reported_date (date) NOT NULL
+  peril (text) NULL
+  at_fault (boolean) NULL
+  severity (text) NULL
+  status (text) NOT NULL
+  status_changed_at (timestamp with time zone) NOT NULL
+
+=== src.complaint ===
+  complaint_id (text) NOT NULL
+  customer_id (text) NOT NULL
+  opened_at (timestamp with time zone) NOT NULL
+  status (text) NOT NULL
+  closed_at (timestamp with time zone) NULL
+
+=== src.consent ===
+  customer_id (text) NOT NULL
+  purpose (text) NOT NULL
+  status (text) NOT NULL
+  channel (text) NULL
+  captured_at (timestamp with time zone) NOT NULL
+  evidence_ref (text) NULL
+
+=== src.customer_declared_fact ===
+  customer_id (text) NOT NULL
+  fact_key (text) NOT NULL
+  value (jsonb) NOT NULL
+  source (text) NOT NULL
+  verified (boolean) NOT NULL
+  declared_at (date) NOT NULL
+
+=== src.rating_quote ===
+  rating_quote_id (text) NOT NULL
+  quote_id (text) NOT NULL
+  product_code (text) NOT NULL
+  variant (text) NULL
+  annual_gross (numeric) NOT NULL
+  insurance_tax (numeric) NULL
+  instalment_surcharge_pct (numeric) NULL
+  valid_until (date) NOT NULL
+  rated_at (timestamp with time zone) NOT NULL
+
+=== src.renewal_quote ===
+  quote_id (text) NOT NULL
+  policy_id (text) NOT NULL
+  created_at (timestamp with time zone) NOT NULL
+  status (text) NOT NULL
+  renewal_date (date) NOT NULL
+  letter_due_date (date) NOT NULL
+  expiring_premium_gross (numeric) NOT NULL
+  renewal_premium_gross (numeric) NOT NULL
+  renewal_insurance_tax (numeric) NULL
+(.venv) JarvisClaims@JarvisClaims:~/Musaddique/Smart Renewal Advisor$ 
