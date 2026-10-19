@@ -1,1 +1,3 @@
-grep DATABASE_URL ~/Saikiran/Smart\ Renewal\ Advisor/.env | sed 's/.*\///' | sed 's/?.*//'
+JarvisClaims@JarvisClaims:~/Musaddique$ grep DATABASE_URL ~/Musaddique/Smart\ Renewal\ Advisor/.env | sed 's/.*\///' | sed 's/?.*//'
+renewal_advisor
+JarvisClaims@JarvisClaims:~/Musaddique$ 
