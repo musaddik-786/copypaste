@@ -1,124 +1,117 @@
-JarvisClaims@JarvisClaims:~/Musaddique$ cd ~/Musaddique/cederanew/cederanew/MCP && python3 -c "
-import sys; sys.path.insert(0,'.'); sys.path.insert(0,'common')
-from dotenv import load_dotenv, find_dotenv; load_dotenv(find_dotenv())
-from common.db import get_db_connection
-conn = get_db_connection(); cur = conn.cursor()
-for t in ['policies','cessions','treaties','treaty_terms']:
-    cur.execute('SELECT column_name, data_type FROM information_schema.columns WHERE table_name=%s ORDER BY ordinal_position',(t,))
-    print(f'\n=== {t} ===')
-    [print(f'  {r[\"column_name\"]} ({r[\"data_type\"]})')  for r in cur.fetchall()]
-cur.execute('SELECT * FROM policies LIMIT 2'); [print(dict(r)) for r in cur.fetchall()]
-cur.close(); conn.close()
-"
+# "From Specification to Live Screen"
 
-=== policies ===
 
-=== cessions ===
-  cession_ref (character varying)
-  cession_ref (character varying)
-  treaty_ref (character varying)
-  treaty_ref (character varying)
-  policy_ref (character varying)
-  policy_ref (character varying)
-  sum_insured (numeric)
-  sum_insured (numeric)
-  gross_premium (numeric)
-  gross_premium (numeric)
-  ceded_sum_insured (numeric)
-  ceded_sum_insured (numeric)
-  retained_sum_insured (numeric)
-  retained_sum_insured (numeric)
-  cession_percentage (numeric)
-  cession_percentage (numeric)
-  ceded_premium (numeric)
-  ceded_premium (numeric)
-  ceding_commission_pct (numeric)
-  ceding_commission_pct (numeric)
-  ceding_commission (numeric)
-  ceding_commission (numeric)
-  net_ceded_premium (numeric)
-  net_ceded_premium (numeric)
-  currency (character varying)
-  currency (character varying)
-  calculation_basis (character varying)
-  calculation_basis (character varying)
-  calculated_at (date)
-  calculated_at (date)
+## SCENE 1 — Open 
 
-=== treaties ===
-  treaty_ref (character varying)
-  treaty_ref (character varying)
-  treaty_name (text)
-  treaty_name (text)
-  treaty_type (character varying)
-  treaty_type (character varying)
-  class_of_business (character varying)
-  class_of_business (character varying)
-  cedent_name (text)
-  cedent_name (text)
-  reinsurer_name (text)
-  reinsurer_name (text)
-  reinsurer_share_pct (numeric)
-  reinsurer_share_pct (numeric)
-  broker_name (text)
-  broker_name (text)
-  inception_date (date)
-  inception_date (date)
-  expiry_date (date)
-  expiry_date (date)
-  currency (character varying)
-  currency (character varying)
-  status (character varying)
-  status (character varying)
+> "For our SDLC on Developer phase we use Hexaware AI-Framework. //We proven this tool for core insurance systems — policy, billing, claims — . // They need speed *and* governance. // Today, I'm going to show you exactly how we deliver both — from a single line of business requirement, all the way to a live screen in Guidewire PolicyCenter."
 
-=== treaty_terms ===
-  term_ref (character varying)
-  term_ref (character varying)
-  treaty_ref (character varying)
-  treaty_ref (character varying)
-  layer_number (integer)
-  layer_number (integer)
-  cession_percentage (numeric)
-  cession_percentage (numeric)
-  retention_percentage (numeric)
-  retention_percentage (numeric)
-  retention_amount (numeric)
-  retention_amount (numeric)
-  number_of_lines (integer)
-  number_of_lines (integer)
-  attachment_point (numeric)
-  attachment_point (numeric)
-  layer_limit (numeric)
-  layer_limit (numeric)
-  event_limit (numeric)
-  event_limit (numeric)
-  aggregate_limit (numeric)
-  aggregate_limit (numeric)
-  max_cession_any_one_risk (numeric)
-  max_cession_any_one_risk (numeric)
-  reinstatements (integer)
-  reinstatements (integer)
-  ceding_commission_pct (numeric)
-  ceding_commission_pct (numeric)
-  profit_commission_pct (numeric)
-  profit_commission_pct (numeric)
-  profit_commission_mgmt_expense_pct (numeric)
-  profit_commission_mgmt_expense_pct (numeric)
-  deposit_premium (numeric)
-  deposit_premium (numeric)
-  minimum_premium (numeric)
-  minimum_premium (numeric)
-  rate_on_line_pct (numeric)
-  rate_on_line_pct (numeric)
-  currency (character varying)
-  currency (character varying)
-Traceback (most recent call last):
-  File "<string>", line 10, in <module>
-  File "/home/JarvisClaims/.local/lib/python3.11/site-packages/psycopg2/extras.py", line 236, in execute
-    return super().execute(query, vars)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-psycopg2.errors.UndefinedTable: relation "policies" does not exist
-LINE 1: SELECT * FROM policies LIMIT 2
-                      ^
+> "Here's the tension. // Our AI Framework can draft Gosu, PCF, and test code in minutes — not days. // That's the upside. // But without guardrails, that same speed can draft its way past naming standards, past policy rules, past the one thing that actually protects a carrier: a human checkpoint before code ships. // So the question isn't *'should we use AI to build on PolicyCenter.'* // It's *'how do we use it responsibly.'*"
 
-JarvisClaims@JarvisClaims:~/Musaddique/cederanew/cederanew/MCP$ 
+**[Slide 3 — A Governed AI Delivery Pipeline] Video Recording starting here** 
+
+> "Our answer is a governed AI delivery pipeline, built on three gates. // First, a Knowledge Gate — every AI answer is grounded in your own architecture, through the Guidewire Developer Assistant, not generic training data. // Second, from our Docs Directory a Policy Gate — your naming conventions, your bundle discipline, your PII rules, translated into automatic, checkable rules. // And third — the one that matters most — a Human Review Gate. // Nothing reaches a trusted branch without a qualified reviewer's sign-off. // AI accelerates. Governance protects. People decide."
+
+---
+
+## SCENE 2 — Project Context 
+
+**[Slide 4 — Zurich CH Commercial SME: Property & Liability]**
+
+> "Let me ground this in a real program. // This is Zurich CH Commercial SME — a Property and Commercial Liability customization on Guidewire PolicyCenter. // Six user stories, forty-one acceptance criteria, sixty-nine test cases, and full requirement coverage — six out of six. // Everything you're about to see traces back to this one specification."
+
+
+## SCENE 5 — The Journey Overview 
+
+**[Slide 5 — The Journey: From Idea to Interface]**
+
+> "Here's the journey, start to finish. // From a written specification, to an AI prompt, to a main design document, to a requirement-specific design, to generated code, to verification in Guidewire Studio, to a live screen underwriters use every day. // Seven steps. Every one of them versioned, reviewed, and traceable. // Let's walk through it."
+
+---
+
+## SCENE 6 — Screen: 2026-08-20-zcc-guidewire-complete-specification-v1_0.md 
+
+**[SCREEN: 2026-08-20-zcc-guidewire-complete-specification-v1_0.md — the "Complete Specification" document]**
+
+> "It starts here — not with a prompt, with a *specification*. // This single document defines 8 user stories and forty-one acceptance criteria for Zurich CH Commercial. // Notice the instructions at the top: read each user story in full before implementing it. // Anything unconfirmed is explicitly flagged — never guessed, never presented as fact. // This is written to be read on its own, by a developer, a tester, a business SME — or an AI coding assistant."
+
+---
+
+## SCENE 7 — Screen: improveREQ005.md 
+
+**[SCREEN: improveREQ005.md — "Implementation Prompt"]**
+
+> "That specification becomes this — a structured implementation prompt for Hexaware AI Assistant. // Look at the objective: create the current SDD for the Hazard and Exposure Assessment capability, following existing PolicyCenter patterns. // And look at the instruction right below it: *'Do not start coding immediately.'* // Mandatory discovery first — review the existing PolicyLocation design, the APD integration model, the existing extension patterns — *before* a single line of new code is proposed."
+---
+
+## SCENE 8 — Screen: SDD-Main.md 
+
+**[SCREEN: SDD-Main-ZurichCH-v1.md]**
+
+> "Discovery produces a design — the Main System Design document. // It links four requirements, REQ-005 through REQ-008, to the exact platform version, the exact branch, the author, and the source specification it came from. // REQ-005 — Natural Hazard Assessment Integration — is what we're building today: an asynchronous integration that populates Natural Hazard Zone with high-confidence peril data from an external hazard service."
+
+---
+
+## SCENE 9 — Requirement-Level Design 
+
+**[SCREEN — The SDD: SDD-REQ-005-NaturalHazardAssessment-v1.md An Architectural Record You Can Audit]**
+
+> "From there, we generate a requirement-specific detail design — the REQ-005 SDD — contains the Business, acceptance criteria,   defining exactly which entities, which fields, which integration pattern we need. // This is the architectural record a reviewer signs off on, before any code exists." 
+
+---
+
+## SCENE 10 — Screen: Generated Gosu Entity in VS Code 
+
+**[SCREEN: ZHazardAssessment_Ext.eti in VS Code]**
+
+> "And here's the result: a generated Gosu entity — ZHazardAssessment-Ext. // Foreign key to PolicyLocation. // Typekeys for status and for the derived hazard zone. // Confidence score, flood score, hail score, storm score, landslide score. // Every field named, typed, and documented exactly the way this project's own conventions require — because the AI was grounded in those conventions from the Knowledge Gate, not inventing its own."
+
+---
+
+## SCENE 11 — Screen: Verified in Guidewire Studio 
+
+**[SCREEN: GW Studio — entity property grid for ZHazardAssessment_Ext]**
+
+> "Before anything is promoted, it has to prove itself in Guidewire Studio. // The entity opens natively — no black box. // Foreign key to PolicyLocation, confirmed. // Implements RiskAssessmentResult, confirmed. // Every typekey, every column, visible and inspectable by a human reviewer, exactly as the design intended. // This is the moment the AI's proposal becomes the team's trusted code."
+
+---
+
+## SCENE 12 — Screen: PCF Widget Tree 
+
+**[SCREEN: Hazard & Exposure panel set / PCF structure in GW Studio]**
+
+> "The same discipline applies to the UI. // A new Hazard and Exposure panel set, built on the existing Risk Analysis card pattern underwriters already know — location, canton, status, confidence, and each peril score, with an 'Assess Selected Locations' action wired straight to the new entity."
+
+---
+
+## SCENE 13 — Screen: Live in PolicyCenter 
+
+**[SCREEN: PolicyCenter — Risk Analysis → Hazard & Exposure tab]**
+
+> "And here it is, live. // An underwriter opens a submission, goes to Risk Analysis, and sees a brand-new Hazard and Exposure tab — right next to UW Issues, Contingencies, and Prior Losses, exactly where they'd expect it. // They assess a location, and flood, hail, storm, and landslide scores — plus a confidence rating — come straight from the new integration we just watched get specified, designed, generated, and verified."
+
+---
+
+## SCENE 14 — Outcomes 
+
+**[Slide 11 — What Governed AI Delivery Changes]**
+
+> "What does this change for a program like Zurich CH? // Faster delivery — specification to working, tested screen in one governed pass. // Consistent conventions, no matter who's writing the prompt. // Governance that happens *before* code is written, not after a defect is found. // And an audit trail — ready, by design, for the regulatory scrutiny Swiss programs demand."
+
+---
+
+## SCENE 15 — Why Hexaware 
+
+**[Slide 12 — A Partnership Built for the Next Decade of Core Systems]**
+
+> "This is what Hexaware brings to Guidewire programs. // Deep PolicyCenter expertise across Tier-1 carriers. // A pioneering, governed AI-SDLC practice — not ad hoc prompting, but a trusted, repeatable delivery system. // And it's proven on real complexity: Swiss UID identifiers, legal form, cantonal rules, multilingual correspondence — delivered without cutting a single corner. // We don't just build on Guidewire. We build it responsibly, at AI speed."
+
+---
+
+## SCENE 16 — Close 
+
+**[Slide 13 — Let's Build What's Next, Together]**
+
+> "If your team is asking the same question we started with today — how do we move fast on Guidewire without losing control — let's talk. // Find us at Guidewire Connections, or reach out directly. // Thank you."
+
+---
+
