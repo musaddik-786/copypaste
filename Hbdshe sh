@@ -1,240 +1,195 @@
-so we need a transcript i have 2 parts of the video the problem or the complexity with this is that these scripts are created by 2 different people and now we have to have a trascript such that these things 
-shouldnot be looked as seperate things it should be looking as a single video i hope you are getting what i am trying to say to you , also you can see the first one is a transcript and the second one is a md file that was shared to me and i was told to create a 
-script out of both and the 3rd pard is still pening some other person will be shareing the thrid part with me later so as we create scripts in the same way we need ascript for below 
-
-person1 shared so it is about creating a handoff document for testing and development team 
-
-Mukundan Madhavan
-0 minutes 5 seconds0:05
-Mukundan Madhavan 0 minutes 5 seconds
-Typically in a project with Guidewire, we receive one or two inputs from the client.
-Mukundan Madhavan 0 minutes 11 seconds
-Both of these documents are...
-Mukundan Madhavan 0 minutes 14 seconds
-important because they provide the structure of the
-Mukundan Madhavan 0 minutes 18 seconds
-product and the coverages, the hierarchy that is needed to build the mind map using XMinds. The first document is a PDS, which is a product definition specification.
-Mukundan Madhavan 0 minutes 31 seconds
-This is for a Swiss SME property and liability specification that we have created. And this provides a detailed structure along with the market specific information that is needed.
-Mukundan Madhavan 0 minutes 48 seconds
-And this provides relevant context.
-Mukundan Madhavan 0 minutes 51 seconds
-for creating the mind map. The other document, which is more of an actuarial artefact, which is also used by underwriters. This is a rater that provides both the structure as well as the...
-Mukundan Madhavan 1 minute 4 seconds
-Calculations for determining the premium, which is the rating algorithm.
-Mukundan Madhavan 1 minute 9 seconds
-Both of these documents.
-Mukundan Madhavan 1 minute 11 seconds
-I used to create the mind maps.
-Mukundan Madhavan 1 minute 17 seconds
-automatically using AI. Now here is the mind map that has been created based on the input for the SME product.
-Mukundan Madhavan 1 minute 26 seconds
-So, as you can see.
-Mukundan Madhavan 1 minute 29 seconds
-This is automatically generated using AI.
-Mukundan Madhavan 1 minute 34 seconds
-This can then be imported directly into.
-Mukundan Madhavan 1 minute 39 seconds
-the APD app. So you can see the same set of questions are available here. You can also drill through the attributes, the buildings, the locations.
-Mukundan Madhavan 1 minute 51 seconds
-So the entire list of coverages or structure has been set up within the.
-Mukundan Madhavan 1 minute 56 seconds
-We do the app.
-Mukundan Madhavan 1 minute 59 seconds
-From APD, it is then imported into Policy Centre.
-Mukundan Madhavan 2 minutes 6 seconds
-Now we move to AI and requirements.
-Mukundan Madhavan 2 minutes 10 seconds
-Normally in projects, product owners work with.
-Mukundan Madhavan 2 minutes 19 seconds
-documents or excels for defining the backlog, the features and the requirements. However, we do rapid prototyping.
-Mukundan Madhavan 2 minutes 29 seconds
-which simulates the policy centre as you can see.
-Mukundan Madhavan 2 minutes 35 seconds
-The entire.
-Mukundan Madhavan 2 minutes 37 seconds
-This, this can the entire app can be generated in a matter of a few hours.
-Mukundan Madhavan 2 minutes 43 seconds
-And this becomes the single source of truth that is referred to by the product owner, the developers, and the testers. So to give you an example.
-Mukundan Madhavan 2 minutes 56 seconds
-On the policy info screen, which is an which is an out-of-the-box guidewire screen, which requires PCF, GOSU, and other developer intervention.
-Mukundan Madhavan 3 minutes 10 seconds
-If we, if you look at the screen, you can see that it has the SSN and the preferred language. However, as part of the localization for the Swiss product.
-Mukundan Madhavan 3 minutes 22 seconds
-We want to change these two fields and implement them with Swiss alternatives. So as you can see here, the field is UID and it has a particular formatting. The earlier field has been replaced with this version and this is a dropdown. So this is the first requirement.
-Mukundan Madhavan 3 minutes 43 seconds
-that we need to implement. The second requirement.
-Mukundan Madhavan 3 minutes 47 seconds
-is on the risk analysis screen. As you can see, it has five tabs as part of this prototype. We want to introduce the 6th tab, which is the hazards and exposure tab.
-Mukundan Madhavan 3 minutes 58 seconds
-This brings in the, and as you can see.
-Mukundan Madhavan 4 minutes 4 seconds
-It actually pulls the parallel based information across the different areas and this can then feed into the underwriting decision.
-Mukundan Madhavan 4 minutes 13 seconds
-Here is the product that has been imported.
-Mukundan Madhavan 4 minutes 19 seconds
-Did this is the address?
-Mukundan Madhavan 4 minutes 23 seconds
-So once this prototype has been agreed, it also provides...
-Mukundan Madhavan 4 minutes 29 seconds
-The detailed acceptance criteria are write-up.
-Mukundan Madhavan 4 minutes 34 seconds
-The product owner and the team can iterate on this particular prototype more than once till they agree on the requirements, and then there is a formal sign-off. Once it is signed off.
-Mukundan Madhavan 4 minutes 46 seconds
-This particular prototype becomes the basis for generating the handoff documents. So moving back.
-Mukundan Madhavan 4 minutes 53 seconds
-From the prototype, we are able to generate the handoff, which includes the detailed implementation prompt.
-Mukundan Madhavan 5 minutes 7 seconds
-It also generates feature files.
-Mukundan Madhavan 5 minutes 15 seconds
-And A detailed.
-Mukundan Madhavan 5 minutes 18 seconds
-Implementation.
-Mukundan Madhavan 5 minutes 20 seconds
-specification which includes user stories, acceptance criteria, test cases, and the detailed requirement coverage.
-Mukundan Madhavan 5 minutes 30 seconds
-Just to show you an example.
-Mukundan Madhavan 5 minutes 36 seconds
-Each of the requirements has a user story written using jerkin format, the business rationale.
-Mukundan Madhavan 5 minutes 43 seconds
-The guide were target implementation artefacts like Gosu PCF, the detailed acceptance criteria, the negative cases or edge cases, associated business rules, dependencies, test cases. Now we implemented the 5th and the 6th requirement, so if I were to go down.
-Mukundan Madhavan 6 minutes 5 seconds
-So I will go through one of the requirements that we have implemented, which is the natural hazard assessment. So this is the one that we saw earlier.
-Mukundan Madhavan 6 minutes 15 seconds
-We can see that.
-Mukundan Madhavan 6 minutes 17 seconds
-The detailed acceptance criteria for success, low confidence, timeout, and all the other scenarios have been listed out.
-Mukundan Madhavan 6 minutes 27 seconds
-In detail, the next one is the policy identification.
-Mukundan Madhavan 6 minutes 35 seconds
-Now, this handoff document.
-Mukundan Madhavan 6 minutes 38 seconds
-is sent to both the developer and the tester.
-Mukundan Madhavan 6 minutes 47 seconds
-in parallel so that both of the downstream AI in development and AI in testing.
-Mukundan Madhavan 6 minutes 56 seconds
-Can can can can be initiated at the same time. Now, I'll hand it over to the AI and development story, followed by the AI and testing story.
+From Product Requirements to Live Guidewire Implementation
 
+Introduction — Turning Requirements into Delivery
 
+Guidewire implementations involve multiple stages, from understanding product specifications and defining business requirements to developing, testing, and validating the final solution.
 
+Traditionally, these activities rely on documents, spreadsheets, manual analysis, and coordination between product owners, developers, and testers. Translating complex product structures and business requirements into implementation-ready specifications can take considerable time, while maintaining consistency and traceability across the delivery lifecycle adds another layer of complexity.
 
+Hexaware’s AI-powered framework addresses this challenge by connecting product definition, rapid prototyping, requirements engineering, AI-assisted development, and testing into a unified delivery process.
 
-Person2 shared which is a developer story line
+Let’s see how this journey works, from the initial product specifications to a working screen in Guidewire PolicyCenter.
 
-# "From Specification to Live Screen"
+Part 1 — From Product Specifications to a Digital Product Model
 
+In a typical Guidewire project, the team receives one or more documents from the client that define the product structure, coverages, and business rules.
 
-## SCENE 1 — Open 
+For our Swiss Commercial SME Property and Liability product, two key inputs provide the foundation for this process.
 
-> "For our SDLC on Developer phase we use Hexaware AI-Framework. //We proven this tool for core insurance systems — policy, billing, claims — . // They need speed *and* governance. // Today, I'm going to show you exactly how we deliver both — from a single line of business requirement, all the way to a live screen in Guidewire PolicyCenter."
+The first is the Product Definition Specification, or PDS. It describes the product structure, coverages, and market-specific information required to configure the product.
 
-> "Here's the tension. // Our AI Framework can draft Gosu, PCF, and test code in minutes — not days. // That's the upside. // But without guardrails, that same speed can draft its way past naming standards, past policy rules, past the one thing that actually protects a carrier: a human checkpoint before code ships. // So the question isn't *'should we use AI to build on PolicyCenter.'* // It's *'how do we use it responsibly.'*"
+The second is the rating document, an actuarial artefact also used by underwriters. It defines the rating structure and the calculations required to determine the premium.
 
-**[Slide 3 — A Governed AI Delivery Pipeline] Video Recording starting here** 
+Together, these documents provide the context needed to understand the product and its rating logic.
 
-> "Our answer is a governed AI delivery pipeline, built on three gates. // First, a Knowledge Gate — every AI answer is grounded in your own architecture, through the Guidewire Developer Assistant, not generic training data. // Second, from our Docs Directory a Policy Gate — your naming conventions, your bundle discipline, your PII rules, translated into automatic, checkable rules. // And third — the one that matters most — a Human Review Gate. // Nothing reaches a trusted branch without a qualified reviewer's sign-off. // AI accelerates. Governance protects. People decide."
+Using AI, we can automatically transform these inputs into a structured product mind map, generated through XMinds.
 
----
+This mind map captures the product hierarchy and its associated questions, attributes, and coverages, providing a structured representation that can be imported directly into the APD application.
 
-## SCENE 2 — Project Context 
+Within APD, the team can explore the product structure, drill down into attributes, and navigate the associated buildings, locations, and coverages.
 
-**[Slide 4 — Zurich CH Commercial SME: Property & Liability]**
+Once the product structure has been established in APD, it can be imported into Guidewire PolicyCenter.
 
-> "Let me ground this in a real program. // This is Zurich CH Commercial SME — a Property and Commercial Liability customization on Guidewire PolicyCenter. // Six user stories, forty-one acceptance criteria, sixty-nine test cases, and full requirement coverage — six out of six. // Everything you're about to see traces back to this one specification."
+This creates a more efficient path from product documentation to a structured product configuration.
 
+But defining the product is only one part of the journey. The next challenge is translating business requirements into a form that product owners, developers, and testers can use consistently.
 
-## SCENE 5 — The Journey Overview 
+Part 2 — From Requirements to Rapid Prototyping
 
-**[Slide 5 — The Journey: From Idea to Interface]**
+In a conventional project, product owners typically define features, requirements, and backlogs using documents and spreadsheets.
 
-> "Here's the journey, start to finish. // From a written specification, to an AI prompt, to a main design document, to a requirement-specific design, to generated code, to verification in Guidewire Studio, to a live screen underwriters use every day. // Seven steps. Every one of them versioned, reviewed, and traceable. // Let's walk through it."
+Hexaware’s approach introduces AI-powered rapid prototyping to make those requirements more tangible.
 
----
+Instead of relying exclusively on written descriptions, the team can generate an interactive prototype that simulates the relevant PolicyCenter experience in a matter of hours.
 
-## SCENE 6 — Screen: 2026-08-20-zcc-guidewire-complete-specification-v1_0.md 
+The prototype provides a shared reference point for product owners, developers, and testers. It allows the team to review the proposed functionality, understand the intended user experience, and refine requirements before implementation begins.
 
-**[SCREEN: 2026-08-20-zcc-guidewire-complete-specification-v1_0.md — the "Complete Specification" document]**
+Let’s look at two examples from the Swiss Commercial SME product.
 
-> "It starts here — not with a prompt, with a *specification*. // This single document defines 8 user stories and forty-one acceptance criteria for Zurich CH Commercial. // Notice the instructions at the top: read each user story in full before implementing it. // Anything unconfirmed is explicitly flagged — never guessed, never presented as fact. // This is written to be read on its own, by a developer, a tester, a business SME — or an AI coding assistant."
+The first requirement relates to the Policy Information screen.
 
----
+The standard Guidewire screen includes fields such as SSN and preferred language. For the Swiss product, these need to be replaced with appropriate local alternatives.
 
-## SCENE 7 — Screen: improveREQ005.md 
+The prototype demonstrates the changes, including replacing the SSN field with a Swiss UID identifier using the required format and replacing the preferred language field with a dropdown.
 
-**[SCREEN: improveREQ005.md — "Implementation Prompt"]**
+The second requirement relates to the Risk Analysis screen.
 
-> "That specification becomes this — a structured implementation prompt for Hexaware AI Assistant. // Look at the objective: create the current SDD for the Hazard and Exposure Assessment capability, following existing PolicyCenter patterns. // And look at the instruction right below it: *'Do not start coding immediately.'* // Mandatory discovery first — review the existing PolicyLocation design, the APD integration model, the existing extension patterns — *before* a single line of new code is proposed."
----
+The existing prototype contains five tabs. We introduce a sixth tab, called Hazards and Exposure, to bring together relevant peril information from different areas and make it available to support underwriting decisions.
 
-## SCENE 8 — Screen: SDD-Main.md 
+These examples show how the prototype turns business requirements into something the entire team can review and validate.
 
-**[SCREEN: SDD-Main-ZurichCH-v1.md]**
+The product owner and team can iterate on the prototype until the requirements are agreed upon and formally signed off.
 
-> "Discovery produces a design — the Main System Design document. // It links four requirements, REQ-005 through REQ-008, to the exact platform version, the exact branch, the author, and the source specification it came from. // REQ-005 — Natural Hazard Assessment Integration — is what we're building today: an asynchronous integration that populates Natural Hazard Zone with high-confidence peril data from an external hazard service."
+Once approved, the prototype becomes the foundation for generating the implementation handoff.
 
----
+Part 3 — Generating the Development and Testing Handoff
 
-## SCENE 9 — Requirement-Level Design 
+With the prototype agreed upon, the next step is to translate it into a detailed handoff package for the downstream teams.
 
-**[SCREEN — The SDD: SDD-REQ-005-NaturalHazardAssessment-v1.md An Architectural Record You Can Audit]**
+The framework generates an implementation prompt, feature files, and a detailed implementation specification.
 
-> "From there, we generate a requirement-specific detail design — the REQ-005 SDD — contains the Business, acceptance criteria,   defining exactly which entities, which fields, which integration pattern we need. // This is the architectural record a reviewer signs off on, before any code exists." 
+The specification brings together the information needed to implement and validate each requirement, including user stories, business rationale, acceptance criteria, test cases, business rules, dependencies, and requirement coverage.
 
----
+It also identifies the relevant Guidewire implementation artefacts, such as Gosu and PCF, where applicable.
 
-## SCENE 10 — Screen: Generated Gosu Entity in VS Code 
+Each requirement is documented in a structured format, including its expected behavior and the scenarios that need to be validated.
 
-**[SCREEN: ZHazardAssessment_Ext.eti in VS Code]**
+For example, the Natural Hazard Assessment requirement includes acceptance criteria covering successful execution, low-confidence results, timeouts, and other relevant scenarios.
 
-> "And here's the result: a generated Gosu entity — ZHazardAssessment-Ext. // Foreign key to PolicyLocation. // Typekeys for status and for the derived hazard zone. // Confidence score, flood score, hail score, storm score, landslide score. // Every field named, typed, and documented exactly the way this project's own conventions require — because the AI was grounded in those conventions from the Knowledge Gate, not inventing its own."
+This level of detail helps the team understand not only what needs to be built, but also how the implementation should behave under different conditions.
 
----
+The completed handoff document is shared with the development and testing teams in parallel.
 
-## SCENE 11 — Screen: Verified in Guidewire Studio 
+This allows AI-assisted development and AI-assisted testing to begin from the same agreed specification, rather than relying on separate interpretations of the requirements.
 
-**[SCREEN: GW Studio — entity property grid for ZHazardAssessment_Ext]**
+And this is where the development journey begins.
 
-> "Before anything is promoted, it has to prove itself in Guidewire Studio. // The entity opens natively — no black box. // Foreign key to PolicyLocation, confirmed. // Implements RiskAssessmentResult, confirmed. // Every typekey, every column, visible and inspectable by a human reviewer, exactly as the design intended. // This is the moment the AI's proposal becomes the team's trusted code."
+Part 4 — From Specification to Live Screen
 
----
+For the development phase of our Software Development Life Cycle, Hexaware uses its AI Framework to accelerate delivery on core insurance systems, including policy, billing, and claims.
 
-## SCENE 12 — Screen: PCF Widget Tree 
+The framework is designed to combine the speed of AI-assisted code generation with the governance required for enterprise insurance platforms.
 
-**[SCREEN: Hazard & Exposure panel set / PCF structure in GW Studio]**
+AI can generate Gosu, PCF, and test code in minutes. But speed alone is not enough. The implementation must follow the project’s architecture, naming standards, business rules, and security requirements.
 
-> "The same discipline applies to the UI. // A new Hazard and Exposure panel set, built on the existing Risk Analysis card pattern underwriters already know — location, canton, status, confidence, and each peril score, with an 'Assess Selected Locations' action wired straight to the new entity."
+To achieve this, the framework follows a governed AI delivery pipeline built around three gates.
 
----
+The first is the Knowledge Gate, where AI-generated responses are grounded in the project’s own architecture and implementation patterns through the Guidewire Developer Assistant.
 
-## SCENE 13 — Screen: Live in PolicyCenter 
+The second is the Policy Gate, where documented standards, naming conventions, bundle practices, and personally identifiable information rules are translated into checkable requirements.
 
-**[SCREEN: PolicyCenter — Risk Analysis → Hazard & Exposure tab]**
+The third is the Human Review Gate. Before code reaches a trusted branch, it must be reviewed and approved by a qualified reviewer.
 
-> "And here it is, live. // An underwriter opens a submission, goes to Risk Analysis, and sees a brand-new Hazard and Exposure tab — right next to UW Issues, Contingencies, and Prior Losses, exactly where they'd expect it. // They assess a location, and flood, hail, storm, and landslide scores — plus a confidence rating — come straight from the new integration we just watched get specified, designed, generated, and verified."
+Together, these controls help ensure that AI accelerates development without removing the governance and accountability required for enterprise delivery.
 
----
+Let’s see how this works in our Zurich CH Commercial SME Property and Liability implementation on Guidewire PolicyCenter.
 
-## SCENE 14 — Outcomes 
+The project brings together six user stories, forty-one acceptance criteria, and sixty-nine test cases, with full requirement coverage across all six stories.
 
-**[Slide 11 — What Governed AI Delivery Changes]**
+The implementation is traceable back to the original specification and the handoff documents created earlier in the process.
 
-> "What does this change for a program like Zurich CH? // Faster delivery — specification to working, tested screen in one governed pass. // Consistent conventions, no matter who's writing the prompt. // Governance that happens *before* code is written, not after a defect is found. // And an audit trail — ready, by design, for the regulatory scrutiny Swiss programs demand."
+The journey begins with the complete specification, which defines the user stories and acceptance criteria for the Zurich Commercial SME product.
 
----
+The specification also establishes how requirements should be interpreted. Developers and AI coding assistants are expected to review each user story in full, and any unconfirmed information must be explicitly identified rather than treated as fact.
 
-## SCENE 15 — Why Hexaware 
+This provides a common foundation for implementation and review.
 
-**[Slide 12 — A Partnership Built for the Next Decade of Core Systems]**
+From the specification, we generate a structured implementation prompt for the Hexaware AI Assistant.
 
-> "This is what Hexaware brings to Guidewire programs. // Deep PolicyCenter expertise across Tier-1 carriers. // A pioneering, governed AI-SDLC practice — not ad hoc prompting, but a trusted, repeatable delivery system. // And it's proven on real complexity: Swiss UID identifiers, legal form, cantonal rules, multilingual correspondence — delivered without cutting a single corner. // We don't just build on Guidewire. We build it responsibly, at AI speed."
+For the Natural Hazard Assessment capability, the prompt defines the objective and directs the assistant to follow existing PolicyCenter design patterns.
 
----
+Importantly, the process does not begin with immediate code generation. The assistant must first investigate the existing implementation, including the PolicyLocation design, APD integration model, and established extension patterns.
 
-## SCENE 16 — Close 
+This discovery step helps ensure that the proposed implementation fits the existing system rather than introducing an unrelated design.
 
-**[Slide 13 — Let's Build What's Next, Together]**
+The findings are then captured in the Main System Design Document, which connects the relevant requirements to the platform version, development branch, author, and source specification.
 
-> "If your team is asking the same question we started with today — how do we move fast on Guidewire without losing control — let's talk. // Find us at Guidewire Connections, or reach out directly. // Thank you."
+For this demonstration, we focus on REQ-005: Natural Hazard Assessment Integration.
 
----
+The objective is to introduce an asynchronous integration that retrieves high-confidence peril data from an external hazard service and populates the Natural Hazard Zone information.
 
+From the main design, we move to the requirement-specific System Design Document for REQ-005.
+
+This document defines the business requirements, acceptance criteria, entities, fields, and integration pattern needed for the implementation.
+
+It provides a detailed architectural record that can be reviewed and approved before code is generated.
+
+Once the design is established, the framework moves into implementation.
+
+Here, we can see the generated Gosu entity, ZHazardAssessment_Ext.
+
+The entity includes a foreign key to PolicyLocation, typekeys for status and the derived hazard zone, and fields for confidence, flood, hail, storm, and landslide scores.
+
+The fields are named, typed, and documented according to the project’s established conventions, reflecting the guidance supplied through the Knowledge Gate.
+
+But generated code must still be validated before it becomes trusted implementation.
+
+The next step is verification in Guidewire Studio.
+
+The entity is opened directly in the development environment, where the reviewer can inspect its properties and confirm the foreign key to PolicyLocation, the RiskAssessmentResult implementation, the typekeys, and the underlying columns.
+
+This provides a transparent way to validate that the generated implementation aligns with the approved design.
+
+The same principles apply to the user interface.
+
+A new Hazard and Exposure panel set is built using the existing Risk Analysis card pattern. It brings together the location, canton, status, confidence, and individual peril scores, along with an action to assess selected locations.
+
+The result is a user interface that follows familiar PolicyCenter patterns while introducing the required functionality.
+
+Now we can see the implementation in the live PolicyCenter application.
+
+An underwriter opens a submission and navigates to Risk Analysis. The new Hazards and Exposure tab appears alongside the existing sections, including UW Issues, Contingencies, and Prior Losses.
+
+The underwriter can assess a location and view the resulting flood, hail, storm, and landslide scores, together with the confidence rating returned by the integration.
+
+What began as a product requirement has now progressed through specification, prototyping, handoff, design, code generation, and verification to a working screen in Guidewire PolicyCenter.
+
+Part 5 — What This Approach Changes
+
+Bringing these stages together changes how teams collaborate across the delivery lifecycle.
+
+Product specifications and rating documents provide the foundation for building a structured product model.
+
+AI-powered prototyping turns business requirements into a tangible experience that product owners can review and approve.
+
+The generated handoff then gives developers and testers a common, detailed reference, including user stories, acceptance criteria, implementation guidance, and test cases.
+
+Finally, the governed AI development process uses that specification to guide design and code generation, while preserving validation, human review, and traceability.
+
+The result is a more connected delivery process, where requirements are not isolated in documents, prototypes are not disconnected from implementation, and generated code is not accepted without verification.
+
+For a program such as Zurich CH Commercial SME, this approach supports faster delivery, consistent implementation patterns, and clearer traceability from business requirements to working functionality.
+
+It also helps teams address the complexity of localized insurance products, including Swiss UID identifiers, market-specific requirements, and natural hazard assessment, without compromising the controls needed for enterprise delivery.
+
+Closing — From Business Intent to Governed Implementation
+
+This is the value of Hexaware’s AI-powered delivery approach for Guidewire.
+
+By connecting product definition, rapid prototyping, requirements engineering, AI-assisted development, and testing, we create a continuous path from business intent to implementation.
+
+Product owners can validate what needs to be built. Developers receive structured, implementation-ready guidance. Testers work from the same acceptance criteria and requirements. And the development process remains grounded in established architecture, automated checks, human review, and traceable decisions.
+
+The objective is not simply to generate code faster. It is to make the entire delivery lifecycle more connected, predictable, and governed.
+
+From product specifications to a working Guidewire PolicyCenter screen, every stage builds on the same foundation — helping teams deliver at AI speed, with the discipline and control that enterprise insurance systems demand.
