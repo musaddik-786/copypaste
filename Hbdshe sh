@@ -1,18 +1,4 @@
-The `?sslmode=require` is getting garbled with a quote character. Strip it from the URL and set SSL mode separately:
-
-```bash
-PGURL=$(echo $DATABASE_URL | sed 's/?sslmode=require//')
+JarvisClaims@JarvisClaims:~/Musaddique$ PGURL=$(echo $DATABASE_URL | sed 's/?sslmode=require//')
 PGSSLMODE=require psql "$PGURL" -c "\dn"
-```
-
-```bash
-PGSSLMODE=require psql "$PGURL" -c "\dt *.*"
-```
-
-```bash
-PGSSLMODE=require psql "$PGURL" -c "SELECT * FROM sra.v_queue_kpis;"
-```
-
-```bash
-PGSSLMODE=require psql "$PGURL" -c "\dt src.*"
-```
+" does not existnection to server at "claimsagenticdb.postgres.database.azure.com" (172.203.54.46), port 5432 failed: FATAL:  database "renewal_advisor
+JarvisClaims@JarvisClaims:~/Musaddique$ 
