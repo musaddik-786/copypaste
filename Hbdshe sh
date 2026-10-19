@@ -1,4 +1,4 @@
-python3 - <<'EOF'
+(.venv) JarvisClaims@JarvisClaims:~/Musaddique/Smart Renewal Advisor$ python3 - <<'EOF'
 import os
 from dotenv import load_dotenv
 load_dotenv('/home/JarvisClaims/Musaddique/Smart Renewal Advisor/.env')
@@ -26,3 +26,9 @@ for schema, table in tables:
 cur.close()
 conn.close()
 EOF
+Traceback (most recent call last):
+  File "<stdin>", line 6, in <module>
+  File "/home/JarvisClaims/Musaddique/Smart Renewal Advisor/.venv/lib/python3.11/site-packages/psycopg/connection.py", line 126, in connect
+    raise last_ex.with_traceback(None)
+"sycopg.OperationalError: connection is bad: invalid sslmode value: "require
+(.venv) JarvisClaims@JarvisClaims:~/Musaddique/Smart Renewal Advisor$ 
