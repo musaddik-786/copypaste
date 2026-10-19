@@ -1,17 +1,18 @@
-JarvisClaims@JarvisClaims:~/Musaddique$ grep DATABASE_URL ~/Musaddique/Smart\ Renewal\ Advisor/.env | sed 's/.*\///' | sed 's/?.*//'
-renewal_advisor
-JarvisClaims@JarvisClaims:~/Musaddique$ psql "$DATABASE_URL" -c "\dn"
-psql: error: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
-        Is the server running locally and accepting connections on that socket?
-JarvisClaims@JarvisClaims:~/Musaddique$ export $(grep DATABASE_URL ~/Musaddique/Smart\ Renewal\ Advisor/.env | xargs)
-JarvisClaims@JarvisClaims:~/Musaddique$ echo $DATABASE_URL | sed 's/:\/\/[^:]*:[^@]*@/:\/\/***:***@/'
-postgresql://***:***@claimsagenticdb.postgres.database.azure.com:5432/renewal_advisor?sslmode=require
-JarvisClaims@JarvisClaims:~/Musaddique$ psql "$DATABASE_URL" -c "\dn"
-"sql: error: invalid sslmode value: "require
-JarvisClaims@JarvisClaims:~/Musaddique$ psql "$DATABASE_URL" -c "\dt *.*"
-"sql: error: invalid sslmode value: "require
-JarvisClaims@JarvisClaims:~/Musaddique$ psql "$DATABASE_URL" -c "SELECT * FROM sra.v_queue_kpis;"
-"sql: error: invalid sslmode value: "require
-JarvisClaims@JarvisClaims:~/Musaddique$ psql "$DATABASE_URL" -c "\dn"
-"sql: error: invalid sslmode value: "require
-JarvisClaims@JarvisClaims:~/Musaddique$ 
+The `?sslmode=require` is getting garbled with a quote character. Strip it from the URL and set SSL mode separately:
+
+```bash
+PGURL=$(echo $DATABASE_URL | sed 's/?sslmode=require//')
+PGSSLMODE=require psql "$PGURL" -c "\dn"
+```
+
+```bash
+PGSSLMODE=require psql "$PGURL" -c "\dt *.*"
+```
+
+```bash
+PGSSLMODE=require psql "$PGURL" -c "SELECT * FROM sra.v_queue_kpis;"
+```
+
+```bash
+PGSSLMODE=require psql "$PGURL" -c "\dt src.*"
+```
