@@ -1,11 +1,37 @@
-Guidewire implementations are complex, involving multiple stages of requirements definition, development, testing, and validation. Traditionally, these stages require significant manual effort, repeated coordination, and time-consuming rework.
 
-What if we could transform this entire delivery lifecycle with AI — without compromising quality, governance, or human oversight?
-
-Hexaware’s AI-powered Guidewire SDLC is designed to do exactly that, combining intelligent automation with structured workflows and human-in-the-loop controls to accelerate delivery while maintaining the standards required for enterprise insurance systems.
-
-In this demonstration, we’ll take you through the complete journey — from client specifications and product configuration to rapid prototyping, automated requirements generation, AI-assisted development, and testing.
-
-You’ll see how these capabilities connect to create a more streamlined, traceable, and governed approach to delivering solutions on Guidewire PolicyCenter.
-
-Let’s begin by looking at how we transform product specifications into implementation-ready requirements, and ultimately, a working solution.
+Musaddique Lalkot
+0 minutes 39 seconds0:39
+Musaddique Lalkot 0 minutes 39 seconds
+In the first step, we use a predefined instruction file that contains complete details about the Playwright framework, including the project structure, folder hierarchy, coding standards, naming conventions, reusable components, and implementation guidelines. When a requirement or user story is provided to Copilot, it first analyzes this instruction file and understands how the framework is designed.
+Musaddique Lalkot 0 minutes 58 seconds
+Based on the information available in the instruction file, Copilot generates the manual test cases and the corresponding feature file, while strictly following the framework standards and project conventions. Now, the user provides both the requirement document and the instruction file to Copilot. The instruction file contains the framework standards and implementation guidelines.
+Musaddique Lalkot 1 minute 17 seconds
+while the requirement document contains the business flow and testing requirements. Copilot analyzes both files together to understand what needs to be tested and how the framework expects the automation assets to be structured. Based on this analysis, Copilot generates the manual test cases and the corresponding feature file by following the predefined project standards and framework conventions.
+Musaddique Lalkot 1 minute 37 seconds
+Once the generated test cases and feature file are reviewed and approved by the user, they become the baseline for automation script generation in the next step. Once the feature file is generated and approved, the automation script generation phase begins. At this stage, the approved feature file and the framework instruction file are provided to copilot as inputs. The feature file serves as the functional blueprint by defining the test scenarios,
+Musaddique Lalkot 1 minute 59 seconds
+Business workflows, expected behaviors, and acceptance criteria. At the same time, the instruction file acts as a framework guide containing detailed information about the playwright project structure, page object model design, folder hierarchy, coding standards, reusable utilities, naming conventions, reporting configuration, and implementation best practices. Copilot analyzes both inputs together to understand.
+Musaddique Lalkot 2 minutes 21 seconds
+not only what needs to be automated, but also how the automation should be implemented within the existing framework. Using the feature scenarios as the source of business logic and the instruction file as the source of framework standards, Copilot intelligently generates the required automation assets while maintaining consistency across the project. As part of this process, test scripts are created in the appropriate test folders.
+Musaddique Lalkot 2 minutes 41 seconds
+Page object classes are generated or updated when required, reusable methods are leveraged wherever possible, and application locators are implemented according to the framework guidelines. The generated automation flow directly maps each feature file step to corresponding playwright actions, validations, assertions, and reusable framework components. Copilot also ensures that naming conventions.
+Musaddique Lalkot 3 minutes 2 seconds
+code structure, error handling practices, and reporting standards defined in the framework are consistently followed. This minimizes manual development effort, reduces implementation inconsistencies, and accelerates automation delivery, while ensuring that all generated scripts align with the existing framework architecture and project standards. The result is a production-ready automation script.
+Musaddique Lalkot 3 minutes 22 seconds
+that follows the established page object model design, integrates seamlessly into the current playwright framework, and is ready for execution with minimal additional intervention from the automation engineer. We will now execute the finalized playwright automation script within the existing framework. Since the implementation has already been aligned with the project structure, coding standards, reusable components, and page object model design, the script can be executed directly as part of the automation suite.
+Musaddique Lalkot 3 minutes 46 seconds
+The execution will validate the end-to-end business flow defined in the feature file and demonstrate how the generated automation seamlessly integrates with the framework and delivers the expected test results. In this demonstration, we are executing the commercial policy workflow in Guidewire Policy Center. The automation navigates through the policy creation process, enters the required policy information,
+Musaddique Lalkot 4 minutes 7 seconds
+performs the necessary business actions and verifies the expected outcomes throughout the transaction lifecycle. As the execution progresses, we can observe the application screens being navigated automatically, business data being populated, and validations being performed at key stages of the workflow. This helps ensure that the commercial policy process is functioning as expected from both a business
+Musaddique Lalkot 4 minutes 26 seconds
+and system perspective. Once the execution is completed, the results are captured and presented through the automation reports, providing clear visibility into the status of each validation and business step executed during the test run. In addition to standard execution, the solution also supports parallel execution, enabling multiple test scenarios to run simultaneously and reducing overall execution time.
+Musaddique Lalkot 4 minutes 48 seconds
+Cross-browser testing capabilities are also available, allowing the same business flow to be validated across different browsers. Now, let's move to the Failure Analysis dashboard. This view provides A consolidated breakdown of any failures identified during execution, making it easier to understand what went wrong and where the issue occurred. Rather than reviewing individual execution logs manually,
+Musaddique Lalkot 5 minutes 8 seconds
+Failures are automatically classified into meaningful categories. This helps teams quickly identify whether a failure is related to test data, application behavior, locator issues, environment instability, synchronization problems, validation mismatches, or unexpected application errors. Now, let's move to the observability dashboard. This dashboard provides a centralized view of automation execution health.
+Musaddique Lalkot 5 minutes 29 seconds
+including execution trends, pass and fail statistics, execution duration, and overall test stability. These insights help teams monitor automation performance, identify patterns, and gain better visibility into the reliability of the test suite. Now, let's move to the coverage analyzer. This capability helps us measure how well our automation aligns with the defined business requirements and feature scenarios.
+Musaddique Lalkot 5 minutes 50 seconds
+The approved feature file is used as the source of automation, while the original requirements serves as the source of business intent. The coverage analyzer compares the requirements, feature scenarios, and implemented automation assets to identify any gaps in coverage. Based on this analysis, it highlights missing scenarios, uncovered validations, partially automated flows,
+Musaddique Lalkot 6 minutes 10 seconds
+and areas that require additional automation implementation. This helps teams ensure that the automation suite accurately reflects the original business requirements and provides complete functional coverage.
