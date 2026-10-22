@@ -1,13 +1,7 @@
-What we’ve seen throughout this demonstration is how AI can transform the Guidewire delivery lifecycle, from the initial product specifications and business requirements to implementation, automated testing, and validation.
+Based on the MD specification document, we started the specification process for Zurich CH Commercial SME: Property & Liability, covering six User Stories plus two additional User Stories. Each section includes the User Story Description, Business Explanation, Acceptance Criteria, Test Cases, and Negative Test Cases. 
 
-By connecting AI-powered product modeling and rapid prototyping with structured development handoffs, governed code generation, and intelligent test automation, Hexaware brings these activities together into a continuous delivery process.
+Using this document, we designed our Specification Design Documents (SDDs) to cover the full functionality of the requirements, modeling a User Story planning and implementation approach called SDD-REQXXX. 
 
-The same requirements that define the intended business functionality guide development and testing, helping maintain traceability and alignment throughout the lifecycle.
+  
 
-With AI-assisted automation generation, integrated execution, failure analysis, observability, and requirements coverage analysis, teams gain greater visibility into quality, identify gaps more efficiently, and reduce the manual effort involved in delivering and validating changes.
-
-And throughout this process, governance and human oversight remain central, ensuring that AI accelerates delivery while teams retain control over implementation decisions and quality.
-
-This is the value of Hexaware’s AI-powered Guidewire SDLC: connecting requirements, development, and testing into one intelligent, traceable, and governed workflow — enabling teams to deliver faster, improve quality, and build with confidence.
-
-Thank you.
+For this demo, I will showcase the end-to-end SDLC process for User Story REQ005 - Natural Hazard Assessment Integration. 
