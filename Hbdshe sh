@@ -1,7 +1,24 @@
-Based on the MD specification document, we started the specification process for Zurich CH Commercial SME: Property & Liability, covering six User Stories plus two additional User Stories. Each section includes the User Story Description, Business Explanation, Acceptance Criteria, Test Cases, and Negative Test Cases. 
-
-Using this document, we designed our Specification Design Documents (SDDs) to cover the full functionality of the requirements, modeling a User Story planning and implementation approach called SDD-REQXXX. 
-
-  
-
-For this demo, I will showcase the end-to-end SDLC process for User Story REQ005 - Natural Hazard Assessment Integration. 
+cd AI_Foundy_UW
+cd Jarvis
+cd MCP
+source mcp_venv/bin/activate
+python3 test_main.py 
+ 
+ 
+For MCP
+ 
+cd AI_Foundy_UW
+cd Jarvis
+source agent_venv/bin/activate
+cd EmailIntentAgent
+python3 server.py
+ 
+ 
+For Agent
+ 
+cd AI_Foundy_UW
+cd app_uw_v11
+npm run dev
+ 
+For UI
+ 
