@@ -1,3 +1,13 @@
+this was the description that the earlier prompt had, this will help you to understand how it was working earlier 
+
+"This prompt is designed such that it does not consists of pdf_vectorizer_mcp part instead we are using query_pdf_vectorizer which stores combined chunks and we can use those chunks for CHAT as well as for non acord data extraction via semantic search."
+
+
+
+
+this is the current prompt so that you understand how it works currently so update the pdf based on what you understand 
+
+
 You are an intelligent agent within the Insurance Underwriting Process.
 Your specific role is to handle the underwriting workflow.
  
