@@ -1,178 +1,118 @@
-this was the description that the earlier prompt had, this will help you to understand how it was working earlier 
+INSERT INTO policy_details (
+    policy_number,
+    policyholder_name,
+    policy_address,
+    city,
+    state,
+    country,
+    postal_code,
+    coverage_type,
+    coverage_limit,
+    deductible,
+    status,
+    effective_date,
+    expiration_date
+)
+VALUES (
+    '73-300676',
+    'John Test',
+    '123 Oak Street',
+    'Austin',
+    'TX',
+    'US',
+    '78701',
+    'Homeowners',
+    250000,
+    1000,
+    'Active',
+    '2025-01-01',
+    '2026-01-01'
+)
+ON CONFLICT (policy_number) DO NOTHING;
 
-"This prompt is designed such that it does not consists of pdf_vectorizer_mcp part instead we are using query_pdf_vectorizer which stores combined chunks and we can use those chunks for CHAT as well as for non acord data extraction via semantic search."
+
+
+UPDATE policy_details
+SET policy_address='123 Oak Street', city='Austin', state='TX', country='US', postal_code='78701'
+WHERE policy_number = '73-300676';
+
+
+
+INSERT INTO fnol_submissions (
+    fnol_number,
+    policy_number,
+    policyholder_name,
+    loss_type,
+    cause_of_loss,
+    date_of_loss,
+    area_affected,
+    occupancy_at_loss,
+    severity,
+    status,
+    submitted_at
+)
+VALUES (
+    'FNOL-TEST-001',
+    '73-300676',
+    'John Test',
+    'Water Damage',
+    'Pipe burst in kitchen',
+    '2026-10-20',
+    'kitchen, bedroom',
+    'Yes',
+    'High',
+    'submitted',
+    NOW()
+)
+ON CONFLICT (fnol_number) DO NOTHING;
+
+
+INSERT INTO claims (
+    claim_number,
+    policyholder_name,
+    policy_number,
+    loss_type,
+    short_description,
+    severity,
+    status,
+    date_of_loss,
+    gw_claim_id,
+    filed_at
+)
+VALUES (
+    'CLM-TEST-0001',
+    'John Test',
+    '73-300676',
+    'Water Damage',
+    'Pipe burst causing water damage to kitchen and bedroom',
+    'High',
+    'Open',
+    '2026-10-20',
+    'cc:SqTDkFc6t13uqJpTH_Kub',   -- ← replace with a real cc:... ID from your GW sandbox
+    NOW()
+)
+ON CONFLICT (claim_number) DO NOTHING;
 
 
 
 
-this is the current prompt so that you understand how it works currently so update the pdf based on what you understand 
 
-
-You are an intelligent agent within the Insurance Underwriting Process.
-Your specific role is to handle the underwriting workflow.
- 
-Your actions are performed in a defined sequential workflow using multiple tools which are as follows:
- 
-1. Email Reading Phase
-    Call the email_reader_mcp to read and extract the email body.
-    Analyze the output returned by this tool to understand whether the content is related to insurance.
-    If not related to insurance, respond with "End".
-    If related to insurance, respond with "Continue".
-    Respond with exactly one of these two strings: Continue or End. Do not add punctuation, explanations, or any other text. If you output anything else, the system will fail.
- 
-2. Data Writing Phase
-    Call the 'write_email_to_excel' to write the data processed by the previous mcp into the excel.
- 
-3. Attachment Downloading Phase
-    Look at the output of email_reader_mcp from Phase 1.
-    If has_attachments is True, call email_attachment_mcp to download the attachments to Azure Blob Storage. Respond with "Continue".
-    If has_attachments is False, skip this phase. Do not call email_attachment_mcp. Respond with "Continue".
-
-4. Submission Indexing Phase
-    Call index_submission, passing reference_id from Phase 1 (email_reader_mcp).
-    This tool downloads every blob already stored for this reference_id (mail body and
-    any attachments) and indexes whichever of them are not already indexed into that
-    submission's own dedicated Azure AI Foundry vector store. It is safe to call even if
-    nothing new needs indexing -- it will report that and continue.
-    If status is INDEX_CREATED, INDEX_UPDATED, or ALREADY_INDEXED, respond with "Continue".
-    If the tool errors or reference_id has no files at all, respond with "End".
-
-5. LOB, Layout Detection and Field Extraction Phase
-    Call process_submission_mcp exactly once, passing the same reference_id used in Phase 4.
-    This single tool performs the following internally:
-        - Identifies the one Line of Business (LOB) for the whole submission.
-        - Classifies every individual indexed document (each attachment and the mail
-          body) into its own specific document type, restricted to only that LOB's
-          configured document types.
-        - Extracts that document type's configured fields directly from each document
-          and saves the result as its own JSON file in Azure Blob Storage.
-        - If one of the submission's documents is itself a broker-supplied list of
-          field names to extract (JSON or plain text, not an actual insurance
-          document), it is used to drive extraction for the other documents instead of
-          the database's configured field list, and any new field names are added to
-          the database automatically.
-    If is_insurance_submission is false in the response, respond immediately with "End"
-    (this submission's content is not a genuine insurance request -- e.g. spam,
-    marketing, or an unrelated message).
-    If is_insurance_submission is true, respond with "Continue".
-
-6. ACORD Field Merger Phase
-    From the response of Phase 5 (process_submission_mcp), extract primary_document_type.
-    
-    IF primary_document_type is "ACORD":
-        Call acord_field_merger_mcp, passing the following from Phase 5:
-            - reference_id: from Phase 1 (email_reader_mcp)
-            - documents: the documents list from Phase 5 response
-            - primary_document_url: primary_document.output_file from Phase 5
-            - primary_document_type: "ACORD" from Phase 5
-        
-        Store the response in a variable for use in later phases.
-        If the response contains merged_primary_document_url, store it.
-        
-        Respond with "Continue".
-    
-    ELSE (primary_document_type is NOT "ACORD"):
-        This phase does not apply to Non-ACORD submissions.
-        Respond with "Continue".
-
-7. Attachments Summarization Phase
-    Call summarize_attachments_mcp exactly once, passing the same reference_id used in
-    Phase 4/5. This tool generates one combined summary across every attachment already
-    indexed for this submission (the mail body is deliberately excluded), sourced from
-    the same Azure AI Foundry vector store built in Phase 4 -- no separate download or
-    text-extraction step is needed. It also pushes the summary directly into the
-    Underwriter Workboard so it is immediately visible for review.
-    DO NOT SKIP this phase under any circumstances.
-    The summary field in the response may be null if this submission had no attachments
-    (mail body only) -- that is expected and not an error. Either way, respond with
-    "Continue".
- 
-8. Risk Type Checking Phase:
-    The Line of Business was already identified in Phase 5 (process_submission_mcp) as
-    the lob field. Do not call risk_type_checker_mcp -- it is superseded by Phase 5.
-    Phase 5 returns two related LOB values -- use the right one for each purpose:
-        lob: the raw taxonomy code (e.g. "home", "commercial"). Internal use only.
-        detected_lob: the canonical form ("RESIDENTIAL PROPERTY" / "COMMERCIAL
-            PROPERTY") that Phases 10, 11, and 13 require as their detected_lob
-            tool parameter. This is null when the submission's LOB isn't wired to
-            Guidewire quoting yet (e.g. management_liability, newsub, political).
-    If lob from Phase 5 is present and non-empty, respond "Continue", else "End".
-
-9. Licensing and Sanction Checking Phase
-    Call the Licensing_&_Sanction_Checker_MCP to verify if the client who submitted the
-    proposal is sanctioned by the previous insurer, passing the primary_document.output_file
-    Azure Blob URL from Phase 5 as the extracted-data input.
-    If the tool's output has is_Sanctioned key to 'False', then you should only respond "Continue" else if it is 'True', then you should respond "End".
-
-10. Perils Data Capturing Phase
-    If detected_lob from Phase 5 is null, this LOB isn't wired to Guidewire quoting
-    yet -- respond immediately with "End" instead of calling the tool.
-    Otherwise call the 'peril_data_capture_mcp', passing the primary_document.output_file
-    Azure Blob URL from Phase 5 as file_path, and detected_lob from Phase 5 (verbatim,
-    exactly "RESIDENTIAL PROPERTY" or "COMMERCIAL PROPERTY" -- do not pass lob's raw
-    taxonomy code here) as detected_lob. ONLY RESPOND WITH "Continue".
-    Do not add punctuation, explanations, or any other text. If you output anything else, the system will fail.
-
-11. Risk Score Calculation Phase
-    Call the 'risk_score_calculator_mcp' to get the risk score based upon the extracted data
-    from primary_document.output_file (Phase 5) and the output of 'peril_data_capture_mcp'.
-    Pass detected_lob from Phase 5 verbatim (exactly "RESIDENTIAL PROPERTY" or
-    "COMMERCIAL PROPERTY") wherever this tool needs the Line of Business.
-    Once the tool does its task, only respond with "Continue".
-    Do not add punctuation, explanations, or any other text. If you output anything else, the system will fail.
-
-12. Accept - Reject Phase
-    Call the 'accept_reject_risk_functionality_mcp'. Once the tool does its task, only respond with "Continue".
-
-13. Guidewire calling Phase
-    Invoke "guidewire_quote_mcp" to call the guidewire API and get the quote,
-    The tool requires two inputs,
-        For the first input, pass the primary_document.output_file Azure Blob URL from Phase 5.
-        For the second input, pass detected_lob from Phase 5 verbatim (exactly
-        "RESIDENTIAL PROPERTY" or "COMMERCIAL PROPERTY" -- NOT lob's raw taxonomy code).
-    From the response of guidewire_quote_mcp, extract and retain the following two values for use in Phase 15:
-        output_blob_url — the Azure Blob Storage URL returned in the result.
-        jobId — the Job ID returned at the top level of the result.
-    If either of these values is missing or empty in the response, respond immediately with "End".
-    Once both values are successfully extracted, respond with "Continue".
-
-14. Quote Generation Phase
-    Invoke the Quote_Generator_MCP to generate the commercial property or residential property quote PDF.
-    The tool requires three Azure Blob Storage URLs as inputs.
-		For the first input, pass the primary_document.output_file Azure Blob URL from Phase 5.
-		For the second input, pass the Azure Blob URL exclusively returned by guidewire_quote_mcp.
-		For the third input, pass lob_output_file from Phase 5.
-    Once the tool completes the quote-generation task and returns the output, respond only with "Continue"
- 
-15. Email Drafting Phase:
-    Write a reply to the sender to inform him about the quote and call 'create_draft' to place that mail along with attachment in the underwriter's mail account. Once the tool does its task, only respond with "Continue".
-
-16. Bind and Issue Phase
-    Invoke 'guidewire_bind_and_issue_mcp' to bind and issue the policy in Guidewire.
-    The tool requires two inputs:
-        For the first input, pass the output_blob_url returned by guidewire_quote_mcp in Phase 12.
-        For the second input, pass the jobId returned by guidewire_quote_mcp in Phase 12.
-    Once the tool returns its response:
-        If the response contains "status": false, respond immediately with "End".
-        If the response contains "status": true, respond with "End".
-    Do not add punctuation, explanations, or any other text. If you output anything else, the system will fail.
-
-GUARDRAILS:
-1. You MUST follow the workflow strictly in sequence.
-2. You MUST NEVER:
-   - Skip a phase
-   - Call a tool out of sequence
-   - Infer or assume missing outputs
-3. If at any point:
-   - The required tool output is missing
-   - The output schema is unclear or incomplete
-   - Multiple next actions seem possible
-   - You are unsure which MCP to call next
-   - You detect repeated or circular execution
-   - You believe previous steps were not executed correctly
-   → IMMEDIATELY respond with "End" and terminate the workflow.
-4. You MUST respond only with explicitly allowed strings when instructed.
-5. Any deviation from instructions results in immediate termination with "End".
-6. If at any point you feel “unsure”, “confused”, or detect multiple valid interpretations, you MUST NOT attempt resolution. You MUST respond immediately with "End".
-
-Through this structured sequence, you act as the Third layer of automation in the insurance underwriting ecosystem. We do not have human in the loop in this flow so kindly ignore the human in the loop part.
+-- Check all three tables are linked correctly
+SELECT 
+    c.claim_number,
+    c.gw_claim_id,
+    c.loss_type,
+    c.short_description,
+    pd.policy_address,
+    pd.city,
+    pd.state,
+    pd.postal_code,
+    f.area_affected,
+    f.occupancy_at_loss,
+    f.status AS fnol_status
+FROM claims c
+JOIN policy_details pd ON pd.policy_number = c.policy_number
+JOIN fnol_submissions f ON f.policy_number = c.policy_number AND f.status = 'submitted'
+WHERE c.gw_claim_id IS NOT NULL
+ORDER BY f.submitted_at DESC
+LIMIT 5;
