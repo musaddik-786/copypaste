@@ -1,3 +1,52 @@
+{
+    "data": {
+        "attributes": {
+            "lossCause": {
+                "code": "Fire"
+            },
+            "lossLocation": {
+                "addressLine1": "425 Madison St.",
+                "city": "Chicago",
+                "country": "US",
+                "postalCode": "60606",
+                "state": {
+                    "code": "IL"
+                }
+            }
+        }
+    },
+    "included": {
+        "DwellingIncident": [
+            {
+                "attributes": {
+                    "description": "water from heavy rains leaked through the roof damaging walls and floor.",
+                    "yearsInHome": 7,
+                    "lossParty": {
+                        "code": "insured"
+                    },
+                    "dwellingRoomDamages": [{
+                        "numberOfRooms": 1,
+                        "roomType": {
+                            "code": "kitchen"
+                        }},
+                        {
+                        "numberOfRooms": 1,
+                        "roomType": {
+                            "code": "bedroom"
+                        }                        
+                    }],
+                    "occupancyType": {
+                        "code": "occupied"
+                    }
+                },
+                "method": "post",
+                "uri": "/claim/v1/claims/cc:SqTDkFc6t13uqJpTH_Kub/dwelling-incidents"
+            }
+        ]
+    }
+}
+
+
 as we already have 2 gw apis i want to create a new mcp tool that hits this particular endpoint with the same claim id that we use in Submiting the claim api
 with the same confifurations, below is a new api which is update claims data api 
 
