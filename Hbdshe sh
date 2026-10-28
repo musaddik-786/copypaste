@@ -1,61 +1,10 @@
-INSERT INTO adjuster_findings (
-    claim_id,
-    adjuster_name,
-    cause_of_loss,
-    coverage_confirmed,
-    fraud_risk,
-    fraud_risk_score,
-    repair_vs_replace,
-    adjusted_reserve,
-    final_settlement,
-    findings_date
-)
-VALUES (
-    'CLM-TEST-0001',       -- must match claims.claim_number
-    'John Adjuster',
-    'Water Damage',
-    'Yes',
-    'Low',
-    10,
-    'repair',
-    15000.00,              -- this becomes the reserve amount in GW
-    12000.00,
-    NOW()::TEXT
-)
-ON CONFLICT DO NOTHING;
-
-
-INSERT INTO loss_estimation_outputs (
-    claim_id,
-    ai_estimated_loss,
-    deductible,
-    net_payable,
-    repair_recommended,
-    confidence,
-    created_at
-)
-VALUES (
-    'CLM-TEST-0001',       -- must match claims.claim_number
-    13000.00,              -- estimated total loss
-    1000.00,               -- deductible
-    12000.00,              -- net_payable → this becomes the payment amount in GW
-    'Yes',
-    0.87,
-    NOW()::TEXT
-)
-ON CONFLICT DO NOTHING;
-
-SELECT
-    c.claim_number,
-    c.gw_claim_id,
-    c.loss_type,
-    pd.policy_address,
-    pd.city,
-    pd.state,
-    af.adjusted_reserve,
-    le.net_payable
-FROM claims c
-LEFT JOIN policy_details pd ON pd.policy_number = c.policy_number
-LEFT JOIN adjuster_findings af ON af.claim_id = c.claim_number
-LEFT JOIN loss_estimation_outputs le ON le.claim_id = c.claim_number
-WHERE c.gw_claim_id IS NOT NULL;
+Messages
+claimsagenti… | postgres | schema: session default
+Open in New Tab
+11:01:43 AM
+Started executing query at Line 5
+column "findings_date" is of type timestamp without time zone but expression is of type text
+LINE 161: NOW()::TEXT
+^
+HINT: You will need to rewrite or cast the expression.
+Total execution time: 00:00:00.020
