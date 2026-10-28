@@ -63,6 +63,14 @@ def _cc_post(uri: str, body: dict) -> dict:
     return resp.json()
 
 
+def _cc_get(uri: str, params: Optional[dict] = None) -> dict:
+    url = CC_BASE_URL + uri
+    log.info("GW CC GET %s", url)
+    resp = requests.get(url, headers=HEADERS, params=params, timeout=REQUEST_TIMEOUT)
+    _raise_for_status(resp, "CC GET", uri)
+    return resp.json()
+
+
 def _raise_for_status(resp: requests.Response, method: str, uri: str):
     if not resp.ok:
         log.error(
@@ -185,6 +193,57 @@ def submit_claim(claim_id: str) -> dict:
     """
     body = {"data": {"attributes": {"initialAssignment": {"autoAssign": True}}}}
     return _cc_post(f"/claim/v1/claims/{claim_id}/submit", body)
+
+
+# ── ClaimCenter — Claim Detail ────────────────────────────────────────────────
+
+def get_claim(claim_id: str) -> dict:
+    """GET /claim/v1/claims/{claimId} — returns full claim including insured contact id."""
+    return _cc_get(f"/claim/v1/claims/{claim_id}")
+
+
+# ── ClaimCenter — Risk Units & Coverages ──────────────────────────────────────
+
+def get_location_risk_units(claim_id: str) -> dict:
+    """GET /claim/v1/claims/{claimId}/policy/location-based-risk-units"""
+    return _cc_get(f"/claim/v1/claims/{claim_id}/policy/location-based-risk-units")
+
+
+def get_risk_unit_coverages(claim_id: str, risk_unit_id: str) -> dict:
+    """GET /claim/v1/claims/{claimId}/policy/location-based-risk-units/{riskUnitId}/coverages"""
+    return _cc_get(
+        f"/claim/v1/claims/{claim_id}/policy/location-based-risk-units/{risk_unit_id}/coverages"
+    )
+
+
+# ── ClaimCenter — Exposure ─────────────────────────────────────────────────────
+
+def create_exposure(claim_id: str, payload: dict) -> dict:
+    """POST /claim/v1/claims/{claimId}/exposures"""
+    return _cc_post(f"/claim/v1/claims/{claim_id}/exposures", payload)
+
+
+# ── ClaimCenter — Reserve Set ─────────────────────────────────────────────────
+
+def create_reserve_set(claim_id: str, payload: dict) -> dict:
+    """POST /claim/v1/claims/{claimId}/reserve-sets"""
+    return _cc_post(f"/claim/v1/claims/{claim_id}/reserve-sets", payload)
+
+
+# ── ClaimCenter — Validate Exposure ───────────────────────────────────────────
+
+def validate_exposure(claim_id: str, exposure_id: str, payload: dict) -> dict:
+    """POST /claim/v1/claims/{claimId}/exposures/{exposureId}/validate"""
+    return _cc_post(
+        f"/claim/v1/claims/{claim_id}/exposures/{exposure_id}/validate", payload
+    )
+
+
+# ── ClaimCenter — Check Set (Payment) ─────────────────────────────────────────
+
+def create_check_set(claim_id: str, payload: dict) -> dict:
+    """POST /claim/v1/claims/{claimId}/check-sets"""
+    return _cc_post(f"/claim/v1/claims/{claim_id}/check-sets", payload)
 
 
 # ── ClaimCenter — Update Claim (PATCH) ────────────────────────────────────────

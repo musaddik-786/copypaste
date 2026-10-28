@@ -45,6 +45,7 @@ from policy_coverage_router import router as policy_coverage_router
 from claim_readiness_router import router as claim_readiness_router
 from communication_router import router as communication_router
 from update_claim_data_router import router as update_claim_data_router
+from process_claim_payment_router import router as process_claim_payment_router
 
 import uvicorn
 
@@ -296,6 +297,20 @@ FastApiMCP(
 app.mount("/api/v1/update_claim_data", update_claim_data_app)
 
 
+# ── Sub-app: process_claim_payment ─────────────────────────────────────────────
+
+process_claim_payment_app = _make_cors_app(
+    title="process_claim_payment_agent_mcps",
+    description="MCP tool: full Guidewire financial flow — exposure, reserve, validate, payment.",
+)
+process_claim_payment_app.include_router(process_claim_payment_router)
+FastApiMCP(
+    process_claim_payment_app,
+    include_operations=["process_claim_payment"],
+).mount_http()
+app.mount("/api/v1/process_claim_payment", process_claim_payment_app)
+
+
 # ── Health ────────────────────────────────────────────────────────────────────
 
 @app.on_event("startup")
@@ -319,6 +334,7 @@ def health():
             "claim_readiness",
             "communication",
             "update_claim_data",
+            "process_claim_payment",
         ],
     }
 
