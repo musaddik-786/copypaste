@@ -1,45 +1,34 @@
-INSERT INTO adjuster_findings (
-    claim_id,
-    adjuster_name,
-    cause_of_loss,
-    coverage_confirmed,
-    fraud_risk,
-    fraud_risk_score,
-    repair_vs_replace,
-    adjusted_reserve,
-    final_settlement,
-    findings_date
-)
-VALUES (
-    'CLM-TEST-0001',
-    'John Adjuster',
-    'Water Damage',
-    'Yes',
-    'Low',
-    10,
-    'repair',
-    15000.00,
-    12000.00,
-    NOW()
-)
-ON CONFLICT DO NOTHING;
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP$ python3 main.py 
+/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP/main.py:316: DeprecationWarning: 
+        on_event is deprecated, use lifespan event handlers instead.
 
-INSERT INTO loss_estimation_outputs (
-    claim_id,
-    ai_estimated_loss,
-    deductible,
-    net_payable,
-    repair_recommended,
-    confidence,
-    created_at
-)
-VALUES (
-    'CLM-TEST-0001',
-    13000.00,
-    1000.00,
-    12000.00,
-    'Yes',
-    0.87,
-    NOW()
-)
-ON CONFLICT DO NOTHING;
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+        
+  @app.on_event("startup")
+INFO:     Started server process [20201]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:7720 (Press CTRL+C to quit)
+INFO:     127.0.0.1:54824 - "GET /api/v1/update_claim_data/docs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54824 - "GET /api/v1/update_claim_data/openapi.json HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46460 - "GET /api/v1/process_claim_payment/docs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46460 - "GET /api/v1/process_claim_payment/openapi.json HTTP/1.1" 200 OK
+process_claim_payment error for cc:Szp4-I20Tx0kMzek-OhEm
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP/update_claim_data_mcp/../process_claim_payment_router.py", line 42, in process_claim_payment
+    return handler.process_claim_payment(req.gw_claim_id)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP/update_claim_data_mcp/../process_claim_payment_mcp/handler.py", line 296, in process_claim_payment
+    claim, policy, cm, la = _fetch_data(gw_claim_id)
+                            ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP/update_claim_data_mcp/../process_claim_payment_mcp/handler.py", line 73, in _fetch_data
+    cur.execute(
+  File "/home/JarvisClaims/.local/lib/python3.11/site-packages/psycopg2/extras.py", line 236, in execute
+    return super().execute(query, vars)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UndefinedColumn: column "created_at" does not exist
+LINE 4:                 ORDER BY created_at DESC
+                                 ^
+
+INFO:     127.0.0.1:52164 - "POST /api/v1/process_claim_payment/process_claim_payment HTTP/1.1" 500 Internal Server Error
