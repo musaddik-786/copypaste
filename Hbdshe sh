@@ -1,216 +1,61 @@
-after update claims api this api should run so similarly we need an mcp tool for this, remember we dont need to mapp everything what excel says 
-
-Get https://cc-sandbox-gwcpdev.hexaware.zeta1-andromeda.guidewire.net/rest/claim/v1/claims/{{claimId}}/policy/location-based-risk-units
-
-scripts in postman shows this
-let response = pm.response.json();
-const riskUnitId = response.data[0].attributes.id;
-pm.collectionVariables.set('riskUnitId', riskUnitId);
-
-get https://cc-sandbox-gwcpdev.hexaware.zeta1-andromeda.guidewire.net/rest/claim/v1/claims/{{claimId}}/policy/location-based-risk-units/{{riskUnitId}}/coverages
-let response = pm.response.json();
-const coverageId = response.data.find(
-  item => item?.attributes?.coverageType?.code === 'z26h4fbq18l81e5n478v5v07mj8'
-)?.attributes?.id;
-pm.collectionVariables.set('coverageId', coverageId);
-
-
-https://cc-sandbox-gwcpdev.hexaware.zeta1-andromeda.guidewire.net/rest/claim/v1/claims/{{claimId}}/exposures
-
-request body
-{
-    "data": {
-        "attributes": {
-            "claimant": {
-                "id": "{{insuredId}}"
-            },
-            "claimantType": {
-                "code": "insured"
-            },
-            "contactPermitted": true,
-            "coverage": {
-                "id": "{{coverageId}}"
-            },
-            "coverageSubtype": {
-                "code": "z26h4fbq18l81e5n478v5v07mj8"
-            },
-            "tempLocation_Ext": {
-                "addressLine1": "425 Madison St.",
-                "city": "Chicago",
-                "country": "US",
-                "postalCode": "60606",
-                "state": {
-                    "code": "IL"
-                }
-            },
-            "lossParty": {
-                "code": "insured"
-            },
-            "primaryCoverage": {
-                "code": "z26h4fbq18l81e5n478v5v07mj8"
-            },
-            "tier": {
-                "code": "lossofuse"
-            },
-            "jurisdiction": {
-                "code": "IL" (also this should mapped with the databse table)
-            },
-            "otherStructureIncident": {
-                "refid": "newOtherStructureIncident"
-            }
-        }
-    },
-    "included": {
-        "OtherStructureIncident": [
-            {
-                "attributes": {
-                    "description": "water from heavy rains damaged the other structures.",
-                    "fencesDamaged": true,
-                    "lossParty": {
-                        "code": "insured"
-                    }
-                },
-                "refid": "newOtherStructureIncident",
-                "method": "post",
-                "uri": "/claim/v1/claims/{{claimId}}/other-structure-incidents"
-            }
-        ]
-    }
-}
+INSERT INTO adjuster_findings (
+    claim_id,
+    adjuster_name,
+    cause_of_loss,
+    coverage_confirmed,
+    fraud_risk,
+    fraud_risk_score,
+    repair_vs_replace,
+    adjusted_reserve,
+    final_settlement,
+    findings_date
+)
+VALUES (
+    'CLM-TEST-0001',       -- must match claims.claim_number
+    'John Adjuster',
+    'Water Damage',
+    'Yes',
+    'Low',
+    10,
+    'repair',
+    15000.00,              -- this becomes the reserve amount in GW
+    12000.00,
+    NOW()::TEXT
+)
+ON CONFLICT DO NOTHING;
 
 
-so here for "tempLocation_Ext"
-you already have the mapping in the excel sheet so just map it to that particualr database tbale column
+INSERT INTO loss_estimation_outputs (
+    claim_id,
+    ai_estimated_loss,
+    deductible,
+    net_payable,
+    repair_recommended,
+    confidence,
+    created_at
+)
+VALUES (
+    'CLM-TEST-0001',       -- must match claims.claim_number
+    13000.00,              -- estimated total loss
+    1000.00,               -- deductible
+    12000.00,              -- net_payable → this becomes the payment amount in GW
+    'Yes',
+    0.87,
+    NOW()::TEXT
+)
+ON CONFLICT DO NOTHING;
 
-
-
-https://cc-sandbox-gwcpdev.hexaware.zeta1-andromeda.guidewire.net/rest/claim/v1/claims/{{claimId}}/reserve-sets
-req body
-{
-    "data": {
-        "attributes": {
-            "reservesToWrite": [{
-                    "currency": {
-                        "code": "eur" ( this should remain eur)
-                    },
-                    "lineItems": [{                           
-                            "transactionAmount": {
-                                "amount": "10000", (map it to how excel says)
-                                "currency": "eur" ( this should remain eur)
-                            }
-                        }
-                    ],
-                    "reserveLine": {
-                        "costCategory": {
-                            "code": "property_repair"
-                        },
-                        "costType": {
-                            "code": "claimcost"
-                        },
-                        "exposure": {
-                            "id": "{{exposureId}}"
-                        },
-                        "reservingCurrency": {
-                            "code": "eur"
-                        }
-                    }
-                }
-            ]
-        }
-    }
-}
-
-
-https://cc-sandbox-gwcpdev.hexaware.zeta1-andromeda.guidewire.net/rest/claim/v1/claims/{{claimId}}/exposures/{{exposureId}}/validate
-req body
-{
-  "data": {
-    "attributes": {
-      "validateClaim": true,
-      "validationLevel": {
-        "code": "payment"
-      }
-    }
-  }
-}
-
-
-https://cc-sandbox-gwcpdev.hexaware.zeta1-andromeda.guidewire.net/rest/claim/v1/claims/{{claimId}}/check-sets
-req body
-{
-    "data": {
-        "attributes": {
-            "primaryCheckToWrite": {
-                "paymentsToWrite": [
-                    {
-                        "lineItems": [
-                            {
-                                "lineCategory": {
-                                    "code": "other",
-                                    "name": "Other"
-                                },
-                                "transactionAmount": {
-                                    "amount": "5000", (this should be mapped to the databse as per the excel)
-                                    "currency": "eur" (this should remain eur)
-                                }
-                            }
-                        ],
-                        "paymentType": {
-                            "code": "final"
-                        },
-                        "reserveLine": {
-                            "costCategory": {
-                                "code": "property_repair"
-                            },
-                            "costType": {
-                                "code": "claimcost"
-                            },
-                            "exposure": {
-                                "id": "{{exposureId}}"
-                            },
-                            "reservingCurrency": {
-                                "code": "eur"
-                            }
-                        },
-                        "currency": {
-                            "code": "eur"
-                        }
-                    }
-                ],
-                "mailingAddress": { (all of the below i think we can map to the database table as per excel)
-                    "addressLine1": "425 Madison St.",
-                    "city": "Chicago",
-                    "country": "US",
-                    "postalCode": "60606",
-                    "state": {
-                        "code": "IL"
-                    }
-                },
-                "payTo": "John Albertson",
-                "mailTo": "0000@guidewire.com",
-                "payees": [
-                    {
-                        "contact": {
-                            "id": "{{insuredId}}"
-                        },
-                        "payeeType": {
-                            "code": "insured"
-                        }
-                    }
-                ],
-                "paymentMethod": {
-                    "code": "check"
-                },
-                "reportability": {
-                    "code": "notreportable"
-                },
-                "checkBatching": {
-                    "code": "apdefault"
-                },
-                "deliveryMethod": {
-                    "code": "send"
-                }
-            }
-        }
-    }
-}
+SELECT
+    c.claim_number,
+    c.gw_claim_id,
+    c.loss_type,
+    pd.policy_address,
+    pd.city,
+    pd.state,
+    af.adjusted_reserve,
+    le.net_payable
+FROM claims c
+LEFT JOIN policy_details pd ON pd.policy_number = c.policy_number
+LEFT JOIN adjuster_findings af ON af.claim_id = c.claim_number
+LEFT JOIN loss_estimation_outputs le ON le.claim_id = c.claim_number
+WHERE c.gw_claim_id IS NOT NULL;
