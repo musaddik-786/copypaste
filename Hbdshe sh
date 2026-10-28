@@ -1,4 +1,4 @@
-after update claims api this api should run , remember we dont need to mapp everything what excel says 
+after update claims api this api should run so similarly we need an mcp tool for this, remember we dont need to mapp everything what excel says 
 
 Get https://cc-sandbox-gwcpdev.hexaware.zeta1-andromeda.guidewire.net/rest/claim/v1/claims/{{claimId}}/policy/location-based-risk-units
 
