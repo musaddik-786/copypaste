@@ -1,80 +1,12 @@
-JarvisClaims@JarvisClaims:~/Musaddique$ cd AgentVerse_Claims_motor/
-JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor$ cd Jarvis_claims_agents_v3_copy_new/
-JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new$ cd PolicyholderAgents/
-JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents$ source venv/bin/activate
-(venv) JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents$ cd MCP/
-(venv) JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP$ python3 main.py 
-/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP/main.py:316: DeprecationWarning: 
-        on_event is deprecated, use lifespan event handlers instead.
-
-        Read more about it in the
-        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
-        
-  @app.on_event("startup")
-INFO:     Started server process [200818]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     Uvicorn running on http://0.0.0.0:7720 (Press CTRL+C to quit)
-INFO:     127.0.0.1:56710 - "GET /api/v1/process_claim_payment/docs HTTP/1.1" 200 OK
-INFO:     127.0.0.1:56710 - "GET /api/v1/process_claim_payment/openapi.json HTTP/1.1" 200 OK
-Guidewire CC POST /claim/v1/claims/cc:Szp4-I20Tx0kMzek-OhEm/exposures → HTTP 400: {"status":400,"errorCode":"gw.api.rest.exceptions.BadInputException","userMessage":"Validation issues when attempting to perform action","developerMessage":"Validation issues when attempting to perform action. See the details elements for exact details of the issues.","details":[{"message":"No two exposures on a claim can have the same Claimant/Coverage/Coverage Subtype combination."}]}
-process_claim_payment failed at step for cc:Szp4-I20Tx0kMzek-OhEm
-Traceback (most recent call last):
-  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP/update_claim_data_mcp/../process_claim_payment_mcp/handler.py", line 350, in process_claim_payment
-    exposure_id = _create_exposure(gw_claim_id, insured_id, coverage_id, address)
-                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP/update_claim_data_mcp/../process_claim_payment_mcp/handler.py", line 182, in _create_exposure
-    resp = guidewire_client.create_exposure(gw_claim_id, payload)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP/policy_coverage_mcp/guidewire_client.py", line 223, in create_exposure
-    return _cc_post(f"/claim/v1/claims/{claim_id}/exposures", payload)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP/policy_coverage_mcp/guidewire_client.py", line 62, in _cc_post
-    _raise_for_status(resp, "CC POST", uri)
-  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP/policy_coverage_mcp/guidewire_client.py", line 79, in _raise_for_status
-    resp.raise_for_status()
-  File "/home/JarvisClaims/.local/lib/python3.11/site-packages/requests/models.py", line 1167, in raise_for_status
-    raise HTTPError(http_error_msg, response=self)
-requests.exceptions.HTTPError: 400 Client Error:  for url: https://cc-sandbox-gwcpdev.hexaware.zeta1-andromeda.guidewire.net/rest/claim/v1/claims/cc:Szp4-I20Tx0kMzek-OhEm/exposures
-INFO:     127.0.0.1:34170 - "POST /api/v1/process_claim_payment/process_claim_payment HTTP/1.1" 200 OK
-Guidewire CC POST /claim/v1/claims/cc:Szp4-I20Tx0kMzek-OhEm/exposures → HTTP 400: {"status":400,"errorCode":"gw.api.rest.exceptions.BadInputException","userMessage":"Validation issues when attempting to perform action","developerMessage":"Validation issues when attempting to perform action. See the details elements for exact details of the issues.","details":[{"message":"No two exposures on a claim can have the same Claimant/Coverage/Coverage Subtype combination."}]}
-process_claim_payment failed at step for cc:Szp4-I20Tx0kMzek-OhEm
-Traceback (most recent call last):
-  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP/update_claim_data_mcp/../process_claim_payment_mcp/handler.py", line 350, in process_claim_payment
-    exposure_id = _create_exposure(gw_claim_id, insured_id, coverage_id, address)
-                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP/update_claim_data_mcp/../process_claim_payment_mcp/handler.py", line 182, in _create_exposure
-    resp = guidewire_client.create_exposure(gw_claim_id, payload)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP/policy_coverage_mcp/guidewire_client.py", line 223, in create_exposure
-    return _cc_post(f"/claim/v1/claims/{claim_id}/exposures", payload)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP/policy_coverage_mcp/guidewire_client.py", line 62, in _cc_post
-    _raise_for_status(resp, "CC POST", uri)
-  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP/policy_coverage_mcp/guidewire_client.py", line 79, in _raise_for_status
-    resp.raise_for_status()
-  File "/home/JarvisClaims/.local/lib/python3.11/site-packages/requests/models.py", line 1167, in raise_for_status
-    raise HTTPError(http_error_msg, response=self)
-requests.exceptions.HTTPError: 400 Client Error:  for url: https://cc-sandbox-gwcpdev.hexaware.zeta1-andromeda.guidewire.net/rest/claim/v1/claims/cc:Szp4-I20Tx0kMzek-OhEm/exposures
-INFO:     127.0.0.1:52180 - "POST /api/v1/process_claim_payment/process_claim_payment HTTP/1.1" 200 OK
-INFO:     127.0.0.1:43548 - "POST /api/v1/process_claim_payment/process_claim_payment HTTP/1.1" 200 OK
-Guidewire CC POST /claim/v1/claims/cc:Svz_W1NEXnMp9hC2_2mcM/check-sets → HTTP 400: {"status":400,"errorCode":"gw.api.rest.exceptions.BadInputException","userMessage":"The request parameters or body had issues","developerMessage":"The request parameters or body had issues. See the details elements for exact details of the problems.","details":[{"message":"Schema definition 'ext.claim.v1.claim_combined_ext-1.0#/definitions/Payee' does not define any property named 'payTo'","properties":{"parameterName":"body","parameterLocation":"body","lineNumber":1}}]}
-process_claim_payment failed at step for cc:Svz_W1NEXnMp9hC2_2mcM
-Traceback (most recent call last):
-  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP/update_claim_data_mcp/../process_claim_payment_mcp/handler.py", line 365, in process_claim_payment
-    check_resp = _create_check_set(
-                 ^^^^^^^^^^^^^^^^^^
-  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP/update_claim_data_mcp/../process_claim_payment_mcp/handler.py", line 284, in _create_check_set
-    return guidewire_client.create_check_set(gw_claim_id, payload)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP/policy_coverage_mcp/guidewire_client.py", line 246, in create_check_set
-    return _cc_post(f"/claim/v1/claims/{claim_id}/check-sets", payload)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP/policy_coverage_mcp/guidewire_client.py", line 62, in _cc_post
-    _raise_for_status(resp, "CC POST", uri)
-  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP/policy_coverage_mcp/guidewire_client.py", line 79, in _raise_for_status
-    resp.raise_for_status()
-  File "/home/JarvisClaims/.local/lib/python3.11/site-packages/requests/models.py", line 1167, in raise_for_status
-    raise HTTPError(http_error_msg, response=self)
-requests.exceptions.HTTPError: 400 Client Error:  for url: https://cc-sandbox-gwcpdev.hexaware.zeta1-andromeda.guidewire.net/rest/claim/v1/claims/cc:Svz_W1NEXnMp9hC2_2mcM/check-sets
-INFO:     127.0.0.1:58194 - "POST /api/v1/process_claim_payment/process_claim_payment HTTP/1.1" 200 OK
+                    "payTo": payee_name,
+                    "mailTo": "0000@guidewire.com",
+                    "payees": [
+                        {
+                            "contact": {"id": insured_id},
+                            "payeeType": {"code": "insured"},
+                        }
+                    ],
+                    "paymentMethod": {"code": "check"},
+                    "reportability": {"code": "notreportable"},
+                    "checkBatching": {"code": "apdefault"},
+                    "deliveryMethod": {"code": "send"},
