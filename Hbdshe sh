@@ -1,11 +1,363 @@
+i tested this in postman this is working fine with vandalism
+
+{
+    "data": {
+        "attributes": {
+            "policyNumber": "73-300676",
+            "lossDate": "2026-01-30T00:00:00.000Z",
+            "description": "Insured Injury",
+            "jurisdiction": {
+                "code": "IL"
+            },
+            "lossCause": {
+                "code": "Vandalism"
+            },
+            "lossLocation": {
+                "addressLine1": "425 Madison St.",
+                "city": "Chicago",
+                "country": "US",
+                "postalCode": "60606",
+                "state": {
+                    "code": "IL"
+                }
+            },
+            "reportedByType": {
+                "code": "self"
+            },
+            "howReported": {
+                "code": "phone"
+            },
+            "reporter": {
+                "refid": "reporterId"
+            },
+            "mainContactType": {
+                "code": "self"
+            }
+        }
+    },
+    "included": {
+        "ClaimContact": [
+            {
+                "attributes": {
+                    "contactSubtype": "Person",
+                    "firstName": "Ken",
+                    "lastName": "Darion"
+                },
+                "method": "post",
+                "refid": "reporterId",
+                "uri": "/claim/v1/claims/this/contacts"
+            }
+        ]
+    }
+}
+
+response
+{
+    "data": {
+        "attributes": {
+            "assignmentStatus": {
+                "code": "unassigned",
+                "name": "Unassigned"
+            },
+            "claimNumber": "999-99-994034",
+            "description": "Insured Injury",
+            "flagged": {
+                "code": "neverflagged",
+                "name": "Never flagged"
+            },
+            "howReported": {
+                "code": "phone",
+                "name": "Phone"
+            },
+            "id": "cc:SqUXCCJXCQvkdUVa1uHvh",
+            "insured": {
+                "displayName": "John Albertson",
+                "id": "cc:SZRfhJbbeA0Q0ON3-YE3m",
+                "type": "ClaimContact",
+                "uri": "/claim/v1/claims/cc:SqUXCCJXCQvkdUVa1uHvh/contacts/cc:SZRfhJbbeA0Q0ON3-YE3m"
+            },
+            "jurisdiction": {
+                "code": "IL",
+                "name": "Illinois"
+            },
+            "lobCode": {
+                "code": "HOPLine",
+                "name": "Homeowners Line"
+            },
+            "lossCause": {
+                "code": "vandalism",
+                "name": "Malicious mischief and vandalism"
+            },
+            "lossDate": "2026-01-30T00:00:00.000Z",
+            "lossLocation": {
+                "addressLine1": "425 Madison St.",
+                "city": "Chicago",
+                "country": "US",
+                "displayName": "425 Madison St., Chicago, IL 60606",
+                "id": "cc:SXv146HzGLYnqELo-SlW3",
+                "policyAddress": false,
+                "postalCode": "60606",
+                "state": {
+                    "code": "IL",
+                    "name": "Illinois"
+                }
+            },
+            "lossType": {
+                "code": "PR",
+                "name": "Property"
+            },
+            "mainContactType": {
+                "code": "self",
+                "name": "Self/Insured"
+            },
+            "policyAddresses": [
+                {
+                    "addressLine1": "425 Madison St.",
+                    "city": "Chicago",
+                    "country": "US",
+                    "displayName": "425 Madison St., Chicago, IL 60606",
+                    "id": "cc:Sp3hgkG9FzHfDKTClnRWC",
+                    "policyAddress": true,
+                    "policyLabel": "Policy Location",
+                    "postalCode": "60606",
+                    "state": {
+                        "code": "IL",
+                        "name": "Illinois"
+                    }
+                },
+                {
+                    "addressLine1": "1244 Fair Oaks Ave",
+                    "city": "Pasadena",
+                    "country": "US",
+                    "displayName": "1244 Fair Oaks Ave, Pasadena, CA 91101",
+                    "id": "cc:S2hG2YGeRqOTdqpCNvwzz",
+                    "policyAddress": true,
+                    "policyLabel": "Policy Contact Address (Insured)",
+                    "postalCode": "91101",
+                    "state": {
+                        "code": "CA",
+                        "name": "California"
+                    }
+                }
+            ],
+            "policyNumber": "73-300676",
+            "reportedByType": {
+                "code": "self",
+                "name": "Self/Insured"
+            },
+            "reportedDate": "2026-10-29T10:26:03.154Z",
+            "reporter": {
+                "displayName": "Ken Darion",
+                "id": "cc:SoBaOQgP5s53Ato82jQ5Q",
+                "type": "ClaimContact",
+                "uri": "/claim/v1/claims/cc:SqUXCCJXCQvkdUVa1uHvh/contacts/cc:SoBaOQgP5s53Ato82jQ5Q"
+            },
+            "state": {
+                "code": "draft",
+                "name": "Draft"
+            }
+        },
+        "checksum": "439556d753524d403bd2e0413f8b7f28",
+        "links": {
+            "activity-assignees": {
+                "href": "/claim/v1/claims/cc:SqUXCCJXCQvkdUVa1uHvh/activity-assignees",
+                "methods": [
+                    "get"
+                ]
+            },
+            "activity-patterns": {
+                "href": "/claim/v1/claims/cc:SqUXCCJXCQvkdUVa1uHvh/activity-patterns",
+                "methods": [
+                    "get"
+                ]
+            },
+            "assessment-summaries": {
+                "href": "/claim/v1/claims/cc:SqUXCCJXCQvkdUVa1uHvh/assessment-summaries",
+                "methods": [
+                    "get",
+                    "post"
+                ]
+            },
+            "assign": {
+                "href": "/claim/v1/claims/cc:SqUXCCJXCQvkdUVa1uHvh/assign",
+                "methods": [
+                    "post"
+                ]
+            },
+            "cancel": {
+                "href": "/claim/v1/claims/cc:SqUXCCJXCQvkdUVa1uHvh/cancel",
+                "methods": [
+                    "post"
+                ]
+            },
+            "contact-role-owners": {
+                "href": "/claim/v1/claims/cc:SqUXCCJXCQvkdUVa1uHvh/contact-role-owners",
+                "methods": [
+                    "get"
+                ]
+            },
+            "contacts": {
+                "href": "/claim/v1/claims/cc:SqUXCCJXCQvkdUVa1uHvh/contacts",
+                "methods": [
+                    "get",
+                    "post"
+                ]
+            },
+            "documents": {
+                "href": "/claim/v1/claims/cc:SqUXCCJXCQvkdUVa1uHvh/documents",
+                "methods": [
+                    "get",
+                    "post"
+                ]
+            },
+            "dwelling-incidents": {
+                "href": "/claim/v1/claims/cc:SqUXCCJXCQvkdUVa1uHvh/dwelling-incidents",
+                "methods": [
+                    "get",
+                    "post"
+                ]
+            },
+            "exposures": {
+                "href": "/claim/v1/claims/cc:SqUXCCJXCQvkdUVa1uHvh/exposures",
+                "methods": [
+                    "get",
+                    "post"
+                ]
+            },
+            "financial-calculations": {
+                "href": "/claim/v1/claims/cc:SqUXCCJXCQvkdUVa1uHvh/financial-calculations",
+                "methods": [
+                    "get"
+                ]
+            },
+            "fixed-property-incidents": {
+                "href": "/claim/v1/claims/cc:SqUXCCJXCQvkdUVa1uHvh/fixed-property-incidents",
+                "methods": [
+                    "get",
+                    "post"
+                ]
+            },
+            "general-incidents": {
+                "href": "/claim/v1/claims/cc:SqUXCCJXCQvkdUVa1uHvh/general-incidents",
+                "methods": [
+                    "get",
+                    "post"
+                ]
+            },
+            "history-events": {
+                "href": "/claim/v1/claims/cc:SqUXCCJXCQvkdUVa1uHvh/history-events",
+                "methods": [
+                    "get"
+                ]
+            },
+            "injury-incidents": {
+                "href": "/claim/v1/claims/cc:SqUXCCJXCQvkdUVa1uHvh/injury-incidents",
+                "methods": [
+                    "get",
+                    "post"
+                ]
+            },
+            "intake-interactions": {
+                "href": "/claim/v1/claims/cc:SqUXCCJXCQvkdUVa1uHvh/intake-interactions",
+                "methods": [
+                    "get",
+                    "post"
+                ]
+            },
+            "living-expenses-incidents": {
+                "href": "/claim/v1/claims/cc:SqUXCCJXCQvkdUVa1uHvh/living-expenses-incidents",
+                "methods": [
+                    "get",
+                    "post"
+                ]
+            },
+            "notes": {
+                "href": "/claim/v1/claims/cc:SqUXCCJXCQvkdUVa1uHvh/notes",
+                "methods": [
+                    "get",
+                    "post"
+                ]
+            },
+            "other-structure-incidents": {
+                "href": "/claim/v1/claims/cc:SqUXCCJXCQvkdUVa1uHvh/other-structure-incidents",
+                "methods": [
+                    "get",
+                    "post"
+                ]
+            },
+            "policy": {
+                "href": "/claim/v1/claims/cc:SqUXCCJXCQvkdUVa1uHvh/policy",
+                "methods": [
+                    "get"
+                ]
+            },
+            "property-contents-incidents": {
+                "href": "/claim/v1/claims/cc:SqUXCCJXCQvkdUVa1uHvh/property-contents-incidents",
+                "methods": [
+                    "get",
+                    "post"
+                ]
+            },
+            "property-incidents-ext": {
+                "href": "/claim/v1/claims/cc:SqUXCCJXCQvkdUVa1uHvh/property-incidents-ext",
+                "methods": [
+                    "post"
+                ]
+            },
+            "related-objects": {
+                "href": "/claim/v1/claims/cc:SqUXCCJXCQvkdUVa1uHvh/related-objects",
+                "methods": [
+                    "get"
+                ]
+            },
+            "self": {
+                "href": "/claim/v1/claims/cc:SqUXCCJXCQvkdUVa1uHvh",
+                "methods": [
+                    "get",
+                    "patch"
+                ]
+            },
+            "service-requests": {
+                "href": "/claim/v1/claims/cc:SqUXCCJXCQvkdUVa1uHvh/service-requests",
+                "methods": [
+                    "get",
+                    "post"
+                ]
+            },
+            "submit": {
+                "href": "/claim/v1/claims/cc:SqUXCCJXCQvkdUVa1uHvh/submit",
+                "methods": [
+                    "post"
+                ]
+            },
+            "validate": {
+                "href": "/claim/v1/claims/cc:SqUXCCJXCQvkdUVa1uHvh/validate",
+                "methods": [
+                    "post"
+                ]
+            }
+        }
+    }
+}
+
+and below is chat i did on UI
+Chat With Your Claims Assistant
+The pipe burst happened on 02-06-2026 at about 8:30 PM. No one was home when it happened. The damage was sudden, not gradual. I would classify the damage as high, and the safety concern as medium because of water near some electrical outlets.
+Thank you for detailing the circumstances and severity of the water damage. I've noted the loss occurred on 2026-02-06 at 8:30 PM, was sudden, and no one was home.
+
+1
+Could you please tell me which room or area of your property was affected by the burst pipe?
+kitchen
+Here is a summary of your reported claim:
+
 Field	Recorded Value
-Type of Loss	Fire
-Cause of Loss	fire incident
-Date of Loss	2026-10-29
-Time of Loss	09:00
+Type of Loss	Vandalism
+Cause of Loss	burst pipe
+Date of Loss	2026-02-06
+Time of Loss	20:30
 Area Affected	kitchen
-Occupancy at Time of Loss	Yes
+Occupancy at Time of Loss	No
 Sudden vs Gradual	Sudden
 Severity	High
-Urgency Indicator	urgent
-Emotional Context	stressed
+Urgency Indicator	Medium
+Emotional Context	Not provided
