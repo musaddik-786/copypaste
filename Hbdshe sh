@@ -1,60 +1,24 @@
-(venv) JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP$ python3 main.py 
-/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP/main.py:316: DeprecationWarning: 
-        on_event is deprecated, use lifespan event handlers instead.
-
-        Read more about it in the
-        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
-        
-  @app.on_event("startup")
-INFO:     Started server process [67236]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     Uvicorn running on http://0.0.0.0:7720 (Press CTRL+C to quit)
-
-
-
-
-(venv) JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/AdjusterAgents/MCP$ python3 main.py 
-/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/AdjusterAgents/MCP/main.py:439: DeprecationWarning: 
-        on_event is deprecated, use lifespan event handlers instead.
-
-        Read more about it in the
-        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
-        
-  @app.on_event("startup")
-INFO:     Started server process [67725]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     Uvicorn running on http://0.0.0.0:5800 (Press
-
-(venv) JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator$ python3 server.py 
-INFO:     Started server process [70010]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     Uvicorn running on http://0.0.0.0:7730 (Press CTRL+C to quit)
-
-
-(venv) JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/AdjusterAgents/AdjusterOrchestrator$ python3 server.py 
-INFO:     Started server process [70571]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     Uvicorn running on http://0.0.0.0:8920 (Press CTRL+C to quit)
-
-
-JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/claims-solution-integration$ pnpm exec vite --config vite.config.ts
-7:03:54 AM [vite] (client) Re-optimizing dependencies because vite config has changed
-
-  VITE v7.3.6  ready in 1539 ms
-
-  ➜  Local:   http://localhost:7133/
-  ➜  Network: http://10.0.0.4:7133/
-  ➜  press h + enter to show help
-(node:71459) Warning: SECURITY WARNING: The SSL modes 'prefer', 'require', and 'verify-ca' are treated as aliases for 'verify-full'.
-In the next major version (pg-connection-string v3.0.0 and pg v9.0.0), these modes will adopt standard libpq semantics, which have weaker security guarantees.
-
-To prepare for this change:
-- If you want the current behavior, explicitly use 'sslmode=verify-full'
-- If you want libpq compatibility now, use 'uselibpqcompat=true&sslmode=require'
-
-See https://www.postgresql.org/docs/current/libpq-ssl.html for libpq SSL mode definitions.
-(Use `node --trace-warnings ...` to show where the warning was created)
+INFO:     127.0.0.1:51290 - "PATCH /api/v1/voice_text_intake/api/fnol/update_submission/575 HTTP/1.1" 200 OK
+Guidewire CC POST /claim/v1/claims → HTTP 400: {"status":400,"errorCode":"gw.api.rest.exceptions.BadInputException","userMessage":"The request parameters or body had issues","developerMessage":"The request parameters or body had issues. See the details elements for exact details of the problems.","details":[{"message":"The value 'other' was not a valid element of the 'typekey.LossCause' typelist","properties":{"parameterName":"body","parameterLocation":"body","lineNumber":1}}]}
+submit_fnol error
+Traceback (most recent call last):
+  File "/home/azureuser/Ramakrishna/claims-SLM-Finetune/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP/voice_text_intake_router.py", line 144, in submit_fnol
+    return fnol_handler.submit_fnol(fnol_id, lob=lob)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/azureuser/Ramakrishna/claims-SLM-Finetune/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP/voice_text_intake_mcp/fnol_handler.py", line 4847, in submit_fnol
+    claim_number = _create_claim_in_guidewire(fnol, pd_row, lob=lob)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/azureuser/Ramakrishna/claims-SLM-Finetune/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP/voice_text_intake_mcp/fnol_handler.py", line 4805, in _create_claim_in_guidewire
+    draft = guidewire_client.create_claim(payload)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/azureuser/Ramakrishna/claims-SLM-Finetune/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP/policy_coverage_mcp/guidewire_client.py", line 177, in create_claim
+    return _cc_post("/claim/v1/claims", payload)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/azureuser/Ramakrishna/claims-SLM-Finetune/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP/policy_coverage_mcp/guidewire_client.py", line 62, in _cc_post
+    _raise_for_status(resp, "CC POST", uri)
+  File "/home/azureuser/Ramakrishna/claims-SLM-Finetune/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP/policy_coverage_mcp/guidewire_client.py", line 72, in _raise_for_status
+    resp.raise_for_status()
+  File "/home/azureuser/Ramakrishna/claims-SLM-Finetune/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.12/site-packages/requests/models.py", line 1167, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 400 Client Error:  for url: https://cc-sandbox-gwcpdev.hexaware.zeta1-andromeda.guidewire.net/rest/claim/v1/claims
+INFO:     127.0.0.1:51290 - "POST /api/v1/voice_text_intake/api/fnol/submit/575?lob=Homeowners HTTP/1.1" 500 Internal Server Error
