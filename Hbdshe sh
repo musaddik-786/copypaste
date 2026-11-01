@@ -1,12 +1,1 @@
-                    "payTo": payee_name,
-                    "mailTo": "0000@guidewire.com",
-                    "payees": [
-                        {
-                            "contact": {"id": insured_id},
-                            "payeeType": {"code": "insured"},
-                        }
-                    ],
-                    "paymentMethod": {"code": "check"},
-                    "reportability": {"code": "notreportable"},
-                    "checkBatching": {"code": "apdefault"},
-                    "deliveryMethod": {"code": "send"},
+5+ years of experience in AI/ML, including model development, data preprocessing, EDA, training, and evaluation
