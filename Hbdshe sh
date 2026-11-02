@@ -1,6 +1,24 @@
-(venv) JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents$ venv/bin/pip install -r requirements.txt 
-bash: venv/bin/pip: cannot execute: required file not found
-(venv) JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents$ 
+The venv exists but has no `pip` binary — it's broken. Recreate it:
 
+```bash
+deactivate
+rm -rf venv
+python3 -m venv venv
+source venv/bin/activate
+which pip
+```
 
-but requirements.txt is already there
+Confirm `which pip` shows the venv path, then:
+
+```bash
+pip install -r requirements.txt
+pip install arize-phoenix
+```
+
+If `python3 -m venv venv` itself fails, you may need:
+
+```bash
+sudo apt install python3-venv python3-full
+```
+
+Then retry the venv creation.
