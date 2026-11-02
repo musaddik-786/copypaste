@@ -1,5 +1,3 @@
-# ── Arize Phoenix — Observability & Tracing ───────────────────────────────────
-# Self-hosted (FREE): start Phoenix with `python -m phoenix.server.main serve`
-# then open http://localhost:6006 in your browser.
-PHOENIX_ENDPOINT=http://localhost:6006
-# PHOENIX_API_KEY=          # Leave blank for self-hosted local; set only for Phoenix Cloud
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents$ python3 -m phoenix.server.main serve
+/usr/bin/python3: Error while finding module specification for 'phoenix.server.main' (ModuleNotFoundError: No module named 'phoenix.server')
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents$ 
