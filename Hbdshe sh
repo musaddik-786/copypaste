@@ -1,13 +1,5 @@
-if PHOENIX_ENDPOINT:
-    try:
-        from phoenix.otel import register
-        from openinference.instrumentation.langchain import LangChainInstrumentation
-        _tracer_provider = register(
-            project_name="policyholder-agents",
-            endpoint=PHOENIX_ENDPOINT.rstrip("/") + "/v1/traces",
-            headers={"api_key": PHOENIX_API_KEY} if PHOENIX_API_KEY else {},
-        )
-        LangChainInstrumentation().instrument(tracer_provider=_tracer_provider)
-        logger.info("Phoenix tracing enabled → %s", PHOENIX_ENDPOINT)
-    except Exception as _phoenix_err:
-        logger.warning("Phoenix tracing setup failed: %s", _phoenix_err)
+# ── Arize Phoenix — Observability & Tracing ───────────────────────────────────
+# Self-hosted (FREE): start Phoenix with `python -m phoenix.server.main serve`
+# then open http://localhost:6006 in your browser.
+PHOENIX_ENDPOINT=http://localhost:6006
+# PHOENIX_API_KEY=          # Leave blank for self-hosted local; set only for Phoenix Cloud
