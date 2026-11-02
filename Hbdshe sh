@@ -1,3 +1,3 @@
-(venv) JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents$ python3 -m phoenix.server.main serve
-/usr/bin/python3: Error while finding module specification for 'phoenix.server.main' (ModuleNotFoundError: No module named 'phoenix.server')
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents$ python3 -m phoenix serve
+/usr/bin/python3: No module named phoenix.__main__; 'phoenix' is a package and cannot be directly executed
 (venv) JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents$ 
