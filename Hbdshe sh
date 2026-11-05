@@ -1,41 +1,27 @@
-(venv) JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator$ cd ~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents
+All 9 agents patched. Now update the actual `.env` files — the key one for the Policyholder agents is `PolicyholderAgents/.env`:
 
-python3 - <<'EOF'
-import os
+```bash
+BASE=~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new
 
-OLD_EXPORTER = '''        _exporter = _OTLPSpanExporter(
-            endpoint=PHOENIX_ENDPOINT.rstrip("/") + "/v1/traces",
-            headers={"api_key": PHOENIX_API_KEY} if PHOENIX_API_KEY else {},
-        )
-        _tracer_provider = _TracerProvider()'''
+# Update the two .env files the Policyholder agents read
+sed -i 's|PHOENIX_ENDPOINT=.*|PHOENIX_ENDPOINT=https://app.phoenix.arize.com/s/musalalkot123|' \
+  "$BASE/PolicyholderAgents/.env" \
+  "$BASE/.env"
 
-NEW_EXPORTER = '''        _exporter = _OTLPSpanExporter(
-            endpoint=PHOENIX_ENDPOINT.rstrip("/") + "/v1/traces",
-            headers={"Authorization": f"Bearer {PHOENIX_API_KEY}"} if PHOENIX_API_KEY else {},
-        )
-        from opentelemetry.sdk.resources import Resource as _Resource
-        _tracer_provider = _TracerProvider(
-            resource=_Resource.create({"openinference.project.name": "policyholder-agents"})
-EOFnt("Done.")dated: {path}"):h}")RTER, NEW_EXPORTER)"ClaimStatusAgent",nAgent",
-Updated: VoiceTextIntakeAgent/server.py
-Updated: PolicyCoverageVerificationAgent/server.py
-Updated: FeedbackAgent/server.py
-Updated: DuplicateClaimCheckAgent/server.py
-Updated: DocumentSubmissionAgent/server.py
-Updated: CommunicationAgent/server.py
-Updated: ClaimSegmentationAgent/server.py
-Updated: ClaimReadinessAgent/server.py
-Updated: ClaimStatusAgent/server.py
-Done.
-(venv) JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents$ grep PHOENIX_ENDPOINT ~/.env 2>/dev/null || grep -r PHOENIX_ENDPOINT ~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/ --include=".env" -l
-/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/SIUAgents/.env
-/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/SIUAgents/MCP/.env
-/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/.env
-/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/AdjusterAgents/MCP/.env
-/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/VendorManagerAgents/.env
-/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/VendorManagerAgents/MCP/.env
-/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/.env
-/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP/.env
-(venv) JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents$ sed -i 's|PHOENIX_ENDPOINT=.*|PHOENIX_ENDPOINT=https://app.phoenix.arize.com/s/musalalkot123|' /path/to/your/.env
-sed: can't read /path/to/your/.env: No such file or directory
-(venv) JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents$ 
+# Verify
+grep PHOENIX_ENDPOINT "$BASE/PolicyholderAgents/.env" "$BASE/.env"
+```
+
+Also check that your API key is set in `PolicyholderAgents/.env` (should be your `ak-...` key):
+
+```bash
+grep PHOENIX_API_KEY ~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/.env
+```
+
+If `PHOENIX_API_KEY` is missing or blank, add it:
+
+```bash
+echo 'PHOENIX_API_KEY=ak-YOUR-KEY-HERE' >> ~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/.env
+```
+
+Then restart the agents. The first request after restart should log `Phoenix tracing enabled → https://app.phoenix.arize.com/s/musalalkot123` and spans should appear in your Phoenix Cloud dashboard under the `policyholder-agents` project.
