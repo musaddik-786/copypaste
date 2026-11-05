@@ -1,4 +1,4 @@
-python3 << 'PYEOF'
+JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator$ python3 << 'PYEOF'
 path = "server.py"
 with open(path) as f:
     content = f.read()
@@ -12,22 +12,6 @@ new = """        from opentelemetry import trace as _otel_trace
         from opentelemetry.sdk.trace.export import BatchSpanProcessor as _BatchSpanProcessor
         from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter as _OTLPSpanExporter
         from openinference.instrumentation.langchain import LangChainInstrumentor
-        _exporter = _OTLPSpanExporter(
-            endpoint=PHOENIX_ENDPOINT.rstrip("/") + "/v1/traces",
-            headers={"api_key": PHOENIX_API_KEY} if PHOENIX_API_KEY else {},
-        )
-        _tracer_provider = _TracerProvider()
-        _tracer_provider.add_span_processor(_BatchSpanProcessor(_exporter))
-        _otel_trace.set_tracer_provider(_tracer_provider)
-        LangChainInstrumentor().instrument(tracer_provider=_tracer_provider)"""
-
-result = re.sub(old, new, content)
-if result != content:
-    with open(path, "w") as f:
-        f.write(result)
-    print("Updated!")
-else:
-    print("No match — showing lines 69-84:")
-    for i, l in enumerate(content.splitlines()[68:84], 69):
-        print(f"{i}: {repr(l)}")
-PYEOF
+PYEOF   print(f"{i}: {repr(l)}")t.splitlines()[68:84], 69):_tracer_provider)"""
+Updated!
+JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator$ 
