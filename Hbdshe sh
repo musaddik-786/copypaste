@@ -1,15 +1,20 @@
-if PHOENIX_ENDPOINT:
-    try:
-        from phoenix.otel import register
-        from openinference.instrumentation.langchain import LangChainInstrumentation
-        from openinference.instrumentation.langchain import LangChainInstrumentor
-        _tracer_provider = register(
-            project_name="policyholder-agents",
-            endpoint=PHOENIX_ENDPOINT.rstrip("/") + "/v1/traces",
-            headers={"api_key": PHOENIX_API_KEY} if PHOENIX_API_KEY else {},
-        )
-        LangChainInstrumentation().instrument(tracer_provider=_tracer_provider)
-        LangChainInstrumentor().instrument(tracer_provider=_tracer_provider)
-        logger.info("Phoenix tracing enabled → %s", PHOENIX_ENDPOINT)
-    except Exception as _phoenix_err:
-        logger.warning("Phoenix tracing setup failed: %s", _phoenix_err)
+JarvisClaims@JarvisClaims:~/Musaddique$ python3 -c "
+print('Testing phoenix.otel...')
+try:
+    from phoenix.otel import register
+    print('OK: phoenix.otel importable')
+except Exception as e:
+    print('FAIL:', e)
+
+print('Testing openinference...')
+try:
+    from openinference.instrumentation.langchain import LangChainInstrumentation
+    print('OK: LangChainInstrumentation importable')
+except Exception as e:
+    print('FAIL:', e)
+"
+Testing phoenix.otel...
+OK: phoenix.otel importable
+Testing openinference...
+FAIL: cannot import name 'LangChainInstrumentation' from 'openinference.instrumentation.langchain' (/home/JarvisClaims/.local/lib/python3.11/site-packages/openinference/instrumentation/langchain/__init__.py)
+JarvisClaims@JarvisClaims:~/Musaddique$ 
