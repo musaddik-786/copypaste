@@ -1,4 +1,1 @@
-cd ~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator
-export PHOENIX_ENDPOINT=https://app.phoenix.arize.com
-export PHOENIX_API_KEY=ak-6671de48-54ae-4964-ba28-7ab69dc7eb4b-GstPIV1jqa0n5N1qt7TDSO-UJ6GLg4FZ
-python3 server.py
+grep -n "phoenix\|LangChain\|register" ~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator/server.py | head -20
