@@ -1,66 +1,15 @@
-(venv) JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator$ python3 -c "
-import inspect
-from phoenix.otel import register
-print(inspect.getsource(register))
-" 2>&1 | head -60
-def register(
-    *,
-    endpoint: Optional[str] = None,
-    project_name: Optional[str] = None,
-    batch: bool = False,
-    set_global_tracer_provider: bool = True,
-    headers: Optional[Dict[str, str]] = None,
-    protocol: Optional[Literal["http/protobuf", "grpc"]] = None,
-    verbose: bool = True,
-    auto_instrument: bool = False,
-    api_key: Optional[str] = None,
-    **kwargs: Any,
-) -> _TracerProvider:
-    """
-    Creates an OpenTelemetry TracerProvider for enabling OpenInference tracing.
+python3 -c "
+path = 'server.py'
+with open(path) as f:
+    content = f.read()
 
-    For further configuration, the `phoenix.otel` module provides drop-in replacements for
-    OpenTelemetry TracerProvider, SimpleSpanProcessor, BatchSpanProcessor, HTTPSpanExporter, and
-    GRPCSpanExporter objects with Phoenix-aware defaults. Documentation on how to configure tracing
-    can be found at https://opentelemetry.io/docs/specs/otel/trace/sdk/.
+old = '            headers={\"api_key\": PHOENIX_API_KEY} if PHOENIX_API_KEY else {},'
+new = '            headers={\"Authorization\": f\"Bearer {PHOENIX_API_KEY}\"} if PHOENIX_API_KEY else {},'
 
-    Args:
-        endpoint (str, optional): The collector endpoint to which spans will be exported. If not
-            provided, the `PHOENIX_COLLECTOR_ENDPOINT` environment variable will be used. The
-            export protocol will be inferred from the endpoint.
-        project_name (str, optional): The name of the project to which spans will be associated. If
-            not provided, the `PHOENIX_PROJECT_NAME` environment variable will be used.
-        batch (bool): If True, spans will be processed using a BatchSpanprocessor. If False, spans
-            will be processed one at a time using a SimpleSpanProcessor.
-        set_global_tracer_provider (bool): If False, the TracerProvider will not be set as the
-            global tracer provider. Defaults to True.
-        headers (dict, optional): Optional headers to include in the request to the collector.
-            If not provided, the `PHOENIX_CLIENT_HEADERS` environment variable will be used.
-        protocol (str, optional): The protocol to use for the collector endpoint. Must be either
-            "http/protobuf" or "grpc". If not provided, the protocol will be inferred.
-        verbose (bool): If True, configuration details will be printed to stdout.
-        auto_instrument (bool): If True, automatically instruments all installed OpenInference
-            libraries.
-        api_key (str, optional): API key for authentication. If not provided, the `PHOENIX_API_KEY`
-            environment variable will be used.
-        **kwargs: Additional keyword arguments passed to the TracerProvider constructor.
-
-    Examples:
-        Basic setup with automatic instrumentation::
-
-            from phoenix.otel import register
-            tracer_provider = register(auto_instrument=True)
-
-        Production configuration with batching::
-
-            tracer_provider = register(
-                project_name="my-app",
-                batch=True,
-                auto_instrument=True
-            )
-
-        Production configuration with API key::
-
-            tracer_provider = register(
-                project_name="my-app",
-(venv) JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator$ 
+if old in content:
+    with open(path, 'w') as f:
+        f.write(content.replace(old, new))
+    print('Updated!')
+else:
+    print('No match')
+"
