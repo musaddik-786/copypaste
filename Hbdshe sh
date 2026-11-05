@@ -1,13 +1,8 @@
-The log shows `Phoenix tracing enabled → https://app.phoenix.arize.com` — the `.env` still has the old value without the space path. The `sed` earlier failed because of the placeholder path. Run this exact command:
-
-```bash
-sed -i 's|PHOENIX_ENDPOINT=.*|PHOENIX_ENDPOINT=https://app.phoenix.arize.com/s/musalalkot123|' \
+JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator$ sed -i 's|PHOENIX_ENDPOINT=.*|PHOENIX_ENDPOINT=https://app.phoenix.arize.com/s/musalalkot123|' \
   ~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/.env \
   ~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/.env
 
 grep PHOENIX_ENDPOINT \
   ~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/.env \
   ~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/.env
-```
-
-Both files should now show `PHOENIX_ENDPOINT=https://app.phoenix.arize.com/s/musalalkot123`. Then restart the agent — the startup log should say `Phoenix tracing enabled → https://app.phoenix.arize.com/s/musalalkot123` and the 410s should stop.
+JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator$ 
