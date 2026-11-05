@@ -1,6 +1,1 @@
-(venv) JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents$ deactivate
-rm -rf venv
-python3 -m venv venv
-source venv/bin/activate
-which pip
-/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/bin/pip
+pip install arize-phoenix-otel openinference-instrumentation-langchain
