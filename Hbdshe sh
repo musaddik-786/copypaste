@@ -1,1 +1,15 @@
-grep -n "phoenix\|LangChain\|register" ~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator/server.py | head -20
+JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator$ grep -n "phoenix\|LangChain\|register" ~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator/server.py | head -20
+71:        from phoenix.otel import register
+72:        # from openinference.instrumentation.langchain import LangChainInstrumentor
+73:        from openinference.instrumentation.langchain import LangChainInstrumentor
+74:        _tracer_provider = register(
+79:        # LangChainInstrumentor().instrument(tracer_provider=_tracer_provider)
+80:        LangChainInstrumentor().instrument(tracer_provider=_tracer_provider)
+82:    except Exception as _phoenix_err:
+83:        logger.warning("Phoenix tracing setup failed: %s", _phoenix_err)
+759:    from phoenix.client import Client
+JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator$ 
+
+
+
+
