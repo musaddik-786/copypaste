@@ -1,4 +1,4 @@
-python3 -c "
+JarvisClaims@JarvisClaims:~/Musaddique$ python3 -c "
 print('Testing phoenix.otel...')
 try:
     from phoenix.otel import register
@@ -13,3 +13,8 @@ try:
 except Exception as e:
     print('FAIL:', e)
 "
+Testing phoenix.otel...
+OK: phoenix.otel importable
+Testing openinference...
+FAIL: cannot import name 'LangChainInstrumentation' from 'openinference.instrumentation.langchain' (/home/JarvisClaims/.local/lib/python3.11/site-packages/openinference/instrumentation/langchain/__init__.py)
+JarvisClaims@JarvisClaims:~/Musaddique$ 
