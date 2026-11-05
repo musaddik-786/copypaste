@@ -1,15 +1,33 @@
-JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator$ grep -n "phoenix\|LangChain\|register" ~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator/server.py | head -20
-71:        from phoenix.otel import register
-72:        # from openinference.instrumentation.langchain import LangChainInstrumentor
-73:        from openinference.instrumentation.langchain import LangChainInstrumentor
-74:        _tracer_provider = register(
-79:        # LangChainInstrumentor().instrument(tracer_provider=_tracer_provider)
-80:        LangChainInstrumentor().instrument(tracer_provider=_tracer_provider)
-82:    except Exception as _phoenix_err:
-83:        logger.warning("Phoenix tracing setup failed: %s", _phoenix_err)
-759:    from phoenix.client import Client
-JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator$ 
+python3 << 'PYEOF'
+path = "server.py"
+with open(path) as f:
+    content = f.read()
 
+# Replace the entire block from the register import to the instrument call
+import re
+old = r"        from phoenix\.otel import register\n        # from openinference\.instrumentation\.langchain import LangChainInstrumentor\n        from openinference\.instrumentation\.langchain import LangChainInstrumentor\n        _tracer_provider = register\(\n            project_name=\"policyholder-agents\",\n            endpoint=PHOENIX_ENDPOINT\.rstrip\(\"/\"\) \+ \"/v1/traces\",\n            headers=\{\"api_key\": PHOENIX_API_KEY\} if PHOENIX_API_KEY else \{\},\n        \)\n        # LangChainInstrumentor\(\)\.instrument\(tracer_provider=_tracer_provider\)\n        LangChainInstrumentor\(\)\.instrument\(tracer_provider=_tracer_provider\)"
 
+new = """        from opentelemetry import trace as _otel_trace
+        from opentelemetry.sdk.trace import TracerProvider as _TracerProvider
+        from opentelemetry.sdk.trace.export import BatchSpanProcessor as _BatchSpanProcessor
+        from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter as _OTLPSpanExporter
+        from openinference.instrumentation.langchain import LangChainInstrumentor
+        _exporter = _OTLPSpanExporter(
+            endpoint=PHOENIX_ENDPOINT.rstrip("/") + "/v1/traces",
+            headers={"api_key": PHOENIX_API_KEY} if PHOENIX_API_KEY else {},
+        )
+        _tracer_provider = _TracerProvider()
+        _tracer_provider.add_span_processor(_BatchSpanProcessor(_exporter))
+        _otel_trace.set_tracer_provider(_tracer_provider)
+        LangChainInstrumentor().instrument(tracer_provider=_tracer_provider)"""
 
-
+result = re.sub(old, new, content)
+if result != content:
+    with open(path, "w") as f:
+        f.write(result)
+    print("Updated!")
+else:
+    print("No match — showing lines 69-84:")
+    for i, l in enumerate(content.splitlines()[68:84], 69):
+        print(f"{i}: {repr(l)}")
+PYEOF
