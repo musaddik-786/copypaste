@@ -1,8 +1,9 @@
-JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator$ # Check if it's set in shell env
-echo "Shell env: $PHOENIX_ENDPOINT"
+cat ~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/.env
 
-# Check what's actually in the files
-cat ~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/.env | grep -i phoenix
-cat ~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/.env | grep -i phoenix
-JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator$ grep -r "PHOENIX_ENDPOINT" ~/.bashrc ~/.bash_profile ~/.profile ~/.env 2>/dev/null
-JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator$ 
+# Remove any existing PHOENIX_ENDPOINT line and add the correct one
+grep -v "^PHOENIX_ENDPOINT" ~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/.env > /tmp/env_tmp && \
+echo "PHOENIX_ENDPOINT=https://app.phoenix.arize.com/s/musalalkot123" >> /tmp/env_tmp && \
+mv /tmp/env_tmp ~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/.env
+
+# Verify
+grep PHOENIX ~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/.env
