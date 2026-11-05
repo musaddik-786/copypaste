@@ -1,19 +1,9 @@
-(venv) JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator$ python3 -c "
-import inspect
-from phoenix.otel import register
-src = inspect.getsource(register)
-import re
-urls = re.findall(r'[\"\'](https?://[^\"\' ]+)[\"\'']', src)
-print('URLs in register:', urls)
-"
-  File "<string>", line 6
-    urls = re.findall(r'["\'](https?://[^"\' ]+)["\'']', src)
-                                                     ^
-SyntaxError: closing parenthesis ']' does not match opening parenthesis '('
-(venv) JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator$ python3 -c "
-import phoenix.otel as p
-attrs = [a for a in dir(p) if 'endpoint' in a.lower() or 'collector' in a.lower() or 'default' in a.lower()]
-for a in attrs:
-    print(a, '=', getattr(p, a, None))
-"
-(venv) JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator$ 
+Let me look directly at the phoenix.otel source file:
+
+```bash
+python3 -c "import phoenix.otel; import os; print(os.path.dirname(phoenix.otel.__file__))"
+```
+
+```bash
+grep -r "arize.com\|collector\|endpoint\|v1/traces" $(python3 -c "import phoenix.otel; import os; print(os.path.dirname(phoenix.otel.__file__))") 2>/dev/null | grep -v ".pyc" | head -30
+```
