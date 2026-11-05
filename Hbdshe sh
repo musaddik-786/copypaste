@@ -1,2 +1,5 @@
-cd ~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator
+JarvisClaims@JarvisClaims:~/Musaddique$ cd ~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator
 python3 -c "from dotenv import load_dotenv, find_dotenv; load_dotenv(find_dotenv()); import os; print('ENDPOINT:', os.getenv('PHOENIX_ENDPOINT')); print('KEY:', os.getenv('PHOENIX_API_KEY', 'not set')[:10] + '...' if os.getenv('PHOENIX_API_KEY') else 'not set')"
+ENDPOINT: https://app.phoenix.arize.com
+KEY: ak-6671de4...
+JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator$ 
