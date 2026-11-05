@@ -1,1 +1,3 @@
-find ~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new -name ".env" 2>/dev/null
+export PHOENIX_ENDPOINT=https://app.phoenix.arize.com
+export PHOENIX_API_KEY=your-key
+python3 server.py
