@@ -1,27 +1,2 @@
-No, tracing is still not activating — there's no `Phoenix tracing enabled` line in the FNOLOrchestrator startup. The `.env` either wasn't created on Linux or isn't being found.
-
-First, verify on your Linux server:
-
-```bash
-cat ~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/.env
-```
-
-If it doesn't exist or is missing `PHOENIX_ENDPOINT`, the fastest fix is to just export the variables directly in the same terminal before starting the orchestrator:
-
-```bash
-export PHOENIX_ENDPOINT=https://app.phoenix.arize.com
-export PHOENIX_API_KEY=your-actual-key-here
-```
-
-Then restart:
-```bash
 cd ~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator
-python3 server.py
-```
-
-You should see this line during startup:
-```
-INFO | fnol_orchestrator_agent | Phoenix tracing enabled → https://app.phoenix.arize.com
-```
-
-If you see that, then make a request from the UI and check `app.phoenix.arize.com` → Projects → `policyholder-agents`.
+python3 -c "from dotenv import load_dotenv, find_dotenv; load_dotenv(find_dotenv()); import os; print('ENDPOINT:', os.getenv('PHOENIX_ENDPOINT')); print('KEY:', os.getenv('PHOENIX_API_KEY', 'not set')[:10] + '...' if os.getenv('PHOENIX_API_KEY') else 'not set')"
