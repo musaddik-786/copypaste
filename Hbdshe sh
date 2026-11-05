@@ -1,6 +1,53 @@
-JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator$ python3 server.py
-2026-11-05 11:00:54,360 | WARNING  | fnol_orchestrator_agent | Phoenix tracing setup failed: 'HTTPSpanExporter' object has no attribute '_headers'
-INFO:     Started server process [137304]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     Uvicorn running on http://0.0.0.0:7730 (Press CTRL+C to quit)
+BASE=~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents
+
+for dir in FNOLOrchestrator VoiceTextIntakeAgent PolicyCoverageVerificationAgent FeedbackAgent DuplicateClaimCheckAgent DocumentSubmissionAgent CommunicationAgent ClaimSegmentationAgent ClaimReadinessAgent ClaimStatusAgent; do
+  python3 - "$BASE/$dir/server.py" <<'PYEOF'
+import sys, re
+
+path = sys.argv[1]
+with open(path) as f:
+    content = f.read()
+
+old = '''# ── Arize Phoenix tracing ──────────────────────────────────────────────────────
+if PHOENIX_ENDPOINT:
+    try:
+        from phoenix.otel import register
+        from openinference.instrumentation.langchain import LangChainInstrumentor
+        _tracer_provider = register(
+            project_name="policyholder-agents",
+            endpoint=PHOENIX_ENDPOINT.rstrip("/") + "/v1/traces",
+            headers={"api_key": PHOENIX_API_KEY} if PHOENIX_API_KEY else {},
+        )
+        LangChainInstrumentor().instrument(tracer_provider=_tracer_provider)
+        logger.info("Phoenix tracing enabled → %s", PHOENIX_ENDPOINT)
+    except Exception as _phoenix_err:
+        logger.warning("Phoenix tracing setup failed: %s", _phoenix_err)'''
+
+new = '''# ── Arize Phoenix tracing ──────────────────────────────────────────────────────
+if PHOENIX_ENDPOINT:
+    try:
+        from opentelemetry import trace as _otel_trace
+        from opentelemetry.sdk.trace import TracerProvider as _TracerProvider
+        from opentelemetry.sdk.trace.export import BatchSpanProcessor as _BatchSpanProcessor
+        from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter as _OTLPSpanExporter
+        from openinference.instrumentation.langchain import LangChainInstrumentor
+        _exporter = _OTLPSpanExporter(
+            endpoint=PHOENIX_ENDPOINT.rstrip("/") + "/v1/traces",
+            headers={"api_key": PHOENIX_API_KEY} if PHOENIX_API_KEY else {},
+        )
+        _tracer_provider = _TracerProvider()
+        _tracer_provider.add_span_processor(_BatchSpanProcessor(_exporter))
+        _otel_trace.set_tracer_provider(_tracer_provider)
+        LangChainInstrumentor().instrument(tracer_provider=_tracer_provider)
+        logger.info("Phoenix tracing enabled → %s", PHOENIX_ENDPOINT)
+    except Exception as _phoenix_err:
+        logger.warning("Phoenix tracing setup failed: %s", _phoenix_err)'''
+
+if old in content:
+    with open(path, 'w') as f:
+        f.write(content.replace(old, new))
+    print(f"Updated: {path}")
+else:
+    print(f"No match: {path}")
+PYEOF
+done
