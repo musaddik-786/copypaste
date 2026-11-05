@@ -1,18 +1,163 @@
-python3 << 'PYEOF'
-path = "server.py"
-with open(path) as f:
-    content = f.read()
-
-old = "        _tracer_provider = _TracerProvider()"
-new = """        from opentelemetry.sdk.resources import Resource as _Resource
-        _tracer_provider = _TracerProvider(
-            resource=_Resource.create({"openinference.project.name": "policyholder-agents"})
-        )"""
-
-if old in content:
-    with open(path, "w") as f:
-        f.write(content.replace(old, new))
-    print("Updated!")
-else:
-    print("No match")
-PYEOF
+JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator$ python3 << 'PYEOF'                                                                                                                       cleaJarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator$ python3 << 'PYEOF'                                                                                                                       cleaJarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator$ cd ..
+JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents$ source venv/bin/activate
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents$ cd FNOLOrchestrator/
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator$ python3 server.py 
+2026-11-05 11:20:45,420 | INFO     | fnol_orchestrator_agent | Phoenix tracing enabled → https://app.phoenix.arize.com
+INFO:     Started server process [143287]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:7730 (Press CTRL+C to quit)
+2026-11-05 11:21:23,824 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:23,825 | INFO     | mcp.client.streamable_http | Received session ID: 45258077797c4cb28fd07bfce5fea3fb
+2026-11-05 11:21:23,826 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-05 11:21:23,829 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/document_submission/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:23,829 | INFO     | mcp.client.streamable_http | Received session ID: d113760d87ad496592824e095bb69800
+2026-11-05 11:21:23,830 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-05 11:21:23,837 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/duplicate_check/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:23,837 | INFO     | mcp.client.streamable_http | Received session ID: 086c578041ac49448fbb37f4aaff63e0
+2026-11-05 11:21:23,838 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-05 11:21:23,839 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/claim_readiness/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:23,839 | INFO     | mcp.client.streamable_http | Received session ID: dc060146bc9042b9a83a04ded3f61218
+2026-11-05 11:21:23,840 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-05 11:21:23,841 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 202 Accepted"
+2026-11-05 11:21:23,843 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/policy_coverage/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:23,843 | INFO     | mcp.client.streamable_http | Received session ID: 42cd991ac7d84311b8e41d85fbddfe1b
+2026-11-05 11:21:23,845 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-05 11:21:23,846 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/document_submission/mcp "HTTP/1.1 202 Accepted"
+2026-11-05 11:21:23,848 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/claim_status/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:23,848 | INFO     | mcp.client.streamable_http | Received session ID: e347fb085f48483f8ce2634a049c585e
+2026-11-05 11:21:23,849 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/segmentation/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:23,849 | INFO     | mcp.client.streamable_http | Received session ID: 45006e063a7341c8a346c61f0e109ddf
+2026-11-05 11:21:23,851 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-05 11:21:23,851 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-05 11:21:23,852 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/communication/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:23,852 | INFO     | mcp.client.streamable_http | Received session ID: 41f00fa311884fbeab4d0875f7997112
+2026-11-05 11:21:23,853 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/feedback/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:23,853 | INFO     | mcp.client.streamable_http | Received session ID: 8a714bbbddda4fc78b5e8ba780e8ebe5
+2026-11-05 11:21:23,855 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-05 11:21:23,855 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-05 11:21:23,860 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/duplicate_check/mcp "HTTP/1.1 202 Accepted"
+2026-11-05 11:21:23,865 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/claim_readiness/mcp "HTTP/1.1 202 Accepted"
+2026-11-05 11:21:23,876 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/policy_coverage/mcp "HTTP/1.1 202 Accepted"
+2026-11-05 11:21:23,880 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/claim_status/mcp "HTTP/1.1 202 Accepted"
+2026-11-05 11:21:23,881 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/segmentation/mcp "HTTP/1.1 202 Accepted"
+2026-11-05 11:21:23,882 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/communication/mcp "HTTP/1.1 202 Accepted"
+2026-11-05 11:21:23,883 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/feedback/mcp "HTTP/1.1 202 Accepted"
+2026-11-05 11:21:23,897 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:23,906 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/document_submission/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:24,017 | INFO     | httpx | HTTP Request: DELETE http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:24,021 | INFO     | httpx | HTTP Request: DELETE http://localhost:7720/api/v1/document_submission/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:24,023 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/duplicate_check/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:24,031 | INFO     | httpx | HTTP Request: DELETE http://localhost:7720/api/v1/duplicate_check/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:24,032 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/claim_readiness/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:24,034 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/policy_coverage/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:24,036 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/claim_status/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:24,037 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/segmentation/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:24,038 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/communication/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:24,039 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/feedback/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:24,040 | INFO     | httpx | HTTP Request: DELETE http://localhost:7720/api/v1/claim_readiness/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:24,047 | INFO     | httpx | HTTP Request: DELETE http://localhost:7720/api/v1/policy_coverage/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:24,049 | INFO     | httpx | HTTP Request: GET http://localhost:7720/api/v1/policy_coverage/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:24,050 | INFO     | mcp.client.streamable_http | GET stream disconnected, reconnecting in 1000ms...
+2026-11-05 11:21:24,050 | INFO     | httpx | HTTP Request: DELETE http://localhost:7720/api/v1/claim_status/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:24,051 | INFO     | httpx | HTTP Request: DELETE http://localhost:7720/api/v1/segmentation/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:24,052 | INFO     | httpx | HTTP Request: DELETE http://localhost:7720/api/v1/communication/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:24,053 | INFO     | httpx | HTTP Request: DELETE http://localhost:7720/api/v1/feedback/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:24,061 | INFO     | fnol_orchestrator_agent | Tools loaded from MCP: ['create_fnol_submission', 'get_fnol_submission', 'get_fnol_by_policy', 'update_fnol_submission', 'submit_fnol', 'get_mandatory_fields', 'save_voice_text_extraction', 'get_voice_text_extractions', 'save_ai_inferences', 'log_question_answer', 'get_question_log', 'save_field_attribution', 'extract_fnol_fields_from_text', 'upload_document', 'validate_document', 'get_claim_documents', 'check_duplicate_claim', 'get_recent_claims_for_policy']
+2026-11-05 11:21:24,497 | WARNING  | fnol_orchestrator_agent | Phoenix prompt load failed (Prompts.get() got an unexpected keyword argument 'name') — using fallback prompt
+INFO:     127.0.0.1:39028 - "POST /chat HTTP/1.1" 200 OK
+2026-11-05 11:21:25,325 | INFO     | httpx2 | HTTP Request: POST https://azureclaimsopenai.openai.azure.com/openai/deployments/gpt-4.1-claims/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+2026-11-05 11:21:25,554 | INFO     | fnol_orchestrator_agent | ▶ [VoiceTextIntakeAgent]                    tool → create_fnol_submission
+2026-11-05 11:21:25,635 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:25,635 | INFO     | mcp.client.streamable_http | Received session ID: 7b07a97d4e6341a09e4efa0811c6b5a3
+2026-11-05 11:21:25,636 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-05 11:21:25,641 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 202 Accepted"
+2026-11-05 11:21:25,692 | ERROR    | opentelemetry.exporter.otlp.proto.http.trace_exporter | Failed to export spans batch code: 410, reason: Gone
+2026-11-05 11:21:25,753 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:25,761 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:25,766 | INFO     | httpx | HTTP Request: DELETE http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:25,769 | INFO     | fnol_orchestrator_agent | ✓ [VoiceTextIntakeAgent]                    tool → create_fnol_submission
+2026-11-05 11:21:26,386 | INFO     | httpx2 | HTTP Request: POST https://azureclaimsopenai.openai.azure.com/openai/deployments/gpt-4.1-claims/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+2026-11-05 11:21:26,688 | INFO     | fnol_orchestrator_agent | ▶ [VoiceTextIntakeAgent]                    tool → update_fnol_submission
+2026-11-05 11:21:26,751 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:26,752 | INFO     | mcp.client.streamable_http | Received session ID: 45b8bc6a178447f4ae703ac5317fb0a1
+2026-11-05 11:21:26,752 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-05 11:21:26,757 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 202 Accepted"
+2026-11-05 11:21:26,973 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:26,979 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:26,986 | INFO     | httpx | HTTP Request: DELETE http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:26,989 | INFO     | fnol_orchestrator_agent | ✓ [VoiceTextIntakeAgent]                    tool → update_fnol_submission
+2026-11-05 11:21:27,731 | INFO     | httpx2 | HTTP Request: POST https://azureclaimsopenai.openai.azure.com/openai/deployments/gpt-4.1-claims/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+2026-11-05 11:21:28,183 | INFO     | fnol_orchestrator_agent | ▶ [VoiceTextIntakeAgent]                    tool → save_field_attribution
+2026-11-05 11:21:28,250 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:28,251 | INFO     | mcp.client.streamable_http | Received session ID: f72e4b6fb7b64259b8513d55a36fbb06
+2026-11-05 11:21:28,251 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-05 11:21:28,256 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 202 Accepted"
+2026-11-05 11:21:28,336 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:28,343 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:28,349 | INFO     | httpx | HTTP Request: DELETE http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:28,352 | INFO     | fnol_orchestrator_agent | ✓ [VoiceTextIntakeAgent]                    tool → save_field_attribution
+2026-11-05 11:21:28,807 | INFO     | httpx2 | HTTP Request: POST https://azureclaimsopenai.openai.azure.com/openai/deployments/gpt-4.1-claims/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+2026-11-05 11:21:29,122 | INFO     | fnol_orchestrator_agent | ▶ [VoiceTextIntakeAgent]                    tool → extract_fnol_fields_from_text
+2026-11-05 11:21:29,186 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:29,186 | INFO     | mcp.client.streamable_http | Received session ID: 234413c9b6754f08892a401e92a48e09
+2026-11-05 11:21:29,186 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-05 11:21:29,190 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 202 Accepted"
+2026-11-05 11:21:30,734 | ERROR    | opentelemetry.exporter.otlp.proto.http.trace_exporter | Failed to export spans batch code: 410, reason: Gone
+2026-11-05 11:21:32,544 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:32,550 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:32,556 | INFO     | httpx | HTTP Request: DELETE http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:32,558 | INFO     | fnol_orchestrator_agent | ✓ [VoiceTextIntakeAgent]                    tool → extract_fnol_fields_from_text
+2026-11-05 11:21:33,051 | INFO     | httpx2 | HTTP Request: POST https://azureclaimsopenai.openai.azure.com/openai/deployments/gpt-4.1-claims/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+2026-11-05 11:21:33,721 | INFO     | fnol_orchestrator_agent | ▶ [VoiceTextIntakeAgent]                    tool → update_fnol_submission
+2026-11-05 11:21:33,787 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:33,787 | INFO     | mcp.client.streamable_http | Received session ID: 9e8cf87a921141f2b567d0f138273729
+2026-11-05 11:21:33,789 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-05 11:21:33,797 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 202 Accepted"
+2026-11-05 11:21:34,017 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:34,024 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:34,029 | INFO     | httpx | HTTP Request: DELETE http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:34,032 | INFO     | fnol_orchestrator_agent | ✓ [VoiceTextIntakeAgent]                    tool → update_fnol_submission
+2026-11-05 11:21:34,677 | INFO     | httpx2 | HTTP Request: POST https://azureclaimsopenai.openai.azure.com/openai/deployments/gpt-4.1-claims/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+2026-11-05 11:21:35,565 | INFO     | fnol_orchestrator_agent | ▶ [VoiceTextIntakeAgent]                    tool → save_field_attribution
+2026-11-05 11:21:35,629 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:35,630 | INFO     | mcp.client.streamable_http | Received session ID: b5e8ca65b67f4b3c9babd50a505d3137
+2026-11-05 11:21:35,630 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-05 11:21:35,634 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 202 Accepted"
+2026-11-05 11:21:35,722 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:35,728 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:35,733 | INFO     | httpx | HTTP Request: DELETE http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:35,736 | INFO     | fnol_orchestrator_agent | ✓ [VoiceTextIntakeAgent]                    tool → save_field_attribution
+2026-11-05 11:21:35,980 | ERROR    | opentelemetry.exporter.otlp.proto.http.trace_exporter | Failed to export spans batch code: 410, reason: Gone
+2026-11-05 11:21:36,326 | INFO     | httpx2 | HTTP Request: POST https://azureclaimsopenai.openai.azure.com/openai/deployments/gpt-4.1-claims/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+2026-11-05 11:21:36,486 | INFO     | fnol_orchestrator_agent | ▶ [VoiceTextIntakeAgent]                    tool → get_mandatory_fields
+2026-11-05 11:21:36,550 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:36,550 | INFO     | mcp.client.streamable_http | Received session ID: 27af7e9918d24f3687ec0d4b5d73ec4f
+2026-11-05 11:21:36,551 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-05 11:21:36,556 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 202 Accepted"
+2026-11-05 11:21:36,678 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:36,687 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:36,694 | INFO     | httpx | HTTP Request: DELETE http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:36,697 | INFO     | fnol_orchestrator_agent | ✓ [VoiceTextIntakeAgent]                    tool → get_mandatory_fields
+2026-11-05 11:21:37,504 | INFO     | httpx2 | HTTP Request: POST https://azureclaimsopenai.openai.azure.com/openai/deployments/gpt-4.1-claims/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+2026-11-05 11:21:37,644 | INFO     | fnol_orchestrator_agent | ▶ [VoiceTextIntakeAgent]                    tool → get_fnol_submission
+2026-11-05 11:21:37,705 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:37,705 | INFO     | mcp.client.streamable_http | Received session ID: d07876ec04a745b3a2060b30dff189d8
+2026-11-05 11:21:37,706 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-05 11:21:37,709 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 202 Accepted"
+2026-11-05 11:21:37,777 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:37,789 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:37,795 | INFO     | httpx | HTTP Request: DELETE http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:37,798 | INFO     | fnol_orchestrator_agent | ✓ [VoiceTextIntakeAgent]                    tool → get_fnol_submission
+2026-11-05 11:21:38,512 | INFO     | httpx2 | HTTP Request: POST https://azureclaimsopenai.openai.azure.com/openai/deployments/gpt-4.1-claims/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+2026-11-05 11:21:38,759 | INFO     | fnol_orchestrator_agent | ▶ [VoiceTextIntakeAgent]                    tool → log_question_answer
+2026-11-05 11:21:38,821 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:38,821 | INFO     | mcp.client.streamable_http | Received session ID: 22e0d46866ed4f82b7e7e64e1fa1e0cf
+2026-11-05 11:21:38,822 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-05 11:21:38,826 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 202 Accepted"
+2026-11-05 11:21:38,900 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:38,906 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:38,911 | INFO     | httpx | HTTP Request: DELETE http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 11:21:38,914 | INFO     | fnol_orchestrator_agent | ✓ [VoiceTextIntakeAgent]                    tool → log_question_answer
+2026-11-05 11:21:39,612 | INFO     | httpx2 | HTTP Request: POST https://azureclaimsopenai.openai.azure.com/openai/deployments/gpt-4.1-claims/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+2026-11-05 11:21:41,033 | ERROR    | opentelemetry.exporter.otlp.proto.http.trace_exporter | Failed to export spans batch code: 410, reason: Gone
