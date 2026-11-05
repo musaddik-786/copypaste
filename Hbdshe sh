@@ -1,4 +1,4 @@
-export PHOENIX_API_KEY=ak-YOUR-ACTUAL-KEY-HERE
+export PHOENIX_API_KEY=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJqdGkiOiJBcGlLZXk6MSJ9.WoYu7lREjQzjawodAj83nyUHjxIOWoWJkJzQ3z8ANfw
 python3 server.py
 
-echo "PHOENIX_API_KEY=ak-YOUR-ACTUAL-KEY-HERE" >> ~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/.env
+echo "PHOENIX_API_KEY=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJqdGkiOiJBcGlLZXk6MSJ9.WoYu7lREjQzjawodAj83nyUHjxIOWoWJkJzQ3z8ANfw" >> ~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/.env
