@@ -1,28 +1,48 @@
-JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator$ BASE=~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents
+cat > /tmp/fix_tracing.py << 'EOF'
+import os, sys
 
-for dir in FNOLOrchestrator VoiceTextIntakeAgent PolicyCoverageVerificationAgent FeedbackAgent DuplicateClaimCheckAgent DocumentSubmissionAgent CommunicationAgent ClaimSegmentationAgent ClaimReadinessAgent ClaimStatusAgent; do
-  python3 - "$BASE/$dir/server.py" <<'PYEOF'
-import sys, re
+dirs = [
+    "FNOLOrchestrator", "VoiceTextIntakeAgent", "PolicyCoverageVerificationAgent",
+    "FeedbackAgent", "DuplicateClaimCheckAgent", "DocumentSubmissionAgent",
+    "CommunicationAgent", "ClaimSegmentationAgent", "ClaimReadinessAgent", "ClaimStatusAgent"
+]
 
-path = sys.argv[1]
-with open(path) as f:
-    content = f.read()
+base = os.path.expanduser(
+    "~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents"
+)
 
-old = '''# ── Arize Phoenix tracing ──────────────────────────────────────────────────────
-if PHOENIX_ENDPOINT:
-    try:
-        from phoenix.otel import register
-        from openinference.instrumentation.langchain import LangChainInstrumentor
-        _tracer_provider = register(
+old_imports = "        from phoenix.otel import register\n        from openinference.instrumentation.langchain import LangChainInstrumentor"
+new_imports = """        from opentelemetry import trace as _otel_trace
+        from opentelemetry.sdk.trace import TracerProvider as _TracerProvider
+        from opentelemetry.sdk.trace.export import BatchSpanProcessor as _BatchSpanProcessor
+        from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter as _OTLPSpanExporter
+        from openinference.instrumentation.langchain import LangChainInstrumentor"""
+
+old_register = """        _tracer_provider = register(
             project_name="policyholder-agents",
-doneFrint(f"No match: {path}")e(old, new))tup failed: %s", _phoenix_err)''')entornExporter as _OTLPSpanExporter
-No match: /home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator/server.py
-No match: /home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/VoiceTextIntakeAgent/server.py
-No match: /home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/PolicyCoverageVerificationAgent/server.py
-No match: /home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FeedbackAgent/server.py
-No match: /home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/DuplicateClaimCheckAgent/server.py
-No match: /home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/DocumentSubmissionAgent/server.py
-No match: /home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/CommunicationAgent/server.py
-No match: /home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/ClaimSegmentationAgent/server.py
-No match: /home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/ClaimReadinessAgent/server.py
-No match: /home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/ClaimStatusAgent/server.py
+            endpoint=PHOENIX_ENDPOINT.rstrip("/") + "/v1/traces",
+            headers={"api_key": PHOENIX_API_KEY} if PHOENIX_API_KEY else {},
+        )
+        LangChainInstrumentor().instrument(tracer_provider=_tracer_provider)"""
+new_register = """        _exporter = _OTLPSpanExporter(
+            endpoint=PHOENIX_ENDPOINT.rstrip("/") + "/v1/traces",
+            headers={"api_key": PHOENIX_API_KEY} if PHOENIX_API_KEY else {},
+        )
+        _tracer_provider = _TracerProvider()
+        _tracer_provider.add_span_processor(_BatchSpanProcessor(_exporter))
+        _otel_trace.set_tracer_provider(_tracer_provider)
+        LangChainInstrumentor().instrument(tracer_provider=_tracer_provider)"""
+
+for d in dirs:
+    path = os.path.join(base, d, "server.py")
+    with open(path) as f:
+        content = f.read()
+    new = content.replace(old_imports, new_imports).replace(old_register, new_register)
+    if new != content:
+        with open(path, "w") as f:
+            f.write(new)
+        print(f"Updated: {d}")
+    else:
+        print(f"No change needed: {d}")
+EOF
+python3 /tmp/fix_tracing.py
