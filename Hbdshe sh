@@ -1,20 +1,20 @@
-JarvisClaims@JarvisClaims:~/Musaddique$ python3 -c "
-print('Testing phoenix.otel...')
-try:
-    from phoenix.otel import register
-    print('OK: phoenix.otel importable')
-except Exception as e:
-    print('FAIL:', e)
+That test is using the OLD class name `LangChainInstrumentation` — that's expected to fail. You need to also apply the fix on Linux:
 
-print('Testing openinference...')
-try:
-    from openinference.instrumentation.langchain import LangChainInstrumentation
-    print('OK: LangChainInstrumentation importable')
-except Exception as e:
-    print('FAIL:', e)
-"
-Testing phoenix.otel...
-OK: phoenix.otel importable
-Testing openinference...
-FAIL: cannot import name 'LangChainInstrumentation' from 'openinference.instrumentation.langchain' (/home/JarvisClaims/.local/lib/python3.11/site-packages/openinference/instrumentation/langchain/__init__.py)
-JarvisClaims@JarvisClaims:~/Musaddique$ 
+```bash
+sed -i 's/LangChainInstrumentation/LangChainInstrumentor/g' \
+  ~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator/server.py
+```
+
+Verify the fix was applied:
+```bash
+grep -n "LangChain" ~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator/server.py
+```
+
+It should show `LangChainInstrumentor` (not `LangChainInstrumentation`). Then restart:
+
+```bash
+cd ~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator
+export PHOENIX_ENDPOINT=https://app.phoenix.arize.com
+export PHOENIX_API_KEY=ak-6671de48-54ae-4964-ba28-7ab69dc7eb4b-GstPIV1jqa0n5N1qt7TDSO-UJ6GLg4FZ
+python3 server.py
+```
