@@ -1,20 +1,6 @@
-That test is using the OLD class name `LangChainInstrumentation` — that's expected to fail. You need to also apply the fix on Linux:
-
-```bash
-sed -i 's/LangChainInstrumentation/LangChainInstrumentor/g' \
-  ~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator/server.py
-```
-
-Verify the fix was applied:
-```bash
-grep -n "LangChain" ~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator/server.py
-```
-
-It should show `LangChainInstrumentor` (not `LangChainInstrumentation`). Then restart:
-
-```bash
-cd ~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator
-export PHOENIX_ENDPOINT=https://app.phoenix.arize.com
-export PHOENIX_API_KEY=ak-6671de48-54ae-4964-ba28-7ab69dc7eb4b-GstPIV1jqa0n5N1qt7TDSO-UJ6GLg4FZ
-python3 server.py
-```
+JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator$ python3 server.py
+2026-11-05 11:00:54,360 | WARNING  | fnol_orchestrator_agent | Phoenix tracing setup failed: 'HTTPSpanExporter' object has no attribute '_headers'
+INFO:     Started server process [137304]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:7730 (Press CTRL+C to quit)
