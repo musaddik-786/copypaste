@@ -1,17 +1,4 @@
-JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator$ grep -n "phoenix\|PHOENIX\|tracing\|opentelemetry" ~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/VoiceTextIntakeAgent/server.py | head -20
-48:PHOENIX_API_KEY = os.getenv("PHOENIX_API_KEY", "")
-49:PHOENIX_ENDPOINT = os.getenv("PHOENIX_ENDPOINT", "")
-55:if PHOENIX_ENDPOINT:
-57:        from opentelemetry import trace as _otel_trace
-58:        from opentelemetry.sdk.trace import TracerProvider as _TracerProvider
-59:        from opentelemetry.sdk.trace.export import BatchSpanProcessor as _BatchSpanProcessor
-60:        from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter as _OTLPSpanExporter
-63:            endpoint=PHOENIX_ENDPOINT.rstrip("/") + "/v1/traces",
-64:            headers={"api_key": PHOENIX_API_KEY} if PHOENIX_API_KEY else {},
-70:        logger.info("Phoenix tracing enabled → %s", PHOENIX_ENDPOINT)
-71:    except Exception as _phoenix_err:
-72:        logger.warning("Phoenix tracing setup failed: %s", _phoenix_err)
-227:    if not PHOENIX_ENDPOINT:
-229:    from phoenix.client import Client
-230:    client = Client(base_url=PHOENIX_ENDPOINT, api_key=PHOENIX_API_KEY)
-JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator$ 
+cd ~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator
+export PHOENIX_ENDPOINT=https://app.phoenix.arize.com
+export PHOENIX_API_KEY=ak-6671de48-54ae-4964-ba28-7ab69dc7eb4b-GstPIV1jqa0n5N1qt7TDSO-UJ6GLg4FZ
+python3 server.py
