@@ -1,1 +1,744 @@
-pip install arize-phoenix-otel openinference-instrumentation-langchain
+JarvisClaims@JarvisClaims:~/Musaddique$ cd AgentVerse_Claims_motor/
+JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor$ cd Jarvis_claims_agents_v3_copy_new/
+JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new$ cd PolicyholderAgents/
+JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents$ source venv/bin/activate
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents$ pip install arize-phoenix-otel openinference-instrumentation-langchain
+Requirement already satisfied: arize-phoenix-otel in ./venv/lib/python3.11/site-packages (0.17.2)
+Requirement already satisfied: openinference-instrumentation-langchain in ./venv/lib/python3.11/site-packages (0.1.81)
+Requirement already satisfied: openinference-instrumentation>=0.1.38 in ./venv/lib/python3.11/site-packages (from arize-phoenix-otel) (0.1.75)
+Requirement already satisfied: openinference-semantic-conventions>=0.1.17 in ./venv/lib/python3.11/site-packages (from arize-phoenix-otel) (0.1.43)
+Requirement already satisfied: opentelemetry-exporter-otlp in ./venv/lib/python3.11/site-packages (from arize-phoenix-otel) (1.45.2)
+Requirement already satisfied: opentelemetry-exporter-otlp-proto-http>=1.45.0 in ./venv/lib/python3.11/site-packages (from arize-phoenix-otel) (1.45.2)
+Requirement already satisfied: opentelemetry-proto>=1.12.0 in ./venv/lib/python3.11/site-packages (from arize-phoenix-otel) (1.45.2)
+Requirement already satisfied: opentelemetry-sdk in ./venv/lib/python3.11/site-packages (from arize-phoenix-otel) (1.45.2)
+Requirement already satisfied: opentelemetry-semantic-conventions in ./venv/lib/python3.11/site-packages (from arize-phoenix-otel) (0.66b2)
+Requirement already satisfied: typing-extensions<5,>=4.5 in ./venv/lib/python3.11/site-packages (from arize-phoenix-otel) (4.16.0)
+Requirement already satisfied: wrapt in ./venv/lib/python3.11/site-packages (from arize-phoenix-otel) (2.5.2)
+Requirement already satisfied: opentelemetry-api in ./venv/lib/python3.11/site-packages (from openinference-instrumentation-langchain) (1.45.2)
+Requirement already satisfied: opentelemetry-instrumentation in ./venv/lib/python3.11/site-packages (from openinference-instrumentation-langchain) (0.66b2)
+Requirement already satisfied: googleapis-common-protos~=1.52 in ./venv/lib/python3.11/site-packages (from opentelemetry-exporter-otlp-proto-http>=1.45.0->arize-phoenix-otel) (1.76.0)
+Requirement already satisfied: opentelemetry-exporter-http-transport[requests]==0.66b2 in ./venv/lib/python3.11/site-packages (from opentelemetry-exporter-otlp-proto-http>=1.45.0->arize-phoenix-otel) (0.66b2)
+Requirement already satisfied: opentelemetry-exporter-otlp-common==0.66b2 in ./venv/lib/python3.11/site-packages (from opentelemetry-exporter-otlp-proto-http>=1.45.0->arize-phoenix-otel) (0.66b2)
+Requirement already satisfied: opentelemetry-exporter-otlp-proto-common==1.45.2 in ./venv/lib/python3.11/site-packages (from opentelemetry-exporter-otlp-proto-http>=1.45.0->arize-phoenix-otel) (1.45.2)
+Requirement already satisfied: requests~=2.7 in ./venv/lib/python3.11/site-packages (from opentelemetry-exporter-otlp-proto-http>=1.45.0->arize-phoenix-otel) (2.34.2)
+Requirement already satisfied: protobuf<8.0,>=5.0 in ./venv/lib/python3.11/site-packages (from opentelemetry-proto>=1.12.0->arize-phoenix-otel) (7.36.2)
+Requirement already satisfied: opentelemetry-exporter-otlp-proto-grpc==1.45.2 in ./venv/lib/python3.11/site-packages (from opentelemetry-exporter-otlp->arize-phoenix-otel) (1.45.2)
+Requirement already satisfied: grpcio<2.0.0,>=1.63.2 in ./venv/lib/python3.11/site-packages (from opentelemetry-exporter-otlp-proto-grpc==1.45.2->opentelemetry-exporter-otlp->arize-phoenix-otel) (1.85.1)
+Requirement already satisfied: packaging>=18.0 in ./venv/lib/python3.11/site-packages (from opentelemetry-instrumentation->openinference-instrumentation-langchain) (26.3)
+Requirement already satisfied: charset_normalizer<4,>=2 in ./venv/lib/python3.11/site-packages (from requests~=2.7->opentelemetry-exporter-otlp-proto-http>=1.45.0->arize-phoenix-otel) (3.5.2)
+Requirement already satisfied: idna<4,>=2.5 in ./venv/lib/python3.11/site-packages (from requests~=2.7->opentelemetry-exporter-otlp-proto-http>=1.45.0->arize-phoenix-otel) (3.20)
+Requirement already satisfied: urllib3<3,>=1.26 in ./venv/lib/python3.11/site-packages (from requests~=2.7->opentelemetry-exporter-otlp-proto-http>=1.45.0->arize-phoenix-otel) (2.8.0)
+Requirement already satisfied: certifi>=2023.5.7 in ./venv/lib/python3.11/site-packages (from requests~=2.7->opentelemetry-exporter-otlp-proto-http>=1.45.0->arize-phoenix-otel) (2026.10.23)
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_mo
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP$ python3 main.py 
+/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP/main.py:316: DeprecationWarning: 
+        on_event is deprecated, use lifespan event handlers instead.
+
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+        
+  @app.on_event("startup")
+INFO:     Started server process [95197]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:7720 (Press CTRL+C to quit)
+INFO:     127.0.0.1:48526 - "OPTIONS /api/v1/policy_coverage/gw_search_policy HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48526 - "POST /api/v1/policy_coverage/gw_search_policy HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48526 - "OPTIONS /api/v1/policy_coverage/save_policy_details HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48526 - "POST /api/v1/policy_coverage/save_policy_details HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47940 - "OPTIONS /api/v1/voice_text_intake/api/voice/classify_lob HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47940 - "POST /api/v1/voice_text_intake/api/voice/classify_lob HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:47950 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47962 - "POST /api/v1/document_submission/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47964 - "POST /api/v1/duplicate_check/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47966 - "POST /api/v1/policy_coverage/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47950 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:47970 - "POST /api/v1/claim_readiness/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47986 - "POST /api/v1/claim_status/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47962 - "POST /api/v1/document_submission/mcp HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:47998 - "POST /api/v1/segmentation/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48004 - "POST /api/v1/communication/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48006 - "POST /api/v1/feedback/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47964 - "POST /api/v1/duplicate_check/mcp HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:47966 - "POST /api/v1/policy_coverage/mcp HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:47970 - "POST /api/v1/claim_readiness/mcp HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:47986 - "POST /api/v1/claim_status/mcp HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:47998 - "POST /api/v1/segmentation/mcp HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:48004 - "POST /api/v1/communication/mcp HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:48006 - "POST /api/v1/feedback/mcp HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:48042 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48066 - "POST /api/v1/document_submission/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48042 - "DELETE /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+Error in standalone SSE writer
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/mcp/server/streamable_http.py", line 765, in standalone_sse_writer
+    async for event_message in standalone_stream_reader:
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/abc/_streams.py", line 37, in __anext__
+    return await self.receive()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/streams/memory.py", line 141, in receive
+    raise ClosedResourceError from None
+anyio.ClosedResourceError
+INFO:     127.0.0.1:48066 - "DELETE /api/v1/document_submission/mcp HTTP/1.1" 200 OK
+ERROR:mcp.server.streamable_http:Error in standalone SSE writer
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/mcp/server/streamable_http.py", line 765, in standalone_sse_writer
+    async for event_message in standalone_stream_reader:
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/abc/_streams.py", line 37, in __anext__
+    return await self.receive()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/streams/memory.py", line 141, in receive
+    raise ClosedResourceError from None
+anyio.ClosedResourceError
+INFO:     127.0.0.1:48116 - "POST /api/v1/duplicate_check/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48138 - "POST /api/v1/policy_coverage/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48150 - "POST /api/v1/claim_readiness/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48158 - "POST /api/v1/claim_status/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48168 - "POST /api/v1/segmentation/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48180 - "POST /api/v1/communication/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48192 - "POST /api/v1/feedback/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48138 - "DELETE /api/v1/policy_coverage/mcp HTTP/1.1" 200 OK
+ERROR:mcp.server.streamable_http:Error in standalone SSE writer
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/mcp/server/streamable_http.py", line 765, in standalone_sse_writer
+    async for event_message in standalone_stream_reader:
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/abc/_streams.py", line 37, in __anext__
+    return await self.receive()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/streams/memory.py", line 141, in receive
+    raise ClosedResourceError from None
+anyio.ClosedResourceError
+INFO:     127.0.0.1:48116 - "DELETE /api/v1/duplicate_check/mcp HTTP/1.1" 200 OK
+ERROR:mcp.server.streamable_http:Error in standalone SSE writer
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/mcp/server/streamable_http.py", line 765, in standalone_sse_writer
+    async for event_message in standalone_stream_reader:
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/abc/_streams.py", line 37, in __anext__
+    return await self.receive()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/streams/memory.py", line 141, in receive
+    raise ClosedResourceError from None
+anyio.ClosedResourceError
+INFO:     127.0.0.1:48150 - "DELETE /api/v1/claim_readiness/mcp HTTP/1.1" 200 OK
+ERROR:mcp.server.streamable_http:Error in standalone SSE writer
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/mcp/server/streamable_http.py", line 765, in standalone_sse_writer
+    async for event_message in standalone_stream_reader:
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/abc/_streams.py", line 37, in __anext__
+    return await self.receive()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/streams/memory.py", line 141, in receive
+    raise ClosedResourceError from None
+anyio.ClosedResourceError
+INFO:     127.0.0.1:48158 - "DELETE /api/v1/claim_status/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48074 - "GET /api/v1/policy_coverage/mcp HTTP/1.1" 200 OK
+ERROR:mcp.server.streamable_http:Error in standalone SSE writer
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/mcp/server/streamable_http.py", line 765, in standalone_sse_writer
+    async for event_message in standalone_stream_reader:
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/abc/_streams.py", line 37, in __anext__
+    return await self.receive()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/streams/memory.py", line 141, in receive
+    raise ClosedResourceError from None
+anyio.ClosedResourceError
+INFO:     127.0.0.1:48168 - "DELETE /api/v1/segmentation/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48180 - "DELETE /api/v1/communication/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48054 - "GET /api/v1/duplicate_check/mcp HTTP/1.1" 200 OK
+ERROR:mcp.server.streamable_http:Error in standalone SSE writer
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/mcp/server/streamable_http.py", line 765, in standalone_sse_writer
+    async for event_message in standalone_stream_reader:
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/abc/_streams.py", line 37, in __anext__
+    return await self.receive()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/streams/memory.py", line 141, in receive
+    raise ClosedResourceError from None
+anyio.ClosedResourceError
+ERROR:mcp.server.streamable_http:Error in standalone SSE writer
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/mcp/server/streamable_http.py", line 765, in standalone_sse_writer
+    async for event_message in standalone_stream_reader:
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/abc/_streams.py", line 37, in __anext__
+    return await self.receive()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/streams/memory.py", line 141, in receive
+    raise ClosedResourceError from None
+anyio.ClosedResourceError
+INFO:     127.0.0.1:48192 - "DELETE /api/v1/feedback/mcp HTTP/1.1" 200 OK
+ERROR:mcp.server.streamable_http:Error in standalone SSE writer
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/mcp/server/streamable_http.py", line 765, in standalone_sse_writer
+    async for event_message in standalone_stream_reader:
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/abc/_streams.py", line 37, in __anext__
+    return await self.receive()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/streams/memory.py", line 141, in receive
+    raise ClosedResourceError from None
+anyio.ClosedResourceError
+INFO:     127.0.0.1:48088 - "GET /api/v1/claim_readiness/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48202 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48202 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:48210 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48210 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:48210 - "DELETE /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+ERROR:mcp.server.streamable_http:Error in standalone SSE writer
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/mcp/server/streamable_http.py", line 765, in standalone_sse_writer
+    async for event_message in standalone_stream_reader:
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/abc/_streams.py", line 37, in __anext__
+    return await self.receive()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/streams/memory.py", line 141, in receive
+    raise ClosedResourceError from None
+anyio.ClosedResourceError
+INFO:     127.0.0.1:46776 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46776 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:46804 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46804 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46804 - "DELETE /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+ERROR:mcp.server.streamable_http:Error in standalone SSE writer
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/mcp/server/streamable_http.py", line 765, in standalone_sse_writer
+    async for event_message in standalone_stream_reader:
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/abc/_streams.py", line 37, in __anext__
+    return await self.receive()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/streams/memory.py", line 141, in receive
+    raise ClosedResourceError from None
+anyio.ClosedResourceError
+INFO:     127.0.0.1:46790 - "GET /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46820 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46820 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:46838 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46838 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46838 - "DELETE /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+ERROR:mcp.server.streamable_http:Error in standalone SSE writer
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/mcp/server/streamable_http.py", line 765, in standalone_sse_writer
+    async for event_message in standalone_stream_reader:
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/abc/_streams.py", line 37, in __anext__
+    return await self.receive()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/streams/memory.py", line 141, in receive
+    raise ClosedResourceError from None
+anyio.ClosedResourceError
+INFO:     127.0.0.1:46846 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46846 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:46866 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46866 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46866 - "DELETE /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+ERROR:mcp.server.streamable_http:Error in standalone SSE writer
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/mcp/server/streamable_http.py", line 765, in standalone_sse_writer
+    async for event_message in standalone_stream_reader:
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/abc/_streams.py", line 37, in __anext__
+    return await self.receive()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/streams/memory.py", line 141, in receive
+    raise ClosedResourceError from None
+anyio.ClosedResourceError
+INFO:     127.0.0.1:46868 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46868 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:46890 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46890 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:46890 - "DELETE /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+ERROR:mcp.server.streamable_http:Error in standalone SSE writer
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/mcp/server/streamable_http.py", line 765, in standalone_sse_writer
+    async for event_message in standalone_stream_reader:
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/abc/_streams.py", line 37, in __anext__
+    return await self.receive()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/streams/memory.py", line 141, in receive
+    raise ClosedResourceError from None
+anyio.ClosedResourceError
+INFO:     127.0.0.1:46882 - "GET /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47090 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47090 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:47110 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47110 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47110 - "DELETE /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+ERROR:mcp.server.streamable_http:Error in standalone SSE writer
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/mcp/server/streamable_http.py", line 765, in standalone_sse_writer
+    async for event_message in standalone_stream_reader:
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/abc/_streams.py", line 37, in __anext__
+    return await self.receive()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/streams/memory.py", line 141, in receive
+    raise ClosedResourceError from None
+anyio.ClosedResourceError
+INFO:     127.0.0.1:47112 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47112 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:47132 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47132 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47132 - "DELETE /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+ERROR:mcp.server.streamable_http:Error in standalone SSE writer
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/mcp/server/streamable_http.py", line 765, in standalone_sse_writer
+    async for event_message in standalone_stream_reader:
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/abc/_streams.py", line 37, in __anext__
+    return await self.receive()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/streams/memory.py", line 141, in receive
+    raise ClosedResourceError from None
+anyio.ClosedResourceError
+INFO:     127.0.0.1:47138 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47138 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:47166 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47166 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47166 - "DELETE /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+ERROR:mcp.server.streamable_http:Error in standalone SSE writer
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/mcp/server/streamable_http.py", line 765, in standalone_sse_writer
+    async for event_message in standalone_stream_reader:
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/abc/_streams.py", line 37, in __anext__
+    return await self.receive()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/streams/memory.py", line 141, in receive
+    raise ClosedResourceError from None
+anyio.ClosedResourceError
+INFO:     127.0.0.1:47178 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47178 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:47192 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47192 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47192 - "DELETE /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+ERROR:mcp.server.streamable_http:Error in standalone SSE writer
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/mcp/server/streamable_http.py", line 765, in standalone_sse_writer
+    async for event_message in standalone_stream_reader:
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/abc/_streams.py", line 37, in __anext__
+    return await self.receive()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/streams/memory.py", line 141, in receive
+    raise ClosedResourceError from None
+anyio.ClosedResourceError
+INFO:     127.0.0.1:42586 - "POST /api/v1/segmentation/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42590 - "POST /api/v1/claim_readiness/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42616 - "POST /api/v1/document_submission/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42572 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42576 - "POST /api/v1/policy_coverage/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42598 - "POST /api/v1/claim_status/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42600 - "POST /api/v1/duplicate_check/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42622 - "POST /api/v1/communication/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42636 - "POST /api/v1/feedback/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42586 - "POST /api/v1/segmentation/mcp HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:42590 - "POST /api/v1/claim_readiness/mcp HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:42616 - "POST /api/v1/document_submission/mcp HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:42572 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:42576 - "POST /api/v1/policy_coverage/mcp HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:42598 - "POST /api/v1/claim_status/mcp HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:42600 - "POST /api/v1/duplicate_check/mcp HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:42622 - "POST /api/v1/communication/mcp HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:42636 - "POST /api/v1/feedback/mcp HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:42728 - "POST /api/v1/segmentation/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42736 - "POST /api/v1/document_submission/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42742 - "POST /api/v1/claim_readiness/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42750 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42764 - "POST /api/v1/policy_coverage/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42774 - "POST /api/v1/duplicate_check/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42786 - "POST /api/v1/claim_status/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42800 - "POST /api/v1/communication/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42806 - "POST /api/v1/feedback/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42728 - "DELETE /api/v1/segmentation/mcp HTTP/1.1" 200 OK
+ERROR:mcp.server.streamable_http:Error in standalone SSE writer
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/mcp/server/streamable_http.py", line 765, in standalone_sse_writer
+    async for event_message in standalone_stream_reader:
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/abc/_streams.py", line 37, in __anext__
+    return await self.receive()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/streams/memory.py", line 141, in receive
+    raise ClosedResourceError from None
+anyio.ClosedResourceError
+INFO:     127.0.0.1:42642 - "GET /api/v1/segmentation/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42736 - "DELETE /api/v1/document_submission/mcp HTTP/1.1" 200 OK
+ERROR:mcp.server.streamable_http:Error in standalone SSE writer
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/mcp/server/streamable_http.py", line 765, in standalone_sse_writer
+    async for event_message in standalone_stream_reader:
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/abc/_streams.py", line 37, in __anext__
+    return await self.receive()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/streams/memory.py", line 141, in receive
+    raise ClosedResourceError from None
+anyio.ClosedResourceError
+INFO:     127.0.0.1:42672 - "GET /api/v1/document_submission/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42742 - "DELETE /api/v1/claim_readiness/mcp HTTP/1.1" 200 OK
+ERROR:mcp.server.streamable_http:Error in standalone SSE writer
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/mcp/server/streamable_http.py", line 765, in standalone_sse_writer
+    async for event_message in standalone_stream_reader:
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/abc/_streams.py", line 37, in __anext__
+    return await self.receive()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/streams/memory.py", line 141, in receive
+    raise ClosedResourceError from None
+anyio.ClosedResourceError
+INFO:     127.0.0.1:42658 - "GET /api/v1/claim_readiness/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42750 - "DELETE /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+ERROR:mcp.server.streamable_http:Error in standalone SSE writer
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/mcp/server/streamable_http.py", line 765, in standalone_sse_writer
+    async for event_message in standalone_stream_reader:
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/abc/_streams.py", line 37, in __anext__
+    return await self.receive()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/streams/memory.py", line 141, in receive
+    raise ClosedResourceError from None
+anyio.ClosedResourceError
+INFO:     127.0.0.1:42682 - "GET /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42764 - "DELETE /api/v1/policy_coverage/mcp HTTP/1.1" 200 OK
+ERROR:mcp.server.streamable_http:Error in standalone SSE writer
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/mcp/server/streamable_http.py", line 765, in standalone_sse_writer
+    async for event_message in standalone_stream_reader:
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/abc/_streams.py", line 37, in __anext__
+    return await self.receive()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/streams/memory.py", line 141, in receive
+    raise ClosedResourceError from None
+anyio.ClosedResourceError
+INFO:     127.0.0.1:42774 - "DELETE /api/v1/duplicate_check/mcp HTTP/1.1" 200 OK
+ERROR:mcp.server.streamable_http:Error in standalone SSE writer
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/mcp/server/streamable_http.py", line 765, in standalone_sse_writer
+    async for event_message in standalone_stream_reader:
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/abc/_streams.py", line 37, in __anext__
+    return await self.receive()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/streams/memory.py", line 141, in receive
+    raise ClosedResourceError from None
+anyio.ClosedResourceError
+INFO:     127.0.0.1:42786 - "DELETE /api/v1/claim_status/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42800 - "DELETE /api/v1/communication/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42806 - "DELETE /api/v1/feedback/mcp HTTP/1.1" 200 OK
+ERROR:mcp.server.streamable_http:Error in standalone SSE writer
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/mcp/server/streamable_http.py", line 765, in standalone_sse_writer
+    async for event_message in standalone_stream_reader:
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/abc/_streams.py", line 37, in __anext__
+    return await self.receive()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/streams/memory.py", line 141, in receive
+    raise ClosedResourceError from None
+anyio.ClosedResourceError
+ERROR:mcp.server.streamable_http:Error in standalone SSE writer
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/mcp/server/streamable_http.py", line 765, in standalone_sse_writer
+    async for event_message in standalone_stream_reader:
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/abc/_streams.py", line 37, in __anext__
+    return await self.receive()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/streams/memory.py", line 141, in receive
+    raise ClosedResourceError from None
+anyio.ClosedResourceError
+ERROR:mcp.server.streamable_http:Error in standalone SSE writer
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/mcp/server/streamable_http.py", line 765, in standalone_sse_writer
+    async for event_message in standalone_stream_reader:
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/abc/_streams.py", line 37, in __anext__
+    return await self.receive()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/streams/memory.py", line 141, in receive
+    raise ClosedResourceError from None
+anyio.ClosedResourceError
+INFO:     127.0.0.1:42694 - "GET /api/v1/policy_coverage/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42708 - "GET /api/v1/duplicate_check/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42706 - "GET /api/v1/claim_status/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42712 - "GET /api/v1/communication/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42722 - "GET /api/v1/feedback/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42818 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42818 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:42836 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42836 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42836 - "DELETE /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+ERROR:mcp.server.streamable_http:Error in standalone SSE writer
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/mcp/server/streamable_http.py", line 765, in standalone_sse_writer
+    async for event_message in standalone_stream_reader:
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/abc/_streams.py", line 37, in __anext__
+    return await self.receive()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/streams/memory.py", line 141, in receive
+    raise ClosedResourceError from None
+anyio.ClosedResourceError
+INFO:     127.0.0.1:42834 - "GET /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42850 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42850 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:42880 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42880 - "POST /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:42880 - "DELETE /api/v1/voice_text_intake/mcp HTTP/1.1" 200 OK
+ERROR:mcp.server.streamable_http:Error in standalone SSE writer
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/mcp/server/streamable_http.py", line 765, in standalone_sse_writer
+    async for event_message in standalone_stream_reader:
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/abc/_streams.py", line 37, in __anext__
+    return await self.receive()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/lib/python3.11/site-packages/anyio/streams/memory.py", line 141, in receive
+    raise ClosedResourceError from None
+anyio.ClosedResourceError
+WARNING:document_submission_mcp.handler:No claim found for claim_number=73-400676
+INFO:     127.0.0.1:50394 - "POST /api/v1/document_submission/api/documents/upload HTTP/1.1" 200 OK
+^CINFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [95197]
+^C
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP$ 
+
+
+
+
+JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP$ cd ..
+JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents$ source venv/bin/activate
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents$ cd FNOLOrchestrator/
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator$ python3 server.py 
+INFO:     Started server process [95274]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:7730 (Press CTRL+C to quit)
+INFO:     127.0.0.1:34044 - "OPTIONS /chat HTTP/1.1" 200 OK
+2026-11-05 09:22:12,050 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:12,050 | INFO     | mcp.client.streamable_http | Received session ID: 2f65751820214295a66b05a712b21c0e
+2026-11-05 09:22:12,052 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-05 09:22:12,054 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/document_submission/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:12,054 | INFO     | mcp.client.streamable_http | Received session ID: 2c64a277b3df43d5bc7f40bb21c2c37d
+2026-11-05 09:22:12,055 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-05 09:22:12,061 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/duplicate_check/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:12,061 | INFO     | mcp.client.streamable_http | Received session ID: baca98e7a4384ed1adfd2a6cf372c635
+2026-11-05 09:22:12,062 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-05 09:22:12,063 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/policy_coverage/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:12,063 | INFO     | mcp.client.streamable_http | Received session ID: 9e7bad3ae8554a6a82edcfead580808f
+2026-11-05 09:22:12,064 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-05 09:22:12,065 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 202 Accepted"
+2026-11-05 09:22:12,065 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/claim_readiness/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:12,065 | INFO     | mcp.client.streamable_http | Received session ID: e4eec8d72a3042dba9ca0b00e87a93fc
+2026-11-05 09:22:12,066 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-05 09:22:12,067 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/claim_status/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:12,067 | INFO     | mcp.client.streamable_http | Received session ID: 63e3ea1bc81749e09e5ccbd0a5f63368
+2026-11-05 09:22:12,068 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-05 09:22:12,069 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/document_submission/mcp "HTTP/1.1 202 Accepted"
+2026-11-05 09:22:12,071 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/segmentation/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:12,071 | INFO     | mcp.client.streamable_http | Received session ID: 6967b415e624441f991cc2b93b4332a2
+2026-11-05 09:22:12,072 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/communication/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:12,072 | INFO     | mcp.client.streamable_http | Received session ID: 377a2c4fd86045e09ebfce3e6cb02488
+2026-11-05 09:22:12,074 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-05 09:22:12,074 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-05 09:22:12,075 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/feedback/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:12,075 | INFO     | mcp.client.streamable_http | Received session ID: 2a75c46f6fdd4b85b495946e900aff42
+2026-11-05 09:22:12,078 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-05 09:22:12,088 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/duplicate_check/mcp "HTTP/1.1 202 Accepted"
+2026-11-05 09:22:12,094 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/policy_coverage/mcp "HTTP/1.1 202 Accepted"
+2026-11-05 09:22:12,099 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/claim_readiness/mcp "HTTP/1.1 202 Accepted"
+2026-11-05 09:22:12,103 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/claim_status/mcp "HTTP/1.1 202 Accepted"
+2026-11-05 09:22:12,107 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/segmentation/mcp "HTTP/1.1 202 Accepted"
+2026-11-05 09:22:12,107 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/communication/mcp "HTTP/1.1 202 Accepted"
+2026-11-05 09:22:12,111 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/feedback/mcp "HTTP/1.1 202 Accepted"
+2026-11-05 09:22:12,123 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:12,132 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/document_submission/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:12,240 | INFO     | httpx | HTTP Request: DELETE http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:12,260 | INFO     | httpx | HTTP Request: DELETE http://localhost:7720/api/v1/document_submission/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:12,271 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/duplicate_check/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:12,272 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/policy_coverage/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:12,274 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/claim_readiness/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:12,275 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/claim_status/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:12,276 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/segmentation/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:12,277 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/communication/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:12,279 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/feedback/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:12,286 | INFO     | httpx | HTTP Request: DELETE http://localhost:7720/api/v1/policy_coverage/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:12,288 | INFO     | httpx | HTTP Request: DELETE http://localhost:7720/api/v1/duplicate_check/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:12,290 | INFO     | httpx | HTTP Request: DELETE http://localhost:7720/api/v1/claim_readiness/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:12,292 | INFO     | httpx | HTTP Request: DELETE http://localhost:7720/api/v1/claim_status/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:12,294 | INFO     | httpx | HTTP Request: DELETE http://localhost:7720/api/v1/segmentation/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:12,296 | INFO     | httpx | HTTP Request: DELETE http://localhost:7720/api/v1/communication/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:12,298 | INFO     | httpx | HTTP Request: DELETE http://localhost:7720/api/v1/feedback/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:12,302 | INFO     | fnol_orchestrator_agent | Tools loaded from MCP: ['create_fnol_submission', 'get_fnol_submission', 'get_fnol_by_policy', 'update_fnol_submission', 'submit_fnol', 'get_mandatory_fields', 'save_voice_text_extraction', 'get_voice_text_extractions', 'save_ai_inferences', 'log_question_answer', 'get_question_log', 'save_field_attribution', 'extract_fnol_fields_from_text', 'upload_document', 'validate_document', 'get_claim_documents', 'check_duplicate_claim', 'get_recent_claims_for_policy']
+2026-11-05 09:22:13,224 | WARNING  | fnol_orchestrator_agent | Phoenix prompt load failed (Prompts.get() got an unexpected keyword argument 'name') — using fallback prompt
+INFO:     127.0.0.1:34044 - "POST /chat HTTP/1.1" 200 OK
+2026-11-05 09:22:14,436 | INFO     | httpx2 | HTTP Request: POST https://azureclaimsopenai.openai.azure.com/openai/deployments/gpt-4.1-claims/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+2026-11-05 09:22:14,661 | INFO     | fnol_orchestrator_agent | ▶ [VoiceTextIntakeAgent]                    tool → create_fnol_submission
+2026-11-05 09:22:14,725 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:14,726 | INFO     | mcp.client.streamable_http | Received session ID: ea305ed38f594f928e54547a35fea071
+2026-11-05 09:22:14,726 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-05 09:22:14,730 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 202 Accepted"
+2026-11-05 09:22:14,842 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:14,848 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:14,854 | INFO     | httpx | HTTP Request: DELETE http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:14,855 | INFO     | fnol_orchestrator_agent | ✓ [VoiceTextIntakeAgent]                    tool → create_fnol_submission
+2026-11-05 09:22:15,507 | INFO     | httpx2 | HTTP Request: POST https://azureclaimsopenai.openai.azure.com/openai/deployments/gpt-4.1-claims/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+2026-11-05 09:22:15,769 | INFO     | fnol_orchestrator_agent | ▶ [VoiceTextIntakeAgent]                    tool → update_fnol_submission
+2026-11-05 09:22:15,832 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:15,832 | INFO     | mcp.client.streamable_http | Received session ID: 2d4bcd58f0c540dc91013a0c62d35a87
+2026-11-05 09:22:15,832 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-05 09:22:15,836 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 202 Accepted"
+2026-11-05 09:22:16,091 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:16,097 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:16,103 | INFO     | httpx | HTTP Request: DELETE http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:16,105 | INFO     | fnol_orchestrator_agent | ✓ [VoiceTextIntakeAgent]                    tool → update_fnol_submission
+2026-11-05 09:22:16,619 | INFO     | httpx2 | HTTP Request: POST https://azureclaimsopenai.openai.azure.com/openai/deployments/gpt-4.1-claims/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+2026-11-05 09:22:16,983 | INFO     | fnol_orchestrator_agent | ▶ [VoiceTextIntakeAgent]                    tool → save_field_attribution
+2026-11-05 09:22:17,052 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:17,052 | INFO     | mcp.client.streamable_http | Received session ID: 95b1b998112d43e28a99672a86682657
+2026-11-05 09:22:17,053 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-05 09:22:17,057 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 202 Accepted"
+2026-11-05 09:22:17,144 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:17,151 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:17,157 | INFO     | httpx | HTTP Request: DELETE http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:17,158 | INFO     | fnol_orchestrator_agent | ✓ [VoiceTextIntakeAgent]                    tool → save_field_attribution
+2026-11-05 09:22:17,773 | INFO     | httpx2 | HTTP Request: POST https://azureclaimsopenai.openai.azure.com/openai/deployments/gpt-4.1-claims/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+2026-11-05 09:22:18,073 | INFO     | fnol_orchestrator_agent | ▶ [VoiceTextIntakeAgent]                    tool → extract_fnol_fields_from_text
+2026-11-05 09:22:18,142 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:18,142 | INFO     | mcp.client.streamable_http | Received session ID: bfba55377a25436396eb2ffa287a2b7c
+2026-11-05 09:22:18,143 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-05 09:22:18,147 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 202 Accepted"
+2026-11-05 09:22:22,518 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:22,525 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:22,530 | INFO     | httpx | HTTP Request: DELETE http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:22,531 | INFO     | fnol_orchestrator_agent | ✓ [VoiceTextIntakeAgent]                    tool → extract_fnol_fields_from_text
+2026-11-05 09:22:23,180 | INFO     | httpx2 | HTTP Request: POST https://azureclaimsopenai.openai.azure.com/openai/deployments/gpt-4.1-claims/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+2026-11-05 09:22:24,285 | INFO     | fnol_orchestrator_agent | ▶ [VoiceTextIntakeAgent]                    tool → update_fnol_submission
+2026-11-05 09:22:24,351 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:24,352 | INFO     | mcp.client.streamable_http | Received session ID: 2233f2d225604bf0aa036c9b68a10e69
+2026-11-05 09:22:24,352 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-05 09:22:24,356 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 202 Accepted"
+2026-11-05 09:22:24,577 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:24,583 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:24,590 | INFO     | httpx | HTTP Request: DELETE http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:24,592 | INFO     | fnol_orchestrator_agent | ✓ [VoiceTextIntakeAgent]                    tool → update_fnol_submission
+2026-11-05 09:22:25,416 | INFO     | httpx2 | HTTP Request: POST https://azureclaimsopenai.openai.azure.com/openai/deployments/gpt-4.1-claims/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+2026-11-05 09:22:26,055 | INFO     | fnol_orchestrator_agent | ▶ [VoiceTextIntakeAgent]                    tool → save_field_attribution
+2026-11-05 09:22:26,121 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:26,122 | INFO     | mcp.client.streamable_http | Received session ID: 953c9ea0a6ba4147bb5525bd03e29014
+2026-11-05 09:22:26,123 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-05 09:22:26,128 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 202 Accepted"
+2026-11-05 09:22:26,226 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:26,234 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:26,239 | INFO     | httpx | HTTP Request: DELETE http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:26,241 | INFO     | fnol_orchestrator_agent | ✓ [VoiceTextIntakeAgent]                    tool → save_field_attribution
+2026-11-05 09:22:27,086 | INFO     | httpx2 | HTTP Request: POST https://azureclaimsopenai.openai.azure.com/openai/deployments/gpt-4.1-claims/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+2026-11-05 09:22:27,208 | INFO     | fnol_orchestrator_agent | ▶ [VoiceTextIntakeAgent]                    tool → get_mandatory_fields
+2026-11-05 09:22:27,274 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:27,275 | INFO     | mcp.client.streamable_http | Received session ID: b361726c0c984f8c9fffc138426b0f95
+2026-11-05 09:22:27,275 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-05 09:22:27,279 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 202 Accepted"
+2026-11-05 09:22:27,405 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:27,412 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:27,418 | INFO     | httpx | HTTP Request: DELETE http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:27,420 | INFO     | fnol_orchestrator_agent | ✓ [VoiceTextIntakeAgent]                    tool → get_mandatory_fields
+2026-11-05 09:22:28,154 | INFO     | httpx2 | HTTP Request: POST https://azureclaimsopenai.openai.azure.com/openai/deployments/gpt-4.1-claims/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+2026-11-05 09:22:28,318 | INFO     | fnol_orchestrator_agent | ▶ [VoiceTextIntakeAgent]                    tool → get_fnol_submission
+2026-11-05 09:22:28,387 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:28,387 | INFO     | mcp.client.streamable_http | Received session ID: 4a986d37eeff4664b7f099147e7b7144
+2026-11-05 09:22:28,388 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-05 09:22:28,392 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 202 Accepted"
+2026-11-05 09:22:28,456 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:28,463 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:28,468 | INFO     | httpx | HTTP Request: DELETE http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:28,470 | INFO     | fnol_orchestrator_agent | ✓ [VoiceTextIntakeAgent]                    tool → get_fnol_submission
+2026-11-05 09:22:29,189 | INFO     | httpx2 | HTTP Request: POST https://azureclaimsopenai.openai.azure.com/openai/deployments/gpt-4.1-claims/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+2026-11-05 09:22:29,416 | INFO     | fnol_orchestrator_agent | ▶ [VoiceTextIntakeAgent]                    tool → log_question_answer
+2026-11-05 09:22:29,484 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:29,485 | INFO     | mcp.client.streamable_http | Received session ID: c5881ea7b1e34af089c71387bbfb94e1
+2026-11-05 09:22:29,485 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-05 09:22:29,491 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 202 Accepted"
+2026-11-05 09:22:29,570 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:29,578 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:29,584 | INFO     | httpx | HTTP Request: DELETE http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:29,585 | INFO     | fnol_orchestrator_agent | ✓ [VoiceTextIntakeAgent]                    tool → log_question_answer
+2026-11-05 09:22:30,135 | INFO     | httpx2 | HTTP Request: POST https://azureclaimsopenai.openai.azure.com/openai/deployments/gpt-4.1-claims/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+2026-11-05 09:22:46,054 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/segmentation/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:46,054 | INFO     | mcp.client.streamable_http | Received session ID: 33dae492261d4df8b669075997043914
+2026-11-05 09:22:46,055 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-05 09:22:46,056 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/claim_readiness/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:46,056 | INFO     | mcp.client.streamable_http | Received session ID: 6a98561c151547e98d7a367d899c9b13
+2026-11-05 09:22:46,057 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/document_submission/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:46,057 | INFO     | mcp.client.streamable_http | Received session ID: 1bc648326cee4ad7a8707cede1e9a82e
+2026-11-05 09:22:46,057 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-05 09:22:46,058 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-05 09:22:46,058 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:46,058 | INFO     | mcp.client.streamable_http | Received session ID: cd110483bf8c4c08aee0288c0b2f708c
+2026-11-05 09:22:46,059 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-05 09:22:46,059 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/policy_coverage/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:46,059 | INFO     | mcp.client.streamable_http | Received session ID: f17f8933a52640b195d3c79dcc229a24
+2026-11-05 09:22:46,060 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/claim_status/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:46,060 | INFO     | mcp.client.streamable_http | Received session ID: a9638dbd0aa4430f88fa310ca507496e
+2026-11-05 09:22:46,061 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/duplicate_check/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:46,061 | INFO     | mcp.client.streamable_http | Received session ID: 34618c93e6cb43ef9bf886f1a0b06c0f
+2026-11-05 09:22:46,062 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-05 09:22:46,062 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-05 09:22:46,062 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-05 09:22:46,063 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/communication/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:46,063 | INFO     | mcp.client.streamable_http | Received session ID: c42ee1cf374f43cbb3b7e9542c886966
+2026-11-05 09:22:46,063 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/feedback/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:46,063 | INFO     | mcp.client.streamable_http | Received session ID: 7b94d6cbca8f4c2ab2a267669422df07
+2026-11-05 09:22:46,064 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-05 09:22:46,065 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-05 09:22:46,085 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/segmentation/mcp "HTTP/1.1 202 Accepted"
+2026-11-05 09:22:46,092 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/claim_readiness/mcp "HTTP/1.1 202 Accepted"
+2026-11-05 09:22:46,093 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/document_submission/mcp "HTTP/1.1 202 Accepted"
+2026-11-05 09:22:46,096 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 202 Accepted"
+2026-11-05 09:22:46,099 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/policy_coverage/mcp "HTTP/1.1 202 Accepted"
+2026-11-05 09:22:46,099 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/claim_status/mcp "HTTP/1.1 202 Accepted"
+2026-11-05 09:22:46,100 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/duplicate_check/mcp "HTTP/1.1 202 Accepted"
+2026-11-05 09:22:46,102 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/communication/mcp "HTTP/1.1 202 Accepted"
+2026-11-05 09:22:46,103 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/feedback/mcp "HTTP/1.1 202 Accepted"
+2026-11-05 09:22:46,163 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/segmentation/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:46,165 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/document_submission/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:46,167 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/claim_readiness/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:46,170 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:46,176 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/policy_coverage/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:46,177 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/duplicate_check/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:46,180 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/claim_status/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:46,181 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/communication/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:46,181 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/feedback/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:46,185 | INFO     | httpx | HTTP Request: DELETE http://localhost:7720/api/v1/segmentation/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:46,186 | INFO     | httpx | HTTP Request: GET http://localhost:7720/api/v1/segmentation/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:46,188 | INFO     | mcp.client.streamable_http | GET stream disconnected, reconnecting in 1000ms...
+2026-11-05 09:22:46,192 | INFO     | httpx | HTTP Request: DELETE http://localhost:7720/api/v1/document_submission/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:46,193 | INFO     | httpx | HTTP Request: GET http://localhost:7720/api/v1/document_submission/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:46,196 | INFO     | mcp.client.streamable_http | GET stream disconnected, reconnecting in 1000ms...
+2026-11-05 09:22:46,199 | INFO     | httpx | HTTP Request: DELETE http://localhost:7720/api/v1/claim_readiness/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:46,200 | INFO     | httpx | HTTP Request: GET http://localhost:7720/api/v1/claim_readiness/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:46,202 | INFO     | mcp.client.streamable_http | GET stream disconnected, reconnecting in 1000ms...
+2026-11-05 09:22:46,205 | INFO     | httpx | HTTP Request: DELETE http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:46,206 | INFO     | httpx | HTTP Request: GET http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:46,208 | INFO     | mcp.client.streamable_http | GET stream disconnected, reconnecting in 1000ms...
+2026-11-05 09:22:46,209 | INFO     | httpx | HTTP Request: DELETE http://localhost:7720/api/v1/policy_coverage/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:46,210 | INFO     | httpx | HTTP Request: DELETE http://localhost:7720/api/v1/duplicate_check/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:46,213 | INFO     | httpx | HTTP Request: DELETE http://localhost:7720/api/v1/claim_status/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:46,214 | INFO     | httpx | HTTP Request: DELETE http://localhost:7720/api/v1/communication/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:46,216 | INFO     | httpx | HTTP Request: DELETE http://localhost:7720/api/v1/feedback/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:46,226 | INFO     | fnol_orchestrator_agent | Tools loaded from MCP: ['create_fnol_submission', 'get_fnol_submission', 'get_fnol_by_policy', 'update_fnol_submission', 'submit_fnol', 'get_mandatory_fields', 'save_voice_text_extraction', 'get_voice_text_extractions', 'save_ai_inferences', 'log_question_answer', 'get_question_log', 'save_field_attribution', 'extract_fnol_fields_from_text', 'upload_document', 'validate_document', 'get_claim_documents', 'check_duplicate_claim', 'get_recent_claims_for_policy']
+2026-11-05 09:22:46,418 | WARNING  | fnol_orchestrator_agent | Phoenix prompt load failed (Prompts.get() got an unexpected keyword argument 'name') — using fallback prompt
+INFO:     127.0.0.1:46358 - "POST /chat HTTP/1.1" 200 OK
+2026-11-05 09:22:47,130 | INFO     | httpx2 | HTTP Request: POST https://azureclaimsopenai.openai.azure.com/openai/deployments/gpt-4.1-claims/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+2026-11-05 09:22:47,308 | INFO     | fnol_orchestrator_agent | ▶ [VoiceTextIntakeAgent]                    tool → extract_fnol_fields_from_text
+2026-11-05 09:22:47,376 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:47,376 | INFO     | mcp.client.streamable_http | Received session ID: 2bec6fda135041b985519601a8c8a87a
+2026-11-05 09:22:47,376 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-05 09:22:47,381 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 202 Accepted"
+2026-11-05 09:22:51,646 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:51,654 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:51,661 | INFO     | httpx | HTTP Request: DELETE http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:51,664 | INFO     | fnol_orchestrator_agent | ✓ [VoiceTextIntakeAgent]                    tool → extract_fnol_fields_from_text
+2026-11-05 09:22:52,332 | INFO     | httpx2 | HTTP Request: POST https://azureclaimsopenai.openai.azure.com/openai/deployments/gpt-4.1-claims/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+2026-11-05 09:22:52,439 | INFO     | fnol_orchestrator_agent | ▶ [VoiceTextIntakeAgent]                    tool → get_fnol_submission
+2026-11-05 09:22:52,505 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:52,505 | INFO     | mcp.client.streamable_http | Received session ID: 9a80f10cee974c3492e846e7d2fb3296
+2026-11-05 09:22:52,506 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-05 09:22:52,511 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 202 Accepted"
+2026-11-05 09:22:52,577 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:52,584 | INFO     | httpx | HTTP Request: POST http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:52,590 | INFO     | httpx | HTTP Request: DELETE http://localhost:7720/api/v1/voice_text_intake/mcp "HTTP/1.1 200 OK"
+2026-11-05 09:22:52,592 | INFO     | fnol_orchestrator_agent | ✓ [VoiceTextIntakeAgent]                    tool → get_fnol_submission
+2026-11-05 09:22:53,235 | INFO     | httpx2 | HTTP Request: POST https://azureclaimsopenai.openai.azure.com/openai/deployments/gpt-4.1-claims/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+^CINFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [95274]
+^C
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator$ ^C
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator$ 
