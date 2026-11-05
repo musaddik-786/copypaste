@@ -1,17 +1,51 @@
-JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator$ python3 << 'PYEOF'
-path = "server.py"
-with open(path) as f:
-    content = f.read()
+BASE=~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents
 
-# Replace the entire block from the register import to the instrument call
-import re
-old = r"        from phoenix\.otel import register\n        # from openinference\.instrumentation\.langchain import LangChainInstrumentor\n        from openinference\.instrumentation\.langchain import LangChainInstrumentor\n        _tracer_provider = register\(\n            project_name=\"policyholder-agents\",\n            endpoint=PHOENIX_ENDPOINT\.rstrip\(\"/\"\) \+ \"/v1/traces\",\n            headers=\{\"api_key\": PHOENIX_API_KEY\} if PHOENIX_API_KEY else \{\},\n        \)\n        # LangChainInstrumentor\(\)\.instrument\(tracer_provider=_tracer_provider\)\n        LangChainInstrumentor\(\)\.instrument\(tracer_provider=_tracer_provider\)"
+python3 << 'PYEOF'
+import os
 
-new = """        from opentelemetry import trace as _otel_trace
+dirs = [
+    "VoiceTextIntakeAgent", "PolicyCoverageVerificationAgent",
+    "FeedbackAgent", "DuplicateClaimCheckAgent", "DocumentSubmissionAgent",
+    "CommunicationAgent", "ClaimSegmentationAgent", "ClaimReadinessAgent", "ClaimStatusAgent"
+]
+
+base = os.path.expanduser(
+    "~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents"
+)
+
+NEW_BLOCK = """\
+        from opentelemetry import trace as _otel_trace
         from opentelemetry.sdk.trace import TracerProvider as _TracerProvider
         from opentelemetry.sdk.trace.export import BatchSpanProcessor as _BatchSpanProcessor
         from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter as _OTLPSpanExporter
         from openinference.instrumentation.langchain import LangChainInstrumentor
-PYEOF   print(f"{i}: {repr(l)}")t.splitlines()[68:84], 69):_tracer_provider)"""
-Updated!
-JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator$ 
+        _exporter = _OTLPSpanExporter(
+            endpoint=PHOENIX_ENDPOINT.rstrip("/") + "/v1/traces",
+            headers={"api_key": PHOENIX_API_KEY} if PHOENIX_API_KEY else {},
+        )
+        _tracer_provider = _TracerProvider()
+        _tracer_provider.add_span_processor(_BatchSpanProcessor(_exporter))
+        _otel_trace.set_tracer_provider(_tracer_provider)
+        LangChainInstrumentor().instrument(tracer_provider=_tracer_provider)"""
+
+for d in dirs:
+    path = os.path.join(base, d, "server.py")
+    with open(path) as f:
+        lines = f.readlines()
+
+    start = end = None
+    for i, line in enumerate(lines):
+        if "from phoenix.otel import register" in line:
+            start = i
+        if start is not None and "LangChainInstrumentor().instrument" in line and not line.strip().startswith("#"):
+            end = i
+            break
+
+    if start is not None and end is not None:
+        lines[start:end+1] = [NEW_BLOCK + "\n"]
+        with open(path, "w") as f:
+            f.writelines(lines)
+        print(f"Updated: {d}")
+    else:
+        print(f"No match (start={start}, end={end}): {d}")
+PYEOF
