@@ -1,7 +1,12 @@
+The correct endpoint is `https://app.phoenix.arize.com/s/musalalkot123`. Update your `.env` file on the Linux server:
+
+Run this on the Linux server to patch the 9 remaining agents and fix the endpoint in `.env`:
+
+```bash
 cd ~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents
 
 python3 - <<'EOF'
-import re, os, glob
+import os
 
 OLD_EXPORTER = '''        _exporter = _OTLPSpanExporter(
             endpoint=PHOENIX_ENDPOINT.rstrip("/") + "/v1/traces",
@@ -41,4 +46,33 @@ for agent in agents:
     with open(path, "w") as f:
         f.write(new_src)
     print(f"Updated: {path}")
+
+print("Done.")
 EOF
+```
+
+Then update your `.env` file — change `PHOENIX_ENDPOINT` to include the space path:
+
+```bash
+# Find and show current value
+grep PHOENIX_ENDPOINT ~/.env 2>/dev/null || grep -r PHOENIX_ENDPOINT ~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/ --include=".env" -l
+```
+
+```bash
+# Update it (adjust path to your .env file)
+sed -i 's|PHOENIX_ENDPOINT=.*|PHOENIX_ENDPOINT=https://app.phoenix.arize.com/s/musalalkot123|' /path/to/your/.env
+```
+
+The correct values to have in `.env`:
+```
+PHOENIX_ENDPOINT=https://app.phoenix.arize.com/s/musalalkot123
+PHOENIX_API_KEY=ak-<your-key>
+```
+
+Now let me update the Windows `.env` as well — do you have a `.env` file in `F:\Arize phoenix\Jarvis_claims_agents_v3_copy_new\`?
+
+The Windows `.env` has `PHOENIX_ENDPOINT=http://localhost:6006` (self-hosted local). I need to update it to the Phoenix Cloud URL with your space ID.
+
+Windows [`.env`](Jarvis_claims_agents_v3_copy_new/.env) updated — `PHOENIX_ENDPOINT` now points to `https://app.phoenix.arize.com/s/musalalkot123`. Fill in your `ak-...` API key there too.
+
+On the Linux server, run the patch script above to update the 9 remaining agents (`VoiceTextIntakeAgent` through `ClaimStatusAgent`) from `{"api_key": ...}` to `Authorization: Bearer`, then restart the agents. After restart, every span export will hit `https://app.phoenix.arize.com/s/musalalkot123/v1/traces` and the 410 error should be gone.
