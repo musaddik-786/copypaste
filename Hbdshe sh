@@ -1,16 +1,25 @@
-Still 410. The issue is likely the endpoint URL — the `OTLPSpanExporter` in some versions appends `/v1/traces` itself, so we may be doubling the path (`/v1/traces/v1/traces`). Let's test with just the base URL:
-
-```bash
-python3 -c "
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator$ python3 -c "
 from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
 import inspect
 src = inspect.getsource(OTLPSpanExporter.__init__)
 print(src[:500])
 "
-```
-
-Paste that output — it'll show whether the exporter appends the path. Meanwhile also check your package versions:
-
-```bash
-pip show arize-phoenix-otel opentelemetry-exporter-otlp-proto-http | grep -E "Name|Version"
-```
+    def __init__(
+        self,
+        endpoint: str | None = None,
+        certificate_file: str | None = None,
+        client_key_file: str | None = None,
+        client_certificate_file: str | None = None,
+        headers: Mapping[str, str] | None = None,
+        timeout: float | None = None,
+        compression: Compression | _http.Compression | None = None,
+        session: requests.Session | None = None,
+        *,
+        max_request_size: int | None = None,
+        meter_provider: Meter
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator$ pip show arize-phoenix-otel opentelemetry-exporter-otlp-proto-http | grep -E "Name|Version"
+Name: arize-phoenix-otel
+Version: 0.17.2
+Name: opentelemetry-exporter-otlp-proto-http
+Version: 1.45.2
+(venv) JarvisClaim
