@@ -1,4 +1,25 @@
-export PHOENIX_API_KEY=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJqdGkiOiJBcGlLZXk6MSJ9.WoYu7lREjQzjawodAj83nyUHjxIOWoWJkJzQ3z8ANfw
-python3 server.py
-
-echo "PHOENIX_API_KEY=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJqdGkiOiJBcGlLZXk6MSJ9.WoYu7lREjQzjawodAj83nyUHjxIOWoWJkJzQ3z8ANfw" >> ~/Musaddique/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/.env
+INFO:     127.0.0.1:48766 - "POST /api/v1/voice_text_intake/api/fnol/submit/454 HTTP/1.1" 500 Internal Server Error
+INFO:     127.0.0.1:47256 - "PATCH /api/v1/voice_text_intake/api/fnol/update_submission/454 HTTP/1.1" 200 OK
+Guidewire CC POST /claim/v1/claims → HTTP 400: {"status":400,"errorCode":"gw.api.rest.exceptions.BadInputException","userMessage":"No policy was found with policy number 73-400676 for loss date 2026-02-06T20:30:00.000Z"}
+submit_fnol error
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Ramakrishna/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP/voice_text_intake_router.py", line 139, in submit_fnol
+    return fnol_handler.submit_fnol(fnol_id)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Ramakrishna/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP/voice_text_intake_mcp/fnol_handler.py", line 1218, in submit_fnol
+    claim_number = _create_claim_in_guidewire(fnol, pd_row)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Ramakrishna/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP/voice_text_intake_mcp/fnol_handler.py", line 1173, in _create_claim_in_guidewire
+    draft = guidewire_client.create_claim(payload)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Ramakrishna/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP/policy_coverage_mcp/guidewire_client.py", line 177, in create_claim
+    return _cc_post("/claim/v1/claims", payload)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Ramakrishna/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP/policy_coverage_mcp/guidewire_client.py", line 62, in _cc_post
+    _raise_for_status(resp, "CC POST", uri)
+  File "/home/JarvisClaims/Ramakrishna/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP/policy_coverage_mcp/guidewire_client.py", line 72, in _raise_for_status
+    resp.raise_for_status()
+  File "/home/JarvisClaims/.local/lib/python3.11/site-packages/requests/models.py", line 1167, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 400 Client Error:  for url: https://cc-sandbox-gwcpdev.hexaware.zeta1-andromeda.guidewire.net/rest/claim/v1/claims
+INFO:     127.0.0.1:47256 - "POST /api/v1/voice_text_intake/api/fnol/submit/454 HTTP/1.1" 500 Internal Server Error
