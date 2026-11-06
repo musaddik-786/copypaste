@@ -1,25 +1,43 @@
-INFO:     127.0.0.1:48766 - "POST /api/v1/voice_text_intake/api/fnol/submit/454 HTTP/1.1" 500 Internal Server Error
-INFO:     127.0.0.1:47256 - "PATCH /api/v1/voice_text_intake/api/fnol/update_submission/454 HTTP/1.1" 200 OK
-Guidewire CC POST /claim/v1/claims → HTTP 400: {"status":400,"errorCode":"gw.api.rest.exceptions.BadInputException","userMessage":"No policy was found with policy number 73-400676 for loss date 2026-02-06T20:30:00.000Z"}
-submit_fnol error
-Traceback (most recent call last):
-  File "/home/JarvisClaims/Ramakrishna/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP/voice_text_intake_router.py", line 139, in submit_fnol
-    return fnol_handler.submit_fnol(fnol_id)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/JarvisClaims/Ramakrishna/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP/voice_text_intake_mcp/fnol_handler.py", line 1218, in submit_fnol
-    claim_number = _create_claim_in_guidewire(fnol, pd_row)
-                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/JarvisClaims/Ramakrishna/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP/voice_text_intake_mcp/fnol_handler.py", line 1173, in _create_claim_in_guidewire
-    draft = guidewire_client.create_claim(payload)
-            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/JarvisClaims/Ramakrishna/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP/policy_coverage_mcp/guidewire_client.py", line 177, in create_claim
-    return _cc_post("/claim/v1/claims", payload)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/JarvisClaims/Ramakrishna/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP/policy_coverage_mcp/guidewire_client.py", line 62, in _cc_post
-    _raise_for_status(resp, "CC POST", uri)
-  File "/home/JarvisClaims/Ramakrishna/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP/policy_coverage_mcp/guidewire_client.py", line 72, in _raise_for_status
-    resp.raise_for_status()
-  File "/home/JarvisClaims/.local/lib/python3.11/site-packages/requests/models.py", line 1167, in raise_for_status
-    raise HTTPError(http_error_msg, response=self)
-requests.exceptions.HTTPError: 400 Client Error:  for url: https://cc-sandbox-gwcpdev.hexaware.zeta1-andromeda.guidewire.net/rest/claim/v1/claims
-INFO:     127.0.0.1:47256 - "POST /api/v1/voice_text_intake/api/fnol/submit/454 HTTP/1.1" 500 Internal Server Error
+it is only giving error for below one for policy number as 73-400676
+The pipe burst happened on 02-06-2026 at about 8:30 PM. No one was home when it happened. The damage was sudden, not gradual. I would classify the damage as high, and the safety concern as medium because of water near some electrical outlets.
+Thank you — I’ve recorded the type of loss as water damage from a burst pipe, occurring on 2026-02-06 around 8:30 PM, with no one home at the time, and confirmed it was sudden. Severity is noted as high, and urgency as medium due to safety concerns.
+
+1
+Could you please tell me which specific room or area of your home was affected by the water damage?
+Kitchen
+Here is a summary of the details recorded for your claim:
+
+Field	Recorded Value
+Type of Loss	Waterdamage
+Cause of Loss	burst pipe
+Date of Loss	2026-02-06
+Time of Loss	20:30
+Area Affected	Kitchen
+Occupancy at Time of Loss	No
+Sudden vs Gradual	Sudden
+Severity	High
+Urgency Indicator	Medium
+Emotional Context	Not provided
+
+
+
+but for policy number 73-400676 it is working for below
+I had a fire incident at 9 AM while I was at home. The incident occurred in the kitchen and caused damage to the flooring and cabinets. This happened today. It happened all of a sudden, and the damage was serious. I am very stressed.
+Thank you for providing those details, William. I’ve captured that you experienced a sudden, serious fire today at 9 AM in your kitchen while you were at home. I understand how stressful this must be.
+
+1
+Could you please tell me what caused the fire (for example: electrical fault, cooking accident, appliance malfunction, etc.)?
+Electrical
+Here’s a summary of the details you’ve provided and what has been recorded for your claim:
+
+Field	Recorded Value
+Type of Loss	Fire
+Cause of Loss	Electrical
+Date of Loss	2026-11-06
+Time of Loss	09:00
+Area Affected	kitchen
+Occupancy at Time of Loss	Yes
+Sudden vs Gradual	Sudden
+Severity	High
+Urgency Indicator	urgent
+Emotional Context	stressed
