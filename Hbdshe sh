@@ -1,43 +1,30 @@
-it is only giving error for below one for policy number as 73-400676
-The pipe burst happened on 02-06-2026 at about 8:30 PM. No one was home when it happened. The damage was sudden, not gradual. I would classify the damage as high, and the safety concern as medium because of water near some electrical outlets.
-Thank you — I’ve recorded the type of loss as water damage from a burst pipe, occurring on 2026-02-06 around 8:30 PM, with no one home at the time, and confirmed it was sudden. Severity is noted as high, and urgency as medium due to safety concerns.
+Run these in your Linux terminal (psql):
 
-1
-Could you please tell me which specific room or area of your home was affected by the water damage?
-Kitchen
-Here is a summary of the details recorded for your claim:
+```sql
+DELETE FROM treaty_clauses;
+DELETE FROM treaty_exclusions;
+DELETE FROM treaty_documents;
+```
 
-Field	Recorded Value
-Type of Loss	Waterdamage
-Cause of Loss	burst pipe
-Date of Loss	2026-02-06
-Time of Loss	20:30
-Area Affected	Kitchen
-Occupancy at Time of Loss	No
-Sudden vs Gradual	Sudden
-Severity	High
-Urgency Indicator	Medium
-Emotional Context	Not provided
+Then re-run the ingestion:
 
+```bash
+cd ~/Musaddique/cederanew/cederanew
+python3 -m ingestion.ingest_to_postgres
+```
 
+Then verify:
 
-but for policy number 73-400676 it is working for below
-I had a fire incident at 9 AM while I was at home. The incident occurred in the kitchen and caused damage to the flooring and cabinets. This happened today. It happened all of a sudden, and the damage was serious. I am very stressed.
-Thank you for providing those details, William. I’ve captured that you experienced a sudden, serious fire today at 9 AM in your kitchen while you were at home. I understand how stressful this must be.
+```sql
+SELECT treaty_ref, COUNT(*) as chunks FROM treaty_clauses GROUP BY treaty_ref ORDER BY treaty_ref;
+```
 
-1
-Could you please tell me what caused the fire (for example: electrical fault, cooking accident, appliance malfunction, etc.)?
-Electrical
-Here’s a summary of the details you’ve provided and what has been recorded for your claim:
+```sql
+SELECT treaty_ref, clause_ref, exclusion_name FROM treaty_exclusions ORDER BY treaty_ref;
+```
 
-Field	Recorded Value
-Type of Loss	Fire
-Cause of Loss	Electrical
-Date of Loss	2026-11-06
-Time of Loss	09:00
-Area Affected	kitchen
-Occupancy at Time of Loss	Yes
-Sudden vs Gradual	Sudden
-Severity	High
-Urgency Indicator	urgent
-Emotional Context	stressed
+```sql
+SELECT treaty_ref, file_name, ingested_at FROM treaty_documents ORDER BY treaty_ref;
+```
+
+The first query should show 6 rows (one per treaty) with chunk counts. The second should show the exclusion clauses detected from the PDFs. The third confirms all 6 PDFs have a document record. Share the output and I can tell you if the data looks right.
