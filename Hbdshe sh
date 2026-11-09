@@ -1,255 +1,329 @@
-"""
-handler.py — Payment Trigger
-────────────────────────────────
-Checks claim approval status (via adjuster_findings.coverage_confirmed) and
-triggers payment_disbursements rows.
+# Multi-Service Docker Compose Deployment Guide
 
-Amount source priority:
-  1. ai_decision_recommendations.final_settlement_amount (adjuster's explicit
-     Settlement override — always wins when set, same precedent as the
-     Repair vs Replace decision overriding cost-math in resolve_repair_vs_replacement)
-  2. loss_estimation_outputs.net_payable  (most authoritative — set by LossAssessmentAgent)
-  3. adjuster_findings.final_settlement
-  4. adjuster_findings.adjusted_reserve
+A general, application-agnostic guide for containerizing a multi-service solution
+(one or more backend services + one user-facing frontend/UI) with Docker Compose,
+where **only the frontend is exposed to the outside world** and backend services
+are reachable only from inside the Docker network.
 
-Write-back on disbursement created:
-  - INSERT payment_disbursements (status = 'Initiated')
-  - UPDATE claims.status = 'Payment Initiated'
-"""
+This guide is based on a real deployment (3 services: two Python backends + one
+Node/TypeScript frontend) but every step below is written generically so it can
+be applied to any stack (Python, Node, Java, Go, etc.) and any number of services.
 
-import logging
-import os
-import sys
-import uuid
+---
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "common"))
+## 1. When to use this pattern
 
-from db import get_db_connection, row_to_dict, resolve_repair_vs_replacement  # noqa: E402
+Use this approach whenever your solution has:
+- One or more **backend services** (APIs, agents, workers) that only need to be
+  called by *other services in the same solution*, never directly by end users.
+- One **frontend/UI service** (or API gateway) that end users or other systems
+  need to reach directly.
 
-log = logging.getLogger(__name__)
+The goal: backend services stay private (no attack surface exposed to the
+internet), only the frontend's port is published.
 
-_APPROVED_VALUES = {"yes", "confirmed"}
+---
 
+## 2. Prerequisites — check once per VM/host
 
-def check_claim_approved(claim_number: str) -> dict:
-    conn = get_db_connection()
-    try:
-        cur = conn.cursor()
-        cur.execute(
-            "SELECT * FROM adjuster_findings WHERE claim_id = %s ORDER BY id DESC LIMIT 1",
-            (claim_number,),
-        )
-        finding = row_to_dict(cur.fetchone())
+```bash
+docker --version
+docker compose version
+systemctl is-enabled docker   # should print "enabled" -> starts automatically on boot
+systemctl is-active docker    # should print "active"
+```
 
-        cur.execute(
-            "SELECT net_payable FROM loss_estimation_outputs WHERE claim_id = %s ORDER BY id DESC LIMIT 1",
-            (claim_number,),
-        )
-        loss_row = row_to_dict(cur.fetchone())
+If `docker compose version` fails, you have the older standalone `docker-compose`
+(with a hyphen) — the commands in this guide use the newer `docker compose`
+(no hyphen, built into the Docker CLI); adjust if needed.
 
-        # Adjuster's explicit Settlement override (Settlement Recommendation
-        # section's "Final Settlement (Adjuster)" field) — checked first, same
-        # precedent as the Repair vs Replace decision always winning over
-        # cost-math in resolve_repair_vs_replacement.
-        cur.execute(
-            "SELECT final_settlement_amount FROM ai_decision_recommendations "
-            "WHERE claim_id = %s ORDER BY id DESC LIMIT 1",
-            (claim_number,),
-        )
-        rec_row = row_to_dict(cur.fetchone())
+If your shell user gets `permission denied ... docker.sock`, either prefix every
+command with `sudo`, or add yourself to the `docker` group once
+(`sudo usermod -aG docker $USER`, then log out/in for it to take effect).
 
-        rvr = resolve_repair_vs_replacement(cur, claim_number)
-    finally:
-        conn.close()
+---
 
-    if not finding:
-        return {
-            "claim_number": claim_number,
-            "approved": False,
-            "reason": "No adjuster findings on record for this claim.",
-            "available_amount": None,
-        }
+## 3. Step 1 — Inventory your services
 
-    coverage_confirmed = (finding.get("coverage_confirmed") or "").strip().lower()
-    approved = coverage_confirmed in _APPROVED_VALUES
+Before writing any file, write down, for every service:
 
-    adjuster_final_settlement = rec_row.get("final_settlement_amount") if rec_row else None
-    if adjuster_final_settlement not in (None, "", 0):
-        available_amount = float(adjuster_final_settlement)
-        amount_source = "ai_decision_recommendations.final_settlement_amount (adjuster override)"
-    else:
-        if rvr["is_replacement"] and rvr["replace_net"] is not None:
-            net_payable = rvr["replace_net"]
-            amount_source_label = "replacement_costs (net of deductible)"
-        else:
-            net_payable = float(loss_row.get("net_payable") or 0) if loss_row else 0
-            amount_source_label = "loss_estimation_outputs.net_payable"
+| Service name | Language/runtime | Port it listens on | Exposed to host? | Depends on |
+|---|---|---|---|---|
+| `frontend` | e.g. Node | e.g. 4000 | **Yes** | backend-a, backend-b |
+| `backend-a` | e.g. Python | e.g. 5000 | No | — |
+| `backend-b` | e.g. Python | e.g. 5001 | No | — |
 
-        available_amount = net_payable if net_payable > 0 else finding.get("final_settlement")
-        if available_amount in (None, 0):
-            available_amount = finding.get("adjusted_reserve")
+Only the row(s) marked "Yes" get a `ports:` entry in Compose later. Everything
+else is reachable *only* from other containers on the same Compose network, by
+service name.
 
-        amount_source = (
-            amount_source_label if net_payable > 0
-            else ("adjuster_findings.final_settlement" if finding.get("final_settlement") else "adjuster_findings.adjusted_reserve")
-        )
+---
 
-    return {
-        "claim_number": claim_number,
-        "approved": approved,
-        "coverage_confirmed": finding.get("coverage_confirmed"),
-        "available_amount": available_amount,
-        "amount_source": amount_source,
-        "reason": None if approved else f"coverage_confirmed is '{finding.get('coverage_confirmed')}', not approved.",
-    }
+## 4. Step 2 — One Dockerfile per service
 
+Each service gets its **own** Dockerfile and builds its **own** image from its
+**own** dependency manifest (`requirements.txt`, `package.json`, `go.mod`, etc.).
 
-def get_payment_eligibility(claim_number: str) -> dict:
-    """Reads the latest auto_adjudication_records row for the claim (written by PaymentEligibilityAgent)."""
-    conn = get_db_connection()
-    try:
-        cur = conn.cursor()
-        cur.execute(
-            "SELECT * FROM auto_adjudication_records WHERE claim_id = %s ORDER BY id DESC LIMIT 1",
-            (claim_number,),
-        )
-        record = row_to_dict(cur.fetchone())
-    finally:
-        conn.close()
+**Do not** try to merge multiple services' dependencies into one shared
+image/virtualenv "to save time" — that's a local-dev convenience at best and
+actively defeats the point of containers (isolation, independent versioning,
+independent rebuilds). If you were tempted to do that for faster local
+iteration outside Docker, don't carry that habit into the Dockerfiles.
 
-    if not record:
-        return {
-            "claim_number": claim_number,
-            "eligibility_checked": False,
-            "eligible_for_auto_adjudication": False,
-            "reason": "PaymentEligibilityAgent has not run for this claim. Run it before triggering payment.",
-        }
+### Python service template
+```dockerfile
+FROM python:3.11-slim
 
-    return {
-        "claim_number": claim_number,
-        "eligibility_checked": True,
-        "eligible_for_auto_adjudication": record.get("eligible_for_auto_adjudication"),
-        "decision": record.get("decision"),
-        "stp_category": record.get("stp_category"),
-        "failed_gate_list": record.get("failed_gate_list"),
-        "threshold_config_id": record.get("threshold_config_id"),
-        "recommendation": record.get("recommendation"),
-    }
+# Any native/system libraries your Python deps need MUST be installed here,
+# even if they're already installed on the host VM — containers have their
+# own isolated filesystem and see none of the host's installed packages.
+# Example (only if your app actually needs these, e.g. PDF rendering libs):
+# RUN apt-get update && apt-get install -y \
+#     libpango-1.0-0 libcairo2 \
+#     && rm -rf /var/lib/apt/lists/*
 
+WORKDIR /app
 
-def create_payment_disbursement(claim_number: str, amount: float, payment_method: str, approved_by: str) -> dict:
-    # Read eligibility — informational context, hard block only for Full STP path
-    eligibility = get_payment_eligibility(claim_number)
-    stp_category = (eligibility.get("stp_category") or "").strip()
-    eligible = eligibility.get("eligible_for_auto_adjudication")
-    eligibility_checked = eligibility.get("eligibility_checked", False)
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-    # Block only when the claim explicitly went through Full STP and failed eligibility gates
-    if eligibility_checked and stp_category == "Full STP" and not eligible:
-        return {
-            "claim_number": claim_number,
-            "error": "Payment blocked — Full STP claim did not pass all eligibility gates.",
-            "reason": (
-                f"stp_category is 'Full STP' but eligible_for_auto_adjudication is false. "
-                f"Failed gates: {eligibility.get('failed_gate_list')}"
-            ),
-            "stp_category": stp_category,
-        }
+COPY . .
 
-    # Gate: coverage must be confirmed (applies to all paths — STP and manual)
-    approval = check_claim_approved(claim_number)
-    if not approval["approved"]:
-        return {
-            "claim_number": claim_number,
-            "error": "Claim is not approved for payment.",
-            "reason": approval["reason"],
-        }
+EXPOSE <ACTUAL_PORT_THIS_SERVICE_BINDS_TO>
 
-    # Gate: net payable amount must be greater than 0
-    available_amount = approval.get("available_amount")
-    if not available_amount or float(available_amount) <= 0:
-        return {
-            "claim_number": claim_number,
-            "error": "Payment cannot be initiated — net payable amount is zero or not yet calculated.",
-            "reason": "Run LossAssessmentAgent first to calculate the net payable amount.",
-            "amount_source": approval.get("amount_source"),
-        }
+CMD ["python3", "your_entrypoint.py"]
+```
 
-    # Cap amount at available_amount to prevent overpayment
-    if float(amount) > float(available_amount):
-        amount = float(available_amount)
+### Node/TypeScript frontend template (multi-stage build)
+```dockerfile
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
 
-    payment_id = f"PAY-{claim_number}-{uuid.uuid4().hex[:8].upper()}"
+FROM node:20-alpine AS production
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --omit=dev
+COPY --from=builder /app/dist ./dist
+ENV NODE_ENV=production
+ENV PORT=<ACTUAL_PORT>
+EXPOSE <ACTUAL_PORT>
+CMD ["node", "dist/index.js"]
+```
 
-    conn = get_db_connection()
-    try:
-        cur = conn.cursor()
-        cur.execute("SELECT id FROM claims WHERE claim_number = %s", (claim_number,))
-        claims_row = cur.fetchone()
-        integer_claim_id = claims_row["id"] if claims_row else None
+**Common pitfall — stale `EXPOSE`:** `EXPOSE` is documentation to Docker/Compose,
+not enforcement, but it must match the port your app *actually* binds to in
+code. Dockerfiles copy-pasted between environments/projects often end up with
+an `EXPOSE` left over from an old port number. Before trusting any existing
+Dockerfile, grep the actual source for where it binds its port
+(`app.listen(...)`, `uvicorn.run(..., port=...)`, etc.) and make sure `EXPOSE`
+agrees with it.
 
-        cur.execute(
-            """
-            INSERT INTO payment_disbursements (
-                payment_id, claim_id, claim_number, amount, payment_method, status, triggered_by, approved_by
-            ) VALUES (%s, %s, %s, %s, %s, 'Initiated', 'PaymentTriggerAgent', %s)
-            RETURNING id
-            """,
-            (payment_id, integer_claim_id, claim_number, amount, payment_method, approved_by),
-        )
-        new_id = cur.fetchone()["id"]
+---
 
-        cur.execute(
-            "UPDATE claims SET status = 'Payment Initiated' WHERE claim_number = %s",
-            (claim_number,),
-        )
-        conn.commit()
-        return {
-            "id": new_id,
-            "payment_id": payment_id,
-            "claim_id": integer_claim_id,
-            "claim_number": claim_number,
-            "amount": amount,
-            "payment_method": payment_method,
-            "status": "Initiated",
-            "triggered_by": "PaymentTriggerAgent",
-            "approved_by": approved_by,
-            "stp_category": stp_category or "Not evaluated",
-            "eligibility_path": "Full STP" if stp_category == "Full STP" else "Manual / Non-STP",
-        }
-    finally:
-        conn.close()
+## 5. Step 3 — Fix inter-service URLs (the #1 thing that breaks)
 
+**`localhost` inside one container does not reach another container.** Each
+container has its own private network namespace; `localhost` there means "this
+container only." This is the single most common reason a working bare-metal
+setup breaks the moment you containerize it.
 
-def update_payment_status(payment_id: str, status: str) -> dict:
-    conn = get_db_connection()
-    try:
-        cur = conn.cursor()
-        if status == "Completed":
-            cur.execute(
-                "UPDATE payment_disbursements SET status = %s, completed_at = NOW() WHERE payment_id = %s",
-                (status, payment_id),
-            )
-        else:
-            cur.execute(
-                "UPDATE payment_disbursements SET status = %s WHERE payment_id = %s",
-                (status, payment_id),
-            )
-        conn.commit()
-        cur.execute("SELECT * FROM payment_disbursements WHERE payment_id = %s", (payment_id,))
-        return row_to_dict(cur.fetchone())
-    finally:
-        conn.close()
+**The fix:** Docker Compose gives every service a DNS name equal to its
+service name in `docker-compose.yml`. From inside any container on the same
+Compose network, `http://backend-a:5000/...` resolves correctly — no IP
+addresses needed, no manual `/etc/hosts` editing.
 
+**How to apply this without breaking your existing bare-metal/local-dev setup:**
+Don't rewrite your committed `.env` files to use container service names —
+that breaks running the same services directly on a VM/laptop outside Docker
+later. Instead, override just the inter-service URL variables in
+`docker-compose.yml` via `environment:`:
 
-def get_payment_disbursements(claim_number: str) -> list:
-    conn = get_db_connection()
-    try:
-        cur = conn.cursor()
-        cur.execute(
-            "SELECT * FROM payment_disbursements WHERE claim_number = %s ORDER BY id DESC",
-            (claim_number,),
-        )
-        return row_to_dict(cur.fetchall())
-    finally:
-        conn.close()
+```yaml
+services:
+  frontend:
+    environment:
+      BACKEND_A_URL: "http://backend-a:5000"
+      BACKEND_B_URL: "http://backend-b:5001"
+```
+
+This works because every mainstream `.env`-loading library (`dotenv` for
+Node, `python-dotenv` for Python, etc.) **does not override a variable that
+is already set in the process environment** — so a value Compose injects
+before the process starts always wins over whatever's baked into a
+committed `.env` file, with zero edits to that file.
+
+---
+
+## 6. Step 4 — Secrets, credentials, and persistent state
+
+Anything a service needs that is:
+- a **secret/credential file** (OAuth tokens, service-account JSON, API keys
+  stored as files), or
+- **state that must survive a container restart** (a local history file, a
+  SQLite checkpoint, uploaded files not stored in a database/blob store)
+
+...should be a **volume mount**, not baked into the image with `COPY`. Baking
+secrets into an image means every image layer/registry push carries them
+forever, even after "deleting" the file in a later commit.
+
+```yaml
+services:
+  backend-a:
+    volumes:
+      - /absolute/host/path/to/credentials:/absolute/host/path/to/credentials
+      - /absolute/host/path/to/state:/app/state
+```
+
+**Tip:** if the application code reads these paths from an **absolute path**
+env var (e.g. `TOKEN_PATH=/home/user/project/service/token/token.pickle`),
+the simplest fix is to mount the host folder at the *exact same absolute
+path* inside the container — then the existing env var value works completely
+unchanged, no code or `.env` edits needed. Docker does not require a volume's
+container-side path to match any particular directory structure; it can be
+any absolute path, including one that mirrors the host.
+
+---
+
+## 7. Step 5 — Write `docker-compose.yml`
+
+```yaml
+services:
+  backend-a:
+    build:
+      context: ./path/to/backend-a
+    env_file:
+      - ./path/to/backend-a/.env
+    volumes:
+      - /abs/path/credentials:/abs/path/credentials
+    restart: unless-stopped
+    networks:
+      - app-net
+    # No `ports:` -> reachable only as "backend-a" from sibling containers.
+
+  backend-b:
+    build:
+      context: ./path/to/backend-b
+    env_file:
+      - ./path/to/backend-b/.env
+    depends_on:
+      - backend-a
+    restart: unless-stopped
+    networks:
+      - app-net
+    # No `ports:` -> private, same as above.
+
+  frontend:
+    build:
+      context: ./path/to/frontend
+    environment:
+      BACKEND_A_URL: "http://backend-a:5000"
+      BACKEND_B_URL: "http://backend-b:5001"
+    ports:
+      - "4000:4000"     # the ONLY published port in the whole file
+    depends_on:
+      - backend-a
+      - backend-b
+    restart: unless-stopped
+    networks:
+      - app-net
+
+networks:
+  app-net:
+    driver: bridge
+```
+
+Key points:
+- **Only the user-facing service has a `ports:` entry.** Every other service
+  omits `ports:` entirely — Compose still puts it on the shared network so
+  sibling containers can reach it by name, but nothing outside Docker can.
+- **`restart: unless-stopped`** on every service means that after the Docker
+  daemon restarts (e.g., on VM reboot), all containers come back up
+  automatically — combined with `systemctl is-enabled docker` from Step 2,
+  this gives you a fully self-healing stack with zero manual steps after a
+  reboot.
+- **`depends_on`** only controls *start order*, not "wait until the
+  dependency is actually ready to accept traffic." If a service needs to wait
+  for another to be fully initialized, add a proper health check
+  (`healthcheck:` + `condition: service_healthy` in `depends_on`) rather than
+  relying on start order alone.
+
+---
+
+## 8. Step 6 — Build, run, verify
+
+```bash
+cd /path/to/project/root
+sudo docker compose build              # build all images
+sudo docker compose up -d              # start all containers, detached
+sudo docker compose ps                 # check status + which ports are published
+```
+
+**Verification checklist — run every time you stand this up on a new host:**
+
+```bash
+# 1. The exposed service responds from the host:
+curl -s -o /dev/null -w "%{http_code}\n" http://localhost:<FRONTEND_PORT>/
+
+# 2. Backend services do NOT respond on the host (confirms they're private):
+curl -s -o /dev/null -w "%{http_code}\n" http://localhost:<BACKEND_PORT>/
+# expect a connection error/timeout, not an HTTP response
+
+# 3. Internal Compose DNS actually works (run from inside the frontend container):
+sudo docker compose exec frontend sh -c "curl -s -o /dev/null -w '%{http_code}\n' http://backend-a:<PORT>/"
+```
+
+**Cloud firewall / NSG reminder:** if this host is a cloud VM (Azure, AWS,
+GCP, etc.) and you want the frontend reachable from the public internet (not
+just the VM's private network), you must also open an inbound firewall rule
+for the published port on the VM/instance's security group — Docker's own
+port publishing is necessary but not sufficient on a cloud VM with a network
+firewall in front of it.
+
+**Don't test your own public IP from inside the same VM** to "confirm"
+internet reachability — many cloud providers' NAT setups prevent a VM from
+reaching its own public IP from itself ("hairpin NAT"), so a failed curl to
+your own public IP from inside the VM is inconclusive. Always confirm
+external reachability from a genuinely separate machine.
+
+---
+
+## 9. Day-to-day commands
+
+```bash
+sudo docker compose up -d                 # start (or restart stopped) all services
+sudo docker compose up -d --build         # rebuild images after a code change, then start
+sudo docker compose down                  # stop and remove containers (volumes/data untouched)
+sudo docker compose logs -f <service>     # tail logs for one service
+sudo docker compose ps                    # status + published ports of all services
+sudo docker compose restart <service>     # restart just one service
+```
+
+---
+
+## 10. Checklist for adapting this to a brand-new project
+
+1. [ ] List every service, its port, and whether it needs to be reachable
+       from outside the Docker network.
+2. [ ] Write (or fix) one Dockerfile per service; confirm `EXPOSE` matches the
+       port the app actually binds to in code.
+3. [ ] Add any system/native library dependencies into each service's own
+       Dockerfile (don't assume the host's installed libraries help you —
+       they don't exist inside the container).
+4. [ ] Find every place one service's config/`.env` references another
+       service via `localhost` — these need a Compose-level `environment:`
+       override pointing at the sibling's **service name**, not an edit to
+       the committed `.env`.
+5. [ ] Identify secrets/credential files and persistent state directories;
+       mount them as `volumes:` instead of `COPY`-ing them into the image.
+6. [ ] Write `docker-compose.yml`: one `ports:` entry total (on the exposed
+       service), `restart: unless-stopped` everywhere, shared network.
+7. [ ] `docker compose build && docker compose up -d`.
+8. [ ] Run the 3-point verification checklist in Step 6 above.
+9. [ ] If on a cloud VM, open the relevant inbound firewall/NSG rule for the
+       exposed port, and confirm reachability from a separate machine.
+10. [ ] Confirm `systemctl is-enabled docker` so the whole stack survives a
+        VM reboot with zero manual intervention.
