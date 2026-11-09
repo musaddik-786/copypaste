@@ -433,6 +433,19 @@ async function handleLossAssessment(db: pg.Pool, res: ServerResponse, claimNumbe
   const _repairGrossForSummary = assess
     ? num(assess.total_parts_cost) + num(assess.total_labor_cost)
     : null;
+  // Live repair net (same formula as _repNet below, lifted to this outer
+  // scope) so both repair and replacement figures are available together —
+  // lets the UI switch Estimated Loss / Net Payable instantly client-side as
+  // the adjuster changes the override dropdown, without waiting on a save.
+  const _repairNetForSummary =
+    assess && _repairGrossForSummary != null
+      ? Math.max(
+          0,
+          _repairGrossForSummary -
+            Math.round(num(assess.total_parts_cost) * (num(assess.depreciation_percent) / 100)) -
+            num(assess.deductible)
+        )
+      : null;
 
   // Determine the final recommendation before building the analysis block so we
   // can select repair vs replacement figures for the summary card.
@@ -479,6 +492,19 @@ async function handleLossAssessment(db: pg.Pool, res: ServerResponse, claimNumbe
           netPayable: _isReplacement && _replacementNetForSummary != null
             ? _replacementNetForSummary
             : (loss && loss.net_payable != null ? num(loss.net_payable) : null),
+          // Both-scenario figures, so the UI can switch Estimated Loss / Net
+          // Payable instantly client-side as the adjuster changes the
+          // override dropdown, without waiting for a save + reload.
+          estimatedLossRepair:
+            _repairGrossForSummary != null && _repairGrossForSummary > 0
+              ? _repairGrossForSummary
+              : (loss ? num(loss.ai_estimated_loss) : null),
+          estimatedLossReplace: _replaceTotalForSummary > 0 ? _replaceTotalForSummary : null,
+          netPayableRepair:
+            _repairNetForSummary != null
+              ? _repairNetForSummary
+              : (loss && loss.net_payable != null ? num(loss.net_payable) : null),
+          netPayableReplace: _replacementNetForSummary,
           // Reserve Recommendation → adjuster_findings.system_recommended_reserve
           reserveRecommendation:
             findings && findings.system_recommended_reserve != null
@@ -1629,10 +1655,41 @@ async function updateRepairDecision(
     [claimNumber, value]
   );
   if ((r.rowCount ?? 0) === 0) {
-    return {
-      updated: false,
-      reason: "not recorded on the Repair vs Replace decision — no repair-vs-replace analysis has been run for this claim yet",
-    };
+    // No row exists yet for this claim (repair-vs-replace analysis hasn't run
+    // there yet) — create one now instead of silently dropping the adjuster's
+    // choice. Without this, the first row created later by
+    // RepairVsReplacementAgent.write_repair_vs_replacement_decision would use
+    // its own placeholder decision ("Adjuster review"), and the adjuster's
+    // selection here would only "stick" the next time anything happens to
+    // call updateRepairDecision() again after that row exists. That agent's
+    // tool checks for an existing row first and skips its INSERT when one is
+    // found, so creating the row here also protects it from being overwritten.
+    const claimR = await db.query(
+      `SELECT policyholder_name FROM claims WHERE claim_number = $1`,
+      [claimNumber]
+    );
+    const customerName =
+      claimR.rows.length > 0 ? str((claimR.rows[0] as Row).policyholder_name, "") || "Unknown" : "Unknown";
+    try {
+      await db.query(
+        `INSERT INTO repair_vs_replacement_decisions
+           (claim_id, customer_name, communication_type, ai_generated_message,
+            recommended_action, sent_method, decision)
+         VALUES ($1, $2, 'system', $3, $4, 'system', $4)`,
+        [
+          claimNumber,
+          customerName,
+          `Adjuster set ${value} directly from the Loss Assessment page.`,
+          value,
+        ]
+      );
+    } catch {
+      return {
+        updated: false,
+        reason: "could not record the Repair vs Replace decision for this claim",
+      };
+    }
+    return { updated: true };
   }
   return { updated: true };
 }
