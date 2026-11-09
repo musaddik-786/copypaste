@@ -1,20 +1,15 @@
-ims_agents_v3_copy_new/PolicyholderAgents$ source venv/bin/activate
-(venv) azureuser@DeployAgentVerseSolution:~/Ramakrishna/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents$ cd MCP/
-(venv) azureuser@DeployAgentVerseSolution:~/Ramakrishna/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP$ python3 main.py 
-Traceback (most recent call last):
-  File "/home/azureuser/Ramakrishna/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP/main.py", line 29, in <module>
-    from dotenv import load_dotenv, find_dotenv
-ModuleNotFoundError: No module named 'dotenv'
-(venv) azureuser@DeployAgentVerseSolution:~/Ramakrishna/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP$ cd ..
-(venv) azureuser@DeployAgentVerseSolution:~/Ramakrishna/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents$ pip install -r requirements.txt 
-Command 'pip' not found, but can be installed with:
-sudo apt install python3-pip
-(venv) azureuser@DeployAgentVerseSolution:~/Ramakrishna/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents$ 
+azureuser@DeployAgentVerseSolution:~/Ramakrishna/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents$ python3 -m venv venv
+The virtual environment was not created successfully because ensurepip is not
+available.  On Debian/Ubuntu systems, you need to install the python3-venv
+package using the following command.
 
+    apt install python3.14-venv
 
+You may need to use sudo with that command.  After installing the python3-venv
+package, recreate your virtual environment.
 
-azureuser@DeployAgentVerseSolution:~/Ramakrishna/claims-solution-integration$ pnpm exec vite --config vite.config.ts
-Command 'pnpm' not found, did you mean:
-  command 'npm' from deb npm (9.2.0~ds3-1)
-Try: sudo apt install <deb name>
-azureuser@DeployAgentVerseSolution:~/Ramakrishna/claims-solution-integration$ 
+Failing command: /home/azureuser/Ramakrishna/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/bin/python3
+
+azureuser@DeployAgentVerseSolution:~/Ramakrishna/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents$ python3 --version
+Python 3.14.4
+azureuser@DeployAgentVerseSolution:~/Ramakrishna/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents$ 
