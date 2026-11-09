@@ -12,4 +12,17 @@ Failing command: /home/azureuser/Ramakrishna/Jarvis_claims_agents_v3_copy_new/Po
 
 azureuser@DeployAgentVerseSolution:~/Ramakrishna/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents$ python3 --version
 Python 3.14.4
+azureuser@DeployAgentVerseSolution:~/Ramakrishna/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents$ rm -rf venv
+azureuser@DeployAgentVerseSolution:~/Ramakrishna/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents$ python3 -m venv venv
+The virtual environment was not created successfully because ensurepip is not
+available.  On Debian/Ubuntu systems, you need to install the python3-venv
+package using the following command.
+
+    apt install python3.14-venv
+
+You may need to use sudo with that command.  After installing the python3-venv
+package, recreate your virtual environment.
+
+Failing command: /home/azureuser/Ramakrishna/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/venv/bin/python3
+
 azureuser@DeployAgentVerseSolution:~/Ramakrishna/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents$ 
