@@ -1,4 +1,1 @@
-I clicked on save loss assessment as Accept System recommendation but in AI recommendation section 
-it says that i have overridden it to replacement which is not true
-
-in Net Payable(Repair) box under AI Claim Analysis summary section the value 8972 is replacement netpayable, but it should have been repair value right i mean there should be repair net payable amount which is 5862 in this case
+the problem is the estimates loss (AI) under AI Claim Analysis Summary, is always showing replace amount no matter what we select from the drop down of Adjuster Override , so what i am saying is it is not dynamic unlike Net payable(Replacement) so i want the Estimates Loss (AI) also to be dynamic like the Net Payable is so it should also show Estimated Loss (AI Repair) or Estimated Loss (AI Replace) Values
