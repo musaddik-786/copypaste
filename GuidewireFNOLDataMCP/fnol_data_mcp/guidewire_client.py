@@ -152,10 +152,9 @@ def parse_fnol_data(gw_response: dict) -> Optional[dict]:
             "insured_name": (attrs.get("insured") or attrs.get("primaryInsured") or {}).get("displayName", ""),
             "loss_location": (attrs.get("lossLocation") or {}).get("displayName", ""),
             "adjuster": (attrs.get("assignedUser") or attrs.get("adjuster") or {}).get("displayName", ""),
-            "raw": gw_response,
         }
 
-        log.info("Parsed FNOL/claim data: %s", {k: v for k, v in parsed.items() if k != "raw"})
+        log.info("Parsed FNOL/claim data: %s", parsed)
         return parsed
 
     except Exception as exc:
