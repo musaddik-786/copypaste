@@ -47,7 +47,7 @@ cd GuidewireFNOLDataMCP
 python3 -m venv venv
 source venv/bin/activate   # on Windows: venv\Scripts\activate
 pip install -r requirements.txt
-cp .env.example .env       # then fill in GW_AUTHORIZATION with the real credential
+cp .env.example .env       # then fill in GW_USERNAME / GW_PASSWORD (or GW_AUTHORIZATION) with real credentials
 python main.py
 ```
 
@@ -110,7 +110,8 @@ Response (not found):
 | Variable | Description |
 |---|---|
 | `GW_CC_BASE_URL` | Guidewire ClaimCenter REST base URL |
-| `GW_AUTHORIZATION` | `Authorization` header value (e.g. `Basic <base64>`) — confidential, fill in real value |
+| `GW_USERNAME` / `GW_PASSWORD` | Basic auth credentials — matches Postman's "Authorization" tab > Basic Auth. `requests` builds the `Authorization: Basic ...` header itself. |
+| `GW_AUTHORIZATION` | Alternative to username/password: a pre-built `Authorization` header value (e.g. `Basic <base64>` or `Bearer <token>`). Takes priority over `GW_USERNAME`/`GW_PASSWORD` if set. |
 | `GW_TIMEOUT_SECONDS` | Request timeout in seconds (default 30) |
 
 ## Wiring into the FNOL Orchestrator (optional)
