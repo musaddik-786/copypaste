@@ -86,17 +86,19 @@ def get_fnol_data_by_claim_number(claim_number: str) -> dict:
 
     Uses: GET /claim/v1/claims
 
-    Sends the `claimNumber:eq:<value>` filter as both a `filter` header and
-    a `filter` query parameter (the documented ClaimCenter Cloud API
-    syntax), but does NOT trust the server to apply it — on this
-    environment, ClaimCenter silently ignores the filter and always returns
-    its full (unfiltered) claims page regardless of what's sent. So the
-    actual matching is done client-side against whatever `data` comes back.
+    Sends the `claimNumber:eq:<value>` filter as a `filter` query
+    parameter — NOT as a header. ClaimCenter's Cloud API only honors
+    `filter` as a query param; sending it as a header (what we tried
+    before) is silently ignored, which is why the server always returned
+    its full unfiltered claims page regardless of the filter.
+
+    As a safety net in case this ClaimCenter instance still doesn't filter
+    server-side for some claim numbers, we also apply the same exact-match
+    filter client-side against whatever `data` comes back.
     """
     filter_value = f"claimNumber:eq:{claim_number}"
     resp = _cc_get(
         "/claim/v1/claims",
-        extra_headers={"filter": filter_value},
         params={"filter": filter_value, "pageSize": 1000},
     )
     all_claims = resp.get("data", [])
