@@ -140,7 +140,7 @@ def parse_fnol_data(gw_response: dict) -> Optional[dict]:
         attrs = claim.get("attributes", {})
 
         parsed = {
-            "claim_id": claim.get("id", ""),
+            "claim_id": attrs.get("id", claim.get("id", "")),
             "claim_number": attrs.get("claimNumber", ""),
             "loss_date": attrs.get("lossDate", ""),
             "report_date": attrs.get("reportedDate", ""),
