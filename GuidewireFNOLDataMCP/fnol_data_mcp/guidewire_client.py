@@ -32,6 +32,13 @@ GW_PASSWORD = os.environ.get("GW_PASSWORD", "")
 
 REQUEST_TIMEOUT = int(os.environ.get("GW_TIMEOUT_SECONDS", "30"))
 
+log.info(
+    "Guidewire client configured | base_url=%s | auth_mode=%s | username=%r",
+    CC_BASE_URL,
+    "basic" if (GW_USERNAME and not GW_AUTH) else ("header" if GW_AUTH else "NONE (no credentials set!)"),
+    GW_USERNAME or None,
+)
+
 
 def _cc_get(uri: str, extra_headers: Optional[dict] = None) -> dict:
     url = CC_BASE_URL + uri
