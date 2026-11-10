@@ -1,118 +1,346 @@
-(venv) JarvisClaims@JarvisClaims:~/Musaddique/FNOL_MCP_TOOL$ python3 main.py 
-2026-11-10 12:37:50,161 INFO fnol_data_mcp.guidewire_client: Guidewire client configured | base_url=https://cc-sandbox-gwcpdev.hexaware.zeta1-andromeda.guidewire.net/rest | auth_mode=header | username='aapplegate'
-2026-11-10 12:37:50,192 INFO fastapi_mcp.server: No auth config provided, skipping auth setup
-2026-11-10 12:37:50,192 INFO fastapi_mcp.server: MCP HTTP server listening at /mcp
-INFO:     Started server process [165433]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     Uvicorn running on http://0.0.0.0:7740 (Press CTRL+C to quit)
-2026-11-10 12:37:53,915 INFO fnol_data_mcp.guidewire_client: GW CC GET https://cc-sandbox-gwcpdev.hexaware.zeta1-andromeda.guidewire.net/rest/claim/v1/claims | filter_header=None | filter_param='claimNumber:eq:000-00-000139' | auth_mode=header
-2026-11-10 12:37:54,019 ERROR fnol_data_mcp.guidewire_client: Guidewire CC GET /claim/v1/claims -> HTTP 400: {"status":400,"errorCode":"gw.api.rest.exceptions.BadInputException","userMessage":"Bad value for the 'pageSize' query parameter - The pageSize value '1000' was greater than the maximum value of 100","details":[{"message":"The pageSize value '1000' was greater than the maximum value of 100","properties":{"parameterName":"pageSize","parameterLocation":"query","lineNumber":null}}]}
-2026-11-10 12:37:54,019 ERROR fnol_data_router: gw_get_fnol_data error
-Traceback (most recent call last):
-  File "/home/JarvisClaims/Musaddique/FNOL_MCP_TOOL/fnol_data_router.py", line 32, in gw_get_fnol_data
-    return handler.get_fnol_data(req.claim_number)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/JarvisClaims/Musaddique/FNOL_MCP_TOOL/fnol_data_mcp/handler.py", line 20, in get_fnol_data
-    gw_response = gw.get_fnol_data_by_claim_number(claim_number)
-                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/JarvisClaims/Musaddique/FNOL_MCP_TOOL/fnol_data_mcp/guidewire_client.py", line 100, in get_fnol_data_by_claim_number
-    resp = _cc_get(
-           ^^^^^^^^
-  File "/home/JarvisClaims/Musaddique/FNOL_MCP_TOOL/fnol_data_mcp/guidewire_client.py", line 65, in _cc_get
-    _raise_for_status(resp, "CC GET", uri)
-  File "/home/JarvisClaims/Musaddique/FNOL_MCP_TOOL/fnol_data_mcp/guidewire_client.py", line 77, in _raise_for_status
-    resp.raise_for_status()
-  File "/home/JarvisClaims/Musaddique/FNOL_MCP_TOOL/venv/lib/python3.11/site-packages/requests/models.py", line 1167, in raise_for_status
-    raise HTTPError(http_error_msg, response=self)
-requests.exceptions.HTTPError: 400 Client Error:  for url: https://cc-sandbox-gwcpdev.hexaware.zeta1-andromeda.guidewire.net/rest/claim/v1/claims?filter=claimNumber%3Aeq%3A000-00-000139&pageSize=1000
-INFO:     127.0.0.1:54640 - "POST /api/v1/fnol_data/gw_get_fnol_data HTTP/1.1" 500 Internal Server Error
+below is my postman response
 
-
-POST
-/gw_get_fnol_data
-Fetch FNOL/claim data from Guidewire ClaimCenter by claim number
-
-
-Looks up a claim in Guidewire ClaimCenter using the claim number (GET /claim/v1/claims, filtered via the filter: claimNumber:eq:<value> header). Returns found=True with claim details, or found=False with a message if no claim matched.
-
-Parameters
-Cancel
-Reset
-No parameters
-
-Request body
-
-application/json
-Edit Value
-Schema
 {
-  "claim_number": "000-00-000139"
+    "count": 1,
+    "data": [
+        {
+            "attributes": {
+                "allValidationLevelsReached": [
+                    {
+                        "code": "payment",
+                        "name": "Ability to pay"
+                    },
+                    {
+                        "code": "external",
+                        "name": "Send to external system"
+                    },
+                    {
+                        "code": "iso",
+                        "name": "Valid for ISO"
+                    },
+                    {
+                        "code": "newloss",
+                        "name": "New loss completion"
+                    },
+                    {
+                        "code": "loadsave",
+                        "name": "Load and save"
+                    }
+                ],
+                "assignedByUser": {
+                    "displayName": "Super User",
+                    "id": "default_data:1",
+                    "type": "User",
+                    "uri": "/admin/v1/users/default_data:1"
+                },
+                "assignedGroup": {
+                    "displayName": "Property - TeamB",
+                    "id": "demo_sample:35",
+                    "type": "Group",
+                    "uri": "/admin/v1/groups/demo_sample:35"
+                },
+                "assignedUser": {
+                    "displayName": "Lynzi Farrell",
+                    "id": "demo_sample:128",
+                    "type": "User",
+                    "uri": "/admin/v1/users/demo_sample:128"
+                },
+                "assignmentStatus": {
+                    "code": "assigned",
+                    "name": "Assigned"
+                },
+                "claimNumber": "000-00-000139",
+                "flagged": {
+                    "code": "neverflagged",
+                    "name": "Never flagged"
+                },
+                "howReported": {
+                    "code": "phone",
+                    "name": "Phone"
+                },
+                "id": "cc:SJEIjFWYLTVHNmEejkEm1",
+                "insured": {
+                    "displayName": "William David",
+                    "id": "cc:Snla0OroRYsSPL8QFCEgO",
+                    "type": "ClaimContact",
+                    "uri": "/claim/v1/claims/cc:SJEIjFWYLTVHNmEejkEm1/contacts/cc:Snla0OroRYsSPL8QFCEgO"
+                },
+                "jurisdiction": {
+                    "code": "IL",
+                    "name": "Illinois"
+                },
+                "lobCode": {
+                    "code": "HOPLine",
+                    "name": "Homeowners Line"
+                },
+                "lossCause": {
+                    "code": "fire",
+                    "name": "Fire"
+                },
+                "lossDate": "2026-11-09T09:00:00.000Z",
+                "lossType": {
+                    "code": "PR",
+                    "name": "Property"
+                },
+                "mainContactType": {
+                    "code": "self",
+                    "name": "Self/Insured"
+                },
+                "policyNumber": "73-400676",
+                "reportedByType": {
+                    "code": "self",
+                    "name": "Self/Insured"
+                },
+                "reportedDate": "2026-11-09T11:55:46.440Z",
+                "reporter": {
+                    "displayName": "Ken Darion",
+                    "id": "cc:SwpRVdSh2sSssWvbfIINo",
+                    "type": "ClaimContact",
+                    "uri": "/claim/v1/claims/cc:SJEIjFWYLTVHNmEejkEm1/contacts/cc:SwpRVdSh2sSssWvbfIINo"
+                },
+                "segment": {
+                    "code": "prop_low",
+                    "name": "Property - low complexity"
+                },
+                "state": {
+                    "code": "open",
+                    "name": "Open"
+                },
+                "strategy": {
+                    "code": "unknown",
+                    "name": "Unknown"
+                },
+                "validationLevel": {
+                    "code": "payment",
+                    "name": "Ability to pay"
+                }
+            },
+            "checksum": "a6fda87a3522e79b5ae8e63af5d98aa6",
+            "links": {
+                "assign": {
+                    "href": "/claim/v1/claims/cc:SJEIjFWYLTVHNmEejkEm1/assign",
+                    "methods": [
+                        "post"
+                    ]
+                },
+                "close": {
+                    "href": "/claim/v1/claims/cc:SJEIjFWYLTVHNmEejkEm1/close",
+                    "methods": [
+                        "post"
+                    ]
+                },
+                "self": {
+                    "href": "/claim/v1/claims/cc:SJEIjFWYLTVHNmEejkEm1",
+                    "methods": [
+                        "get",
+                        "patch"
+                    ]
+                },
+                "validate": {
+                    "href": "/claim/v1/claims/cc:SJEIjFWYLTVHNmEejkEm1/validate",
+                    "methods": [
+                        "post"
+                    ]
+                }
+            }
+        }
+    ],
+    "links": {
+        "first": {
+            "href": "/claim/v1/claims?filter=claimNumber:eq:000-00-000139",
+            "methods": [
+                "get"
+            ]
+        },
+        "self": {
+            "href": "/claim/v1/claims?filter=claimNumber:eq:000-00-000139",
+            "methods": [
+                "get"
+            ]
+        }
+    }
 }
-Execute
-Clear
-Responses
-Curl
 
-curl -X 'POST' \
-  'http://localhost:7740/api/v1/fnol_data/gw_get_fnol_data' \
-  -H 'accept: */*' \
-  -H 'Content-Type: application/json' \
-  -d '{
-  "claim_number": "000-00-000139"
-}'
-Request URL
-http://localhost:7740/api/v1/fnol_data/gw_get_fnol_data
-Server response
-Code	Details
-500
-Undocumented
-Error: Internal Server Error
+below is my swagger response
 
+	
 Response body
 Download
 {
-  "detail": "400 Client Error:  for url: https://cc-sandbox-gwcpdev.hexaware.zeta1-andromeda.guidewire.net/rest/claim/v1/claims?filter=claimNumber%3Aeq%3A000-00-000139&pageSize=1000"
-}
-Response headers
- access-control-allow-origin: * 
- content-length: 181 
- content-type: application/json 
- date: Tue,10 Nov 2026 12:37:53 GMT 
- server: uvicorn 
- vary: Origin,Origin 
-Responses
-Code	Description	Links
-200	
-Successful Response
-
-Media type
-
-application/json
-Controls Accept header.
-Example Value
-Schema
-"string"
-No links
-422	
-Validation Error
-
-Media type
-
-application/json
-Example Value
-Schema
-{
-  "detail": [
-    {
-      "loc": [
-        "string",
-        0
+  "found": true,
+  "claim_number": "000-00-000139",
+  "data": {
+    "claim_id": "",
+    "claim_number": "000-00-000139",
+    "loss_date": "2026-11-09T09:00:00.000Z",
+    "report_date": "2026-11-09T11:55:46.440Z",
+    "status": "Open",
+    "loss_cause": "Fire",
+    "loss_type": "Property",
+    "loss_description": "",
+    "policy_number": "73-400676",
+    "insured_name": "William David",
+    "loss_location": "",
+    "adjuster": "Lynzi Farrell",
+    "raw": {
+      "count": 1,
+      "data": [
+        {
+          "attributes": {
+            "allValidationLevelsReached": [
+              {
+                "code": "payment",
+                "name": "Ability to pay"
+              },
+              {
+                "code": "external",
+                "name": "Send to external system"
+              },
+              {
+                "code": "iso",
+                "name": "Valid for ISO"
+              },
+              {
+                "code": "newloss",
+                "name": "New loss completion"
+              },
+              {
+                "code": "loadsave",
+                "name": "Load and save"
+              }
+            ],
+            "assignedByUser": {
+              "displayName": "Super User",
+              "id": "default_data:1",
+              "type": "User",
+              "uri": "/admin/v1/users/default_data:1"
+            },
+            "assignedGroup": {
+              "displayName": "Property - TeamB",
+              "id": "demo_sample:35",
+              "type": "Group",
+              "uri": "/admin/v1/groups/demo_sample:35"
+            },
+            "assignedUser": {
+              "displayName": "Lynzi Farrell",
+              "id": "demo_sample:128",
+              "type": "User",
+              "uri": "/admin/v1/users/demo_sample:128"
+            },
+            "assignmentStatus": {
+              "code": "assigned",
+              "name": "Assigned"
+            },
+            "claimNumber": "000-00-000139",
+            "flagged": {
+              "code": "neverflagged",
+              "name": "Never flagged"
+            },
+            "howReported": {
+              "code": "phone",
+              "name": "Phone"
+            },
+            "id": "cc:SJEIjFWYLTVHNmEejkEm1",
+            "insured": {
+              "displayName": "William David",
+              "id": "cc:Snla0OroRYsSPL8QFCEgO",
+              "type": "ClaimContact",
+              "uri": "/claim/v1/claims/cc:SJEIjFWYLTVHNmEejkEm1/contacts/cc:Snla0OroRYsSPL8QFCEgO"
+            },
+            "jurisdiction": {
+              "code": "IL",
+              "name": "Illinois"
+            },
+            "lobCode": {
+              "code": "HOPLine",
+              "name": "Homeowners Line"
+            },
+            "lossCause": {
+              "code": "fire",
+              "name": "Fire"
+            },
+            "lossDate": "2026-11-09T09:00:00.000Z",
+            "lossType": {
+              "code": "PR",
+              "name": "Property"
+            },
+            "mainContactType": {
+              "code": "self",
+              "name": "Self/Insured"
+            },
+            "policyNumber": "73-400676",
+            "reportedByType": {
+              "code": "self",
+              "name": "Self/Insured"
+            },
+            "reportedDate": "2026-11-09T11:55:46.440Z",
+            "reporter": {
+              "displayName": "Ken Darion",
+              "id": "cc:SwpRVdSh2sSssWvbfIINo",
+              "type": "ClaimContact",
+              "uri": "/claim/v1/claims/cc:SJEIjFWYLTVHNmEejkEm1/contacts/cc:SwpRVdSh2sSssWvbfIINo"
+            },
+            "segment": {
+              "code": "prop_low",
+              "name": "Property - low complexity"
+            },
+            "state": {
+              "code": "open",
+              "name": "Open"
+            },
+            "strategy": {
+              "code": "unknown",
+              "name": "Unknown"
+            },
+            "validationLevel": {
+              "code": "payment",
+              "name": "Ability to pay"
+            }
+          },
+          "checksum": "a6fda87a3522e79b5ae8e63af5d98aa6",
+          "links": {
+            "assign": {
+              "href": "/claim/v1/claims/cc:SJEIjFWYLTVHNmEejkEm1/assign",
+              "methods": [
+                "post"
+              ]
+            },
+            "close": {
+              "href": "/claim/v1/claims/cc:SJEIjFWYLTVHNmEejkEm1/close",
+              "methods": [
+                "post"
+              ]
+            },
+            "self": {
+              "href": "/claim/v1/claims/cc:SJEIjFWYLTVHNmEejkEm1",
+              "methods": [
+                "get",
+                "patch"
+              ]
+            },
+            "validate": {
+              "href": "/claim/v1/claims/cc:SJEIjFWYLTVHNmEejkEm1/validate",
+              "methods": [
+                "post"
+              ]
+            }
+          }
+        }
       ],
-      "msg": "string",
-      "type": "string",
-      "input": "string",
-      "ctx": {}
+      "links": {
+        "first": {
+          "href": "/claim/v1/claims?filter=claimNumber%3Aeq%3A000-00-000139&pageSize=100",
+          "methods": [
+            "get"
+          ]
+        },
+        "self": {
+          "href": "/claim/v1/claims?filter=claimNumber%3Aeq%3A000-00-000139&pageSize=100",
+          "methods": [
+            "get"
+          ]
+        }
+      }
     }
-  ]
+  }
 }
