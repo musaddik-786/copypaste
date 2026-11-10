@@ -1,5 +1,23 @@
 {
   "found": false,
   "claim_number": "000-00-004122",
-  "message": "No claim found in Guidewire for claim number '000-00-004122'"
+  "message": "No claim found in Guidewire for claim number '000-00-004122'",
+  "raw": {
+    "count": 0,
+    "data": [],
+    "links": {
+      "first": {
+        "href": "/claim/v1/claims",
+        "methods": [
+          "get"
+        ]
+      },
+      "self": {
+        "href": "/claim/v1/claims",
+        "methods": [
+          "get"
+        ]
+      }
+    }
+  }
 }
