@@ -1,14 +1,1507 @@
-(venv) JarvisClaims@JarvisClaims:~/Musaddique/FNOL_MCP_TOOL$ python3 main.py 
-2026-11-10 11:10:28,622 INFO fnol_data_mcp.guidewire_client: Guidewire client configured | base_url=https://cc-sandbox-gwcpdev.hexaware.zeta1-andromeda.guidewire.net/rest | auth_mode=header | username=i cant provide you
-2026-11-10 11:10:28,652 INFO fastapi_mcp.server: No auth config provided, skipping auth setup
-2026-11-10 11:10:28,652 INFO fastapi_mcp.server: MCP HTTP server listening at /mcp
-INFO:     Started server process [105987]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     Uvicorn running on http://0.0.0.0:7740 (Press CTRL+C to quit)
-INFO:     127.0.0.1:35062 - "GET /api/v1/fnol_data/docs HTTP/1.1" 200 OK
-INFO:     127.0.0.1:35062 - "GET /api/v1/fnol_data/openapi.json HTTP/1.1" 200 OK
-2026-11-10 11:10:41,416 INFO fnol_data_mcp.guidewire_client: GW CC GET https://cc-sandbox-gwcpdev.hexaware.zeta1-andromeda.guidewire.net/rest/claim/v1/claims | filter='claimNumber:eq:000-00-000139' | auth_mode=header
-2026-11-10 11:10:41,589 INFO fnol_data_mcp.guidewire_client: GW CC GET /claim/v1/claims -> count=0
-2026-11-10 11:10:41,590 WARNING fnol_data_mcp.guidewire_client: No claim data returned from Guidewire for this claim number
-INFO:     127.0.0.1:35062 - "POST /api/v1/fnol_data/gw_get_fnol_data HTTP/1.1" 200 OK
+i removed the filter from postman and this is the response it gave
+
+{
+    "count": 5,
+    "data": [
+        {
+            "attributes": {
+                "allValidationLevelsReached": [
+                    {
+                        "code": "payment",
+                        "name": "Ability to pay"
+                    },
+                    {
+                        "code": "external",
+                        "name": "Send to external system"
+                    },
+                    {
+                        "code": "iso",
+                        "name": "Valid for ISO"
+                    },
+                    {
+                        "code": "newloss",
+                        "name": "New loss completion"
+                    },
+                    {
+                        "code": "loadsave",
+                        "name": "Load and save"
+                    }
+                ],
+                "assignedGroup": {
+                    "displayName": "Auto1 - TeamA",
+                    "id": "demo_sample:31",
+                    "type": "Group",
+                    "uri": "/admin/v1/groups/demo_sample:31"
+                },
+                "assignedUser": {
+                    "displayName": "Andy Applegate",
+                    "id": "demo_sample:1",
+                    "type": "User",
+                    "uri": "/admin/v1/users/demo_sample:1"
+                },
+                "assignmentStatus": {
+                    "code": "assigned",
+                    "name": "Assigned"
+                },
+                "claimNumber": "235-53-365870",
+                "coverageInQuestion": false,
+                "fault": "80.0",
+                "faultRating": {
+                    "code": "thirdparty",
+                    "name": "Other party at fault"
+                },
+                "flagged": {
+                    "code": "isflagged",
+                    "name": "Is flagged"
+                },
+                "id": "demo_sample:1",
+                "incidentOnly": false,
+                "insured": {
+                    "displayName": "Ray Newton",
+                    "id": "cc:Sfr2TVJDbqJxJU_vBRvFQ",
+                    "type": "ClaimContact",
+                    "uri": "/claim/v1/claims/demo_sample:1/contacts/cc:Sfr2TVJDbqJxJU_vBRvFQ"
+                },
+                "jurisdiction": {
+                    "code": "CA",
+                    "name": "California"
+                },
+                "litigationStatus": {
+                    "code": "litigated",
+                    "name": "In litigation"
+                },
+                "lobCode": {
+                    "code": "PersonalAutoLine",
+                    "name": "Personal Auto Line"
+                },
+                "lossCause": {
+                    "code": "vehcollision",
+                    "name": "Collision with motor vehicle"
+                },
+                "lossDate": "2026-10-24T04:00:00.000Z",
+                "lossType": {
+                    "code": "AUTO",
+                    "name": "Auto"
+                },
+                "mainContact": {
+                    "displayName": "Ray Newton",
+                    "id": "cc:Sfr2TVJDbqJxJU_vBRvFQ",
+                    "type": "ClaimContact",
+                    "uri": "/claim/v1/claims/demo_sample:1/contacts/cc:Sfr2TVJDbqJxJU_vBRvFQ"
+                },
+                "mainContactType": {
+                    "code": "self",
+                    "name": "Self/Insured"
+                },
+                "policyNumber": "54-123456",
+                "reportedByType": {
+                    "code": "self",
+                    "name": "Self/Insured"
+                },
+                "reportedDate": "2026-10-24T04:00:00.000Z",
+                "reporter": {
+                    "displayName": "Ray Newton",
+                    "id": "cc:Sfr2TVJDbqJxJU_vBRvFQ",
+                    "type": "ClaimContact",
+                    "uri": "/claim/v1/claims/demo_sample:1/contacts/cc:Sfr2TVJDbqJxJU_vBRvFQ"
+                },
+                "segment": {
+                    "code": "auto_mid",
+                    "name": "Auto - mid complexity"
+                },
+                "state": {
+                    "code": "open",
+                    "name": "Open"
+                },
+                "strategy": {
+                    "code": "auto_fast",
+                    "name": "Auto - Fast Track"
+                },
+                "validationLevel": {
+                    "code": "payment",
+                    "name": "Ability to pay"
+                },
+                "weather": {
+                    "code": "CL",
+                    "name": "Clear"
+                }
+            },
+            "checksum": "8d74bbcf5e3dd88c89c1c0a13a1458e0",
+            "links": {
+                "assign": {
+                    "href": "/claim/v1/claims/demo_sample:1/assign",
+                    "methods": [
+                        "post"
+                    ]
+                },
+                "close": {
+                    "href": "/claim/v1/claims/demo_sample:1/close",
+                    "methods": [
+                        "post"
+                    ]
+                },
+                "self": {
+                    "href": "/claim/v1/claims/demo_sample:1",
+                    "methods": [
+                        "get",
+                        "patch"
+                    ]
+                },
+                "validate": {
+                    "href": "/claim/v1/claims/demo_sample:1/validate",
+                    "methods": [
+                        "post"
+                    ]
+                }
+            }
+        },
+        {
+            "attributes": {
+                "allValidationLevelsReached": [
+                    {
+                        "code": "payment",
+                        "name": "Ability to pay"
+                    },
+                    {
+                        "code": "external",
+                        "name": "Send to external system"
+                    },
+                    {
+                        "code": "iso",
+                        "name": "Valid for ISO"
+                    },
+                    {
+                        "code": "newloss",
+                        "name": "New loss completion"
+                    },
+                    {
+                        "code": "loadsave",
+                        "name": "Load and save"
+                    }
+                ],
+                "assignedGroup": {
+                    "displayName": "Auto1 - TeamA",
+                    "id": "demo_sample:31",
+                    "type": "Group",
+                    "uri": "/admin/v1/groups/demo_sample:31"
+                },
+                "assignedUser": {
+                    "displayName": "Andy Applegate",
+                    "id": "demo_sample:1",
+                    "type": "User",
+                    "uri": "/admin/v1/users/demo_sample:1"
+                },
+                "assignmentStatus": {
+                    "code": "assigned",
+                    "name": "Assigned"
+                },
+                "claimNumber": "235-53-365871",
+                "coverageInQuestion": false,
+                "fault": "80.0",
+                "flagged": {
+                    "code": "neverflagged",
+                    "name": "Never flagged"
+                },
+                "id": "demo_sample:2",
+                "incidentOnly": false,
+                "insured": {
+                    "displayName": "Allen Robertson",
+                    "id": "cc:S03IF3AXHprp7bNEblhgQ",
+                    "type": "ClaimContact",
+                    "uri": "/claim/v1/claims/demo_sample:2/contacts/cc:S03IF3AXHprp7bNEblhgQ"
+                },
+                "jurisdiction": {
+                    "code": "CA",
+                    "name": "California"
+                },
+                "lobCode": {
+                    "code": "PersonalAutoLine",
+                    "name": "Personal Auto Line"
+                },
+                "lossCause": {
+                    "code": "vehcollision",
+                    "name": "Collision with motor vehicle"
+                },
+                "lossDate": "2026-07-11T04:00:00.000Z",
+                "lossType": {
+                    "code": "AUTO",
+                    "name": "Auto"
+                },
+                "mainContact": {
+                    "displayName": "Ray Newton",
+                    "id": "cc:StJ_6yJPgkCi_mYz7wFtE",
+                    "type": "ClaimContact",
+                    "uri": "/claim/v1/claims/demo_sample:2/contacts/cc:StJ_6yJPgkCi_mYz7wFtE"
+                },
+                "mainContactType": {
+                    "code": "self",
+                    "name": "Self/Insured"
+                },
+                "policyNumber": "54-253465",
+                "reportedByType": {
+                    "code": "self",
+                    "name": "Self/Insured"
+                },
+                "reportedDate": "2026-07-11T04:00:00.000Z",
+                "reporter": {
+                    "displayName": "Ray Newton",
+                    "id": "cc:StJ_6yJPgkCi_mYz7wFtE",
+                    "type": "ClaimContact",
+                    "uri": "/claim/v1/claims/demo_sample:2/contacts/cc:StJ_6yJPgkCi_mYz7wFtE"
+                },
+                "segment": {
+                    "code": "auto_low",
+                    "name": "Auto - low complexity"
+                },
+                "state": {
+                    "code": "open",
+                    "name": "Open"
+                },
+                "strategy": {
+                    "code": "auto_fast",
+                    "name": "Auto - Fast Track"
+                },
+                "validationLevel": {
+                    "code": "payment",
+                    "name": "Ability to pay"
+                },
+                "weather": {
+                    "code": "CL",
+                    "name": "Clear"
+                }
+            },
+            "checksum": "01a34ebfb0275394815f99ee07f0bbd8",
+            "links": {
+                "assign": {
+                    "href": "/claim/v1/claims/demo_sample:2/assign",
+                    "methods": [
+                        "post"
+                    ]
+                },
+                "close": {
+                    "href": "/claim/v1/claims/demo_sample:2/close",
+                    "methods": [
+                        "post"
+                    ]
+                },
+                "self": {
+                    "href": "/claim/v1/claims/demo_sample:2",
+                    "methods": [
+                        "get",
+                        "patch"
+                    ]
+                },
+                "validate": {
+                    "href": "/claim/v1/claims/demo_sample:2/validate",
+                    "methods": [
+                        "post"
+                    ]
+                }
+            }
+        },
+        {
+            "attributes": {
+                "allValidationLevelsReached": [
+                    {
+                        "code": "payment",
+                        "name": "Ability to pay"
+                    },
+                    {
+                        "code": "external",
+                        "name": "Send to external system"
+                    },
+                    {
+                        "code": "iso",
+                        "name": "Valid for ISO"
+                    },
+                    {
+                        "code": "newloss",
+                        "name": "New loss completion"
+                    },
+                    {
+                        "code": "loadsave",
+                        "name": "Load and save"
+                    }
+                ],
+                "assignedGroup": {
+                    "displayName": "Auto1 - TeamA",
+                    "id": "demo_sample:31",
+                    "type": "Group",
+                    "uri": "/admin/v1/groups/demo_sample:31"
+                },
+                "assignedUser": {
+                    "displayName": "Andy Applegate",
+                    "id": "demo_sample:1",
+                    "type": "User",
+                    "uri": "/admin/v1/users/demo_sample:1"
+                },
+                "assignmentStatus": {
+                    "code": "assigned",
+                    "name": "Assigned"
+                },
+                "claimNumber": "235-53-365889",
+                "coverageInQuestion": false,
+                "fault": "80.0",
+                "flagged": {
+                    "code": "neverflagged",
+                    "name": "Never flagged"
+                },
+                "id": "demo_sample:20",
+                "incidentOnly": false,
+                "insured": {
+                    "displayName": "Robert Farley",
+                    "id": "cc:SQQM76_SDGgClTrkxsyQi",
+                    "type": "ClaimContact",
+                    "uri": "/claim/v1/claims/demo_sample:20/contacts/cc:SQQM76_SDGgClTrkxsyQi"
+                },
+                "jurisdiction": {
+                    "code": "CA",
+                    "name": "California"
+                },
+                "lobCode": {
+                    "code": "PersonalAutoLine",
+                    "name": "Personal Auto Line"
+                },
+                "lossCause": {
+                    "code": "vehcollision",
+                    "name": "Collision with motor vehicle"
+                },
+                "lossDate": "2026-10-26T04:00:00.000Z",
+                "lossType": {
+                    "code": "AUTO",
+                    "name": "Auto"
+                },
+                "mainContact": {
+                    "displayName": "Robert Farley",
+                    "id": "cc:SQQM76_SDGgClTrkxsyQi",
+                    "type": "ClaimContact",
+                    "uri": "/claim/v1/claims/demo_sample:20/contacts/cc:SQQM76_SDGgClTrkxsyQi"
+                },
+                "mainContactType": {
+                    "code": "self",
+                    "name": "Self/Insured"
+                },
+                "policyNumber": "54-586734",
+                "reportedByType": {
+                    "code": "other",
+                    "name": "Other"
+                },
+                "reportedDate": "2026-10-31T04:00:00.000Z",
+                "reporter": {
+                    "displayName": "William Weeks",
+                    "id": "cc:SDmrc0PpIZo4rqE-oqS51",
+                    "type": "ClaimContact",
+                    "uri": "/claim/v1/claims/demo_sample:20/contacts/cc:SDmrc0PpIZo4rqE-oqS51"
+                },
+                "segment": {
+                    "code": "auto_mid",
+                    "name": "Auto - mid complexity"
+                },
+                "state": {
+                    "code": "open",
+                    "name": "Open"
+                },
+                "strategy": {
+                    "code": "auto_normal",
+                    "name": "Auto - Investigate"
+                },
+                "validationLevel": {
+                    "code": "payment",
+                    "name": "Ability to pay"
+                },
+                "weather": {
+                    "code": "CL",
+                    "name": "Clear"
+                }
+            },
+            "checksum": "7f6fb838fdf4a3e433129cdb0f43d9da",
+            "links": {
+                "assign": {
+                    "href": "/claim/v1/claims/demo_sample:20/assign",
+                    "methods": [
+                        "post"
+                    ]
+                },
+                "close": {
+                    "href": "/claim/v1/claims/demo_sample:20/close",
+                    "methods": [
+                        "post"
+                    ]
+                },
+                "self": {
+                    "href": "/claim/v1/claims/demo_sample:20",
+                    "methods": [
+                        "get",
+                        "patch"
+                    ]
+                },
+                "validate": {
+                    "href": "/claim/v1/claims/demo_sample:20/validate",
+                    "methods": [
+                        "post"
+                    ]
+                }
+            }
+        },
+        {
+            "attributes": {
+                "allValidationLevelsReached": [
+                    {
+                        "code": "payment",
+                        "name": "Ability to pay"
+                    },
+                    {
+                        "code": "external",
+                        "name": "Send to external system"
+                    },
+                    {
+                        "code": "iso",
+                        "name": "Valid for ISO"
+                    },
+                    {
+                        "code": "newloss",
+                        "name": "New loss completion"
+                    },
+                    {
+                        "code": "loadsave",
+                        "name": "Load and save"
+                    }
+                ],
+                "assignedGroup": {
+                    "displayName": "Auto1 - TeamA",
+                    "id": "demo_sample:31",
+                    "type": "Group",
+                    "uri": "/admin/v1/groups/demo_sample:31"
+                },
+                "assignedUser": {
+                    "displayName": "Andy Applegate",
+                    "id": "demo_sample:1",
+                    "type": "User",
+                    "uri": "/admin/v1/users/demo_sample:1"
+                },
+                "assignmentStatus": {
+                    "code": "assigned",
+                    "name": "Assigned"
+                },
+                "claimNumber": "235-53-425891",
+                "coverageInQuestion": true,
+                "fault": "80.0",
+                "flagged": {
+                    "code": "isflagged",
+                    "name": "Is flagged"
+                },
+                "id": "cc:S6XQdW-5nEtbXB2BTF1De",
+                "incidentOnly": false,
+                "insured": {
+                    "displayName": "Bill Kinman",
+                    "id": "cc:SsS4e6rhhUCQOph4stemf",
+                    "type": "ClaimContact",
+                    "uri": "/claim/v1/claims/cc:S6XQdW-5nEtbXB2BTF1De/contacts/cc:SsS4e6rhhUCQOph4stemf"
+                },
+                "jurisdiction": {
+                    "code": "CA",
+                    "name": "California"
+                },
+                "lobCode": {
+                    "code": "PersonalAutoLine",
+                    "name": "Personal Auto Line"
+                },
+                "lossCause": {
+                    "code": "vehcollision",
+                    "name": "Collision with motor vehicle"
+                },
+                "lossDate": "2026-02-06T05:00:00.000Z",
+                "lossType": {
+                    "code": "AUTO",
+                    "name": "Auto"
+                },
+                "mainContact": {
+                    "displayName": "Bill Kinman",
+                    "id": "cc:SsS4e6rhhUCQOph4stemf",
+                    "type": "ClaimContact",
+                    "uri": "/claim/v1/claims/cc:S6XQdW-5nEtbXB2BTF1De/contacts/cc:SsS4e6rhhUCQOph4stemf"
+                },
+                "mainContactType": {
+                    "code": "self",
+                    "name": "Self/Insured"
+                },
+                "policyNumber": "4775949863-02",
+                "reportedByType": {
+                    "code": "self",
+                    "name": "Self/Insured"
+                },
+                "reportedDate": "2026-07-11T04:00:00.000Z",
+                "reporter": {
+                    "displayName": "Bill Kinman",
+                    "id": "cc:SsS4e6rhhUCQOph4stemf",
+                    "type": "ClaimContact",
+                    "uri": "/claim/v1/claims/cc:S6XQdW-5nEtbXB2BTF1De/contacts/cc:SsS4e6rhhUCQOph4stemf"
+                },
+                "segment": {
+                    "code": "auto_low",
+                    "name": "Auto - low complexity"
+                },
+                "state": {
+                    "code": "open",
+                    "name": "Open"
+                },
+                "strategy": {
+                    "code": "auto_fast",
+                    "name": "Auto - Fast Track"
+                },
+                "validationLevel": {
+                    "code": "payment",
+                    "name": "Ability to pay"
+                },
+                "weather": {
+                    "code": "CL",
+                    "name": "Clear"
+                }
+            },
+            "checksum": "68c65450e2c72008b15e7df97b5fa3f3",
+            "links": {
+                "assign": {
+                    "href": "/claim/v1/claims/cc:S6XQdW-5nEtbXB2BTF1De/assign",
+                    "methods": [
+                        "post"
+                    ]
+                },
+                "close": {
+                    "href": "/claim/v1/claims/cc:S6XQdW-5nEtbXB2BTF1De/close",
+                    "methods": [
+                        "post"
+                    ]
+                },
+                "self": {
+                    "href": "/claim/v1/claims/cc:S6XQdW-5nEtbXB2BTF1De",
+                    "methods": [
+                        "get",
+                        "patch"
+                    ]
+                },
+                "validate": {
+                    "href": "/claim/v1/claims/cc:S6XQdW-5nEtbXB2BTF1De/validate",
+                    "methods": [
+                        "post"
+                    ]
+                }
+            }
+        },
+        {
+            "attributes": {
+                "allValidationLevelsReached": [
+                    {
+                        "code": "payment",
+                        "name": "Ability to pay"
+                    },
+                    {
+                        "code": "external",
+                        "name": "Send to external system"
+                    },
+                    {
+                        "code": "iso",
+                        "name": "Valid for ISO"
+                    },
+                    {
+                        "code": "newloss",
+                        "name": "New loss completion"
+                    },
+                    {
+                        "code": "loadsave",
+                        "name": "Load and save"
+                    }
+                ],
+                "assignedGroup": {
+                    "displayName": "Auto1 - TeamA",
+                    "id": "demo_sample:31",
+                    "type": "Group",
+                    "uri": "/admin/v1/groups/demo_sample:31"
+                },
+                "assignedUser": {
+                    "displayName": "Andy Applegate",
+                    "id": "demo_sample:1",
+                    "type": "User",
+                    "uri": "/admin/v1/users/demo_sample:1"
+                },
+                "assignmentStatus": {
+                    "code": "assigned",
+                    "name": "Assigned"
+                },
+                "claimNumber": "235-53-425892",
+                "coverageInQuestion": false,
+                "fault": "80.0",
+                "faultRating": {
+                    "code": "thirdparty",
+                    "name": "Other party at fault"
+                },
+                "flagged": {
+                    "code": "neverflagged",
+                    "name": "Never flagged"
+                },
+                "id": "cc:SJgLYpOAfHD3IoVsXqeIx",
+                "incidentOnly": false,
+                "insured": {
+                    "displayName": "Karen Egertson",
+                    "id": "cc:SoOMMjIRjMBlEQ9XMMjvS",
+                    "type": "ClaimContact",
+                    "uri": "/claim/v1/claims/cc:SJgLYpOAfHD3IoVsXqeIx/contacts/cc:SoOMMjIRjMBlEQ9XMMjvS"
+                },
+                "jurisdiction": {
+                    "code": "CA",
+                    "name": "California"
+                },
+                "lobCode": {
+                    "code": "PersonalAutoLine",
+                    "name": "Personal Auto Line"
+                },
+                "lossCause": {
+                    "code": "vehcollision",
+                    "name": "Collision with motor vehicle"
+                },
+                "lossDate": "2026-06-06T04:00:00.000Z",
+                "lossType": {
+                    "code": "AUTO",
+                    "name": "Auto"
+                },
+                "mainContact": {
+                    "displayName": "Karen Egertson",
+                    "id": "cc:SoOMMjIRjMBlEQ9XMMjvS",
+                    "type": "ClaimContact",
+                    "uri": "/claim/v1/claims/cc:SJgLYpOAfHD3IoVsXqeIx/contacts/cc:SoOMMjIRjMBlEQ9XMMjvS"
+                },
+                "mainContactType": {
+                    "code": "self",
+                    "name": "Self/Insured"
+                },
+                "policyNumber": "4775949863-02",
+                "reportedByType": {
+                    "code": "other",
+                    "name": "Other"
+                },
+                "reportedDate": "2026-10-31T04:00:00.000Z",
+                "reporter": {
+                    "displayName": "Karen Egertson",
+                    "id": "cc:SoOMMjIRjMBlEQ9XMMjvS",
+                    "type": "ClaimContact",
+                    "uri": "/claim/v1/claims/cc:SJgLYpOAfHD3IoVsXqeIx/contacts/cc:SoOMMjIRjMBlEQ9XMMjvS"
+                },
+                "segment": {
+                    "code": "auto_mid",
+                    "name": "Auto - mid complexity"
+                },
+                "state": {
+                    "code": "open",
+                    "name": "Open"
+                },
+                "strategy": {
+                    "code": "auto_normal",
+                    "name": "Auto - Investigate"
+                },
+                "validationLevel": {
+                    "code": "payment",
+                    "name": "Ability to pay"
+                },
+                "weather": {
+                    "code": "CL",
+                    "name": "Clear"
+                }
+            },
+            "checksum": "17fd08be804065fe6c6c64f97f9c5a4a",
+            "links": {
+                "assign": {
+                    "href": "/claim/v1/claims/cc:SJgLYpOAfHD3IoVsXqeIx/assign",
+                    "methods": [
+                        "post"
+                    ]
+                },
+                "close": {
+                    "href": "/claim/v1/claims/cc:SJgLYpOAfHD3IoVsXqeIx/close",
+                    "methods": [
+                        "post"
+                    ]
+                },
+                "self": {
+                    "href": "/claim/v1/claims/cc:SJgLYpOAfHD3IoVsXqeIx",
+                    "methods": [
+                        "get",
+                        "patch"
+                    ]
+                },
+                "validate": {
+                    "href": "/claim/v1/claims/cc:SJgLYpOAfHD3IoVsXqeIx/validate",
+                    "methods": [
+                        "post"
+                    ]
+                }
+            }
+        }
+    ],
+    "links": {
+        "first": {
+            "href": "/claim/v1/claims",
+            "methods": [
+                "get"
+            ]
+        },
+        "self": {
+            "href": "/claim/v1/claims",
+            "methods": [
+                "get"
+            ]
+        }
+    }
+}
+
+
+i added the filter and below is the response it gave
+{
+    "count": 5,
+    "data": [
+        {
+            "attributes": {
+                "allValidationLevelsReached": [
+                    {
+                        "code": "payment",
+                        "name": "Ability to pay"
+                    },
+                    {
+                        "code": "external",
+                        "name": "Send to external system"
+                    },
+                    {
+                        "code": "iso",
+                        "name": "Valid for ISO"
+                    },
+                    {
+                        "code": "newloss",
+                        "name": "New loss completion"
+                    },
+                    {
+                        "code": "loadsave",
+                        "name": "Load and save"
+                    }
+                ],
+                "assignedGroup": {
+                    "displayName": "Auto1 - TeamA",
+                    "id": "demo_sample:31",
+                    "type": "Group",
+                    "uri": "/admin/v1/groups/demo_sample:31"
+                },
+                "assignedUser": {
+                    "displayName": "Andy Applegate",
+                    "id": "demo_sample:1",
+                    "type": "User",
+                    "uri": "/admin/v1/users/demo_sample:1"
+                },
+                "assignmentStatus": {
+                    "code": "assigned",
+                    "name": "Assigned"
+                },
+                "claimNumber": "235-53-365870",
+                "coverageInQuestion": false,
+                "fault": "80.0",
+                "faultRating": {
+                    "code": "thirdparty",
+                    "name": "Other party at fault"
+                },
+                "flagged": {
+                    "code": "isflagged",
+                    "name": "Is flagged"
+                },
+                "id": "demo_sample:1",
+                "incidentOnly": false,
+                "insured": {
+                    "displayName": "Ray Newton",
+                    "id": "cc:Sfr2TVJDbqJxJU_vBRvFQ",
+                    "type": "ClaimContact",
+                    "uri": "/claim/v1/claims/demo_sample:1/contacts/cc:Sfr2TVJDbqJxJU_vBRvFQ"
+                },
+                "jurisdiction": {
+                    "code": "CA",
+                    "name": "California"
+                },
+                "litigationStatus": {
+                    "code": "litigated",
+                    "name": "In litigation"
+                },
+                "lobCode": {
+                    "code": "PersonalAutoLine",
+                    "name": "Personal Auto Line"
+                },
+                "lossCause": {
+                    "code": "vehcollision",
+                    "name": "Collision with motor vehicle"
+                },
+                "lossDate": "2026-10-24T04:00:00.000Z",
+                "lossType": {
+                    "code": "AUTO",
+                    "name": "Auto"
+                },
+                "mainContact": {
+                    "displayName": "Ray Newton",
+                    "id": "cc:Sfr2TVJDbqJxJU_vBRvFQ",
+                    "type": "ClaimContact",
+                    "uri": "/claim/v1/claims/demo_sample:1/contacts/cc:Sfr2TVJDbqJxJU_vBRvFQ"
+                },
+                "mainContactType": {
+                    "code": "self",
+                    "name": "Self/Insured"
+                },
+                "policyNumber": "54-123456",
+                "reportedByType": {
+                    "code": "self",
+                    "name": "Self/Insured"
+                },
+                "reportedDate": "2026-10-24T04:00:00.000Z",
+                "reporter": {
+                    "displayName": "Ray Newton",
+                    "id": "cc:Sfr2TVJDbqJxJU_vBRvFQ",
+                    "type": "ClaimContact",
+                    "uri": "/claim/v1/claims/demo_sample:1/contacts/cc:Sfr2TVJDbqJxJU_vBRvFQ"
+                },
+                "segment": {
+                    "code": "auto_mid",
+                    "name": "Auto - mid complexity"
+                },
+                "state": {
+                    "code": "open",
+                    "name": "Open"
+                },
+                "strategy": {
+                    "code": "auto_fast",
+                    "name": "Auto - Fast Track"
+                },
+                "validationLevel": {
+                    "code": "payment",
+                    "name": "Ability to pay"
+                },
+                "weather": {
+                    "code": "CL",
+                    "name": "Clear"
+                }
+            },
+            "checksum": "8d74bbcf5e3dd88c89c1c0a13a1458e0",
+            "links": {
+                "assign": {
+                    "href": "/claim/v1/claims/demo_sample:1/assign",
+                    "methods": [
+                        "post"
+                    ]
+                },
+                "close": {
+                    "href": "/claim/v1/claims/demo_sample:1/close",
+                    "methods": [
+                        "post"
+                    ]
+                },
+                "self": {
+                    "href": "/claim/v1/claims/demo_sample:1",
+                    "methods": [
+                        "get",
+                        "patch"
+                    ]
+                },
+                "validate": {
+                    "href": "/claim/v1/claims/demo_sample:1/validate",
+                    "methods": [
+                        "post"
+                    ]
+                }
+            }
+        },
+        {
+            "attributes": {
+                "allValidationLevelsReached": [
+                    {
+                        "code": "payment",
+                        "name": "Ability to pay"
+                    },
+                    {
+                        "code": "external",
+                        "name": "Send to external system"
+                    },
+                    {
+                        "code": "iso",
+                        "name": "Valid for ISO"
+                    },
+                    {
+                        "code": "newloss",
+                        "name": "New loss completion"
+                    },
+                    {
+                        "code": "loadsave",
+                        "name": "Load and save"
+                    }
+                ],
+                "assignedGroup": {
+                    "displayName": "Auto1 - TeamA",
+                    "id": "demo_sample:31",
+                    "type": "Group",
+                    "uri": "/admin/v1/groups/demo_sample:31"
+                },
+                "assignedUser": {
+                    "displayName": "Andy Applegate",
+                    "id": "demo_sample:1",
+                    "type": "User",
+                    "uri": "/admin/v1/users/demo_sample:1"
+                },
+                "assignmentStatus": {
+                    "code": "assigned",
+                    "name": "Assigned"
+                },
+                "claimNumber": "235-53-365871",
+                "coverageInQuestion": false,
+                "fault": "80.0",
+                "flagged": {
+                    "code": "neverflagged",
+                    "name": "Never flagged"
+                },
+                "id": "demo_sample:2",
+                "incidentOnly": false,
+                "insured": {
+                    "displayName": "Allen Robertson",
+                    "id": "cc:S03IF3AXHprp7bNEblhgQ",
+                    "type": "ClaimContact",
+                    "uri": "/claim/v1/claims/demo_sample:2/contacts/cc:S03IF3AXHprp7bNEblhgQ"
+                },
+                "jurisdiction": {
+                    "code": "CA",
+                    "name": "California"
+                },
+                "lobCode": {
+                    "code": "PersonalAutoLine",
+                    "name": "Personal Auto Line"
+                },
+                "lossCause": {
+                    "code": "vehcollision",
+                    "name": "Collision with motor vehicle"
+                },
+                "lossDate": "2026-07-11T04:00:00.000Z",
+                "lossType": {
+                    "code": "AUTO",
+                    "name": "Auto"
+                },
+                "mainContact": {
+                    "displayName": "Ray Newton",
+                    "id": "cc:StJ_6yJPgkCi_mYz7wFtE",
+                    "type": "ClaimContact",
+                    "uri": "/claim/v1/claims/demo_sample:2/contacts/cc:StJ_6yJPgkCi_mYz7wFtE"
+                },
+                "mainContactType": {
+                    "code": "self",
+                    "name": "Self/Insured"
+                },
+                "policyNumber": "54-253465",
+                "reportedByType": {
+                    "code": "self",
+                    "name": "Self/Insured"
+                },
+                "reportedDate": "2026-07-11T04:00:00.000Z",
+                "reporter": {
+                    "displayName": "Ray Newton",
+                    "id": "cc:StJ_6yJPgkCi_mYz7wFtE",
+                    "type": "ClaimContact",
+                    "uri": "/claim/v1/claims/demo_sample:2/contacts/cc:StJ_6yJPgkCi_mYz7wFtE"
+                },
+                "segment": {
+                    "code": "auto_low",
+                    "name": "Auto - low complexity"
+                },
+                "state": {
+                    "code": "open",
+                    "name": "Open"
+                },
+                "strategy": {
+                    "code": "auto_fast",
+                    "name": "Auto - Fast Track"
+                },
+                "validationLevel": {
+                    "code": "payment",
+                    "name": "Ability to pay"
+                },
+                "weather": {
+                    "code": "CL",
+                    "name": "Clear"
+                }
+            },
+            "checksum": "01a34ebfb0275394815f99ee07f0bbd8",
+            "links": {
+                "assign": {
+                    "href": "/claim/v1/claims/demo_sample:2/assign",
+                    "methods": [
+                        "post"
+                    ]
+                },
+                "close": {
+                    "href": "/claim/v1/claims/demo_sample:2/close",
+                    "methods": [
+                        "post"
+                    ]
+                },
+                "self": {
+                    "href": "/claim/v1/claims/demo_sample:2",
+                    "methods": [
+                        "get",
+                        "patch"
+                    ]
+                },
+                "validate": {
+                    "href": "/claim/v1/claims/demo_sample:2/validate",
+                    "methods": [
+                        "post"
+                    ]
+                }
+            }
+        },
+        {
+            "attributes": {
+                "allValidationLevelsReached": [
+                    {
+                        "code": "payment",
+                        "name": "Ability to pay"
+                    },
+                    {
+                        "code": "external",
+                        "name": "Send to external system"
+                    },
+                    {
+                        "code": "iso",
+                        "name": "Valid for ISO"
+                    },
+                    {
+                        "code": "newloss",
+                        "name": "New loss completion"
+                    },
+                    {
+                        "code": "loadsave",
+                        "name": "Load and save"
+                    }
+                ],
+                "assignedGroup": {
+                    "displayName": "Auto1 - TeamA",
+                    "id": "demo_sample:31",
+                    "type": "Group",
+                    "uri": "/admin/v1/groups/demo_sample:31"
+                },
+                "assignedUser": {
+                    "displayName": "Andy Applegate",
+                    "id": "demo_sample:1",
+                    "type": "User",
+                    "uri": "/admin/v1/users/demo_sample:1"
+                },
+                "assignmentStatus": {
+                    "code": "assigned",
+                    "name": "Assigned"
+                },
+                "claimNumber": "235-53-365889",
+                "coverageInQuestion": false,
+                "fault": "80.0",
+                "flagged": {
+                    "code": "neverflagged",
+                    "name": "Never flagged"
+                },
+                "id": "demo_sample:20",
+                "incidentOnly": false,
+                "insured": {
+                    "displayName": "Robert Farley",
+                    "id": "cc:SQQM76_SDGgClTrkxsyQi",
+                    "type": "ClaimContact",
+                    "uri": "/claim/v1/claims/demo_sample:20/contacts/cc:SQQM76_SDGgClTrkxsyQi"
+                },
+                "jurisdiction": {
+                    "code": "CA",
+                    "name": "California"
+                },
+                "lobCode": {
+                    "code": "PersonalAutoLine",
+                    "name": "Personal Auto Line"
+                },
+                "lossCause": {
+                    "code": "vehcollision",
+                    "name": "Collision with motor vehicle"
+                },
+                "lossDate": "2026-10-26T04:00:00.000Z",
+                "lossType": {
+                    "code": "AUTO",
+                    "name": "Auto"
+                },
+                "mainContact": {
+                    "displayName": "Robert Farley",
+                    "id": "cc:SQQM76_SDGgClTrkxsyQi",
+                    "type": "ClaimContact",
+                    "uri": "/claim/v1/claims/demo_sample:20/contacts/cc:SQQM76_SDGgClTrkxsyQi"
+                },
+                "mainContactType": {
+                    "code": "self",
+                    "name": "Self/Insured"
+                },
+                "policyNumber": "54-586734",
+                "reportedByType": {
+                    "code": "other",
+                    "name": "Other"
+                },
+                "reportedDate": "2026-10-31T04:00:00.000Z",
+                "reporter": {
+                    "displayName": "William Weeks",
+                    "id": "cc:SDmrc0PpIZo4rqE-oqS51",
+                    "type": "ClaimContact",
+                    "uri": "/claim/v1/claims/demo_sample:20/contacts/cc:SDmrc0PpIZo4rqE-oqS51"
+                },
+                "segment": {
+                    "code": "auto_mid",
+                    "name": "Auto - mid complexity"
+                },
+                "state": {
+                    "code": "open",
+                    "name": "Open"
+                },
+                "strategy": {
+                    "code": "auto_normal",
+                    "name": "Auto - Investigate"
+                },
+                "validationLevel": {
+                    "code": "payment",
+                    "name": "Ability to pay"
+                },
+                "weather": {
+                    "code": "CL",
+                    "name": "Clear"
+                }
+            },
+            "checksum": "7f6fb838fdf4a3e433129cdb0f43d9da",
+            "links": {
+                "assign": {
+                    "href": "/claim/v1/claims/demo_sample:20/assign",
+                    "methods": [
+                        "post"
+                    ]
+                },
+                "close": {
+                    "href": "/claim/v1/claims/demo_sample:20/close",
+                    "methods": [
+                        "post"
+                    ]
+                },
+                "self": {
+                    "href": "/claim/v1/claims/demo_sample:20",
+                    "methods": [
+                        "get",
+                        "patch"
+                    ]
+                },
+                "validate": {
+                    "href": "/claim/v1/claims/demo_sample:20/validate",
+                    "methods": [
+                        "post"
+                    ]
+                }
+            }
+        },
+        {
+            "attributes": {
+                "allValidationLevelsReached": [
+                    {
+                        "code": "payment",
+                        "name": "Ability to pay"
+                    },
+                    {
+                        "code": "external",
+                        "name": "Send to external system"
+                    },
+                    {
+                        "code": "iso",
+                        "name": "Valid for ISO"
+                    },
+                    {
+                        "code": "newloss",
+                        "name": "New loss completion"
+                    },
+                    {
+                        "code": "loadsave",
+                        "name": "Load and save"
+                    }
+                ],
+                "assignedGroup": {
+                    "displayName": "Auto1 - TeamA",
+                    "id": "demo_sample:31",
+                    "type": "Group",
+                    "uri": "/admin/v1/groups/demo_sample:31"
+                },
+                "assignedUser": {
+                    "displayName": "Andy Applegate",
+                    "id": "demo_sample:1",
+                    "type": "User",
+                    "uri": "/admin/v1/users/demo_sample:1"
+                },
+                "assignmentStatus": {
+                    "code": "assigned",
+                    "name": "Assigned"
+                },
+                "claimNumber": "235-53-425891",
+                "coverageInQuestion": true,
+                "fault": "80.0",
+                "flagged": {
+                    "code": "isflagged",
+                    "name": "Is flagged"
+                },
+                "id": "cc:S6XQdW-5nEtbXB2BTF1De",
+                "incidentOnly": false,
+                "insured": {
+                    "displayName": "Bill Kinman",
+                    "id": "cc:SsS4e6rhhUCQOph4stemf",
+                    "type": "ClaimContact",
+                    "uri": "/claim/v1/claims/cc:S6XQdW-5nEtbXB2BTF1De/contacts/cc:SsS4e6rhhUCQOph4stemf"
+                },
+                "jurisdiction": {
+                    "code": "CA",
+                    "name": "California"
+                },
+                "lobCode": {
+                    "code": "PersonalAutoLine",
+                    "name": "Personal Auto Line"
+                },
+                "lossCause": {
+                    "code": "vehcollision",
+                    "name": "Collision with motor vehicle"
+                },
+                "lossDate": "2026-02-06T05:00:00.000Z",
+                "lossType": {
+                    "code": "AUTO",
+                    "name": "Auto"
+                },
+                "mainContact": {
+                    "displayName": "Bill Kinman",
+                    "id": "cc:SsS4e6rhhUCQOph4stemf",
+                    "type": "ClaimContact",
+                    "uri": "/claim/v1/claims/cc:S6XQdW-5nEtbXB2BTF1De/contacts/cc:SsS4e6rhhUCQOph4stemf"
+                },
+                "mainContactType": {
+                    "code": "self",
+                    "name": "Self/Insured"
+                },
+                "policyNumber": "4775949863-02",
+                "reportedByType": {
+                    "code": "self",
+                    "name": "Self/Insured"
+                },
+                "reportedDate": "2026-07-11T04:00:00.000Z",
+                "reporter": {
+                    "displayName": "Bill Kinman",
+                    "id": "cc:SsS4e6rhhUCQOph4stemf",
+                    "type": "ClaimContact",
+                    "uri": "/claim/v1/claims/cc:S6XQdW-5nEtbXB2BTF1De/contacts/cc:SsS4e6rhhUCQOph4stemf"
+                },
+                "segment": {
+                    "code": "auto_low",
+                    "name": "Auto - low complexity"
+                },
+                "state": {
+                    "code": "open",
+                    "name": "Open"
+                },
+                "strategy": {
+                    "code": "auto_fast",
+                    "name": "Auto - Fast Track"
+                },
+                "validationLevel": {
+                    "code": "payment",
+                    "name": "Ability to pay"
+                },
+                "weather": {
+                    "code": "CL",
+                    "name": "Clear"
+                }
+            },
+            "checksum": "68c65450e2c72008b15e7df97b5fa3f3",
+            "links": {
+                "assign": {
+                    "href": "/claim/v1/claims/cc:S6XQdW-5nEtbXB2BTF1De/assign",
+                    "methods": [
+                        "post"
+                    ]
+                },
+                "close": {
+                    "href": "/claim/v1/claims/cc:S6XQdW-5nEtbXB2BTF1De/close",
+                    "methods": [
+                        "post"
+                    ]
+                },
+                "self": {
+                    "href": "/claim/v1/claims/cc:S6XQdW-5nEtbXB2BTF1De",
+                    "methods": [
+                        "get",
+                        "patch"
+                    ]
+                },
+                "validate": {
+                    "href": "/claim/v1/claims/cc:S6XQdW-5nEtbXB2BTF1De/validate",
+                    "methods": [
+                        "post"
+                    ]
+                }
+            }
+        },
+        {
+            "attributes": {
+                "allValidationLevelsReached": [
+                    {
+                        "code": "payment",
+                        "name": "Ability to pay"
+                    },
+                    {
+                        "code": "external",
+                        "name": "Send to external system"
+                    },
+                    {
+                        "code": "iso",
+                        "name": "Valid for ISO"
+                    },
+                    {
+                        "code": "newloss",
+                        "name": "New loss completion"
+                    },
+                    {
+                        "code": "loadsave",
+                        "name": "Load and save"
+                    }
+                ],
+                "assignedGroup": {
+                    "displayName": "Auto1 - TeamA",
+                    "id": "demo_sample:31",
+                    "type": "Group",
+                    "uri": "/admin/v1/groups/demo_sample:31"
+                },
+                "assignedUser": {
+                    "displayName": "Andy Applegate",
+                    "id": "demo_sample:1",
+                    "type": "User",
+                    "uri": "/admin/v1/users/demo_sample:1"
+                },
+                "assignmentStatus": {
+                    "code": "assigned",
+                    "name": "Assigned"
+                },
+                "claimNumber": "235-53-425892",
+                "coverageInQuestion": false,
+                "fault": "80.0",
+                "faultRating": {
+                    "code": "thirdparty",
+                    "name": "Other party at fault"
+                },
+                "flagged": {
+                    "code": "neverflagged",
+                    "name": "Never flagged"
+                },
+                "id": "cc:SJgLYpOAfHD3IoVsXqeIx",
+                "incidentOnly": false,
+                "insured": {
+                    "displayName": "Karen Egertson",
+                    "id": "cc:SoOMMjIRjMBlEQ9XMMjvS",
+                    "type": "ClaimContact",
+                    "uri": "/claim/v1/claims/cc:SJgLYpOAfHD3IoVsXqeIx/contacts/cc:SoOMMjIRjMBlEQ9XMMjvS"
+                },
+                "jurisdiction": {
+                    "code": "CA",
+                    "name": "California"
+                },
+                "lobCode": {
+                    "code": "PersonalAutoLine",
+                    "name": "Personal Auto Line"
+                },
+                "lossCause": {
+                    "code": "vehcollision",
+                    "name": "Collision with motor vehicle"
+                },
+                "lossDate": "2026-06-06T04:00:00.000Z",
+                "lossType": {
+                    "code": "AUTO",
+                    "name": "Auto"
+                },
+                "mainContact": {
+                    "displayName": "Karen Egertson",
+                    "id": "cc:SoOMMjIRjMBlEQ9XMMjvS",
+                    "type": "ClaimContact",
+                    "uri": "/claim/v1/claims/cc:SJgLYpOAfHD3IoVsXqeIx/contacts/cc:SoOMMjIRjMBlEQ9XMMjvS"
+                },
+                "mainContactType": {
+                    "code": "self",
+                    "name": "Self/Insured"
+                },
+                "policyNumber": "4775949863-02",
+                "reportedByType": {
+                    "code": "other",
+                    "name": "Other"
+                },
+                "reportedDate": "2026-10-31T04:00:00.000Z",
+                "reporter": {
+                    "displayName": "Karen Egertson",
+                    "id": "cc:SoOMMjIRjMBlEQ9XMMjvS",
+                    "type": "ClaimContact",
+                    "uri": "/claim/v1/claims/cc:SJgLYpOAfHD3IoVsXqeIx/contacts/cc:SoOMMjIRjMBlEQ9XMMjvS"
+                },
+                "segment": {
+                    "code": "auto_mid",
+                    "name": "Auto - mid complexity"
+                },
+                "state": {
+                    "code": "open",
+                    "name": "Open"
+                },
+                "strategy": {
+                    "code": "auto_normal",
+                    "name": "Auto - Investigate"
+                },
+                "validationLevel": {
+                    "code": "payment",
+                    "name": "Ability to pay"
+                },
+                "weather": {
+                    "code": "CL",
+                    "name": "Clear"
+                }
+            },
+            "checksum": "17fd08be804065fe6c6c64f97f9c5a4a",
+            "links": {
+                "assign": {
+                    "href": "/claim/v1/claims/cc:SJgLYpOAfHD3IoVsXqeIx/assign",
+                    "methods": [
+                        "post"
+                    ]
+                },
+                "close": {
+                    "href": "/claim/v1/claims/cc:SJgLYpOAfHD3IoVsXqeIx/close",
+                    "methods": [
+                        "post"
+                    ]
+                },
+                "self": {
+                    "href": "/claim/v1/claims/cc:SJgLYpOAfHD3IoVsXqeIx",
+                    "methods": [
+                        "get",
+                        "patch"
+                    ]
+                },
+                "validate": {
+                    "href": "/claim/v1/claims/cc:SJgLYpOAfHD3IoVsXqeIx/validate",
+                    "methods": [
+                        "post"
+                    ]
+                }
+            }
+        }
+    ],
+    "links": {
+        "first": {
+            "href": "/claim/v1/claims",
+            "methods": [
+                "get"
+            ]
+        },
+        "self": {
+            "href": "/claim/v1/claims",
+            "methods": [
+                "get"
+            ]
+        }
+    }
+}
