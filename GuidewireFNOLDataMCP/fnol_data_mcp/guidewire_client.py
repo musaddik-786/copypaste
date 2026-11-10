@@ -22,7 +22,13 @@ CC_BASE_URL = os.environ.get(
     "GW_CC_BASE_URL",
     "https://cc-sandbox-gwcpdev.hexaware.zeta1-andromeda.guidewire.net/rest",
 )
+
+# Either set GW_AUTHORIZATION directly (a full "Basic <base64>" / "Bearer <token>"
+# header value), or set GW_USERNAME + GW_PASSWORD and let requests build the Basic
+# auth header the same way Postman's Authorization tab does.
 GW_AUTH = os.environ.get("GW_AUTHORIZATION", "")
+GW_USERNAME = os.environ.get("GW_USERNAME", "")
+GW_PASSWORD = os.environ.get("GW_PASSWORD", "")
 
 REQUEST_TIMEOUT = int(os.environ.get("GW_TIMEOUT_SECONDS", "30"))
 
@@ -32,15 +38,23 @@ def _cc_get(uri: str, extra_headers: Optional[dict] = None) -> dict:
     headers = {
         "accept": "application/json",
         "Content-Type": "application/json",
-        "authorization": GW_AUTH,
     }
+    if GW_AUTH:
+        headers["authorization"] = GW_AUTH
     if extra_headers:
         headers.update(extra_headers)
 
-    log.info("GW CC GET %s", url)
-    resp = requests.get(url, headers=headers, timeout=REQUEST_TIMEOUT)
+    # Prefer GW_USERNAME/GW_PASSWORD (requests builds the Basic auth header
+    # itself, exactly like Postman's Authorization tab does) unless a raw
+    # GW_AUTHORIZATION header value was supplied instead.
+    auth = (GW_USERNAME, GW_PASSWORD) if (GW_USERNAME and not GW_AUTH) else None
+
+    log.info("GW CC GET %s | filter=%r | auth_mode=%s", url, headers.get("filter"), "basic" if auth else ("header" if GW_AUTH else "none"))
+    resp = requests.get(url, headers=headers, auth=auth, timeout=REQUEST_TIMEOUT)
     _raise_for_status(resp, "CC GET", uri)
-    return resp.json()
+    body = resp.json()
+    log.info("GW CC GET %s -> count=%s", uri, body.get("count") if isinstance(body, dict) else "n/a")
+    return body
 
 
 def _raise_for_status(resp: requests.Response, method: str, uri: str):

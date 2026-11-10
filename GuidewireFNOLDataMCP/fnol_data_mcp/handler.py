@@ -25,6 +25,7 @@ def get_fnol_data(claim_number: str) -> dict:
             "found": False,
             "claim_number": claim_number,
             "message": f"No claim found in Guidewire for claim number '{claim_number}'",
+            "raw": gw_response,
         }
 
     return {
