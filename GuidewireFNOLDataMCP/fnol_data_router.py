@@ -3,6 +3,7 @@ fnol_data_router.py
 ────────────────────
 Endpoints / MCP tools:
   gw_get_fnol_data   POST /gw_get_fnol_data
+  gw_list_claims     GET  /gw_list_claims
 """
 
 import logging
@@ -31,4 +32,22 @@ def gw_get_fnol_data(req: GetFnolDataRequest):
         return handler.get_fnol_data(req.claim_number)
     except Exception as e:
         log.exception("gw_get_fnol_data error")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get(
+    "/gw_list_claims",
+    operation_id="gw_list_claims",
+    summary="[Debug] List an unfiltered page of claims from Guidewire ClaimCenter",
+)
+def gw_list_claims(page_size: int = 10):
+    """
+    Debug helper — not part of the normal FNOL lookup flow. Fetches claims
+    with no filter applied, to confirm connectivity/auth and surface real
+    claim numbers to test gw_get_fnol_data with.
+    """
+    try:
+        return handler.list_claims(page_size=page_size)
+    except Exception as e:
+        log.exception("gw_list_claims error")
         raise HTTPException(status_code=500, detail=str(e))

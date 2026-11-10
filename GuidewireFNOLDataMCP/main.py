@@ -64,6 +64,7 @@ FastApiMCP(
     fnol_data_app,
     include_operations=[
         "gw_get_fnol_data",
+        "gw_list_claims",
     ],
 ).mount_http()
 app.mount("/api/v1/fnol_data", fnol_data_app)
