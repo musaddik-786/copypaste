@@ -99,7 +99,7 @@ def get_fnol_data_by_claim_number(claim_number: str) -> dict:
     filter_value = f"claimNumber:eq:{claim_number}"
     resp = _cc_get(
         "/claim/v1/claims",
-        params={"filter": filter_value, "pageSize": 1000},
+        params={"filter": filter_value, "pageSize": 100},
     )
     all_claims = resp.get("data", [])
     matches = [
