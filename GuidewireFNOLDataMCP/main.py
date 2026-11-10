@@ -12,10 +12,13 @@ Run:
     python main.py
 """
 
+import logging
 import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
 from dotenv import load_dotenv, find_dotenv
 load_dotenv(find_dotenv())
