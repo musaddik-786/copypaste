@@ -33,3 +33,21 @@ def get_fnol_data(claim_number: str) -> dict:
         "claim_number": claim_number,
         "data": parsed,
     }
+
+
+def list_claims(page_size: int = 10) -> dict:
+    """
+    Debug helper: fetches an unfiltered page of claims from Guidewire
+    ClaimCenter to sanity-check connectivity/auth and to find real claim
+    numbers to test gw_get_fnol_data with.
+    """
+    gw_response = gw.list_claims(page_size=page_size)
+    claim_numbers = [
+        (item.get("attributes", {}) or {}).get("claimNumber")
+        for item in gw_response.get("data", [])
+    ]
+    return {
+        "count": gw_response.get("count"),
+        "claim_numbers": claim_numbers,
+        "raw": gw_response,
+    }

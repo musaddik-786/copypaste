@@ -40,7 +40,7 @@ log.info(
 )
 
 
-def _cc_get(uri: str, extra_headers: Optional[dict] = None) -> dict:
+def _cc_get(uri: str, extra_headers: Optional[dict] = None, params: Optional[dict] = None) -> dict:
     url = CC_BASE_URL + uri
     headers = {
         "accept": "application/json",
@@ -56,8 +56,12 @@ def _cc_get(uri: str, extra_headers: Optional[dict] = None) -> dict:
     # GW_AUTHORIZATION header value was supplied instead.
     auth = (GW_USERNAME, GW_PASSWORD) if (GW_USERNAME and not GW_AUTH) else None
 
-    log.info("GW CC GET %s | filter=%r | auth_mode=%s", url, headers.get("filter"), "basic" if auth else ("header" if GW_AUTH else "none"))
-    resp = requests.get(url, headers=headers, auth=auth, timeout=REQUEST_TIMEOUT)
+    log.info(
+        "GW CC GET %s | filter_header=%r | filter_param=%r | auth_mode=%s",
+        url, headers.get("filter"), (params or {}).get("filter"),
+        "basic" if auth else ("header" if GW_AUTH else "none"),
+    )
+    resp = requests.get(url, headers=headers, params=params, auth=auth, timeout=REQUEST_TIMEOUT)
     _raise_for_status(resp, "CC GET", uri)
     body = resp.json()
     log.info("GW CC GET %s -> count=%s", uri, body.get("count") if isinstance(body, dict) else "n/a")
@@ -81,11 +85,40 @@ def get_fnol_data_by_claim_number(claim_number: str) -> dict:
     number.
 
     Uses: GET /claim/v1/claims
-    Filtered via the ClaimCenter Cloud API header-based filter syntax, e.g.:
-        filter: claimNumber:eq:000-00-004122
+
+    Sends the `claimNumber:eq:<value>` filter as both a `filter` header and
+    a `filter` query parameter (the documented ClaimCenter Cloud API
+    syntax), but does NOT trust the server to apply it — on this
+    environment, ClaimCenter silently ignores the filter and always returns
+    its full (unfiltered) claims page regardless of what's sent. So the
+    actual matching is done client-side against whatever `data` comes back.
     """
     filter_value = f"claimNumber:eq:{claim_number}"
-    return _cc_get("/claim/v1/claims", extra_headers={"filter": filter_value})
+    resp = _cc_get(
+        "/claim/v1/claims",
+        extra_headers={"filter": filter_value},
+        params={"filter": filter_value, "pageSize": 1000},
+    )
+    all_claims = resp.get("data", [])
+    matches = [
+        c for c in all_claims
+        if (c.get("attributes") or {}).get("claimNumber") == claim_number
+    ]
+    log.info(
+        "Client-side filter: %d/%d claims matched claimNumber=%r",
+        len(matches), len(all_claims), claim_number,
+    )
+    return {**resp, "data": matches, "count": len(matches)}
+
+
+def list_claims(page_size: int = 10) -> dict:
+    """
+    Fetches an unfiltered page of claims — useful for sanity-checking that
+    auth/connectivity works and for finding real claim numbers to test with.
+
+    Uses: GET /claim/v1/claims
+    """
+    return _cc_get("/claim/v1/claims", params={"pageSize": page_size})
 
 
 # -- Response parsers -------------------------------------------------------
@@ -109,14 +142,14 @@ def parse_fnol_data(gw_response: dict) -> Optional[dict]:
             "claim_number": attrs.get("claimNumber", ""),
             "loss_date": attrs.get("lossDate", ""),
             "report_date": attrs.get("reportedDate", ""),
-            "status": attrs.get("state", attrs.get("status", "Unknown")),
+            "status": (attrs.get("state") or {}).get("name", attrs.get("status", "Unknown")),
             "loss_cause": (attrs.get("lossCause") or {}).get("name", attrs.get("lossCause", "")),
             "loss_type": (attrs.get("lossType") or {}).get("name", attrs.get("lossType", "")),
             "loss_description": attrs.get("description", ""),
-            "policy_number": (attrs.get("policy") or {}).get("policyNumber", ""),
-            "insured_name": (attrs.get("primaryInsured") or {}).get("displayName", ""),
+            "policy_number": attrs.get("policyNumber", (attrs.get("policy") or {}).get("policyNumber", "")),
+            "insured_name": (attrs.get("insured") or attrs.get("primaryInsured") or {}).get("displayName", ""),
             "loss_location": (attrs.get("lossLocation") or {}).get("displayName", ""),
-            "adjuster": (attrs.get("adjuster") or {}).get("displayName", ""),
+            "adjuster": (attrs.get("assignedUser") or attrs.get("adjuster") or {}).get("displayName", ""),
             "raw": gw_response,
         }
 
