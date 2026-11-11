@@ -1,63 +1,32 @@
-## What This Diagram Is Really Saying (Plain-English Walkthrough)
-
-Think of it as the answer to one question: **"Where does an AI support agent get its knowledge from, and how do we make sure that knowledge is good?"**
-
-The title line under the heading is the whole point: *"A single, continuously refreshed knowledge base that powers four tier agents."* Everything else is just the mechanics of how that one knowledge base gets built and kept clean.
-
----
-
-### Step 1: The Raw Ingredients (top row, 4 boxes)
-
-These are things that already exist in a support organization — nobody has to create new data, we just collect what's lying around:
-
-| Source | What it actually is |
-|---|---|
-| **Historical Tickets** | Old support tickets that are closed, along with the notes on how they were fixed |
-| **Chat & RCA Reports** | Transcripts of analysts chatting about issues, plus formal "Root Cause Analysis" write-ups for bigger incidents |
-| **Guidewire Release Notes** | Official changelogs/advisories from Guidewire (the insurance software vendor) about what changed in their product |
-| **Runbooks / SOPs** | Existing step-by-step procedure documents the team already uses |
-
-**Why it matters:** this is "unstructured mess" — tickets written differently by different people, chats full of slang, PDFs from a vendor. It's useful info, but not usable *as-is*.
-
----
-
-### Step 2: Turning Mess into Knowledge (the pipeline, 4 stacked boxes)
-
-This is the actual "factory line" that processes the raw material:
-
-1. **Ingestion & Normalization**
-   Pulls all 4 sources into one pipeline and **tags everything consistently** — which Guidewire module it relates to, what category of issue, how severe, what type of fix it was. Think of it like applying the same labels/folders to every document regardless of where it came from.
-
-2. **Structuring Agent**
-   Takes that normalized text and rewrites it into a **standard SOP/runbook format** (so every entry "looks" the same structurally), and also creates **vector embeddings** — a numeric representation of the text's meaning that lets a computer later search by *concept* ("login failures after upgrade") rather than needing exact keyword matches.
-
-3. **SME Curation Gate**
-   A **human expert (Subject Matter Expert)** checks a sample of this auto-processed content before it's trusted. This is the **one manual checkpoint** in an otherwise automated pipeline — the diagram calls out that a bad tag here would "poison" everything downstream, since every later agent relies on these tags/categories being correct.
-
-4. **Knowledge Store**
-   The final destination: one combined database (part vector search, part structured/tagged records). It's **not a one-time snapshot** — it keeps refreshing as new tickets get closed and re-syncs whenever Guidewire releases a new version.
-
----
-
-### Step 3: One Knowledge Base, Four Different Users (bottom row)
-
-Here's the key design decision the diagram is making: instead of building 4 separate databases for 4 different agents, **everyone drinks from the same well**:
-
-- **L1 — Guided Resolution Agent**: probably front-line, walks a support person through a known fix step by step
-- **L2 — Resolution Intelligence Agent**: smarter matching — "this looks similar to past issue X, here's what worked"
-- **L3 — Problem Ops & RCA Agent**: for deeper investigation — finding root causes across patterns of tickets
-- **L4 — MIM Coordination Agent**: "Major Incident Management" — coordinating response during a big outage
-
-The footer line makes this explicit: *"One Knowledge Base. Four Tier Agents."* — the selling point is efficiency and consistency: build the knowledge pipeline once, reuse it everywhere, rather than maintaining four separate, possibly-inconsistent data stores.
-
----
-
-### So what is "Knowledge Base for Knowledge Ops Agent" asking you to do?
-
-Given this diagram, your assignment is almost certainly asking you to **design (and maybe partially build) this exact pipeline** — i.e., given raw support data, show how you'd:
-- normalize/tag it against a taxonomy,
-- structure it + generate embeddings,
-- put a quality-control step in,
-- store it so multiple downstream agents/use-cases can query it.
-
-If you tell me whether you need a written design, a slide deck, or actual working code (e.g., a small Python script that ingests sample tickets, tags them, embeds them, and stores them in a vector DB), I can help you build that specific deliverable next.
+[
+    "openai.gpt-6-astra",
+    "openai.gpt-5.6-terra",
+    "anthropic.claude-haiku-4-5-20251001-v1:0",
+    "qwen.qwen3-235b-a22b-2507-v1:0",
+    "anthropic.claude-opus-5-5",
+    "moonshotai.kimi-k2.5",
+    "openai.gpt-oss-120b-1:0",
+    "zai.glm-5.3",
+    "moonshotai.kimi-k3",
+    "anthropic.claude-fable-5",
+    "deepseek.v3.2",
+    "anthropic.claude-haiku-5-5",
+    "twelvelabs.pegasus-1-5-v1:0",
+    "anthropic.claude-sonnet-4-6",
+    "zai.glm-4.7-flash",
+    "xai.grok-4.7",
+    "xai.grok-4.6",
+    "amazon.nova-pro-v1:0",
+    "amazon.nova-2-lite-v1:0",
+    "minimax.minimax-m2.5",
+    "twelvelabs.pegasus-1-2-v1:0",
+    "amazon.nova-2-sonic-v1:0",
+    "mistral.devstral-2-123b",
+    "minimax.minimax-m2.1",
+    "openai.gpt-6.1-terra",
+    "openai.gpt-6.1-sol",
+    "nvidia.nemotron-super-3-120b",
+    "qwen.qwen3-32b-v1:0",
+    "anthropic.claude-opus-4-6-v1",
+    "zai.glm-5",
+:
