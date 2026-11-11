@@ -1,3 +1,134 @@
+Azure Services Usage by Persona
+POLICYHOLDER PERSONA
+Azure Service	Purpose	Details
+Azure OpenAI	LLM for claim intake, policy verification, duplicates check, readiness assessment	Endpoint: azureclaimsopenai.openai.azure.com, Deployment: gpt-4.1-claims
+Azure Speech-to-Text (Whisper)	Voice transcription for voice-based claim reporting	Deployment: gpt-4o-transcribe-diarize, Endpoint: Full transcription API URL with audio endpoint
+Azure PostgreSQL	Persistent database for claim data, policy details, claim status	Host: claimsagenticdb.postgres.database.azure.com, Database: postgres, Port: 5432
+Azure Blob Storage	Evidence/document upload storage	Account: claimsjarvis, Container: claims-evidence
+Azure Document Intelligence	PDF/document extraction (optional fallback to pdfplumber)	Endpoint: claims-jarvis-intelligence.cognitiveservices.azure.com
+Azure OpenAI Embeddings	Document embedding for semantic search	Deployment: text-embedding-3-large-claims
+Agents in this persona (7 total):
+VoiceTextIntakeAgent (7701) — voice transcription
+DocumentSubmissionAgent (7702)
+DuplicateClaimCheckAgent (7703)
+PolicyCoverageVerificationAgent (7704)
+ClaimReadinessAgent (7705)
+ClaimSegmentationAgent (7706)
+CommunicationAgent (7707)
+ClaimStatusAgent (7708)
+FeedbackAgent (7709)
+FNOLOrchestrator (7710) — orchestrates FNOL flow
+ADJUSTER PERSONA
+Azure Service	Purpose	Details
+Azure OpenAI	LLM for loss assessment, damage evaluation, reserve estimation, settlement negotiation	Endpoint: azureclaimsopenai.openai.azure.com, Deployment: gpt-4.1-claims
+Azure Speech-to-Text (Whisper)	Voice transcription for adjuster notes/recordings	Deployment: gpt-4o-transcribe-diarize
+Azure PostgreSQL	Shared database for claim lifecycle, assessment notes, reserve amounts	Host: claimsagenticdb.postgres.database.azure.com, Database: postgres
+Azure Blob Storage	Loss estimates, photos, damage assessments, settlement docs	Account: claimsjarvis, Container: claims-evidence
+Azure Document Intelligence	Damage report extraction, repair estimate parsing	Endpoint: claims-jarvis-intelligence.cognitiveservices.azure.com
+Azure OpenAI Embeddings	Semantic search on damage descriptions	Deployment: text-embedding-3-large-claims
+Agents in this persona (15 total):
+LossAssessmentAgent (8901)
+ClaimTriageAgent (8902)
+ReserveRecommendationAgent (8903)
+DeductibleCalculationAgent (8904)
+CoverageAnalysisAgent (8905)
+DamageEvaluationAgent (8906)
+RecoveryAgent (8907)
+SubrogationAgent (8908)
+CatastropheAgent (8909)
+PolicyComplianceAgent (8910)
+DocumentReviewAgent (8911)
+DecisionSupportAgent (8912)
+ClaimDenialAgent (8913)
+AppealHandlingAgent (8914)
+SettlementNegotiationAgent (8915)
+AdjusterOrchestrator (8920) — manages full adjuster claim journey (15 agents + HITL gates)
+SIU (Special Investigation Unit) PERSONA
+Azure Service	Purpose	Details
+Azure OpenAI	LLM for fraud detection, pattern analysis, network correlation, risk scoring	Endpoint: azureclaimsopenai.openai.azure.com, Deployment: gpt-4.1-claims
+Azure Speech-to-Text (Whisper)	Transcription of investigator interviews/voice notes	Deployment: gpt-4o-transcribe-diarize
+Azure PostgreSQL	Fraud case data, investigation notes, watchlist entries, network graphs	Host: claimsagenticdb.postgres.database.azure.com, Database: postgres
+Azure Blob Storage	Investigation evidence, surveillance data, witness statements	Account: claimsjarvis, Container: claims-evidence
+Azure Document Intelligence	Investigation report parsing, evidence document extraction	Endpoint: claims-jarvis-intelligence.cognitiveservices.azure.com
+Azure OpenAI Embeddings	Fraud pattern similarity search, behavioral analytics	Deployment: text-embedding-3-large-claims
+Agents in this persona (12 total):
+FraudRiskScoringAgent (9001) — fraud risk scoring
+FraudPatternAgent (9002) — detects fraud patterns
+NetworkAnalysisAgent (9003) — network graph analysis
+BehavioralAnalyticsAgent (9004) — claimant behavior analysis
+EvidenceCorrelationAgent (9005) — correlates investigation evidence (HITL gate after this)
+WatchlistUpdateAgent (9006)
+FraudEscalationAgent (9007)
+CaseAssignmentAgent (9008)
+LegalEscalationAgent (9009)
+FraudResolutionAgent (9010)
+MIUMatchingAgent (9011) — MIU (Major Investigation Unit) matching
+SIUOrchestrator (9020) — orchestrates fraud investigation workflow (12 agents + 1 HITL gate)
+VENDOR MANAGER PERSONA
+Azure Service	Purpose	Details
+Azure OpenAI	LLM for vendor qualification, cost benchmarking, SLA compliance, dispatch decisions	Endpoint: azureclaimsopenai.openai.azure.com, Deployment: gpt-4.1-claims
+Azure Speech-to-Text (Whisper)	Vendor call recordings, voicemail transcription	Deployment: gpt-4o-transcribe-diarize
+Azure PostgreSQL	Vendor master data, performance metrics, SLA tracking, cost benchmarks, ETA predictions	Host: claimsagenticdb.postgres.database.azure.com, Database: postgres
+Azure Blob Storage	Vendor proposals, cost estimates, work orders, performance reports	Account: claimsjarvis, Container: claims-evidence
+Azure Document Intelligence	Vendor proposal parsing, invoice extraction, cost estimate parsing	Endpoint: claims-jarvis-intelligence.cognitiveservices.azure.com
+Azure OpenAI Embeddings	Vendor capability matching, skill-based search	Deployment: text-embedding-3-large-claims
+Agents in this persona (10 total):
+VendorQualificationAgent (9101)
+VendorOnboardingAgent (9102)
+VendorCapacityManagementAgent (9103)
+VendorCostBenchmarkAgent (9104)
+SLAComplianceAgent (9105)
+ETAPredictionAgent (9106) — predicts vendor delivery ETA
+VendorPerformanceAgent (9107)
+VendorMatchingAgent (9108) — intelligent vendor matching
+EscalationAgent (9109)
+DispatchAgent (9110)
+VendorManagerOrchestrator (9120) — manages vendor lifecycle (10 agents, Phase 0–9)
+FRONTEND (claims-solution-integration)
+Azure Service	Purpose	Details
+Azure PostgreSQL	Read/write claims UI data, user sessions, UI state	Host: claimsagenticdb.postgres.database.azure.com, Database: postgres
+Azure Blob Storage	Store uploaded documents, images, evidence files from UI	Account: claimsjarvis, Container: claims-evidence
+Summary Table: All Azure Services
+Azure Service	Used By	Primary Purpose
+Azure OpenAI (gpt-4.1)	All 4 personas (Policyholder, Adjuster, SIU, Vendor)	LLM reasoning for all 47+ agents
+Azure OpenAI (text-embedding-3-large)	All 4 personas	Document embeddings & semantic search
+Azure Speech-to-Text (Whisper)	All 4 personas	Voice transcription (optional per agent)
+Azure PostgreSQL	All 4 personas + Frontend	Central claims database (claimsagenticdb)
+Azure Blob Storage	All 4 personas + Frontend	Evidence/document repository
+Azure Document Intelligence	All 4 personas	PDF/document extraction (optional fallback)
+Shared Resources
+Resource	Scope	Value
+Database	All personas	claimsagenticdb.postgres.database.azure.com / postgres
+Blob Account	All personas	claimsjarvis
+Blob Container	All personas	claims-evidence
+OpenAI Endpoint	All personas	azureclaimsopenai.openai.azure.com
+Additional Integrations (Non-Azure)
+Service	Used By	Purpose
+Guidewire PolicyCenter	Adjuster persona	Quote generation, account creation
+Guidewire BillingCenter	Adjuster persona	Billing/payment operations
+Phoenix / Arize	All personas (optional)	LLM observability & prompt management
+Key Points
+✅ No persona-specific Azure services — all use the same OpenAI, PostgreSQL, Blob, and Document Intelligence instances
+✅ 9 HITL approval gates managed across the 47 agents at strategic decision points
+✅ 47+ agents organized into 5 personas + 1 Orchestrator, each with its own MCP server
+✅ All state flows through PostgreSQL + Blob Storage (no in-process memory)
+✅ Optional services (Phoenix, Azure Document Intelligence) can be disabled — agents fall back to hardcoded prompts / pdfplumber
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 [
     "openai.gpt-6-astra",
     "openai.gpt-5.6-terra",
