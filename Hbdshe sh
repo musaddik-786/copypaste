@@ -1,178 +1,63 @@
-{
-  "found": true,
-  "claim_number": "000-00-000139",
-  "data": {
-    "claim_id": "cc:SJEIjFWYLTVHNmEejkEm1",
-    "claim_number": "000-00-000139",
-    "loss_date": "2026-11-09T09:00:00.000Z",
-    "report_date": "2026-11-09T11:55:46.440Z",
-    "status": "Open",
-    "loss_cause": "Fire",
-    "loss_type": "Property",
-    "loss_description": "",
-    "policy_number": "73-400676",
-    "insured_name": "William David",
-    "loss_location": "",
-    "adjuster": "Lynzi Farrell",
-    "raw": {
-      "count": 1,
-      "data": [
-        {
-          "attributes": {
-            "allValidationLevelsReached": [
-              {
-                "code": "payment",
-                "name": "Ability to pay"
-              },
-              {
-                "code": "external",
-                "name": "Send to external system"
-              },
-              {
-                "code": "iso",
-                "name": "Valid for ISO"
-              },
-              {
-                "code": "newloss",
-                "name": "New loss completion"
-              },
-              {
-                "code": "loadsave",
-                "name": "Load and save"
-              }
-            ],
-            "assignedByUser": {
-              "displayName": "Super User",
-              "id": "default_data:1",
-              "type": "User",
-              "uri": "/admin/v1/users/default_data:1"
-            },
-            "assignedGroup": {
-              "displayName": "Property - TeamB",
-              "id": "demo_sample:35",
-              "type": "Group",
-              "uri": "/admin/v1/groups/demo_sample:35"
-            },
-            "assignedUser": {
-              "displayName": "Lynzi Farrell",
-              "id": "demo_sample:128",
-              "type": "User",
-              "uri": "/admin/v1/users/demo_sample:128"
-            },
-            "assignmentStatus": {
-              "code": "assigned",
-              "name": "Assigned"
-            },
-            "claimNumber": "000-00-000139",
-            "flagged": {
-              "code": "neverflagged",
-              "name": "Never flagged"
-            },
-            "howReported": {
-              "code": "phone",
-              "name": "Phone"
-            },
-            "id": "cc:SJEIjFWYLTVHNmEejkEm1",
-            "insured": {
-              "displayName": "William David",
-              "id": "cc:Snla0OroRYsSPL8QFCEgO",
-              "type": "ClaimContact",
-              "uri": "/claim/v1/claims/cc:SJEIjFWYLTVHNmEejkEm1/contacts/cc:Snla0OroRYsSPL8QFCEgO"
-            },
-            "jurisdiction": {
-              "code": "IL",
-              "name": "Illinois"
-            },
-            "lobCode": {
-              "code": "HOPLine",
-              "name": "Homeowners Line"
-            },
-            "lossCause": {
-              "code": "fire",
-              "name": "Fire"
-            },
-            "lossDate": "2026-11-09T09:00:00.000Z",
-            "lossType": {
-              "code": "PR",
-              "name": "Property"
-            },
-            "mainContactType": {
-              "code": "self",
-              "name": "Self/Insured"
-            },
-            "policyNumber": "73-400676",
-            "reportedByType": {
-              "code": "self",
-              "name": "Self/Insured"
-            },
-            "reportedDate": "2026-11-09T11:55:46.440Z",
-            "reporter": {
-              "displayName": "Ken Darion",
-              "id": "cc:SwpRVdSh2sSssWvbfIINo",
-              "type": "ClaimContact",
-              "uri": "/claim/v1/claims/cc:SJEIjFWYLTVHNmEejkEm1/contacts/cc:SwpRVdSh2sSssWvbfIINo"
-            },
-            "segment": {
-              "code": "prop_low",
-              "name": "Property - low complexity"
-            },
-            "state": {
-              "code": "open",
-              "name": "Open"
-            },
-            "strategy": {
-              "code": "unknown",
-              "name": "Unknown"
-            },
-            "validationLevel": {
-              "code": "payment",
-              "name": "Ability to pay"
-            }
-          },
-          "checksum": "a6fda87a3522e79b5ae8e63af5d98aa6",
-          "links": {
-            "assign": {
-              "href": "/claim/v1/claims/cc:SJEIjFWYLTVHNmEejkEm1/assign",
-              "methods": [
-                "post"
-              ]
-            },
-            "close": {
-              "href": "/claim/v1/claims/cc:SJEIjFWYLTVHNmEejkEm1/close",
-              "methods": [
-                "post"
-              ]
-            },
-            "self": {
-              "href": "/claim/v1/claims/cc:SJEIjFWYLTVHNmEejkEm1",
-              "methods": [
-                "get",
-                "patch"
-              ]
-            },
-            "validate": {
-              "href": "/claim/v1/claims/cc:SJEIjFWYLTVHNmEejkEm1/validate",
-              "methods": [
-                "post"
-              ]
-            }
-          }
-        }
-      ],
-      "links": {
-        "first": {
-          "href": "/claim/v1/claims?filter=claimNumber%3Aeq%3A000-00-000139&pageSize=100",
-          "methods": [
-            "get"
-          ]
-        },
-        "self": {
-          "href": "/claim/v1/claims?filter=claimNumber%3Aeq%3A000-00-000139&pageSize=100",
-          "methods": [
-            "get"
-          ]
-        }
-      }
-    }
-  }
-}
+## What This Diagram Is Really Saying (Plain-English Walkthrough)
+
+Think of it as the answer to one question: **"Where does an AI support agent get its knowledge from, and how do we make sure that knowledge is good?"**
+
+The title line under the heading is the whole point: *"A single, continuously refreshed knowledge base that powers four tier agents."* Everything else is just the mechanics of how that one knowledge base gets built and kept clean.
+
+---
+
+### Step 1: The Raw Ingredients (top row, 4 boxes)
+
+These are things that already exist in a support organization — nobody has to create new data, we just collect what's lying around:
+
+| Source | What it actually is |
+|---|---|
+| **Historical Tickets** | Old support tickets that are closed, along with the notes on how they were fixed |
+| **Chat & RCA Reports** | Transcripts of analysts chatting about issues, plus formal "Root Cause Analysis" write-ups for bigger incidents |
+| **Guidewire Release Notes** | Official changelogs/advisories from Guidewire (the insurance software vendor) about what changed in their product |
+| **Runbooks / SOPs** | Existing step-by-step procedure documents the team already uses |
+
+**Why it matters:** this is "unstructured mess" — tickets written differently by different people, chats full of slang, PDFs from a vendor. It's useful info, but not usable *as-is*.
+
+---
+
+### Step 2: Turning Mess into Knowledge (the pipeline, 4 stacked boxes)
+
+This is the actual "factory line" that processes the raw material:
+
+1. **Ingestion & Normalization**
+   Pulls all 4 sources into one pipeline and **tags everything consistently** — which Guidewire module it relates to, what category of issue, how severe, what type of fix it was. Think of it like applying the same labels/folders to every document regardless of where it came from.
+
+2. **Structuring Agent**
+   Takes that normalized text and rewrites it into a **standard SOP/runbook format** (so every entry "looks" the same structurally), and also creates **vector embeddings** — a numeric representation of the text's meaning that lets a computer later search by *concept* ("login failures after upgrade") rather than needing exact keyword matches.
+
+3. **SME Curation Gate**
+   A **human expert (Subject Matter Expert)** checks a sample of this auto-processed content before it's trusted. This is the **one manual checkpoint** in an otherwise automated pipeline — the diagram calls out that a bad tag here would "poison" everything downstream, since every later agent relies on these tags/categories being correct.
+
+4. **Knowledge Store**
+   The final destination: one combined database (part vector search, part structured/tagged records). It's **not a one-time snapshot** — it keeps refreshing as new tickets get closed and re-syncs whenever Guidewire releases a new version.
+
+---
+
+### Step 3: One Knowledge Base, Four Different Users (bottom row)
+
+Here's the key design decision the diagram is making: instead of building 4 separate databases for 4 different agents, **everyone drinks from the same well**:
+
+- **L1 — Guided Resolution Agent**: probably front-line, walks a support person through a known fix step by step
+- **L2 — Resolution Intelligence Agent**: smarter matching — "this looks similar to past issue X, here's what worked"
+- **L3 — Problem Ops & RCA Agent**: for deeper investigation — finding root causes across patterns of tickets
+- **L4 — MIM Coordination Agent**: "Major Incident Management" — coordinating response during a big outage
+
+The footer line makes this explicit: *"One Knowledge Base. Four Tier Agents."* — the selling point is efficiency and consistency: build the knowledge pipeline once, reuse it everywhere, rather than maintaining four separate, possibly-inconsistent data stores.
+
+---
+
+### So what is "Knowledge Base for Knowledge Ops Agent" asking you to do?
+
+Given this diagram, your assignment is almost certainly asking you to **design (and maybe partially build) this exact pipeline** — i.e., given raw support data, show how you'd:
+- normalize/tag it against a taxonomy,
+- structure it + generate embeddings,
+- put a quality-control step in,
+- store it so multiple downstream agents/use-cases can query it.
+
+If you tell me whether you need a written design, a slide deck, or actual working code (e.g., a small Python script that ingests sample tickets, tags them, embeds them, and stores them in a vector DB), I can help you build that specific deliverable next.
