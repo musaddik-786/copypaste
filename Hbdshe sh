@@ -1,16 +1,5 @@
-SELECT 'ticket' AS source, record_id, module, category, severity, resolution_type,
-       tagging_confidence, curation_status, tagging_reasoning
-FROM ticket_records
+SELECT record_id, category, resolution_type, tagging_reasoning
+FROM ticket_records WHERE record_id = 'NR-INC-100355'
 UNION ALL
-SELECT 'chat_rca', record_id, module, category, severity, resolution_type,
-       tagging_confidence, curation_status, tagging_reasoning
-FROM chat_rca_records
-UNION ALL
-SELECT 'release_note', record_id, module, category, severity, resolution_type,
-       tagging_confidence, curation_status, tagging_reasoning
-FROM release_note_records
-UNION ALL
-SELECT 'runbook', record_id, module, category, severity, resolution_type,
-       tagging_confidence, curation_status, tagging_reasoning
-FROM runbook_records
-ORDER BY source, record_id;
+SELECT record_id, category, resolution_type, tagging_reasoning
+FROM runbook_records WHERE record_id = 'NR-RB-CM-011';
