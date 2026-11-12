@@ -1,76 +1,107 @@
-### STAGE 0 -- Raw source record (data/raw/tickets.json) ###
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/knowledge_ops_kbv2$ python3 pipeline.py 
+======================================================================
+KNOWLEDGE OPS AGENT -- KNOWLEDGE BASE REFRESH
+======================================================================
 
-{
-  "ticket_id": "INC-100234",
-  "created_at": "2025-11-02T09:14:00",
-  "closed_at": "2025-11-02T13:40:00",
-  "module_reported": "PolicyCenter",
-  "summary": "Policy submission stuck in 'Processing' after 2025.2 upgrade",
-  "description": "Underwriters report new business submissions in PolicyCenter hang indefinitely in Processing state. Started immediately after the 2025.2.1 upgrade was deployed to production last night. No error visible to end users, but app server logs show repeated GosuRuntimeException in PolicyPeriod.bind().",
-  "resolution_notes": "Root cause was a Gosu rule override (UWApprovalRule.gs) referencing a deprecated API method removed in 2025.2.1 (PolicyPeriod.getLatestPeriod() renamed to getLatestBoundPeriod()). Patched the custom rule, redeployed, cleared stuck submissions via batch script. Confirmed with Guidewire release notes GW-RN-2025-2-1-004 which documented this breaking change.",
-  "priority": "P1",
-  "assignee_team": "PolicyCenter L3",
-  "guidewire_version": "PolicyCenter 2025.2.1"
-}
+[1/4] Ingestion & Normalization  (kb_version=kb-20261112T110612-487674)
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...rting high confidence.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...ports high confidence."), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...so confidence is high.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...es both cause and fix.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...fix was configuration.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...are explicitly stated.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<... stated in the record.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<... cause and resolution.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...gradation and CodeFix.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...l corruption occurred."), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...han explicitly stated."), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...ta remediation action.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<... cause and mitigation.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...ix are clearly stated.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<... to optimize queries)."), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<... been implemented yet.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...onfidence is moderate.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...de to resolve the bug.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...e is slightly reduced.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...n a resolved incident.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...incident is described.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...ence due to ambiguity."), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...s if issues are found.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...confidence is lowered."), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...n a code fix or patch.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...ion (DataRemediation).'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+      -> 34 records ingested from 4 sources
 
-### STAGE 1 -- After Ingestion & Normalization (ingestion.py) ###
+[2/4] Structuring Agent
+      -> structured SOPs + 3072-dim embeddings generated
 
-  record_id           : NR-INC-100234
-  module              : PolicyCenter
-  category            : UpgradeRegression
-  severity            : SEV1-Critical
-  resolution_type     : CodeFix
-  tagging_confidence  : 0.96
-  (^ these 4 tags were inferred by keyword-matching the ticket text
-     against the taxonomy in taxonomy.py -- see CATEGORY_KEYWORDS /
-     RESOLUTION_KEYWORDS in ingestion.py for exactly which words fired)
+[3/4] SME Curation Gate
+      -> 34 approved, 0 held back
 
-### STAGE 2 -- After Structuring Agent (structuring.py) ###
-
---- structured_sop (rendered SOP/runbook format) ---
-## Policy submission stuck in 'Processing' after 2025.2 upgrade
-
-**Source:** HistoricalTicket (INC-100234)
-**Module:** PolicyCenter | **Category:** UpgradeRegression | **Severity:** SEV1-Critical
-**Resolution Type:** CodeFix
-**Date:** 2025-11-02
-**Guidewire Version:** PolicyCenter 2025.2.1
-
-### Summary / Symptom
-Policy submission stuck in 'Processing' after 2025.2 upgrade Underwriters report new business submissions in PolicyCenter hang indefinitely in Processing state. Started immediately after the 2025.2.1 upgrade was deployed to production last night. No error visible to end users, but app server logs show repeated GosuRuntimeException in PolicyPeriod.bind().
-
-### Resolution
-Root cause was a Gosu rule override (UWApprovalRule.gs) referencing a deprecated API method removed in 2025.2.1 (PolicyPeriod.getLatestPeriod() renamed to getLatestBoundPeriod()). Patched the custom rule, redeployed, cleared stuck submissions via batch script. Confirmed with Guidewire release notes GW-RN-2025-2-1-004 which documented this breaking change.
-
---- embedding: 512-dimensional vector ---
-  first 8 values: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-  (the rest are mostly 0.0 -- TF-IDF vectors are sparse: only the
-   ~handful of distinctive words in this record have non-zero weight)
-
-### STAGE 3 -- After SME Curation Gate (curation.py) ###
-
-  curation_status : AutoApproved
-  curation_notes  : Auto-approved: tagging confidence 0.96 >= threshold 0.72.
-  -> ELIGIBLE for Knowledge Store
-
-### STAGE 4 -- Row as written to Postgres knowledge_records table ###
-
-  record_id           = 'NR-INC-100234'
-  source_type         = 'HistoricalTicket'
-  module              = 'PolicyCenter'
-  category            = 'UpgradeRegression'
-  severity            = 'SEV1-Critical'
-  resolution_type     = 'CodeFix'
-  embedding           = vector(512)  -- the array printed above
-  curation_status     = 'AutoApproved'
-  kb_version          = (stamped at upsert time, e.g. kb-20261112T...)
-
-### HOW AN AGENT WOULD FIND THIS LATER ###
-
-  L1 agent sees a NEW ticket: "submissions stuck in processing after upgrade"
-  -> embeds that query text into the same 512-dim space
-  -> runs: SELECT ... WHERE module='PolicyCenter' AND source_type IN
-           ('HistoricalTicket','RunbookOrSOP') ORDER BY embedding <=> query LIMIT 3
-  -> this record (NR-INC-100234) comes back as the top/near-top match,
-     because its embedding is close in vector space to the new query's embedding
-     (both are about: PolicyCenter + stuck submissions + post-upgrade)
+[4/4] Knowledge Store (PostgreSQL + pgvector)
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/pipeline.py", line 83, in <module>
+    run_pipeline()
+  File "/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/pipeline.py", line 69, in run_pipeline
+    written = upsert_records(conn, approved, kb_version)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/knowledge_store.py", line 343, in upsert_records
+    cur.execute(
+  File "/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/psycopg/cursor.py", line 117, in execute
+    raise ex.with_traceback(None)
+psycopg.errors.UndefinedColumn: column "tagging_reasoning" of relation "ticket_records" does not exist
+LINE 4:             resolution_type, tagging_confidence, tagging_rea...
+                                                         ^
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/knowledge_ops_kbv2$ 
