@@ -1,7 +1,104 @@
-beddings_client(); v = c.embed_query('test'); print('actual embedding dimension:', len(v))"
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/knowledge_ops_kbv2$ python3 pipeline.py 
+======================================================================
+KNOWLEDGE OPS AGENT -- KNOWLEDGE BASE REFRESH
+======================================================================
+
+[1/4] Ingestion & Normalization  (kb_version=kb-20261112T113441-5fb840)
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...rting high confidence.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...so confidence is high."), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...so confidence is high.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<... stated in the record.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...fix was config change.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...are explicitly stated.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<... which fits 'CodeFix.'"), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...h fits 'ConfigChange'."), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<... cause and resolution.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<... with high confidence.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<... was actually correct."), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...onfidence is moderate.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...ta remediation action.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<... cause and mitigation.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...es both cause and fix.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...tes the cause and fix.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...are explicitly stated."), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<... been implemented yet.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<... the fix is not final."), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...lve the display issue."), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...e is slightly reduced.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...onfidence is moderate."), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...t or fix is described.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...plicit problem or fix.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...k of incident details.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...n a code fix or patch.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+      -> 34 records ingested from 4 sources
+
+[2/4] Structuring Agent
+      -> structured SOPs + 3072-dim embeddings generated
+
+[3/4] SME Curation Gate
+      -> 34 approved, 0 held back
+
+[4/4] Knowledge Store (PostgreSQL + pgvector)
 Traceback (most recent call last):
-  File "<string>", line 1, in <module>
-  File "/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/structuring.py", line 54, in _get_embeddings_client
-    raise RuntimeError(
-RuntimeError: Missing Azure OpenAI env var(s) for embeddings: AZURE_OPENAI_API_KEY, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_API_VERSION, AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME. Fill these in in .env (same Azure OpenAI resource/deployment as the Underwriting Solution project).
+  File "/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/pipeline.py", line 83, in <module>
+    run_pipeline()
+  File "/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/pipeline.py", line 68, in run_pipeline
+    init_schema(conn)
+  File "/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/knowledge_store.py", line 127, in init_schema
+    cur.execute(sql)
+  File "/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/venv/lib/python3.11/site-packages/psycopg/cursor.py", line 117, in execute
+    raise ex.with_traceback(None)
+psycopg.errors.DataException: expected 3072 dimensions, not 512
 (venv) JarvisClaims@JarvisClaims:~/Musaddique/knowledge_ops_kbv2$ 
