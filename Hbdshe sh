@@ -1,163 +1,76 @@
-Azure Services Usage by Persona
-POLICYHOLDER PERSONA
-Azure Service	Purpose	Details
-Azure OpenAI	LLM for claim intake, policy verification, duplicates check, readiness assessment	Endpoint: azureclaimsopenai.openai.azure.com, Deployment: gpt-4.1-claims
-Azure Speech-to-Text (Whisper)	Voice transcription for voice-based claim reporting	Deployment: gpt-4o-transcribe-diarize, Endpoint: Full transcription API URL with audio endpoint
-Azure PostgreSQL	Persistent database for claim data, policy details, claim status	Host: claimsagenticdb.postgres.database.azure.com, Database: postgres, Port: 5432
-Azure Blob Storage	Evidence/document upload storage	Account: claimsjarvis, Container: claims-evidence
-Azure Document Intelligence	PDF/document extraction (optional fallback to pdfplumber)	Endpoint: claims-jarvis-intelligence.cognitiveservices.azure.com
-Azure OpenAI Embeddings	Document embedding for semantic search	Deployment: text-embedding-3-large-claims
-Agents in this persona (7 total):
-VoiceTextIntakeAgent (7701) — voice transcription
-DocumentSubmissionAgent (7702)
-DuplicateClaimCheckAgent (7703)
-PolicyCoverageVerificationAgent (7704)
-ClaimReadinessAgent (7705)
-ClaimSegmentationAgent (7706)
-CommunicationAgent (7707)
-ClaimStatusAgent (7708)
-FeedbackAgent (7709)
-FNOLOrchestrator (7710) — orchestrates FNOL flow
-ADJUSTER PERSONA
-Azure Service	Purpose	Details
-Azure OpenAI	LLM for loss assessment, damage evaluation, reserve estimation, settlement negotiation	Endpoint: azureclaimsopenai.openai.azure.com, Deployment: gpt-4.1-claims
-Azure Speech-to-Text (Whisper)	Voice transcription for adjuster notes/recordings	Deployment: gpt-4o-transcribe-diarize
-Azure PostgreSQL	Shared database for claim lifecycle, assessment notes, reserve amounts	Host: claimsagenticdb.postgres.database.azure.com, Database: postgres
-Azure Blob Storage	Loss estimates, photos, damage assessments, settlement docs	Account: claimsjarvis, Container: claims-evidence
-Azure Document Intelligence	Damage report extraction, repair estimate parsing	Endpoint: claims-jarvis-intelligence.cognitiveservices.azure.com
-Azure OpenAI Embeddings	Semantic search on damage descriptions	Deployment: text-embedding-3-large-claims
-Agents in this persona (15 total):
-LossAssessmentAgent (8901)
-ClaimTriageAgent (8902)
-ReserveRecommendationAgent (8903)
-DeductibleCalculationAgent (8904)
-CoverageAnalysisAgent (8905)
-DamageEvaluationAgent (8906)
-RecoveryAgent (8907)
-SubrogationAgent (8908)
-CatastropheAgent (8909)
-PolicyComplianceAgent (8910)
-DocumentReviewAgent (8911)
-DecisionSupportAgent (8912)
-ClaimDenialAgent (8913)
-AppealHandlingAgent (8914)
-SettlementNegotiationAgent (8915)
-AdjusterOrchestrator (8920) — manages full adjuster claim journey (15 agents + HITL gates)
-SIU (Special Investigation Unit) PERSONA
-Azure Service	Purpose	Details
-Azure OpenAI	LLM for fraud detection, pattern analysis, network correlation, risk scoring	Endpoint: azureclaimsopenai.openai.azure.com, Deployment: gpt-4.1-claims
-Azure Speech-to-Text (Whisper)	Transcription of investigator interviews/voice notes	Deployment: gpt-4o-transcribe-diarize
-Azure PostgreSQL	Fraud case data, investigation notes, watchlist entries, network graphs	Host: claimsagenticdb.postgres.database.azure.com, Database: postgres
-Azure Blob Storage	Investigation evidence, surveillance data, witness statements	Account: claimsjarvis, Container: claims-evidence
-Azure Document Intelligence	Investigation report parsing, evidence document extraction	Endpoint: claims-jarvis-intelligence.cognitiveservices.azure.com
-Azure OpenAI Embeddings	Fraud pattern similarity search, behavioral analytics	Deployment: text-embedding-3-large-claims
-Agents in this persona (12 total):
-FraudRiskScoringAgent (9001) — fraud risk scoring
-FraudPatternAgent (9002) — detects fraud patterns
-NetworkAnalysisAgent (9003) — network graph analysis
-BehavioralAnalyticsAgent (9004) — claimant behavior analysis
-EvidenceCorrelationAgent (9005) — correlates investigation evidence (HITL gate after this)
-WatchlistUpdateAgent (9006)
-FraudEscalationAgent (9007)
-CaseAssignmentAgent (9008)
-LegalEscalationAgent (9009)
-FraudResolutionAgent (9010)
-MIUMatchingAgent (9011) — MIU (Major Investigation Unit) matching
-SIUOrchestrator (9020) — orchestrates fraud investigation workflow (12 agents + 1 HITL gate)
-VENDOR MANAGER PERSONA
-Azure Service	Purpose	Details
-Azure OpenAI	LLM for vendor qualification, cost benchmarking, SLA compliance, dispatch decisions	Endpoint: azureclaimsopenai.openai.azure.com, Deployment: gpt-4.1-claims
-Azure Speech-to-Text (Whisper)	Vendor call recordings, voicemail transcription	Deployment: gpt-4o-transcribe-diarize
-Azure PostgreSQL	Vendor master data, performance metrics, SLA tracking, cost benchmarks, ETA predictions	Host: claimsagenticdb.postgres.database.azure.com, Database: postgres
-Azure Blob Storage	Vendor proposals, cost estimates, work orders, performance reports	Account: claimsjarvis, Container: claims-evidence
-Azure Document Intelligence	Vendor proposal parsing, invoice extraction, cost estimate parsing	Endpoint: claims-jarvis-intelligence.cognitiveservices.azure.com
-Azure OpenAI Embeddings	Vendor capability matching, skill-based search	Deployment: text-embedding-3-large-claims
-Agents in this persona (10 total):
-VendorQualificationAgent (9101)
-VendorOnboardingAgent (9102)
-VendorCapacityManagementAgent (9103)
-VendorCostBenchmarkAgent (9104)
-SLAComplianceAgent (9105)
-ETAPredictionAgent (9106) — predicts vendor delivery ETA
-VendorPerformanceAgent (9107)
-VendorMatchingAgent (9108) — intelligent vendor matching
-EscalationAgent (9109)
-DispatchAgent (9110)
-VendorManagerOrchestrator (9120) — manages vendor lifecycle (10 agents, Phase 0–9)
-FRONTEND (claims-solution-integration)
-Azure Service	Purpose	Details
-Azure PostgreSQL	Read/write claims UI data, user sessions, UI state	Host: claimsagenticdb.postgres.database.azure.com, Database: postgres
-Azure Blob Storage	Store uploaded documents, images, evidence files from UI	Account: claimsjarvis, Container: claims-evidence
-Summary Table: All Azure Services
-Azure Service	Used By	Primary Purpose
-Azure OpenAI (gpt-4.1)	All 4 personas (Policyholder, Adjuster, SIU, Vendor)	LLM reasoning for all 47+ agents
-Azure OpenAI (text-embedding-3-large)	All 4 personas	Document embeddings & semantic search
-Azure Speech-to-Text (Whisper)	All 4 personas	Voice transcription (optional per agent)
-Azure PostgreSQL	All 4 personas + Frontend	Central claims database (claimsagenticdb)
-Azure Blob Storage	All 4 personas + Frontend	Evidence/document repository
-Azure Document Intelligence	All 4 personas	PDF/document extraction (optional fallback)
-Shared Resources
-Resource	Scope	Value
-Database	All personas	claimsagenticdb.postgres.database.azure.com / postgres
-Blob Account	All personas	claimsjarvis
-Blob Container	All personas	claims-evidence
-OpenAI Endpoint	All personas	azureclaimsopenai.openai.azure.com
-Additional Integrations (Non-Azure)
-Service	Used By	Purpose
-Guidewire PolicyCenter	Adjuster persona	Quote generation, account creation
-Guidewire BillingCenter	Adjuster persona	Billing/payment operations
-Phoenix / Arize	All personas (optional)	LLM observability & prompt management
-Key Points
-✅ No persona-specific Azure services — all use the same OpenAI, PostgreSQL, Blob, and Document Intelligence instances
-✅ 9 HITL approval gates managed across the 47 agents at strategic decision points
-✅ 47+ agents organized into 5 personas + 1 Orchestrator, each with its own MCP server
-✅ All state flows through PostgreSQL + Blob Storage (no in-process memory)
-✅ Optional services (Phoenix, Azure Document Intelligence) can be disabled — agents fall back to hardcoded prompts / pdfplumber
+### STAGE 0 -- Raw source record (data/raw/tickets.json) ###
 
+{
+  "ticket_id": "INC-100234",
+  "created_at": "2025-11-02T09:14:00",
+  "closed_at": "2025-11-02T13:40:00",
+  "module_reported": "PolicyCenter",
+  "summary": "Policy submission stuck in 'Processing' after 2025.2 upgrade",
+  "description": "Underwriters report new business submissions in PolicyCenter hang indefinitely in Processing state. Started immediately after the 2025.2.1 upgrade was deployed to production last night. No error visible to end users, but app server logs show repeated GosuRuntimeException in PolicyPeriod.bind().",
+  "resolution_notes": "Root cause was a Gosu rule override (UWApprovalRule.gs) referencing a deprecated API method removed in 2025.2.1 (PolicyPeriod.getLatestPeriod() renamed to getLatestBoundPeriod()). Patched the custom rule, redeployed, cleared stuck submissions via batch script. Confirmed with Guidewire release notes GW-RN-2025-2-1-004 which documented this breaking change.",
+  "priority": "P1",
+  "assignee_team": "PolicyCenter L3",
+  "guidewire_version": "PolicyCenter 2025.2.1"
+}
 
+### STAGE 1 -- After Ingestion & Normalization (ingestion.py) ###
 
+  record_id           : NR-INC-100234
+  module              : PolicyCenter
+  category            : UpgradeRegression
+  severity            : SEV1-Critical
+  resolution_type     : CodeFix
+  tagging_confidence  : 0.96
+  (^ these 4 tags were inferred by keyword-matching the ticket text
+     against the taxonomy in taxonomy.py -- see CATEGORY_KEYWORDS /
+     RESOLUTION_KEYWORDS in ingestion.py for exactly which words fired)
 
+### STAGE 2 -- After Structuring Agent (structuring.py) ###
 
+--- structured_sop (rendered SOP/runbook format) ---
+## Policy submission stuck in 'Processing' after 2025.2 upgrade
 
+**Source:** HistoricalTicket (INC-100234)
+**Module:** PolicyCenter | **Category:** UpgradeRegression | **Severity:** SEV1-Critical
+**Resolution Type:** CodeFix
+**Date:** 2025-11-02
+**Guidewire Version:** PolicyCenter 2025.2.1
 
+### Summary / Symptom
+Policy submission stuck in 'Processing' after 2025.2 upgrade Underwriters report new business submissions in PolicyCenter hang indefinitely in Processing state. Started immediately after the 2025.2.1 upgrade was deployed to production last night. No error visible to end users, but app server logs show repeated GosuRuntimeException in PolicyPeriod.bind().
 
+### Resolution
+Root cause was a Gosu rule override (UWApprovalRule.gs) referencing a deprecated API method removed in 2025.2.1 (PolicyPeriod.getLatestPeriod() renamed to getLatestBoundPeriod()). Patched the custom rule, redeployed, cleared stuck submissions via batch script. Confirmed with Guidewire release notes GW-RN-2025-2-1-004 which documented this breaking change.
 
+--- embedding: 512-dimensional vector ---
+  first 8 values: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+  (the rest are mostly 0.0 -- TF-IDF vectors are sparse: only the
+   ~handful of distinctive words in this record have non-zero weight)
 
+### STAGE 3 -- After SME Curation Gate (curation.py) ###
 
+  curation_status : AutoApproved
+  curation_notes  : Auto-approved: tagging confidence 0.96 >= threshold 0.72.
+  -> ELIGIBLE for Knowledge Store
 
+### STAGE 4 -- Row as written to Postgres knowledge_records table ###
 
+  record_id           = 'NR-INC-100234'
+  source_type         = 'HistoricalTicket'
+  module              = 'PolicyCenter'
+  category            = 'UpgradeRegression'
+  severity            = 'SEV1-Critical'
+  resolution_type     = 'CodeFix'
+  embedding           = vector(512)  -- the array printed above
+  curation_status     = 'AutoApproved'
+  kb_version          = (stamped at upsert time, e.g. kb-20261112T...)
 
+### HOW AN AGENT WOULD FIND THIS LATER ###
 
-
-[
-    "openai.gpt-6-astra",
-    "openai.gpt-5.6-terra",
-    "anthropic.claude-haiku-4-5-20251001-v1:0",
-    "qwen.qwen3-235b-a22b-2507-v1:0",
-    "anthropic.claude-opus-5-5",
-    "moonshotai.kimi-k2.5",
-    "openai.gpt-oss-120b-1:0",
-    "zai.glm-5.3",
-    "moonshotai.kimi-k3",
-    "anthropic.claude-fable-5",
-    "deepseek.v3.2",
-    "anthropic.claude-haiku-5-5",
-    "twelvelabs.pegasus-1-5-v1:0",
-    "anthropic.claude-sonnet-4-6",
-    "zai.glm-4.7-flash",
-    "xai.grok-4.7",
-    "xai.grok-4.6",
-    "amazon.nova-pro-v1:0",
-    "amazon.nova-2-lite-v1:0",
-    "minimax.minimax-m2.5",
-    "twelvelabs.pegasus-1-2-v1:0",
-    "amazon.nova-2-sonic-v1:0",
-    "mistral.devstral-2-123b",
-    "minimax.minimax-m2.1",
-    "openai.gpt-6.1-terra",
-    "openai.gpt-6.1-sol",
-    "nvidia.nemotron-super-3-120b",
-    "qwen.qwen3-32b-v1:0",
-    "anthropic.claude-opus-4-6-v1",
-    "zai.glm-5",
-:
+  L1 agent sees a NEW ticket: "submissions stuck in processing after upgrade"
+  -> embeds that query text into the same 512-dim space
+  -> runs: SELECT ... WHERE module='PolicyCenter' AND source_type IN
+           ('HistoricalTicket','RunbookOrSOP') ORDER BY embedding <=> query LIMIT 3
+  -> this record (NR-INC-100234) comes back as the top/near-top match,
+     because its embedding is close in vector space to the new query's embedding
+     (both are about: PolicyCenter + stuck submissions + post-upgrade)
