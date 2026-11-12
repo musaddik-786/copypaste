@@ -1,1 +1,7 @@
-python3 -c "from structuring import _get_embeddings_client; c = _get_embeddings_client(); v = c.embed_query('test'); print('actual embedding dimension:', len(v))"
+beddings_client(); v = c.embed_query('test'); print('actual embedding dimension:', len(v))"
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/home/JarvisClaims/Musaddique/knowledge_ops_kbv2/structuring.py", line 54, in _get_embeddings_client
+    raise RuntimeError(
+RuntimeError: Missing Azure OpenAI env var(s) for embeddings: AZURE_OPENAI_API_KEY, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_API_VERSION, AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME. Fill these in in .env (same Azure OpenAI resource/deployment as the Underwriting Solution project).
+(venv) JarvisClaims@JarvisClaims:~/Musaddique/knowledge_ops_kbv2$ 
