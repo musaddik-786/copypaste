@@ -1,33 +1,16 @@
-(venv) JarvisClaims@JarvisClaims:~/Musaddique/knowledge_ops_kbv2$ python3 query_demo.py 
-
---- L1 Guided Resolution Agent ---
-Query: "underwriter sees new business submissions stuck in processing after upgrade"
-  [0.418] NR-INC-100234    HistoricalTicket     PolicyCenter     SEV1-Critical CodeFix          -- Policy submission stuck in 'Processing' after 2025.2 upgrade
-  [0.466] NR-RB-PC-014     RunbookOrSOP         PolicyCenter     SEV3-Medium   CodeFix          -- Runbook: Submissions Stuck in Processing State
-  [0.501] NR-INC-100235    HistoricalTicket     PolicyCenter     SEV2-High     PatchApplied     -- Second wave of stuck submissions, same symptom as INC-100234
-
---- L2 Resolution Intelligence Agent ---
-Query: "PolicyCenter issues similar to post-upgrade submission problems"
-  [0.524] NR-INC-100234    HistoricalTicket     PolicyCenter     SEV1-Critical CodeFix          -- Policy submission stuck in 'Processing' after 2025.2 upgrade
-  [0.555] NR-CHAT-5512     ChatOrRCAReport      PolicyCenter     SEV1-Critical CodeFix          -- War-room chat: PolicyCenter submissions stuck after 2025.2.1 deploy
-  [0.605] NR-INC-100235    HistoricalTicket     PolicyCenter     SEV2-High     PatchApplied     -- Second wave of stuck submissions, same symptom as INC-100234
-  [0.609] NR-RB-PC-014     RunbookOrSOP         PolicyCenter     SEV3-Medium   CodeFix          -- Runbook: Submissions Stuck in Processing State
-  [0.693] NR-RCA-2025-041  ChatOrRCAReport      PolicyCenter     SEV1-Critical Workaround       -- RCA-2025-041: PolicyCenter Full Outage Due to Audit-Logging Deadlock
-  [0.703] NR-INC-100480    HistoricalTicket     PolicyCenter     SEV1-Critical Workaround       -- PolicyCenter application unresponsive, full outage
-
---- L3 Problem Ops & RCA Agent ---
-Query: "why do we keep seeing issues right after Guidewire upgrades"
-  [0.426] NR-RCA-2025-041  ChatOrRCAReport      PolicyCenter     SEV1-Critical Workaround       -- RCA-2025-041: PolicyCenter Full Outage Due to Audit-Logging Deadlock
-  [0.474] NR-CHAT-5512     ChatOrRCAReport      PolicyCenter     SEV1-Critical CodeFix          -- War-room chat: PolicyCenter submissions stuck after 2025.2.1 deploy
-  [0.561] NR-RCA-2025-038  ChatOrRCAReport      BillingCenter    SEV1-Critical ConfigChange     -- RCA-2025-038: Autopay Invoice Gap - 1,200 Accounts Missed in Monthly Run
-  [0.570] NR-RCA-2025-045  ChatOrRCAReport      ClaimCenter      SEV2-High     CodeFix          -- RCA-2025-045: ClaimCenter Peak-Hour Latency - N+1 Query in Activity Widget
-  [0.593] NR-XENG-1913     GuidewireReleaseNote DigitalPortal    SEV2-High     Workaround       -- Unable to create Workers Comp submission through the EnterpriseEngage UI
-
---- L4 MIM Coordination Agent ---
-Query: "PolicyCenter completely down, all app servers unresponsive"
-  [0.338] NR-RB-MIM-001    RunbookOrSOP         PolicyCenter     SEV1-Critical Workaround       -- Runbook: Full Application Outage / Unresponsive App Servers
-  [0.398] NR-INC-100480    HistoricalTicket     PolicyCenter     SEV1-Critical Workaround       -- PolicyCenter application unresponsive, full outage
-  [0.492] NR-RCA-2025-041  ChatOrRCAReport      PolicyCenter     SEV1-Critical Workaround       -- RCA-2025-041: PolicyCenter Full Outage Due to Audit-Logging Deadlock
-  [0.567] NR-CHAT-5512     ChatOrRCAReport      PolicyCenter     SEV1-Critical CodeFix          -- War-room chat: PolicyCenter submissions stuck after 2025.2.1 deploy
-  [0.597] NR-INC-100234    HistoricalTicket     PolicyCenter     SEV1-Critical CodeFix          -- Policy submission stuck in 'Processing' after 2025.2 upgrade
-(venv) JarvisClaims@JarvisClaims:~/Musaddique/knowledge_ops_kbv2$ 
+SELECT 'ticket' AS source, record_id, module, category, severity, resolution_type,
+       tagging_confidence, curation_status, tagging_reasoning
+FROM ticket_records
+UNION ALL
+SELECT 'chat_rca', record_id, module, category, severity, resolution_type,
+       tagging_confidence, curation_status, tagging_reasoning
+FROM chat_rca_records
+UNION ALL
+SELECT 'release_note', record_id, module, category, severity, resolution_type,
+       tagging_confidence, curation_status, tagging_reasoning
+FROM release_note_records
+UNION ALL
+SELECT 'runbook', record_id, module, category, severity, resolution_type,
+       tagging_confidence, curation_status, tagging_reasoning
+FROM runbook_records
+ORDER BY source, record_id;
