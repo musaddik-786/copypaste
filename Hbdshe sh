@@ -1,5 +1,20 @@
-SELECT record_id, category, resolution_type, tagging_reasoning
-FROM ticket_records WHERE record_id = 'NR-INC-100355'
-UNION ALL
-SELECT record_id, category, resolution_type, tagging_reasoning
-FROM runbook_records WHERE record_id = 'NR-RB-CM-011';
+Stage 0 — 4 raw sources (data/raw/*.json)
+Tickets, chat/RCA reports, Guidewire release notes, and runbooks sit as JSON, each validated against its own Pydantic schema (RawTicket, RawChatOrRCA, RawReleaseNote, RawRunbook). Each source keeps its own native shape here — a ticket has priority/assignee_team, a runbook has steps, etc.
+
+Stage 1 — Ingestion & Normalization (ingestion.py)
+Every raw record gets mapped into one common shape (NormalizedRecord) and tagged against the 4-part taxonomy:
+
+module and severity — resolved deterministically from fields already in the raw record (e.g. a ticket’s module_reported, its priority mapped to a severity level). No API call.
+category and resolution_type — resolved by one Azure OpenAI chat call per record: the model gets the record’s text plus the fixed, defined lists of 9 categories and 9 resolution types, and returns a pick for each, a confidence (0-1), and a tagging_reasoning string explaining why.
+These four tags combine into one tagging_confidence score per record.
+
+Stage 2 — Structuring Agent (structuring.py)
+Each normalized record gets rendered into a uniform SOP-style markdown block (structured_sop) — so a raw ticket and a formal RCA end up looking structurally identical. Then one Azure OpenAI embeddings call per record turns title + raw_text into a 3072-dimension vector (text-embedding-3-large) — note: only the narrative text is embedded, not the structured tag columns.
+
+Stage 3 — SME Curation Gate (curation.py)
+Checks tagging_confidence against a threshold (0.72). Above it → auto-approved. Below it → simulated SME review (approves if still reasonably confident, else flags NeedsRetag). Nothing moves forward without a curation_status of AutoApproved/SMEApproved — this gate is enforced in code, not just on paper.
+
+Stage 4 — Knowledge Store (knowledge_store.py + schema.sql, PostgreSQL + pgvector)
+Approved records get written — routed by source type — into one of 4 tables (ticket_records, chat_rca_records, release_note_records, runbook_records), each with its own embedding vector(3072) column, taxonomy columns, tagging_reasoning, and a JSONB source_metadata column for source-specific extras. Every refresh run is logged (kb_refresh_log); every curation decision is logged (curation_audit_log).
+
+Retrieval (not part of the write pipeline, but what the stored KB is for) — search_similar() embeds a query, UNION ALLs across whichever of the 4 tables a given tier agent cares about, applies structured filters (module/category/severity), and ranks everything together by cosine distance. query_demo.py shows 4 different filter strategies for L1-L4.
