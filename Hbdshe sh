@@ -1,141 +1,60 @@
-"""
-Pydantic schemas for every stage of the pipeline shown in the architecture
-diagram:
-
-  4 raw sources  -->  Ingestion & Normalization  -->  Structuring Agent
-                 -->  SME Curation Gate  -->  Knowledge Store
-
-Each raw source keeps its own native shape (that's how it really looks
-coming out of a ticketing system, a chat export, a vendor release feed, or
-a runbook wiki). Ingestion is responsible for mapping all four into the
-single NormalizedRecord shape.
-"""
-
-from __future__ import annotations
-
-from datetime import date, datetime
-from typing import Optional
-
-from pydantic import BaseModel, Field
-
-from taxonomy import (
-    CurationStatus,
-    GuidewireModule,
-    IssueCategory,
-    ResolutionType,
-    Severity,
-    SourceType,
-)
-
-
-# ---------------------------------------------------------------------------
-# RAW SOURCE 1: Historical Tickets (e.g. ServiceNow / Jira export)
-# ---------------------------------------------------------------------------
-class RawTicket(BaseModel):
-    ticket_id: str
-    created_at: datetime
-    closed_at: datetime
-    module_reported: Optional[str] = None  # free text as the agent typed it; optional --
-                                            # if absent, the LLM infers module from description
-    description: str
-    resolution_notes: str
-    priority: str                        # raw priority label from ticketing tool (P1..P4)
-    assignee_team: str
-    guidewire_version: Optional[str] = None
-    status: str = "Closed"               # ticketing-tool status (e.g. "Open", "In Progress",
-                                          # "Closed"). Defaults to "Closed" so existing raw
-                                          # data without this field keeps validating as-is.
-                                          # ingestion.py only ingests tickets whose status is
-                                          # a closed one (see ingestion.CLOSED_TICKET_STATUSES)
-                                          # -- an open/in-progress ticket is skipped entirely,
-                                          # not even sent to SME review, until it closes.
-
-
-# ---------------------------------------------------------------------------
-# RAW SOURCE 2: Chat transcripts & formal RCA reports
-# ---------------------------------------------------------------------------
-class RawChatOrRCA(BaseModel):
-    record_id: str
-    record_type: str                     # "chat_transcript" | "rca_report"
-    incident_id: Optional[str] = None    # links back to a SEV1/SEV2 ticket
-    date: date
-    participants: list[str]
-    module_reported: str
-    title: str
-    body: str                            # raw transcript text or RCA narrative
-    root_cause: Optional[str] = None     # populated for rca_report only
-    corrective_actions: Optional[str] = None
-
-
-# ---------------------------------------------------------------------------
-# RAW SOURCE 3: Guidewire release notes / vendor advisories
-# ---------------------------------------------------------------------------
-class RawReleaseNote(BaseModel):
-    release_id: str                      # e.g. "XENG-1875" or a Guidewire issue/release id
-    product: str
-    version: str                         # e.g. "Mammoth (2025.03)", "Palisades"
-    release_date: date
-    note_type: str                       # "feature" | "resolved_issue" | "known_issue"
-    title: str
-    details: str
-    affected_modules: list[str]
-    source_url: Optional[str] = None     # public Guidewire docs page this was sourced from
-
-
-# ---------------------------------------------------------------------------
-# RAW SOURCE 4: Runbooks / SOPs
-# ---------------------------------------------------------------------------
-class RawRunbook(BaseModel):
-    runbook_id: str
-    last_updated: date
-    owner_team: str
-    module_reported: str
-    title: str
-    trigger_condition: str               # when this runbook applies
-    steps: list[str]
-
-
-# ---------------------------------------------------------------------------
-# NORMALIZED RECORD — the common shape every source is mapped into
-# after Ingestion & Normalization. This is what the Structuring Agent,
-# SME Curation Gate and Knowledge Store all operate on.
-# ---------------------------------------------------------------------------
-class NormalizedRecord(BaseModel):
-    record_id: str
-    source_type: SourceType
-    source_ref_id: str                   # original ticket_id / release_id / etc.
-
-    # --- taxonomy tags applied during Ingestion & Normalization ---
-    module: GuidewireModule
-    category: IssueCategory
-    severity: Severity
-    resolution_type: ResolutionType
-    tagging_confidence: float = Field(ge=0.0, le=1.0)
-    tagging_reasoning: Optional[str] = None       # LLM's own explanation for category/resolution_type
-
-    # --- normalized content ---
-    title: str
-    raw_text: str                        # concatenated normalized text used for embedding
-    symptom_text: Optional[str] = None    # raw "what happened" narrative, used in structured_sop
-    resolution_text: Optional[str] = None # LLM-generated "how it was fixed" narrative, used in structured_sop
-    guidewire_version: Optional[str] = None
-    event_date: date
-
-    # --- filled in by later stages ---
-    structured_sop: Optional[str] = None         # set by Structuring Agent
-    embedding: Optional[list[float]] = None       # set by Structuring Agent
-    curation_status: CurationStatus = CurationStatus.PENDING_REVIEW
-    curation_notes: Optional[str] = None          # set by SME Curation Gate
-    ingested_at: datetime = Field(default_factory=datetime.utcnow)
-    kb_version: Optional[str] = None              # set when written to Knowledge Store
-    source_url: Optional[str] = None              # provenance link, where the source is public
-    source_metadata: Optional[dict] = None        # source-specific fields that don't fit the
-                                                   # common columns (e.g. priority/assignee_team
-                                                   # for a ticket, participants for a chat/RCA,
-                                                   # owner_team/steps for a runbook). Stored as
-                                                   # JSONB in each source's own table.
-    content_hash: Optional[str] = None            # hash of this record's raw source fields, set
-                                                   # by ingestion.py. Used only for the
-                                                   # ingestion_state skip-if-unchanged check
-                                                   # (knowledge_store.py); not written into any of
-                                                   # the 4 content tables themselves.
+{
+  "ticket_id": "INC-300001",
+  "created_at": "2025-10-01T09:00:00",
+  "closed_at": "2025-10-01T16:30:00",
+  "module_reported": "PolicyCenter",
+  "description": "Policy renewal workflow is failing at the final submission step. When an agent clicks 'Bind Policy', the system throws a NullPointerException in the premium calculation service. This affects all auto policies in the Texas region. Agents are unable to complete renewals and customers are receiving error pages.",
+  "resolution_notes": "Root cause was a null handling bug introduced in the premium rounding utility (PremiumRoundingUtil.java) during the previous sprint. The null check was missing when the base rate table returned an empty row for Texas-specific surcharges. Added null guard in PremiumRoundingUtil, redeployed to production, and ran a backfill job to reprocess the 47 failed renewals.",
+  "priority": "P1",
+  "assignee_team": "PC-Core",
+  "guidewire_version": "Innsbruck",
+  "status": "Closed"
+},
+{
+  "ticket_id": "INC-300002",
+  "created_at": "2025-10-03T14:00:00",
+  "closed_at": "2025-10-04T10:00:00",
+  "module_reported": "BillingCenter",
+  "description": "Scheduled overnight batch job for invoice generation is producing duplicate invoices for commercial accounts with multi-vehicle policies. Customers are receiving two copies of the same invoice by email. Finance team has flagged approximately 200 duplicate invoices since last Monday.",
+  "resolution_notes": "The invoice generation batch was accidentally registered twice in the job scheduler after a config file was edited during a manual hotfix. Removed the duplicate job entry from the quartz scheduler config, cleared the duplicate invoice records from the database, and sent corrected invoices to affected customers. Added a startup validation check to detect duplicate job registrations.",
+  "priority": "P2",
+  "assignee_team": "BC-Billing",
+  "guidewire_version": "Jasper",
+  "status": "Closed"
+},
+{
+  "ticket_id": "INC-300003",
+  "created_at": "2025-10-05T11:00:00",
+  "closed_at": "2025-10-05T18:00:00",
+  "module_reported": null,
+  "description": "Loss reserves calculation is producing incorrect totals for catastrophe claims filed after Hurricane Milton. The reserve amount shown in the claims dashboard is significantly lower than what adjusters are entering manually. This is impacting financial reporting and reinsurance calculations.",
+  "resolution_notes": "Investigation revealed the CAT (catastrophe) flag was not being applied to the reserve calculation formula for claims filed via the mobile intake portal. The portal was sending claims without the CAT event code, so the standard (non-CAT) reserve multiplier was used instead. Fixed the mobile intake API to include the CAT event code from the event registry, and triggered a recalculation job for all 312 affected Milton claims.",
+  "priority": "P1",
+  "assignee_team": "Claims-Reserves",
+  "guidewire_version": null,
+  "status": "Closed"
+},
+{
+  "ticket_id": "INC-300004",
+  "created_at": "2025-10-08T08:30:00",
+  "closed_at": "2025-10-09T12:00:00",
+  "module_reported": "ContactManager",
+  "description": "Agents are reporting that searching for contacts by phone number returns no results even when the number exists in the system. The same contact is found correctly when searching by name. This started after last Friday's maintenance window and is affecting all agency staff.",
+  "resolution_notes": "The maintenance window included a database index rebuild. The phone number search index was rebuilt with the wrong collation setting (case-sensitive instead of case-insensitive), and phone number formatting normalization was skipped. Numbers stored as (555) 123-4567 were not matching queries for 5551234567. Rebuilt the index with correct collation and added a normalization step in the search query to strip formatting characters before lookup.",
+  "priority": "P2",
+  "assignee_team": "CM-Search",
+  "guidewire_version": "Innsbruck",
+  "status": "Closed"
+},
+{
+  "ticket_id": "INC-300005",
+  "created_at": "2025-10-12T15:00:00",
+  "closed_at": "2025-10-13T09:00:00",
+  "module_reported": null,
+  "description": "Integration between Guidewire and the third-party telematics provider is dropping 15-20% of incoming driving score payloads. Affected policies are not receiving their safe-driver discount adjustments. The issue appears intermittent and does not produce any error logs on the Guidewire side.",
+  "resolution_notes": "The telematics provider updated their payload schema to include a new required field 'deviceFirmwareVersion' which Guidewire's integration adapter was not mapping. Unmapped required fields caused the adapter to silently discard the payload rather than raising an error. Updated the integration adapter mapping config to pass through the new field, added a dead-letter queue to capture and alert on any future unmapped payloads, and reprocessed the dropped payloads from the provider's retry queue.",
+  "priority": "P2",
+  "assignee_team": "Integrations",
+  "guidewire_version": "Jasper",
+  "status": "Closed"
+}
