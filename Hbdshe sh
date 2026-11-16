@@ -1,48 +1,86 @@
-{
-  "ticket_id": "INC-400001",
-  "created_at": "2025-11-01T08:00:00",
-  "closed_at": "2025-11-01T17:00:00",
-  "module_reported": "PolicyCenter",
-  "description": "Underwriting rules engine is returning incorrect premium calculations for home policies with a swimming pool endorsement. Agents can manually override the calculated premium as a temporary workaround. The issue affects roughly 30% of new home policy quotes in the last two weeks.",
-  "resolution_notes": "Traced to a Gosu rule that was using an outdated endorsement factor table reference. The old table was deprecated in the last release but the reference was never updated. Updated the Gosu rule to point to the correct table, ran regression tests, and redeployed. No data cleanup needed as manually overridden premiums were already correct.",
-  "priority": "P1",
-  "assignee_team": "PC-Underwriting",
-  "guidewire_version": "Innsbruck",
-  "status": "Closed"
-},
-{
-  "ticket_id": "INC-400002",
-  "created_at": "2025-11-03T10:00:00",
-  "closed_at": "2025-11-04T14:00:00",
-  "module_reported": "BillingCenter",
-  "description": "Agents in the commercial lines team are unable to log in after 2pm every day. The session expires immediately upon login. The issue started after a configuration change was pushed to the SSO provider last Thursday. Personal lines agents are unaffected.",
-  "resolution_notes": "The SSO provider configuration change had set the session timeout to 2 minutes for the commercial lines user group instead of 480 minutes. This caused immediate session expiry on login for that group. Corrected the session timeout value in the SSO provider admin console and confirmed all commercial lines agents could log in successfully.",
-  "priority": "P2",
-  "assignee_team": "Infrastructure",
-  "guidewire_version": null,
-  "status": "Closed"
-},
-{
-  "ticket_id": "INC-400003",
-  "created_at": "2025-11-06T09:00:00",
-  "closed_at": "2025-11-07T11:00:00",
-  "module_reported": null,
-  "description": "Claim payments to vendors are being rejected by the bank integration. The error message from the bank API says the routing number format is invalid. This started after the bank updated their API to require a 9-digit zero-padded format. Approximately 85 vendor payments are stuck in pending state.",
-  "resolution_notes": "The outbound payment integration was formatting routing numbers without zero-padding, sending 8-digit numbers when the bank now requires 9 digits. Updated the routing number formatter in the payment gateway integration adapter to always zero-pad to 9 digits. Reprocessed the 85 stuck payments and confirmed all were accepted by the bank.",
-  "priority": "P1",
-  "assignee_team": "Claims-Payments",
-  "guidewire_version": "Jasper",
-  "status": "Closed"
-},
-{
-  "ticket_id": "INC-400004",
-  "created_at": "2025-11-10T13:00:00",
-  "closed_at": "2025-11-11T10:00:00",
-  "module_reported": "ClaimCenter",
-  "description": "Loss run report generation is timing out for accounts with more than 500 claims. The report page shows a loading spinner and then returns a timeout error after 30 seconds. Smaller accounts are unaffected. This is blocking renewal underwriting for three large commercial accounts.",
-  "resolution_notes": "The loss run query was doing a full table scan without using the claim count index, which performed acceptably for small accounts but degraded severely above 500 claims. Added the missing index hint to the report query and rewrote the aggregation to paginate instead of loading all claims into memory. Tested with a 1200-claim account and confirmed the report now generates in under 3 seconds.",
-  "priority": "P2",
-  "assignee_team": "CC-Reporting",
-  "guidewire_version": "Innsbruck",
-  "status": "Closed"
-}
+(venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Musaddique/Knowledgeops_gw$ python3 pipeline.py 
+======================================================================
+KNOWLEDGE OPS AGENT -- KNOWLEDGE BASE REFRESH
+======================================================================
+
+[1/4] Ingestion & Normalization  (kb_version=kb-20261116T122639-b2b5f0)
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='I... cause and resolution.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary="C...details in the record.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='B...otherwise operational.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='L...otherwise operational.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+      -> 4 record(s) ingested/changed
+
+[2/4] Structuring Agent (SOP rendering)
+      -> structured SOPs rendered for 4 record(s)
+
+[3/4] SME Curation Gate
+      -> 4 record(s) flagged for SME review (0 auto-approved)
+
+[4/4] Knowledge Store (PostgreSQL + pgvector)
+      -> 4 records written to ticket_records as PendingReview
+      -> refresh run logged as kb-20261116T122639-b2b5f0
+
+4 record(s) await SME review. Run: python sme_review.py
+(venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Musaddique/Knowledgeops_gw$ python3 sme_review.py 
+4 record(s) awaiting SME review.
+
+
+======================================================================
+[ticket_records] NR-INC-400001  (source_ref_id=INC-400001)
+Title: Incorrect premium calculations for home policies with pool endorsement fixed by Gosu rule update.
+Module=PolicyCenter  Category=ConfigurationError  Severity=SEV1-Critical  Resolution=CodeFix
+tagging_confidence = 0.97
+LLM reasoning: The issue was a configuration error in PolicyCenter, specifically a Gosu rule referencing an outdated table, which was resolved by a code fix (updating the rule and redeploying). The severity is SEV2-High because a major feature (premium calculation) was broken but a manual workaround existed. The confidence is high due to explicit details about the cause and resolution.
+----------------------------------------------------------------------
+## Incorrect premium calculations for home policies with pool endorsement fixed by Gosu rule update.
+
+**Source:** HistoricalTicket (INC-400001)
+**Module:** PolicyCenter | **Category:** ConfigurationError | **Severity:** SEV1-Critical
+**Resolution Type:** CodeFix
+**Date:** 2025-11-01
+**Guidewire Version:** Innsbruck
+
+### Summary / Symptom
+Underwriting rules engine is returning incorrect premium calculations for home policies with a swimming pool endorsement. Agents can manually override the calculated premium as a temporary workaround. The issue affects roughly 30% of new home policy quotes in the last two weeks.
+
+### Resolution
+The root cause was a Gosu rule in PolicyCenter referencing a deprecated endorsement factor table, leading to incorrect premium calculations for home policies with a swimming pool endorsement. Agents temporarily mitigated the issue by manually overriding premiums. The resolution involved updating the Gosu rule to reference the correct table, followed by regression testing and redeployment. No data remediation was necessary since manual overrides ensured premium accuracy for affected quotes.
+
+
+[1/4] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: a
+  Approval notes (optional): a
+  -> SMEApproved, embedding generated.
+
+======================================================================
+[ticket_records] NR-INC-400002  (source_ref_id=INC-400002)
+Title: Commercial lines agents' SSO sessions expired immediately due to misconfigured session timeout; fixed via SSO config update.
+Module=BillingCenter  Category=AuthenticationAccess  Severity=SEV2-High  Resolution=ConfigChange
+tagging_confidence = 0.97
+LLM reasoning: The issue was an SSO session expiry problem, which fits AuthenticationAccess. The fix was a configuration change in the SSO provider, matching ConfigChange. The module is BillingCenter, as the affected users are agents in that domain. The severity is SEV2-High because a major group was unable to log in, but the issue was limited in scope and quickly resolved. The confidence is high due to explicit details in the record.
+----------------------------------------------------------------------
+## Commercial lines agents' SSO sessions expired immediately due to misconfigured session timeout; fixed via SSO config update.
+
+**Source:** HistoricalTicket (INC-400002)
+**Module:** BillingCenter | **Category:** AuthenticationAccess | **Severity:** SEV2-High
+**Resolution Type:** ConfigChange
+**Date:** 2025-11-04
+
+### Summary / Symptom
+Agents in the commercial lines team are unable to log in after 2pm every day. The session expires immediately upon login. The issue started after a configuration change was pushed to the SSO provider last Thursday. Personal lines agents are unaffected.
+
+### Resolution
+The root cause was a misconfiguration in the SSO provider, where the session timeout for the commercial lines user group was set to 2 minutes instead of the intended 480 minutes. This caused sessions to expire immediately upon login for affected users. The issue was resolved by correcting the session timeout value in the SSO provider's admin console. After the change, commercial lines agents were able to log in and maintain active sessions as expected.
+
+
+[2/4] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: q
+
+Stopping review early. Remaining records are untouched.
+(venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Musaddique/Knowledgeops_gw$ 
