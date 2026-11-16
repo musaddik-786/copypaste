@@ -1,60 +1,93 @@
-{
-  "ticket_id": "INC-900001",
-  "created_at": "2025-12-10T08:00:00",
-  "closed_at": "2025-12-10T10:00:00",
-  "module_reported": "PolicyCenter",
-  "description": "Agents report that the renewal quote screen freezes for about 15 seconds every time they click 'Calculate Premium' on auto policies with more than 3 vehicles. Screen eventually loads but agents think the system has crashed and often click the button multiple times, creating duplicate rating calls.",
-  "resolution_notes": "root cause -- rating engine was looping thru each vehicle sequentially instead of batching the call. fixed by batching vehicle rating requests into a single call. tested w/ 5-vehicle policy, load time dropped from 15s to under 2s. pushed to prod 12/10 9am.",
-  "priority": "P3",
-  "assignee_team": "PC-Rating",
-  "guidewire_version": "Jasper",
-  "status": "Closed"
-},
-{
-  "ticket_id": "INC-900002",
-  "created_at": "2025-12-11T13:00:00",
-  "closed_at": "2025-12-11T14:15:00",
-  "module_reported": "BillingCenter",
-  "description": "Customer called in saying their autopay failed for the 3rd month in a row even though their card on file is valid and has sufficient funds. No error is shown to the customer in the portal -- the payment just silently doesn't happen.",
-  "resolution_notes": "turned out the card's expiry month/year got swapped during a data migration (MM/YY stored as YY/MM for this one customer's record). payment gateway rejected it every time bc the expiry looked like it was in the past. corrected the two fields directly in billingcenter admin screen. customer confirmed autopay worked on next cycle.",
-  "priority": "P2",
-  "assignee_team": "BC-Payments",
-  "guidewire_version": "Innsbruck",
-  "status": "Closed"
-},
-{
-  "ticket_id": "INC-900003",
-  "created_at": "2025-12-12T09:00:00",
-  "closed_at": "2025-12-12T09:40:00",
-  "module_reported": "ClaimCenter",
-  "description": "Adjuster unable to attach photos to a claim from the mobile app -- upload button spins forever and never completes. Works fine on desktop for the same claim.",
-  "resolution_notes": "mobile app was hitting an old file-upload endpoint that was deprecated last release. nobody updated the mobile config. pointed mobile app config to the new endpoint url. verified upload works on iOS and Android.",
-  "priority": "P3",
-  "assignee_team": "CC-Mobile",
-  "guidewire_version": "Jasper",
-  "status": "Closed"
-},
-{
-  "ticket_id": "INC-900004",
-  "created_at": "2025-12-13T06:00:00",
-  "closed_at": "2025-12-13T15:00:00",
-  "module_reported": null,
-  "description": "Underwriters across all regions report that the risk scoring widget on the submission screen shows 'N/A' instead of a score for every new commercial submission since this morning. No error message, just a blank score.",
-  "resolution_notes": "3rd party risk scoring API changed their response schema without notice -- they renamed 'risk_score' field to 'score_value'. our widget was still reading the old field name so it got null every time. updated the parsing code to read the new field name and added a fallback to the old name in case they revert. confirmed scores are showing again for new submissions.",
-  "priority": "P1",
-  "assignee_team": "Integrations-RiskAPI",
-  "guidewire_version": "Innsbruck",
-  "status": "Closed"
-},
-{
-  "ticket_id": "INC-900005",
-  "created_at": "2025-12-14T10:00:00",
-  "closed_at": "2025-12-14T10:20:00",
-  "module_reported": "ContactManager",
-  "description": "Agent reports a customer's mailing address shows correctly in ContactManager but printed policy documents still use an old address from 2 years ago.",
-  "resolution_notes": "doc gen template was pulling address from a cached snapshot table that only refreshes nightly, not live from contactmanager. customer had updated their address same-day so cache hadn't caught up yet. no code change needed -- explained caching behavior to agent, address appeared correctly on next day's doc run. closing as no action by design, will revisit nightly refresh frequency separately if this comes up again.",
-  "priority": "P4",
-  "assignee_team": "CM-DocGen",
-  "guidewire_version": null,
-  "status": "Closed"
-}
+(venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Musaddique/Knowledgeops_gw$ python3 pipeline.py 
+======================================================================
+KNOWLEDGE OPS AGENT -- KNOWLEDGE BASE REFRESH
+======================================================================
+
+[1/4] Ingestion & Normalization  (kb_version=kb-20261116T140525-255723)
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='R...rting high confidence.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='A...nd payment processing.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='M... explicitly described.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='R...tion of cause and fix.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='A...s-critical disruption.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+      -> 5 record(s) ingested/changed
+
+[2/4] Structuring Agent (SOP rendering)
+      -> structured SOPs rendered for 5 record(s)
+
+[3/4] SME Curation Gate
+      -> 5 ticket record(s) auto-approved (no SME review needed)
+      -> 0 record(s) flagged for SME review
+
+[4/4] Knowledge Store (PostgreSQL + pgvector)
+      -> 5 records written to ticket_records as AutoApproved
+      -> refresh run logged as kb-20261116T140525-255723
+
+No records await SME review.
+(venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Musaddique/Knowledgeops_gw$ python3 sme_review.py 
+2 record(s) awaiting SME review.
+
+
+======================================================================
+[ticket_records] NR-INC-700004  (source_ref_id=INC-700004)
+Title: Inbound mobile FNOLs dropped due to expired SSL certificate; records manually recreated after renewal.
+Module=IntegrationGateway  Category=IntegrationFailure  Severity=SEV1-Critical  Resolution=DataRemediation
+tagging_confidence = 0.97
+LLM reasoning: The issue fits IntegrationFailure because inbound FNOLs from the mobile app were dropped at the API gateway boundary, and DataRemediation is appropriate since lost records were manually recreated. IntegrationGateway is the correct module as the failure occurred at the API gateway, and SEV1-Critical is justified due to the silent loss of 90 claims, impacting business operations. The explicit cause and resolution in the text support high confidence.
+----------------------------------------------------------------------
+## Inbound mobile FNOLs dropped due to expired SSL certificate; records manually recreated after renewal.
+
+**Source:** HistoricalTicket (INC-700004)
+**Module:** IntegrationGateway | **Category:** IntegrationFailure | **Severity:** SEV1-Critical
+**Resolution Type:** DataRemediation
+**Date:** 2025-12-01
+**Guidewire Version:** Innsbruck
+
+### Summary / Symptom
+All inbound FNOL notifications from the mobile app are being dropped. Claims are not being created in ClaimCenter from mobile submissions. The mobile app shows a success confirmation to customers but no claim appears in the system. Approximately 90 mobile FNOLs have been silently lost since yesterday evening.
+
+### Resolution
+The root cause was an expired SSL certificate on the inbound FNOL API endpoint, which caused the API gateway to silently drop all mobile FNOL submissions despite the mobile app showing a success confirmation. The issue was resolved by renewing the SSL certificate and restarting the API gateway. Additionally, the 90 lost FNOL records were manually recreated using logs from the mobile app submissions to restore the missing claims.
+
+
+[1/2] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: a
+  Approval notes (optional): a
+a  -> SMEApproved, embedding generated.
+
+======================================================================
+[ticket_records] NR-INC-700005  (source_ref_id=INC-700005)
+Title: Endorsement date validator updated to match 90-day product configuration for homeowners policies.
+Module=PolicyCenter  Category=ConfigurationError  Severity=SEV2-High  Resolution=CodeFix
+tagging_confidence = 0.97
+----------------------------------------------------------------------
+## Endorsement date validator updated to match 90-day product configuration for homeowners policies.
+
+**Source:** HistoricalTicket (INC-700005)
+**Module:** PolicyCenter | **Category:** ConfigurationError | **Severity:** SEV2-High
+**Resolution Type:** CodeFix
+**Date:** 2025-12-03
+**Guidewire Version:** Jasper
+
+### Summary / Symptom
+Endorsement effective date validation is rejecting valid future dates for homeowners policies. Agents entering an endorsement effective date more than 30 days in the future receive a validation error saying the date is out of range, even though the product rules allow up to 90 days. This started after last week's product configuration update.
+
+### Resolution
+The issue was caused by a hardcoded 30-day maximum in the endorsement effective date validator, which conflicted with the product configuration allowing up to 90 days. After a product configuration update, agents were incorrectly blocked from entering valid future dates. The validator was modified to dynamically read the allowed date range from the product configuration, resolving the mismatch and enabling agents to enter endorsement dates up to 90 days in the future.
+
+
+[2/2] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: a
+  Not a valid choice -- enter a/r/n/s/q.
+
+[2/2] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: a
+  Approval notes (optional): a
+  -> SMEApproved, embedding generated.
+(venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Musaddique/Knowledgeops_gw$ 
