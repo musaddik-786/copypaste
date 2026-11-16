@@ -1,60 +1,116 @@
-{
-  "ticket_id": "INC-800001",
-  "created_at": "2025-12-04T06:00:00",
-  "closed_at": "2025-12-04T09:00:00",
-  "module_reported": "ContactManager",
-  "description": "Duplicate contact records are being created when the same customer calls in through two different channels (phone and web portal) within the same day. This is causing policy correspondence to be sent twice to the same customer. Support has identified 60 duplicate pairs created in the last week.",
-  "resolution_notes": "The contact matching logic only checked for an exact match on email address, but the web portal submission used a different email casing than the phone channel's recorded email, so the dedup check failed. Updated the contact matching rule to normalize email case before comparison, and merged the 60 existing duplicate pairs using the merge-contacts utility.",
-  "priority": "P2",
-  "assignee_team": "CM-DataQuality",
-  "guidewire_version": "Jasper",
-  "status": "Closed"
-},
-{
-  "ticket_id": "INC-800002",
-  "created_at": "2025-12-05T11:00:00",
-  "closed_at": "2025-12-05T11:45:00",
-  "module_reported": "DigitalPortal",
-  "description": "Customers attempting to download their policy declaration PDF from the self-service portal receive a blank page instead of the document. The download link itself works correctly when tested in a different browser. Only affects customers on the latest version of one specific browser.",
-  "resolution_notes": "A recent browser update changed how that browser renders embedded PDF viewers for cross-origin documents. The portal's PDF viewer component was serving the file without the correct content-disposition header for that browser's new security model. Updated the header configuration so the PDF downloads directly instead of attempting an inline render for that browser.",
-  "priority": "P3",
-  "assignee_team": "Portal-Frontend",
-  "guidewire_version": "Innsbruck",
-  "status": "Closed"
-},
-{
-  "ticket_id": "INC-800003",
-  "created_at": "2025-12-06T14:00:00",
-  "closed_at": "2025-12-07T08:00:00",
-  "module_reported": null,
-  "description": "Nightly batch job that calculates commission payouts for agents failed to run for the second night in a row. Agents are asking about missing commission statements. The job's log shows it starts but terminates after a few seconds with no clear error written to the application log.",
-  "resolution_notes": "The batch job was failing because a scheduled database maintenance window overlapped with its start time, causing it to lose its connection mid-initialization. The job's connection retry logic was not configured to handle this case. Added a retry-with-backoff wrapper around the initial connection step and rescheduled the maintenance window to avoid the overlap. Reran the job manually for both missed nights and all commission statements were generated correctly.",
-  "priority": "P2",
-  "assignee_team": "BillingCenter-Batch",
-  "guidewire_version": "Jasper",
-  "status": "Closed"
-},
-{
-  "ticket_id": "INC-800004",
-  "created_at": "2025-12-08T09:00:00",
-  "closed_at": "2025-12-08T09:30:00",
-  "module_reported": "Rating/Gosu",
-  "description": "A single underwriter reported that one specific rate table lookup returns a rate that is slightly higher than expected for a niche vehicle class in one state. All other rate lookups are unaffected. The discrepancy is small (a few dollars) and does not block quoting.",
-  "resolution_notes": "Investigation found the rate table had a correctly configured value -- it simply reflected a rate change that had been approved by the state regulator two weeks prior and had not yet been communicated to the underwriting team. No defect existed; the rate was correct as configured. Ticket closed as user error / expectation mismatch, and underwriting was notified of the regulator-approved rate change.",
-  "priority": "P4",
-  "assignee_team": "Rating-Support",
-  "guidewire_version": null,
-  "status": "Closed"
-},
-{
-  "ticket_id": "INC-800005",
-  "created_at": "2025-12-09T07:00:00",
-  "closed_at": "2025-12-09T22:00:00",
-  "module_reported": "ClaimCenter",
-  "description": "All claim adjusters are unable to log into ClaimCenter starting this morning. Login attempts hang for 30 seconds then return an authentication timeout error. PolicyCenter and BillingCenter logins are unaffected. Every adjuster across all regions is impacted and claims work has stopped.",
-  "resolution_notes": "The ClaimCenter authentication service was pointed at an identity provider endpoint that had been migrated to a new URL during an infrastructure change the previous night, but ClaimCenter's configuration still referenced the old endpoint, which was timing out instead of returning a clean error. Updated the identity provider endpoint configuration in ClaimCenter to the new URL and restarted the authentication service. All adjusters confirmed able to log in within minutes.",
-  "priority": "P1",
-  "assignee_team": "CC-Auth",
-  "guidewire_version": "Innsbruck",
-  "status": "Closed"
-}
+(venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Musaddique/Knowledgeops_gw$ python3 pipeline.py 
+======================================================================
+KNOWLEDGE OPS AGENT -- KNOWLEDGE BASE REFRESH
+======================================================================
+
+[1/4] Ingestion & Normalization  (kb_version=kb-20261116T134834-1abbe2)
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='D...s directly remediated.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='P... a different browser).'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='C...rting high confidence.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='U...did not block quoting.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='C...lication was impacted."), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+      -> 5 record(s) ingested/changed
+
+[2/4] Structuring Agent (SOP rendering)
+      -> structured SOPs rendered for 5 record(s)
+
+[3/4] SME Curation Gate
+      -> 5 ticket record(s) auto-approved (no SME review needed)
+      -> 0 record(s) flagged for SME review
+
+[4/4] Knowledge Store (PostgreSQL + pgvector)
+      -> 5 records written to ticket_records as AutoApproved
+      -> refresh run logged as kb-20261116T134834-1abbe2
+
+No records await SME review.
+(venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Musaddique/Knowledgeops_gw$ python3 sme_review.py 
+4 record(s) awaiting SME review.
+
+
+======================================================================
+[ticket_records] NR-INC-700002  (source_ref_id=INC-700002)
+Title: Claim reserves displayed in wrong currency; formatter updated to use claim record currency.
+Module=ClaimCenter  Category=UIRenderingBug  Severity=SEV3-Medium  Resolution=CodeFix
+tagging_confidence = 0.97
+LLM reasoning: The issue is a display-only defect, fitting the UIRenderingBug category, and was resolved by a code change to the dashboard widget, matching CodeFix. The module is ClaimCenter, as the dashboard and claim reserves are claim-related. Severity is SEV3-Medium since the defect is non-blocking and adjusters can access correct values via manual reports. Confidence is high because the text clearly describes the cause and fix.
+----------------------------------------------------------------------
+## Claim reserves displayed in wrong currency; formatter updated to use claim record currency.
+
+**Source:** HistoricalTicket (INC-700002)
+**Module:** ClaimCenter | **Category:** UIRenderingBug | **Severity:** SEV3-Medium
+**Resolution Type:** CodeFix
+**Date:** 2025-11-30
+**Guidewire Version:** Jasper
+
+### Summary / Symptom
+Claim reserve amounts on the adjuster dashboard are displaying in the wrong currency for international claims. USD amounts are being displayed as GBP for claims filed in the UK region. The correct currency is stored in the database but the display layer is showing the wrong symbol. Adjusters can see the correct value by running a manual report.
+
+### Resolution
+The adjuster dashboard was showing claim reserve amounts in GBP for UK claims, even when the actual values were stored in USD. This was caused by a hardcoded currency formatter that defaulted to GBP based on office code, rather than reading the correct currency from the claim record. The issue was resolved by updating the formatter to use the currency code stored in each claim. No underlying data was incorrect; only the display label was affected.
+
+
+[1/4] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: a
+  Approval notes (optional): a
+  -> SMEApproved, embedding generated.
+
+======================================================================
+[ticket_records] NR-INC-700003  (source_ref_id=INC-700003)
+Title: Payment plan reassignment failed for migrated policies due to missing template ID mapping; data backfilled.
+Module=BillingCenter  Category=DataCorruption  Severity=SEV2-High  Resolution=DataRemediation
+tagging_confidence = 0.97
+LLM reasoning: The issue involved missing references in migrated data, which caused foreign key violations—a classic case of DataCorruption. The fix was to update mappings and backfill the data, matching the DataRemediation resolution_type. The module is clearly BillingCenter, as the problem centers on payment plan reassignment. Severity is SEV2-High because the issue blocks a major feature (payment plan changes) but a manual workaround exists. The confidence is high (0.95) because the text explicitly details the cause and resolution.
+----------------------------------------------------------------------
+## Payment plan reassignment failed for migrated policies due to missing template ID mapping; data backfilled.
+
+**Source:** HistoricalTicket (INC-700003)
+**Module:** BillingCenter | **Category:** DataCorruption | **Severity:** SEV2-High
+**Resolution Type:** DataRemediation
+**Date:** 2025-11-30
+
+### Summary / Symptom
+Payment plan reassignment is failing for policies that were migrated from the legacy billing system. When an agent tries to change the payment plan on a migrated policy, BillingCenter throws a foreign key constraint violation. Agents can manually recreate the policy in BillingCenter as a workaround but it takes 30 minutes per policy.
+
+### Resolution
+The root cause was that migrated policies from the legacy billing system lacked the required payment_plan_template_id, as the migration script did not map legacy plan codes to the new BillingCenter template IDs. This resulted in foreign key constraint violations when agents attempted to reassign payment plans. The issue was resolved by updating the migration reference table with the correct template ID mappings and running a backfill to update all affected policies. Agents no longer need to manually recreate policies, as the data is now consistent.
+
+
+[2/4] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: a
+  Approval notes (optional): a
+  -> SMEApproved, embedding generated.
+
+======================================================================
+[ticket_records] NR-INC-700004  (source_ref_id=INC-700004)
+Title: Inbound mobile FNOLs dropped due to expired SSL certificate; records manually recreated after renewal.
+Module=IntegrationGateway  Category=IntegrationFailure  Severity=SEV1-Critical  Resolution=DataRemediation
+tagging_confidence = 0.97
+LLM reasoning: The issue fits IntegrationFailure because inbound FNOLs from the mobile app were dropped at the API gateway boundary, and DataRemediation is appropriate since lost records were manually recreated. IntegrationGateway is the correct module as the failure occurred at the API gateway, and SEV1-Critical is justified due to the silent loss of 90 claims, impacting business operations. The explicit cause and resolution in the text support high confidence.
+----------------------------------------------------------------------
+## Inbound mobile FNOLs dropped due to expired SSL certificate; records manually recreated after renewal.
+
+**Source:** HistoricalTicket (INC-700004)
+**Module:** IntegrationGateway | **Category:** IntegrationFailure | **Severity:** SEV1-Critical
+**Resolution Type:** DataRemediation
+**Date:** 2025-12-01
+**Guidewire Version:** Innsbruck
+
+### Summary / Symptom
+All inbound FNOL notifications from the mobile app are being dropped. Claims are not being created in ClaimCenter from mobile submissions. The mobile app shows a success confirmation to customers but no claim appears in the system. Approximately 90 mobile FNOLs have been silently lost since yesterday evening.
+
+### Resolution
+The root cause was an expired SSL certificate on the inbound FNOL API endpoint, which caused the API gateway to silently drop all mobile FNOL submissions despite the mobile app showing a success confirmation. The issue was resolved by renewing the SSL certificate and restarting the API gateway. Additionally, the 90 lost FNOL records were manually recreated using logs from the mobile app submissions to restore the missing claims.
+
+
+[3/4] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: q
+
+Stopping review early. Remaining records are untouched.
+(venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Musaddique/Knowledgeops_gw$ 
