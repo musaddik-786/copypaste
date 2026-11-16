@@ -1,60 +1,167 @@
-{
-  "ticket_id": "INC-300001",
-  "created_at": "2025-10-01T09:00:00",
-  "closed_at": "2025-10-01T16:30:00",
-  "module_reported": "PolicyCenter",
-  "description": "Policy renewal workflow is failing at the final submission step. When an agent clicks 'Bind Policy', the system throws a NullPointerException in the premium calculation service. This affects all auto policies in the Texas region. Agents are unable to complete renewals and customers are receiving error pages.",
-  "resolution_notes": "Root cause was a null handling bug introduced in the premium rounding utility (PremiumRoundingUtil.java) during the previous sprint. The null check was missing when the base rate table returned an empty row for Texas-specific surcharges. Added null guard in PremiumRoundingUtil, redeployed to production, and ran a backfill job to reprocess the 47 failed renewals.",
-  "priority": "P1",
-  "assignee_team": "PC-Core",
-  "guidewire_version": "Innsbruck",
-  "status": "Closed"
-},
-{
-  "ticket_id": "INC-300002",
-  "created_at": "2025-10-03T14:00:00",
-  "closed_at": "2025-10-04T10:00:00",
-  "module_reported": "BillingCenter",
-  "description": "Scheduled overnight batch job for invoice generation is producing duplicate invoices for commercial accounts with multi-vehicle policies. Customers are receiving two copies of the same invoice by email. Finance team has flagged approximately 200 duplicate invoices since last Monday.",
-  "resolution_notes": "The invoice generation batch was accidentally registered twice in the job scheduler after a config file was edited during a manual hotfix. Removed the duplicate job entry from the quartz scheduler config, cleared the duplicate invoice records from the database, and sent corrected invoices to affected customers. Added a startup validation check to detect duplicate job registrations.",
-  "priority": "P2",
-  "assignee_team": "BC-Billing",
-  "guidewire_version": "Jasper",
-  "status": "Closed"
-},
-{
-  "ticket_id": "INC-300003",
-  "created_at": "2025-10-05T11:00:00",
-  "closed_at": "2025-10-05T18:00:00",
-  "module_reported": null,
-  "description": "Loss reserves calculation is producing incorrect totals for catastrophe claims filed after Hurricane Milton. The reserve amount shown in the claims dashboard is significantly lower than what adjusters are entering manually. This is impacting financial reporting and reinsurance calculations.",
-  "resolution_notes": "Investigation revealed the CAT (catastrophe) flag was not being applied to the reserve calculation formula for claims filed via the mobile intake portal. The portal was sending claims without the CAT event code, so the standard (non-CAT) reserve multiplier was used instead. Fixed the mobile intake API to include the CAT event code from the event registry, and triggered a recalculation job for all 312 affected Milton claims.",
-  "priority": "P1",
-  "assignee_team": "Claims-Reserves",
-  "guidewire_version": null,
-  "status": "Closed"
-},
-{
-  "ticket_id": "INC-300004",
-  "created_at": "2025-10-08T08:30:00",
-  "closed_at": "2025-10-09T12:00:00",
-  "module_reported": "ContactManager",
-  "description": "Agents are reporting that searching for contacts by phone number returns no results even when the number exists in the system. The same contact is found correctly when searching by name. This started after last Friday's maintenance window and is affecting all agency staff.",
-  "resolution_notes": "The maintenance window included a database index rebuild. The phone number search index was rebuilt with the wrong collation setting (case-sensitive instead of case-insensitive), and phone number formatting normalization was skipped. Numbers stored as (555) 123-4567 were not matching queries for 5551234567. Rebuilt the index with correct collation and added a normalization step in the search query to strip formatting characters before lookup.",
-  "priority": "P2",
-  "assignee_team": "CM-Search",
-  "guidewire_version": "Innsbruck",
-  "status": "Closed"
-},
-{
-  "ticket_id": "INC-300005",
-  "created_at": "2025-10-12T15:00:00",
-  "closed_at": "2025-10-13T09:00:00",
-  "module_reported": null,
-  "description": "Integration between Guidewire and the third-party telematics provider is dropping 15-20% of incoming driving score payloads. Affected policies are not receiving their safe-driver discount adjustments. The issue appears intermittent and does not produce any error logs on the Guidewire side.",
-  "resolution_notes": "The telematics provider updated their payload schema to include a new required field 'deviceFirmwareVersion' which Guidewire's integration adapter was not mapping. Unmapped required fields caused the adapter to silently discard the payload rather than raising an error. Updated the integration adapter mapping config to pass through the new field, added a dead-letter queue to capture and alert on any future unmapped payloads, and reprocessed the dropped payloads from the provider's retry queue.",
-  "priority": "P2",
-  "assignee_team": "Integrations",
-  "guidewire_version": "Jasper",
-  "status": "Closed"
-}
+(venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Musaddique/Knowledgeops_gw$ python3 pipeline.py 
+======================================================================
+KNOWLEDGE OPS AGENT -- KNOWLEDGE BASE REFRESH
+======================================================================
+
+[1/4] Ingestion & Normalization  (kb_version=kb-20261116T120010-9f3c23)
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='N...y to process renewals.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='D...rting high confidence.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='C...but not a full outage.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='C... search functionality.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='T...rting high confidence.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+      -> 5 record(s) ingested/changed
+
+[2/4] Structuring Agent (SOP rendering)
+      -> structured SOPs rendered for 5 record(s)
+
+[3/4] SME Curation Gate
+      -> 5 record(s) flagged for SME review (0 auto-approved)
+
+[4/4] Knowledge Store (PostgreSQL + pgvector)
+      -> 5 records written to ticket_records as PendingReview
+      -> refresh run logged as kb-20261116T120010-9f3c23
+
+5 record(s) await SME review. Run: python sme_review.py
+(venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Musaddique/Knowledgeops_gw$ python3 sme_review.py 
+5 record(s) awaiting SME review.
+
+
+======================================================================
+[ticket_records] NR-INC-300001  (source_ref_id=INC-300001)
+Title: NullPointerException in PolicyCenter renewal due to missing null check in premium rounding.
+Module=PolicyCenter  Category=ConfigurationError  Severity=SEV1-Critical  Resolution=CodeFix
+tagging_confidence = 0.97
+LLM reasoning: The issue was caused by a code bug (missing null check) introduced in a recent sprint, affecting a critical business workflow (policy renewals) and blocking all agents in a region. The fix required a code change and redeployment, and the module is clearly PolicyCenter. The severity is SEV1 due to the complete inability to process renewals.
+----------------------------------------------------------------------
+## NullPointerException in PolicyCenter renewal due to missing null check in premium rounding.
+
+**Source:** HistoricalTicket (INC-300001)
+**Module:** PolicyCenter | **Category:** ConfigurationError | **Severity:** SEV1-Critical
+**Resolution Type:** CodeFix
+**Date:** 2025-10-01
+**Guidewire Version:** Innsbruck
+
+### Summary / Symptom
+Policy renewal workflow is failing at the final submission step. When an agent clicks 'Bind Policy', the system throws a NullPointerException in the premium calculation service. This affects all auto policies in the Texas region. Agents are unable to complete renewals and customers are receiving error pages.
+
+### Resolution
+The policy renewal workflow in PolicyCenter was failing at the final submission step for all auto policies in Texas, caused by a missing null check in the premium rounding utility. When the base rate table returned an empty row for Texas-specific surcharges, a NullPointerException was thrown. The issue was resolved by adding a null guard in the PremiumRoundingUtil.java file and redeploying the fix to production. Additionally, a backfill job was run to reprocess the 47 failed renewals and ensure data consistency.
+
+
+[1/5] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: a
+  Approval notes (optional): a
+  -> SMEApproved, embedding generated.
+
+======================================================================
+[ticket_records] NR-INC-300002  (source_ref_id=INC-300002)
+Title: Duplicate invoices generated due to double-registered batch job; config and data cleanup performed.
+Module=BillingCenter  Category=ConfigurationError  Severity=SEV2-High  Resolution=DataRemediation
+tagging_confidence = 0.97
+LLM reasoning: The issue was caused by a configuration mistake (duplicate job registration), and resolution required both config correction and data cleanup. The module is BillingCenter due to invoice generation. Severity is SEV2-High as it impacts financial operations but is not a total outage. The text clearly states the cause and fix, supporting high confidence.
+----------------------------------------------------------------------
+## Duplicate invoices generated due to double-registered batch job; config and data cleanup performed.
+
+**Source:** HistoricalTicket (INC-300002)
+**Module:** BillingCenter | **Category:** ConfigurationError | **Severity:** SEV2-High
+**Resolution Type:** DataRemediation
+**Date:** 2025-10-04
+**Guidewire Version:** Jasper
+
+### Summary / Symptom
+Scheduled overnight batch job for invoice generation is producing duplicate invoices for commercial accounts with multi-vehicle policies. Customers are receiving two copies of the same invoice by email. Finance team has flagged approximately 200 duplicate invoices since last Monday.
+
+### Resolution
+The root cause was a misconfiguration: the invoice generation batch job was accidentally registered twice in the scheduler after a manual config file edit. This led to duplicate invoices being produced and sent to customers. The issue was resolved by removing the duplicate job entry from the scheduler configuration, cleaning up duplicate invoice records in the database, and resending corrected invoices. Additionally, a startup validation check was implemented to prevent future duplicate job registrations.
+
+
+[2/5] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: a
+  Approval notes (optional): a
+  -> SMEApproved, embedding generated.
+
+======================================================================
+[ticket_records] NR-INC-300003  (source_ref_id=INC-300003)
+Title: CAT claims reserves miscalculated due to missing event code in mobile intake portal.
+Module=ClaimCenter  Category=DataCorruption  Severity=SEV1-Critical  Resolution=CodeFix
+tagging_confidence = 0.96
+LLM reasoning: The issue is incorrect data (reserve totals) due to a missing event code, which fits DataCorruption. The fix involved updating API code, so CodeFix is appropriate. The module is ClaimCenter, as it involves claims and reserves. Severity is SEV2-High due to financial impact but not a full outage.
+----------------------------------------------------------------------
+## CAT claims reserves miscalculated due to missing event code in mobile intake portal.
+
+**Source:** HistoricalTicket (INC-300003)
+**Module:** ClaimCenter | **Category:** DataCorruption | **Severity:** SEV1-Critical
+**Resolution Type:** CodeFix
+**Date:** 2025-10-05
+
+### Summary / Symptom
+Loss reserves calculation is producing incorrect totals for catastrophe claims filed after Hurricane Milton. The reserve amount shown in the claims dashboard is significantly lower than what adjusters are entering manually. This is impacting financial reporting and reinsurance calculations.
+
+### Resolution
+The root cause was the mobile intake portal failing to include the CAT event code when submitting catastrophe claims, resulting in the standard reserve multiplier being used instead of the higher CAT multiplier. This led to underreported loss reserves for claims filed after Hurricane Milton, impacting financial and reinsurance reporting. The issue was resolved by updating the mobile intake API to correctly send the CAT event code from the event registry, followed by a recalculation job to correct reserve totals for all affected claims.
+
+
+[3/5] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: a
+  Approval notes (optional): a
+  -> SMEApproved, embedding generated.
+
+======================================================================
+[ticket_records] NR-INC-300004  (source_ref_id=INC-300004)
+Title: Contact search by phone number failed due to index collation and formatting; fixed by reindexing.
+Module=ContactManager  Category=ConfigurationError  Severity=SEV2-High  Resolution=ConfigChange
+tagging_confidence = 0.97
+LLM reasoning: The issue was caused by incorrect configuration during a maintenance window (wrong collation and missing normalization), and was resolved by reconfiguring and rebuilding the index. It affected all agency staff, making it a high-severity issue. The module is ContactManager, as it involves contact search functionality.
+----------------------------------------------------------------------
+## Contact search by phone number failed due to index collation and formatting; fixed by reindexing.
+
+**Source:** HistoricalTicket (INC-300004)
+**Module:** ContactManager | **Category:** ConfigurationError | **Severity:** SEV2-High
+**Resolution Type:** ConfigChange
+**Date:** 2025-10-09
+**Guidewire Version:** Innsbruck
+
+### Summary / Symptom
+Agents are reporting that searching for contacts by phone number returns no results even when the number exists in the system. The same contact is found correctly when searching by name. This started after last Friday's maintenance window and is affecting all agency staff.
+
+### Resolution
+The root cause was a database index for phone number search rebuilt with a case-sensitive collation and without normalizing phone number formatting, causing queries to miss matches with different formats. To resolve this, the index was rebuilt using a case-insensitive collation, and a normalization step was added to strip formatting characters from phone numbers before searching. This restored correct search functionality for all agency staff. Future maintenance should ensure both collation and normalization are properly configured for search indexes.
+
+
+[4/5] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: a
+  Approval notes (optional): a
+  -> SMEApproved, embedding generated.
+
+======================================================================
+[ticket_records] NR-INC-300005  (source_ref_id=INC-300005)
+Title: Telematics integration dropped payloads due to unmapped required field; mapping updated and reprocessing done.
+Module=IntegrationGateway  Category=IntegrationFailure  Severity=SEV2-High  Resolution=ConfigChange
+tagging_confidence = 0.96
+LLM reasoning: The issue is a classic integration failure due to a schema mismatch with an external provider, resolved by updating mapping configuration (not code). The IntegrationGateway module fits as it handles external data exchange. Severity is SEV2-High since a major feature (discounts) was impacted but recoverable. The text is explicit about cause and fix, supporting high confidence.
+----------------------------------------------------------------------
+## Telematics integration dropped payloads due to unmapped required field; mapping updated and reprocessing done.
+
+**Source:** HistoricalTicket (INC-300005)
+**Module:** IntegrationGateway | **Category:** IntegrationFailure | **Severity:** SEV2-High
+**Resolution Type:** ConfigChange
+**Date:** 2025-10-13
+**Guidewire Version:** Jasper
+
+### Summary / Symptom
+Integration between Guidewire and the third-party telematics provider is dropping 15-20% of incoming driving score payloads. Affected policies are not receiving their safe-driver discount adjustments. The issue appears intermittent and does not produce any error logs on the Guidewire side.
+
+### Resolution
+The integration with a third-party telematics provider was intermittently dropping 15-20% of incoming driving score payloads, resulting in missed safe-driver discounts. The root cause was a schema change by the provider, adding a new required field ('deviceFirmwareVersion') that the Guidewire integration adapter was not mapping, causing silent discards. The resolution involved updating the adapter's mapping configuration to include the new field, implementing a dead-letter queue for future unmapped payloads, and reprocessing the previously dropped payloads from the provider's retry queue.
+
+
+[5/5] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: a
+  Approval notes (optional): a
+  -> SMEApproved, embedding generated.
+(venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Musaddique/Knowledgeops_gw$ 
