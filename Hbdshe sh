@@ -1,164 +1,141 @@
 """
-Stage 2: Structuring Agent
-(diagram box: "Converts normalized text into structured SOP/runbook format
-and generates vector embeddings for similarity search.")
+Pydantic schemas for every stage of the pipeline shown in the architecture
+diagram:
 
-Responsibilities:
-  1. Render every NormalizedRecord into a consistent SOP/runbook-style
-     markdown block, regardless of which of the 4 sources it came from.
-     This is what makes a ticket resolution and a formal RCA "look the
-     same" to a downstream retrieval agent.
-  2. Generate a vector embedding per record so records can be retrieved by
-     semantic similarity rather than exact keyword match.
+  4 raw sources  -->  Ingestion & Normalization  -->  Structuring Agent
+                 -->  SME Curation Gate  -->  Knowledge Store
 
-Embedding model: Azure OpenAI `text-embedding-3-large` (3072 dimensions),
-via the same `langchain_openai.AzureOpenAIEmbeddings` client and env vars
-(AZURE_OPENAI_API_KEY / AZURE_OPENAI_ENDPOINT / AZURE_OPENAI_API_VERSION /
-AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME) used by the Underwriting Solution
-codebase (see Jarvis/MCP/Document_Query_MCP/query_retriever_pgvector.py).
-Since it's a pretrained model (not fit on our corpus like the earlier
-TF-IDF version), there is no vectorizer to persist -- embed_query() just
-calls the same client as fit_embeddings().
+Each raw source keeps its own native shape (that's how it really looks
+coming out of a ticketing system, a chat export, a vendor release feed, or
+a runbook wiki). Ingestion is responsible for mapping all four into the
+single NormalizedRecord shape.
 """
 
 from __future__ import annotations
 
-import os
+from datetime import date, datetime
+from typing import Optional
 
-# from dotenv import load_dotenv
+from pydantic import BaseModel, Field
 
-from langchain_openai import AzureOpenAIEmbeddings
-
-from schemas import NormalizedRecord
-from dotenv import load_dotenv
-load_dotenv()
-
-EMBEDDING_DIM = 3072
-
-_client: AzureOpenAIEmbeddings | None = None
-
-
-def _get_embeddings_client() -> AzureOpenAIEmbeddings:
-    """Lazily build the Azure OpenAI embeddings client from env vars, and
-    reuse it across calls. Raises RuntimeError with a clear message if the
-    required env vars aren't set, instead of a confusing error from deep
-    inside the Azure SDK."""
-    global _client
-    if _client is not None:
-        return _client
-
-    required = [
-        "AZURE_OPENAI_API_KEY",
-        "AZURE_OPENAI_ENDPOINT",
-        "AZURE_OPENAI_API_VERSION",
-        "AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME",
-    ]
-    missing = [name for name in required if not os.getenv(name)]
-    if missing:
-        raise RuntimeError(
-            "Missing Azure OpenAI env var(s) for embeddings: "
-            f"{', '.join(missing)}. Fill these in in .env (same Azure "
-            "OpenAI resource/deployment as the Underwriting Solution project)."
-        )
-
-    _client = AzureOpenAIEmbeddings(
-        azure_deployment=os.getenv("AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME"),
-        openai_api_key=os.getenv("AZURE_OPENAI_API_KEY"),
-        openai_api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
-        azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
-        chunk_size=1024,
-    )
-    return _client
+from taxonomy import (
+    CurationStatus,
+    GuidewireModule,
+    IssueCategory,
+    ResolutionType,
+    Severity,
+    SourceType,
+)
 
 
-SOP_TEMPLATE = """## {title}
-
-**Source:** {source_type} ({source_ref_id})
-**Module:** {module} | **Category:** {category} | **Severity:** {severity}
-**Resolution Type:** {resolution_type}
-**Date:** {event_date}{version_line}
-
-### Summary / Symptom
-{summary}
-
-### Resolution
-{resolution}
-"""
-
-
-def _render_sop(record: NormalizedRecord) -> str:
-    version_line = f"\n**Guidewire Version:** {record.guidewire_version}" if record.guidewire_version else ""
-    # symptom_text / resolution_text are set per-source-type during
-    # normalization (ingestion.py) -- symptom_text is the raw "what
-    # happened" narrative, resolution_text is an LLM-synthesized "how it
-    # was fixed" narrative (or, for runbooks, the actual steps). Fall back
-    # to raw_text if either is missing (e.g. an older record ingested
-    # before this field existed).
-    summary_part = (record.symptom_text or record.raw_text).strip()
-    resolution_part = (record.resolution_text or "").strip() or summary_part
-
-    return SOP_TEMPLATE.format(
-        title=record.title,
-        source_type=record.source_type.value,
-        source_ref_id=record.source_ref_id,
-        module=record.module.value,
-        category=record.category.value,
-        severity=record.severity.value,
-        resolution_type=record.resolution_type.value,
-        event_date=record.event_date.isoformat(),
-        version_line=version_line,
-        summary=summary_part,
-        resolution=resolution_part,
-    )
+# ---------------------------------------------------------------------------
+# RAW SOURCE 1: Historical Tickets (e.g. ServiceNow / Jira export)
+# ---------------------------------------------------------------------------
+class RawTicket(BaseModel):
+    ticket_id: str
+    created_at: datetime
+    closed_at: datetime
+    module_reported: Optional[str] = None  # free text as the agent typed it; optional --
+                                            # if absent, the LLM infers module from description
+    description: str
+    resolution_notes: str
+    priority: str                        # raw priority label from ticketing tool (P1..P4)
+    assignee_team: str
+    guidewire_version: Optional[str] = None
+    status: str = "Closed"               # ticketing-tool status (e.g. "Open", "In Progress",
+                                          # "Closed"). Defaults to "Closed" so existing raw
+                                          # data without this field keeps validating as-is.
+                                          # ingestion.py only ingests tickets whose status is
+                                          # a closed one (see ingestion.CLOSED_TICKET_STATUSES)
+                                          # -- an open/in-progress ticket is skipped entirely,
+                                          # not even sent to SME review, until it closes.
 
 
-def render_sops(records: list[NormalizedRecord]) -> list[NormalizedRecord]:
-    """Render structured SOP text for every record. Does NOT touch
-    embeddings -- this is the half of the Structuring Agent that can run
-    as its own step, independent of when embeddings get generated."""
-    for r in records:
-        r.structured_sop = _render_sop(r)
-    return records
+# ---------------------------------------------------------------------------
+# RAW SOURCE 2: Chat transcripts & formal RCA reports
+# ---------------------------------------------------------------------------
+class RawChatOrRCA(BaseModel):
+    record_id: str
+    record_type: str                     # "chat_transcript" | "rca_report"
+    incident_id: Optional[str] = None    # links back to a SEV1/SEV2 ticket
+    date: date
+    participants: list[str]
+    module_reported: str
+    title: str
+    body: str                            # raw transcript text or RCA narrative
+    root_cause: Optional[str] = None     # populated for rca_report only
+    corrective_actions: Optional[str] = None
 
 
-def fit_embeddings(texts: list[str]) -> list[list[float]]:
-    """Generate one embedding per text, in the same order, via Azure
-    OpenAI. (Kept the name `fit_embeddings` for compatibility with
-    pipeline.py / step4_store_embeddings.py, but there's no "fitting"
-    step with a pretrained model -- it's just a batched embed call.)
-
-    This is the half of the Structuring Agent that can run as its own
-    step, independent of ingestion/tagging -- e.g. reading `raw_text`
-    straight back out of Postgres for rows that don't have an embedding
-    yet (see step4_store_embeddings.py)."""
-    client = _get_embeddings_client()
-    return client.embed_documents(texts)
-
-
-def structure_and_embed(records: list[NormalizedRecord]) -> list[NormalizedRecord]:
-    """Convenience wrapper used by the one-shot pipeline.py: render SOPs
-    AND generate embeddings in one call. Equivalent to running
-    render_sops() then fit_embeddings() yourself (as step3/step4 do)."""
-    render_sops(records)
-    corpus = [f"{r.title} {r.raw_text}" for r in records]
-    embeddings = fit_embeddings(corpus)
-    for r, emb in zip(records, embeddings):
-        r.embedding = emb
-    return records
+# ---------------------------------------------------------------------------
+# RAW SOURCE 3: Guidewire release notes / vendor advisories
+# ---------------------------------------------------------------------------
+class RawReleaseNote(BaseModel):
+    release_id: str                      # e.g. "XENG-1875" or a Guidewire issue/release id
+    product: str
+    version: str                         # e.g. "Mammoth (2025.03)", "Palisades"
+    release_date: date
+    note_type: str                       # "feature" | "resolved_issue" | "known_issue"
+    title: str
+    details: str
+    affected_modules: list[str]
+    source_url: Optional[str] = None     # public Guidewire docs page this was sourced from
 
 
-def embed_query(text: str) -> list[float]:
-    """Embed a free-text query using the same Azure OpenAI model used on
-    the corpus, so results are comparable via cosine similarity."""
-    client = _get_embeddings_client()
-    return client.embed_query(text)
+# ---------------------------------------------------------------------------
+# RAW SOURCE 4: Runbooks / SOPs
+# ---------------------------------------------------------------------------
+class RawRunbook(BaseModel):
+    runbook_id: str
+    last_updated: date
+    owner_team: str
+    module_reported: str
+    title: str
+    trigger_condition: str               # when this runbook applies
+    steps: list[str]
 
 
-if __name__ == "__main__":
-    from ingestion import ingest_all
+# ---------------------------------------------------------------------------
+# NORMALIZED RECORD — the common shape every source is mapped into
+# after Ingestion & Normalization. This is what the Structuring Agent,
+# SME Curation Gate and Knowledge Store all operate on.
+# ---------------------------------------------------------------------------
+class NormalizedRecord(BaseModel):
+    record_id: str
+    source_type: SourceType
+    source_ref_id: str                   # original ticket_id / release_id / etc.
 
-    records = ingest_all()
-    records = structure_and_embed(records)
-    print(f"Structured {len(records)} records. Embedding dimension: {len(records[0].embedding)}")
-    print("\n--- Example structured SOP ---\n")
-    print(records[0].structured_sop)
+    # --- taxonomy tags applied during Ingestion & Normalization ---
+    module: GuidewireModule
+    category: IssueCategory
+    severity: Severity
+    resolution_type: ResolutionType
+    tagging_confidence: float = Field(ge=0.0, le=1.0)
+    tagging_reasoning: Optional[str] = None       # LLM's own explanation for category/resolution_type
+
+    # --- normalized content ---
+    title: str
+    raw_text: str                        # concatenated normalized text used for embedding
+    symptom_text: Optional[str] = None    # raw "what happened" narrative, used in structured_sop
+    resolution_text: Optional[str] = None # LLM-generated "how it was fixed" narrative, used in structured_sop
+    guidewire_version: Optional[str] = None
+    event_date: date
+
+    # --- filled in by later stages ---
+    structured_sop: Optional[str] = None         # set by Structuring Agent
+    embedding: Optional[list[float]] = None       # set by Structuring Agent
+    curation_status: CurationStatus = CurationStatus.PENDING_REVIEW
+    curation_notes: Optional[str] = None          # set by SME Curation Gate
+    ingested_at: datetime = Field(default_factory=datetime.utcnow)
+    kb_version: Optional[str] = None              # set when written to Knowledge Store
+    source_url: Optional[str] = None              # provenance link, where the source is public
+    source_metadata: Optional[dict] = None        # source-specific fields that don't fit the
+                                                   # common columns (e.g. priority/assignee_team
+                                                   # for a ticket, participants for a chat/RCA,
+                                                   # owner_team/steps for a runbook). Stored as
+                                                   # JSONB in each source's own table.
+    content_hash: Optional[str] = None            # hash of this record's raw source fields, set
+                                                   # by ingestion.py. Used only for the
+                                                   # ingestion_state skip-if-unchanged check
+                                                   # (knowledge_store.py); not written into any of
+                                                   # the 4 content tables themselves.
