@@ -1,186 +1,72 @@
-"""
-Human-in-the-loop SME review queue.
-
-Every record coming out of pipeline.py / step3_populate_data.py lands in
-its table as curation_status='PendingReview', embedding=NULL (see
-curation.py -- nothing is auto-approved, ever). This script is the one
-place a record can actually leave that state:
-
-  - approve  -> curation_status='SMEApproved', embedding generated and
-                written in the SAME step (so a record is never marked
-                approved without actually being embedded right after).
-                Its content_hash is also registered in ingestion_state,
-                so the next refresh run doesn't re-tag it.
-  - reject   -> curation_status='SMERejected'. No embedding, ever.
-  - retag    -> curation_status='NeedsRetag'. No embedding. Deliberately
-                NOT registered in ingestion_state, so the next refresh
-                run retries tagging it instead of skipping it forever.
-  - skip     -> leave it PendingReview, come back to it later.
-
-Run:
-    python sme_review.py
-        Interactive: shows each pending record's tags/confidence/SOP,
-        prompts [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit.
-
-    python sme_review.py --source tickets
-        Only review pending records from one source (same keys as
-        pipeline.py --sources: tickets, chat_rca, release_notes, runbooks).
-
-    python sme_review.py --auto-approve-above 0.7
-        Non-interactive: approves every pending record whose
-        tagging_confidence is >= 0.7 and leaves the rest PendingReview,
-        untouched, for a later interactive pass. This is still a real,
-        explicit approval decision -- just rule-driven instead of typed
-        in by hand -- and only ever runs when a human deliberately passes
-        this flag; it is not a silent default the pipeline falls back to.
-"""
-
-from __future__ import annotations
-
-import argparse
-
-from knowledge_store import (
-    clear_ingestion_hash,
-    fetch_pending_review,
-    get_connection,
-    new_kb_version,
-    register_approved_hash,
-    set_curation_decision,
-    update_embedding,
-)
-from structuring import fit_embeddings
-from taxonomy import CurationStatus
-
-SOURCE_KEY_TO_TABLE: dict[str, str] = {
-    "tickets": "ticket_records",
-    "chat_rca": "chat_rca_records",
-    "release_notes": "release_note_records",
-    "runbooks": "runbook_records",
-}
-
-
-def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Human-in-the-loop SME review queue.")
-    parser.add_argument(
-        "--source",
-        type=str,
-        default=None,
-        help=f"Only review one source: {{{','.join(SOURCE_KEY_TO_TABLE)}}}. Omit to review all 4.",
-    )
-    parser.add_argument(
-        "--auto-approve-above",
-        type=float,
-        default=None,
-        metavar="CONFIDENCE",
-        help=(
-            "Non-interactive: approve every pending record with "
-            "tagging_confidence >= CONFIDENCE (0-1); leave the rest PendingReview."
-        ),
-    )
-    return parser.parse_args(argv)
-
-
-def _approve(conn, record: dict, notes: str, kb_version: str) -> None:
-    table = record["table"]
-    record_id = record["record_id"]
-    embedding = fit_embeddings([record['raw_text']])[0]
-    update_embedding(conn, table, record_id, embedding)
-    set_curation_decision(conn, table, record_id, CurationStatus.SME_APPROVED, notes)
-    register_approved_hash(conn, table, record_id, kb_version)
-    conn.commit()
-
-
-def _reject(conn, record: dict, notes: str) -> None:
-    set_curation_decision(conn, record["table"], record["record_id"], CurationStatus.SME_REJECTED, notes)
-    clear_ingestion_hash(conn, record["record_id"])
-
-
-def _retag(conn, record: dict, notes: str) -> None:
-    set_curation_decision(conn, record["table"], record["record_id"], CurationStatus.NEEDS_RETAG, notes)
-    clear_ingestion_hash(conn, record["record_id"])
-
-
-def _print_record(record: dict) -> None:
-    print("\n" + "=" * 70)
-    print(f"[{record['table']}] {record['record_id']}  (source_ref_id={record['source_ref_id']})")
-    print(f"Title: {record['title']}")
-    print(
-        f"Module={record['module']}  Category={record['category']}  "
-        f"Severity={record['severity']}  Resolution={record['resolution_type']}"
-    )
-    print(f"tagging_confidence = {record['tagging_confidence']:.2f}")
-    if record.get("tagging_reasoning"):
-        print(f"LLM reasoning: {record['tagging_reasoning']}")
-    print("-" * 70)
-    print(record["structured_sop"])
-
-
-def run_auto_approve(conn, pending: list[dict], threshold: float, kb_version: str) -> None:
-    approved = 0
-    for record in pending:
-        if record["tagging_confidence"] >= threshold:
-            notes = (
-                f"SME auto-approved via --auto-approve-above {threshold}: "
-                f"confidence {record['tagging_confidence']:.2f} >= {threshold}."
-            )
-            _approve(conn, record, notes, kb_version)
-            print(f"  APPROVED  {record['table']:<22} {record['record_id']}  (conf={record['tagging_confidence']:.2f})")
-            approved += 1
-        else:
-            print(f"  left pending {record['table']:<22} {record['record_id']}  (conf={record['tagging_confidence']:.2f})")
-    print(f"\n{approved}/{len(pending)} record(s) approved + embedded. The rest remain PendingReview.")
-
-
-def run_interactive(conn, pending: list[dict], kb_version: str) -> None:
-    if not pending:
-        print("Nothing pending review.")
-        return
-
-    print(f"{len(pending)} record(s) awaiting SME review.\n")
-    for i, record in enumerate(pending, start=1):
-        _print_record(record)
-        while True:
-            choice = input(
-                f"\n[{i}/{len(pending)}] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: "
-            ).strip().lower()
-            if choice in ("a", "approve"):
-                notes = input("  Approval notes (optional): ").strip() or "SME reviewed and approved."
-                _approve(conn, record, notes, kb_version)
-                print("  -> SMEApproved, embedding generated.")
-                break
-            if choice in ("r", "reject"):
-                notes = input("  Rejection reason: ").strip() or "SME rejected."
-                _reject(conn, record, notes)
-                print("  -> SMERejected.")
-                break
-            if choice in ("n", "retag", "needs-retag"):
-                notes = input("  Retag reason: ").strip() or "SME flagged for retagging."
-                _retag(conn, record, notes)
-                print("  -> NeedsRetag.")
-                break
-            if choice in ("s", "skip"):
-                print("  -> left PendingReview.")
-                break
-            if choice in ("q", "quit"):
-                print("\nStopping review early. Remaining records are untouched.")
-                return
-            print("  Not a valid choice -- enter a/r/n/s/q.")
-
-
-if __name__ == "__main__":
-    args = _parse_args()
-    kb_version = new_kb_version()
-
-    conn = get_connection()
-    try:
-        pending = fetch_pending_review(conn)
-        if args.source:
-            table = SOURCE_KEY_TO_TABLE[args.source]
-            pending = [r for r in pending if r["table"] == table]
-
-        if args.auto_approve_above is not None:
-            run_auto_approve(conn, pending, args.auto_approve_above, kb_version)
-        else:
-            run_interactive(conn, pending, kb_version)
-    finally:
-        conn.close()
+[
+  {
+    "ticket_id": "INC-200001",
+    "created_at": "2026-11-10T08:00:00",
+    "closed_at": "2026-11-10T10:30:00",
+    "module_reported": "ClaimCenter",
+    "description": "Adjusters are unable to close claims in ClaimCenter after the 2026.2 upgrade. The close button is visible but clicking it throws a Gosu runtime error: ClaimContact.getActiveRoles() method not found. Only affects claims with multiple claimants. Single-claimant claims close normally.",
+    "resolution_notes": "The method ClaimContact.getActiveRoles() was renamed to ClaimContact.getRolesByStatus() in Guidewire 2026.2. Updated the custom CloseClaimWorkflow.gs rule to use the new method name. Redeployed and confirmed multi-claimant claims close correctly.",
+    "priority": "P1",
+    "assignee_team": "ClaimCenter L3",
+    "guidewire_version": "ClaimCenter 2026.2",
+    "status": "Closed"
+  },
+  {
+    "ticket_id": "INC-200002",
+    "created_at": "2026-11-11T09:15:00",
+    "closed_at": "2026-11-11T14:00:00",
+    "module_reported": "BillingCenter",
+    "description": "The nightly disbursement batch job has been failing silently for 3 days. No error is surfaced in the UI but the job log shows a NullPointerException in DisbursementPlugin.gs at line 142. Payments that should have gone out on Monday, Tuesday and Wednesday have not been issued. Claimants are calling in about missing payments.",
+    "resolution_notes": "The DisbursementPlugin.gs was referencing a payment account field that is null for older claims created before the 2025.1 migration. Added a null check before accessing the field. Re-ran the batch job manually for the 3 missed days and confirmed all outstanding disbursements were issued.",
+    "priority": "P1",
+    "assignee_team": "BillingCenter L2",
+    "guidewire_version": "BillingCenter 2026.1",
+    "status": "Closed"
+  },
+  {
+    "ticket_id": "INC-200003",
+    "created_at": "2026-11-12T11:00:00",
+    "closed_at": "2026-11-12T13:45:00",
+    "module_reported": "PolicyCenter",
+    "description": "Underwriters report that the premium calculation is returning incorrect values for commercial auto policies. The quoted premium is consistently 12-15% lower than expected. Personal auto policies are unaffected. Issue appeared after a configuration change pushed last Thursday.",
+    "resolution_notes": "Identified that the commercial auto rating factor table (CommercialAutoFactors) had an incorrect multiplier entered during last Thursday's config update -- a decimal was misplaced (0.88 instead of 1.088). Corrected the value in the rating configuration and reran affected quotes. No code change required.",
+    "priority": "P2",
+    "assignee_team": "PolicyCenter L2",
+    "guidewire_version": "PolicyCenter 2026.1",
+    "status": "Closed"
+  },
+  {
+    "ticket_id": "INC-200004",
+    "created_at": "2026-11-13T07:30:00",
+    "closed_at": "2026-11-13T09:00:00",
+    "module_reported": "IntegrationGateway",
+    "description": "Outbound policy data files to the reinsurance partner (PartnerRe) have stopped arriving on their SFTP server since yesterday. No errors visible in the Guidewire UI. The integration log shows the files are being generated but the SFTP upload step is timing out after 30 seconds.",
+    "resolution_notes": "The PartnerRe SFTP server had rotated its host key over the weekend without notifying us. The known_hosts entry in our integration server was stale, causing the connection to be refused silently. Updated the known_hosts file with the new host key and confirmed the next scheduled file transfer completed successfully.",
+    "priority": "P2",
+    "assignee_team": "Integration L2",
+    "guidewire_version": null,
+    "status": "Closed"
+  },
+  {
+    "ticket_id": "INC-200005",
+    "created_at": "2026-11-14T10:00:00",
+    "closed_at": "2026-11-14T11:30:00",
+    "description": "Users across all teams are being logged out every 30-45 minutes regardless of activity. The issue started this morning and is affecting all three centers -- PolicyCenter, ClaimCenter and BillingCenter. Users have to log back in multiple times per hour which is severely disrupting work.",
+    "resolution_notes": "The session timeout value in the application server config had been accidentally set to 30 minutes during routine maintenance last night (the intended value was 480 minutes / 8 hours). Reverted the session timeout to 480 minutes and restarted the app server. Confirmed sessions are now persisting correctly.",
+    "priority": "P1",
+    "assignee_team": "Platform L2",
+    "guidewire_version": null,
+    "status": "Closed"
+  },
+  {
+    "ticket_id": "INC-200006",
+    "created_at": "2026-11-15T13:00:00",
+    "closed_at": "2026-11-15T16:30:00",
+    "description": "ClaimCenter search is extremely slow during peak hours (10am-2pm). Searching by claimant name or policy number takes 25-40 seconds to return results. Off-peak searches complete in under 2 seconds. The issue has been present for about a week and is getting worse as claim volume grows.",
+    "resolution_notes": "Database query analysis showed that the full-text index on the claim search table had become severely fragmented after a bulk data import last week. Rebuilt the index during a maintenance window and query times immediately dropped back to under 1 second. Scheduled weekly index maintenance to prevent recurrence.",
+    "priority": "P2",
+    "assignee_team": "ClaimCenter L3",
+    "guidewire_version": "ClaimCenter 2026.1",
+    "status": "Closed"
+  }
+]
