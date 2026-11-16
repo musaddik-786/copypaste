@@ -1,86 +1,60 @@
-(venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Musaddique/Knowledgeops_gw$ python3 pipeline.py 
-======================================================================
-KNOWLEDGE OPS AGENT -- KNOWLEDGE BASE REFRESH
-======================================================================
-
-[1/4] Ingestion & Normalization  (kb_version=kb-20261116T122639-b2b5f0)
-/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='I... cause and resolution.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary="C...details in the record.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='B...otherwise operational.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='L...otherwise operational.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-      -> 4 record(s) ingested/changed
-
-[2/4] Structuring Agent (SOP rendering)
-      -> structured SOPs rendered for 4 record(s)
-
-[3/4] SME Curation Gate
-      -> 4 record(s) flagged for SME review (0 auto-approved)
-
-[4/4] Knowledge Store (PostgreSQL + pgvector)
-      -> 4 records written to ticket_records as PendingReview
-      -> refresh run logged as kb-20261116T122639-b2b5f0
-
-4 record(s) await SME review. Run: python sme_review.py
-(venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Musaddique/Knowledgeops_gw$ python3 sme_review.py 
-4 record(s) awaiting SME review.
-
-
-======================================================================
-[ticket_records] NR-INC-400001  (source_ref_id=INC-400001)
-Title: Incorrect premium calculations for home policies with pool endorsement fixed by Gosu rule update.
-Module=PolicyCenter  Category=ConfigurationError  Severity=SEV1-Critical  Resolution=CodeFix
-tagging_confidence = 0.97
-LLM reasoning: The issue was a configuration error in PolicyCenter, specifically a Gosu rule referencing an outdated table, which was resolved by a code fix (updating the rule and redeploying). The severity is SEV2-High because a major feature (premium calculation) was broken but a manual workaround existed. The confidence is high due to explicit details about the cause and resolution.
-----------------------------------------------------------------------
-## Incorrect premium calculations for home policies with pool endorsement fixed by Gosu rule update.
-
-**Source:** HistoricalTicket (INC-400001)
-**Module:** PolicyCenter | **Category:** ConfigurationError | **Severity:** SEV1-Critical
-**Resolution Type:** CodeFix
-**Date:** 2025-11-01
-**Guidewire Version:** Innsbruck
-
-### Summary / Symptom
-Underwriting rules engine is returning incorrect premium calculations for home policies with a swimming pool endorsement. Agents can manually override the calculated premium as a temporary workaround. The issue affects roughly 30% of new home policy quotes in the last two weeks.
-
-### Resolution
-The root cause was a Gosu rule in PolicyCenter referencing a deprecated endorsement factor table, leading to incorrect premium calculations for home policies with a swimming pool endorsement. Agents temporarily mitigated the issue by manually overriding premiums. The resolution involved updating the Gosu rule to reference the correct table, followed by regression testing and redeployment. No data remediation was necessary since manual overrides ensured premium accuracy for affected quotes.
-
-
-[1/4] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: a
-  Approval notes (optional): a
-  -> SMEApproved, embedding generated.
-
-======================================================================
-[ticket_records] NR-INC-400002  (source_ref_id=INC-400002)
-Title: Commercial lines agents' SSO sessions expired immediately due to misconfigured session timeout; fixed via SSO config update.
-Module=BillingCenter  Category=AuthenticationAccess  Severity=SEV2-High  Resolution=ConfigChange
-tagging_confidence = 0.97
-LLM reasoning: The issue was an SSO session expiry problem, which fits AuthenticationAccess. The fix was a configuration change in the SSO provider, matching ConfigChange. The module is BillingCenter, as the affected users are agents in that domain. The severity is SEV2-High because a major group was unable to log in, but the issue was limited in scope and quickly resolved. The confidence is high due to explicit details in the record.
-----------------------------------------------------------------------
-## Commercial lines agents' SSO sessions expired immediately due to misconfigured session timeout; fixed via SSO config update.
-
-**Source:** HistoricalTicket (INC-400002)
-**Module:** BillingCenter | **Category:** AuthenticationAccess | **Severity:** SEV2-High
-**Resolution Type:** ConfigChange
-**Date:** 2025-11-04
-
-### Summary / Symptom
-Agents in the commercial lines team are unable to log in after 2pm every day. The session expires immediately upon login. The issue started after a configuration change was pushed to the SSO provider last Thursday. Personal lines agents are unaffected.
-
-### Resolution
-The root cause was a misconfiguration in the SSO provider, where the session timeout for the commercial lines user group was set to 2 minutes instead of the intended 480 minutes. This caused sessions to expire immediately upon login for affected users. The issue was resolved by correcting the session timeout value in the SSO provider's admin console. After the change, commercial lines agents were able to log in and maintain active sessions as expected.
-
-
-[2/4] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: q
-
-Stopping review early. Remaining records are untouched.
-(venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Musaddique/Knowledgeops_gw$ 
+{
+  "ticket_id": "INC-500001",
+  "created_at": "2025-11-12T07:00:00",
+  "closed_at": "2025-11-12T15:00:00",
+  "module_reported": "ClaimCenter",
+  "description": "Adjuster notes are failing to save when claims have more than 50 attachments. Adjusters can work around this by splitting notes into smaller entries or removing older attachments temporarily. The issue is intermittent and affects roughly 20 active large-loss claims.",
+  "resolution_notes": "A file descriptor limit in the attachment service was being hit when claims exceeded 50 attachments. The service was not releasing file handles after each attachment preview load. Fixed by adding explicit handle cleanup in the attachment service and raising the per-process file descriptor limit in the server config. All 20 affected claims were verified as able to save notes after the fix.",
+  "priority": "P1",
+  "assignee_team": "CC-Attachments",
+  "guidewire_version": "Innsbruck",
+  "status": "Closed"
+},
+{
+  "ticket_id": "INC-500002",
+  "created_at": "2025-11-13T09:30:00",
+  "closed_at": "2025-11-14T12:00:00",
+  "module_reported": "PolicyCenter",
+  "description": "Premium rating for commercial auto policies is producing results that differ from the manual rate calculation sheet by 3-8%. The difference appears only on policies with more than 5 vehicles. Underwriters are manually checking and correcting premiums before binding.",
+  "resolution_notes": "The commercial auto rating Gosu rule was applying a fleet discount tier using a 0-indexed lookup instead of 1-indexed, causing the wrong tier to be selected for multi-vehicle policies. For a 6-vehicle policy it was using the 5-vehicle tier rate. Corrected the index offset in the Gosu rule and redeployed. Identified 14 bound policies with incorrect premiums and initiated endorsements to correct them.",
+  "priority": "P2",
+  "assignee_team": "Rating-Commercial",
+  "guidewire_version": "Jasper",
+  "status": "Closed"
+},
+{
+  "ticket_id": "INC-500003",
+  "created_at": "2025-11-15T11:00:00",
+  "closed_at": "2025-11-16T09:00:00",
+  "module_reported": null,
+  "description": "Outbound policy data feed to the data warehouse is failing silently. The ETL pipeline shows as successful but the data warehouse tables are not being updated. Report writers have noticed that claims and policy counts in BI dashboards have been static for 3 days.",
+  "resolution_notes": "The ETL connector was swallowing a schema mismatch error introduced when a new field was added to the policy export format without updating the data warehouse landing table schema. The connector was configured to skip unrecognized columns silently. Fixed by adding the new column to the data warehouse schema and updating the connector to fail loudly on schema mismatches. Data warehouse tables are now current after a backfill run.",
+  "priority": "P2",
+  "assignee_team": "Data-Platform",
+  "guidewire_version": null,
+  "status": "Closed"
+},
+{
+  "ticket_id": "INC-500004",
+  "created_at": "2025-11-17T08:00:00",
+  "closed_at": "2025-11-17T20:00:00",
+  "module_reported": "BillingCenter",
+  "description": "All premium disbursements to agents have stopped processing since this morning. The disbursement batch job runs but produces zero output with no error. This is blocking all agent commission payments for the current cycle, affecting over 400 agents.",
+  "resolution_notes": "A certificate used by the disbursement service to authenticate to the payment processor expired overnight. The service was silently skipping the payment step rather than failing with an error when the certificate was rejected. Renewed the certificate, restarted the disbursement service, and re-ran the batch job. All 400+ agent payments processed successfully on the re-run.",
+  "priority": "P1",
+  "assignee_team": "BC-Disbursements",
+  "guidewire_version": "Jasper",
+  "status": "Closed"
+},
+{
+  "ticket_id": "INC-500005",
+  "created_at": "2025-11-18T14:00:00",
+  "closed_at": "2025-11-19T10:00:00",
+  "module_reported": "ContactManager",
+  "description": "Duplicate contact merge is creating corrupted records for contacts linked to both a policy and an open claim. After the merge completes, the surviving contact record shows null values for address and phone. The original records are deleted so the data cannot be recovered from the UI.",
+  "resolution_notes": "The merge logic was not handling the case where a contact had active links in both PolicyCenter and ClaimCenter simultaneously. It was merging the PolicyCenter-side fields correctly but then overwriting them with nulls from an incomplete ClaimCenter-side merge pass. Fixed the merge sequence to consolidate all linked records before writing the final merged contact. Recovered the corrupted contacts from a database backup and re-ran the merge with the fixed logic.",
+  "priority": "P1",
+  "assignee_team": "CM-DataIntegrity",
+  "guidewire_version": "Innsbruck",
+  "status": "Closed"
+}
