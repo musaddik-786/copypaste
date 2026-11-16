@@ -1,59 +1,10 @@
-title column is populated for all new data as well 
-also below is what i got 
-22 record(s) await SME review. Run: python sme_review.py
-(venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Musaddique/Knowledgeops_gw$ python3 sme_review.py --source tickets
-21 record(s) awaiting SME review.
-
-
+(venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Musaddique/Knowledgeops_gw$ python3 pipeline.py 
 ======================================================================
-[ticket_records] NR-INC-100235  (source_ref_id=INC-100235)
-Title: Underwriting bind hang resolved by Gosu rule fix and patch deployment across app servers.
-Module=PolicyCenter  Category=PerformanceDegradation  Severity=SEV2-High  Resolution=PatchApplied
-tagging_confidence = 0.93
-LLM reasoning: The record describes a hang (performance issue) during bind, resolved by a Gosu rule fix and patch rollout. PolicyCenter fits as the module due to underwriting context. The issue affected multiple users, indicating high severity.
-----------------------------------------------------------------------
-## Underwriting bind hang resolved by Gosu rule fix and patch deployment across app servers.
-
-**Source:** HistoricalTicket (INC-100235)
-**Module:** PolicyCenter | **Category:** PerformanceDegradation | **Severity:** SEV2-High
-**Resolution Type:** PatchApplied
-**Date:** 2025-11-02
-**Guidewire Version:** PolicyCenter 2025.2.1
-
-### Summary / Symptom
-Additional underwriting team reporting identical hang on bind. Same deployment window. Duplicate of INC-100234. Same Gos
-
-### Resolution
-u rule fix applied once patch rolled out to remaining app servers.
-
-
-[1/21] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: a
-  Approval notes (optional): no notes
-  -> SMEApproved, embedding generated.
-
+KNOWLEDGE OPS AGENT -- KNOWLEDGE BASE REFRESH
 ======================================================================
-[ticket_records] NR-INC-100301  (source_ref_id=INC-100301)
-Title: ClaimReserveRecalcBatch exceeded SLA due to missing index; index added, batch now within limits.
-Module=ClaimCenter  Category=PerformanceDegradation  Severity=SEV1-Critical  Resolution=ConfigChange
-tagging_confidence = 0.97
-LLM reasoning: Batch job exceeded SLA due to a missing index (performance issue), resolved by adding the index (config change, not code). ClaimCenter is correct as it's a claim reserve batch. High severity as nightly processing was blocked but now resolved.
-----------------------------------------------------------------------
-## ClaimReserveRecalcBatch exceeded SLA due to missing index; index added, batch now within limits.
 
-**Source:** HistoricalTicket (INC-100301)
-**Module:** ClaimCenter | **Category:** PerformanceDegradation | **Severity:** SEV1-Critical
-**Resolution Type:** ConfigChange
-**Date:** 2025-11-05
-**Guidewire Version:** ClaimCenter 2025.1.3
+[1/4] Ingestion & Normalization  (kb_version=kb-20261116T103959-e2239a)
+      -> nothing new or changed for the selected source(s)
 
-### Summary / Symptom
-ClaimReserveRecalcBatch has failed for 3 consecutive nights. Job exceeds the 2-hour SLA window and is auto-killed by the scheduler. Claim volume has not changed significantly. Found a miss
-
-### Resolution
-ing index on cc_claim.cg_lastreservedate after a DBA-led table partitioning migration last week. Added composite index (claim_id, lastreservedate). Batch runtime dropped from 3h10m to 22m.
-
-
-[2/21] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: q
-
-Stopping review early. Remaining records are untouched.
+Nothing to refresh -- Knowledge Store is already up to date.
 (venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Musaddique/Knowledgeops_gw$ 
