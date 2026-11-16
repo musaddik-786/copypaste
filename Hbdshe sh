@@ -1,60 +1,138 @@
-{
-  "ticket_id": "INC-600001",
-  "created_at": "2025-11-20T08:00:00",
-  "closed_at": "2025-11-20T17:00:00",
-  "module_reported": "IntegrationGateway",
-  "description": "Outbound policy data feed to the reinsurance partner is failing. The file transfer completes but the partner's system rejects the files due to a changed field delimiter. Reinsurance team can manually export and send data as a workaround. Around 3 daily feeds have failed since Monday.",
-  "resolution_notes": "The reinsurance partner changed their file format spec to use a pipe delimiter instead of comma without prior notice. Updated the outbound feed configuration to use the pipe delimiter. Confirmed with the partner that the next scheduled feed was accepted successfully.",
-  "priority": "P1",
-  "assignee_team": "Integrations",
-  "guidewire_version": "Jasper",
-  "status": "Closed"
-},
-{
-  "ticket_id": "INC-600002",
-  "created_at": "2025-11-21T10:00:00",
-  "closed_at": "2025-11-22T15:00:00",
-  "module_reported": "PolicyCenter",
-  "description": "Executive dashboard showing written premium by line of business is displaying figures from the previous quarter instead of the current quarter. Report writers flagged that the ETL job that feeds the dashboard stopped updating three days ago. Underwriters are pulling manual reports as a workaround.",
-  "resolution_notes": "The ETL job that feeds the written premium dashboard had a date filter hardcoded to the previous quarter, introduced when the job was cloned from a quarterly snapshot task. Updated the date filter to use a rolling current-quarter calculation. Reran the ETL job and confirmed the dashboard now shows current figures.",
-  "priority": "P2",
-  "assignee_team": "PC-Reporting",
-  "guidewire_version": "Innsbruck",
-  "status": "Closed"
-},
-{
-  "ticket_id": "INC-600003",
-  "created_at": "2025-11-22T09:00:00",
-  "closed_at": "2025-11-22T18:00:00",
-  "module_reported": "BillingCenter",
-  "description": "Claims department is reporting that claim payment checks are printing with the wrong payee name. The payee field on printed checks shows the claimant's policy number instead of their full legal name. Approximately 40 checks printed incorrectly this week before the issue was caught.",
-  "resolution_notes": "The check print template in BillingCenter was referencing the wrong field binding -- it was pulling policy_number into the payee name field instead of contact_display_name. The template binding was corrected and the 40 affected checks were voided and reprinted with the correct payee names.",
-  "priority": "P1",
-  "assignee_team": "BC-Payments",
-  "guidewire_version": "Jasper",
-  "status": "Closed"
-},
-{
-  "ticket_id": "INC-600004",
-  "created_at": "2025-11-24T14:00:00",
-  "closed_at": "2025-11-25T11:00:00",
-  "module_reported": "PolicyCenter",
-  "description": "Policy documents generated for umbrella policies are missing the endorsement schedule page. Agents have noticed the omission on delivered documents. Customers can be sent a corrected document manually on request but the generation itself is producing incomplete PDFs.",
-  "resolution_notes": "The document assembly template for umbrella policies was missing a conditional include for the endorsement schedule section. The section was present in all other policy types but had been accidentally removed from the umbrella template during a recent template cleanup. Restored the endorsement schedule section to the umbrella template and regenerated documents for the 18 affected policies issued in the last 30 days.",
-  "priority": "P3",
-  "assignee_team": "PC-Documents",
-  "guidewire_version": "Innsbruck",
-  "status": "Closed"
-},
-{
-  "ticket_id": "INC-600005",
-  "created_at": "2025-11-25T08:00:00",
-  "closed_at": "2025-11-26T14:00:00",
-  "module_reported": "ContactManager",
-  "description": "Shared contact records for agents who are licensed in multiple states are showing duplicate address entries after a recent data migration. PolicyCenter policy screens and ClaimCenter claim screens both display the duplicate addresses, causing confusion for staff. No data is lost but the duplication is visually confusing and may cause downstream address selection errors.",
-  "resolution_notes": "The data migration script for the multi-state agent contact records ran the address import twice due to a missing idempotency check. Identified and removed the duplicate address records from ContactManager. Added an idempotency check to the migration script to prevent re-importing records that already exist. Verified PolicyCenter and ClaimCenter both show clean single-address contact records for all affected agents.",
-  "priority": "P2",
-  "assignee_team": "CM-DataIntegrity",
-  "guidewire_version": null,
-  "status": "Closed"
-}
+(venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Musaddique/Knowledgeops_gw$ python3 pipeline.py 
+======================================================================
+KNOWLEDGE OPS AGENT -- KNOWLEDGE BASE REFRESH
+======================================================================
+
+[1/4] Ingestion & Normalization  (kb_version=kb-20261116T125209-eeac9f)
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='O... explicitly described.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='E...rting high confidence.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='B...mited business impact.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='U...rting high confidence.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='D...enter and ClaimCenter.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+      -> 5 record(s) ingested/changed
+
+[2/4] Structuring Agent (SOP rendering)
+      -> structured SOPs rendered for 5 record(s)
+
+[3/4] SME Curation Gate
+      -> 5 record(s) flagged for SME review (0 auto-approved)
+
+[4/4] Knowledge Store (PostgreSQL + pgvector)
+      -> 5 records written to ticket_records as PendingReview
+      -> refresh run logged as kb-20261116T125209-eeac9f
+
+5 record(s) await SME review. Run: python sme_review.py
+(venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Musaddique/Knowledgeops_gw$ python3 sme_review.py 
+8 record(s) awaiting SME review.
+
+
+======================================================================
+[ticket_records] NR-INC-500002  (source_ref_id=INC-500002)
+Title: Fleet discount tier misapplied in commercial auto rating; Gosu rule index corrected and redeployed.
+Module=PolicyCenter  Category=ConfigurationError  Severity=SEV2-High  Resolution=CodeFix
+tagging_confidence = 0.97
+LLM reasoning: The issue fits ConfigurationError as it was caused by a misconfigured lookup in a Gosu rule, and CodeFix is appropriate since the resolution involved changing and redeploying custom code. PolicyCenter is the correct module because the problem relates to commercial auto policy rating. SEV3-Medium is chosen since the defect was non-blocking and underwriters could manually correct premiums before binding, but it required remediation for already bound policies.
+----------------------------------------------------------------------
+## Fleet discount tier misapplied in commercial auto rating; Gosu rule index corrected and redeployed.
+
+**Source:** HistoricalTicket (INC-500002)
+**Module:** PolicyCenter | **Category:** ConfigurationError | **Severity:** SEV2-High
+**Resolution Type:** CodeFix
+**Date:** 2025-11-14
+**Guidewire Version:** Jasper
+
+### Summary / Symptom
+Premium rating for commercial auto policies is producing results that differ from the manual rate calculation sheet by 3-8%. The difference appears only on policies with more than 5 vehicles. Underwriters are manually checking and correcting premiums before binding.
+
+### Resolution
+The root cause was a Gosu rule in PolicyCenter's commercial auto rating logic that incorrectly applied a fleet discount tier using a 0-indexed lookup instead of 1-indexed, resulting in the wrong discount for policies with more than five vehicles. The issue was resolved by correcting the index offset in the Gosu rule and redeploying the fix. Additionally, endorsements were initiated to remediate premiums on 14 affected bound policies. This ensured both future and past policies were corrected.
+
+
+[1/8] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: a
+  Approval notes (optional): a
+  -> SMEApproved, embedding generated.
+
+======================================================================
+[ticket_records] NR-INC-500003  (source_ref_id=INC-500003)
+Title: ETL policy feed failed due to schema mismatch; fixed by updating warehouse schema.
+Module=DataPlatform  Category=IntegrationFailure  Severity=SEV2-High  Resolution=ConfigChange
+tagging_confidence = 0.96
+LLM reasoning: The issue is an IntegrationFailure because the ETL pipeline failed to update the data warehouse due to a schema mismatch. The resolution was a ConfigChange, as the fix involved updating the schema and connector settings. The module is DataPlatform, since the problem centers on the data warehouse and ETL. Severity is SEV2-High because BI dashboards were stale for several days, impacting reporting but not core operations. Confidence is high as the cause and fix are clearly described.
+----------------------------------------------------------------------
+## ETL policy feed failed due to schema mismatch; fixed by updating warehouse schema.
+
+**Source:** HistoricalTicket (INC-500003)
+**Module:** DataPlatform | **Category:** IntegrationFailure | **Severity:** SEV2-High
+**Resolution Type:** ConfigChange
+**Date:** 2025-11-16
+
+### Summary / Symptom
+Outbound policy data feed to the data warehouse is failing silently. The ETL pipeline shows as successful but the data warehouse tables are not being updated. Report writers have noticed that claims and policy counts in BI dashboards have been static for 3 days.
+
+### Resolution
+The ETL pipeline for outbound policy data to the data warehouse was failing silently because a new field was added to the policy export format without updating the data warehouse schema. The connector was configured to skip unrecognized columns, masking the error. Resolution involved adding the missing column to the warehouse schema and reconfiguring the connector to fail loudly on schema mismatches. After a backfill, the data warehouse tables were updated and BI dashboards reflected current data.
+
+
+[2/8] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: a
+  Approval notes (optional): a
+  -> SMEApproved, embedding generated.
+
+======================================================================
+[ticket_records] NR-INC-500004  (source_ref_id=INC-500004)
+Title: Agent disbursement batch failed due to expired payment processor certificate; resolved by renewal and restart.
+Module=BillingCenter  Category=IntegrationFailure  Severity=SEV1-Critical  Resolution=ConfigChange
+tagging_confidence = 0.97
+LLM reasoning: The issue is an IntegrationFailure because the disbursement service could not authenticate to an external payment processor due to an expired certificate. The resolution_type is ConfigChange, as the fix involved renewing the certificate (a configuration artifact) and restarting the service. The module is BillingCenter, since agent commission disbursements are a core billing function. The severity is SEV1-Critical because all agent payments were blocked, impacting business operations broadly.
+----------------------------------------------------------------------
+## Agent disbursement batch failed due to expired payment processor certificate; resolved by renewal and restart.
+
+**Source:** HistoricalTicket (INC-500004)
+**Module:** BillingCenter | **Category:** IntegrationFailure | **Severity:** SEV1-Critical
+**Resolution Type:** ConfigChange
+**Date:** 2025-11-17
+**Guidewire Version:** Jasper
+
+### Summary / Symptom
+All premium disbursements to agents have stopped processing since this morning. The disbursement batch job runs but produces zero output with no error. This is blocking all agent commission payments for the current cycle, affecting over 400 agents.
+
+### Resolution
+The root cause was an expired certificate used by the disbursement service to authenticate with the payment processor, causing the service to silently skip payment processing without error. The issue was resolved by renewing the certificate, restarting the disbursement service, and re-running the batch job, which successfully processed all pending agent payments. This restored normal commission disbursement operations for over 400 agents. Future monitoring of certificate expiry is recommended to prevent recurrence.
+
+
+[3/8] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: a
+  Approval notes (optional): a
+  -> SMEApproved, embedding generated.
+
+======================================================================
+[ticket_records] NR-INC-600001  (source_ref_id=INC-600001)
+Title: Outbound policy feed rejected due to delimiter change; config updated to match partner spec.
+Module=IntegrationGateway  Category=IntegrationFailure  Severity=SEV1-Critical  Resolution=ConfigChange
+tagging_confidence = 0.97
+LLM reasoning: The issue is an IntegrationFailure because the outbound feed was rejected by the partner due to a format mismatch. The resolution_type is ConfigChange, as the fix involved updating the delimiter setting in the feed configuration. The module is IntegrationGateway, since the problem involved external data exchange. The severity is SEV2-High, as multiple daily feeds failed but a manual workaround was available. The confidence is high because the root cause and resolution are explicitly described.
+----------------------------------------------------------------------
+## Outbound policy feed rejected due to delimiter change; config updated to match partner spec.
+
+**Source:** HistoricalTicket (INC-600001)
+**Module:** IntegrationGateway | **Category:** IntegrationFailure | **Severity:** SEV1-Critical
+**Resolution Type:** ConfigChange
+**Date:** 2025-11-20
+**Guidewire Version:** Jasper
+
+### Summary / Symptom
+Outbound policy data feed to the reinsurance partner is failing. The file transfer completes but the partner's system rejects the files due to a changed field delimiter. Reinsurance team can manually export and send data as a workaround. Around 3 daily feeds have failed since Monday.
+
+### Resolution
+The outbound policy data feed to the reinsurance partner was failing because the partner changed their file format specification from comma to pipe delimiters without prior notice. As a result, the partner's system rejected the files, although the transfer itself completed successfully. The issue was resolved by updating the outbound feed configuration to use the pipe delimiter, after which the partner confirmed successful receipt of the next scheduled feed. Manual export and sending was used as a temporary workaround until the configuration was corrected.
+
+
+[4/8] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: 
