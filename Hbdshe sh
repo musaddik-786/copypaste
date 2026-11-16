@@ -1,60 +1,119 @@
-{
-  "ticket_id": "INC-500001",
-  "created_at": "2025-11-12T07:00:00",
-  "closed_at": "2025-11-12T15:00:00",
-  "module_reported": "ClaimCenter",
-  "description": "Adjuster notes are failing to save when claims have more than 50 attachments. Adjusters can work around this by splitting notes into smaller entries or removing older attachments temporarily. The issue is intermittent and affects roughly 20 active large-loss claims.",
-  "resolution_notes": "A file descriptor limit in the attachment service was being hit when claims exceeded 50 attachments. The service was not releasing file handles after each attachment preview load. Fixed by adding explicit handle cleanup in the attachment service and raising the per-process file descriptor limit in the server config. All 20 affected claims were verified as able to save notes after the fix.",
-  "priority": "P1",
-  "assignee_team": "CC-Attachments",
-  "guidewire_version": "Innsbruck",
-  "status": "Closed"
-},
-{
-  "ticket_id": "INC-500002",
-  "created_at": "2025-11-13T09:30:00",
-  "closed_at": "2025-11-14T12:00:00",
-  "module_reported": "PolicyCenter",
-  "description": "Premium rating for commercial auto policies is producing results that differ from the manual rate calculation sheet by 3-8%. The difference appears only on policies with more than 5 vehicles. Underwriters are manually checking and correcting premiums before binding.",
-  "resolution_notes": "The commercial auto rating Gosu rule was applying a fleet discount tier using a 0-indexed lookup instead of 1-indexed, causing the wrong tier to be selected for multi-vehicle policies. For a 6-vehicle policy it was using the 5-vehicle tier rate. Corrected the index offset in the Gosu rule and redeployed. Identified 14 bound policies with incorrect premiums and initiated endorsements to correct them.",
-  "priority": "P2",
-  "assignee_team": "Rating-Commercial",
-  "guidewire_version": "Jasper",
-  "status": "Closed"
-},
-{
-  "ticket_id": "INC-500003",
-  "created_at": "2025-11-15T11:00:00",
-  "closed_at": "2025-11-16T09:00:00",
-  "module_reported": null,
-  "description": "Outbound policy data feed to the data warehouse is failing silently. The ETL pipeline shows as successful but the data warehouse tables are not being updated. Report writers have noticed that claims and policy counts in BI dashboards have been static for 3 days.",
-  "resolution_notes": "The ETL connector was swallowing a schema mismatch error introduced when a new field was added to the policy export format without updating the data warehouse landing table schema. The connector was configured to skip unrecognized columns silently. Fixed by adding the new column to the data warehouse schema and updating the connector to fail loudly on schema mismatches. Data warehouse tables are now current after a backfill run.",
-  "priority": "P2",
-  "assignee_team": "Data-Platform",
-  "guidewire_version": null,
-  "status": "Closed"
-},
-{
-  "ticket_id": "INC-500004",
-  "created_at": "2025-11-17T08:00:00",
-  "closed_at": "2025-11-17T20:00:00",
-  "module_reported": "BillingCenter",
-  "description": "All premium disbursements to agents have stopped processing since this morning. The disbursement batch job runs but produces zero output with no error. This is blocking all agent commission payments for the current cycle, affecting over 400 agents.",
-  "resolution_notes": "A certificate used by the disbursement service to authenticate to the payment processor expired overnight. The service was silently skipping the payment step rather than failing with an error when the certificate was rejected. Renewed the certificate, restarted the disbursement service, and re-ran the batch job. All 400+ agent payments processed successfully on the re-run.",
-  "priority": "P1",
-  "assignee_team": "BC-Disbursements",
-  "guidewire_version": "Jasper",
-  "status": "Closed"
-},
-{
-  "ticket_id": "INC-500005",
-  "created_at": "2025-11-18T14:00:00",
-  "closed_at": "2025-11-19T10:00:00",
-  "module_reported": "ContactManager",
-  "description": "Duplicate contact merge is creating corrupted records for contacts linked to both a policy and an open claim. After the merge completes, the surviving contact record shows null values for address and phone. The original records are deleted so the data cannot be recovered from the UI.",
-  "resolution_notes": "The merge logic was not handling the case where a contact had active links in both PolicyCenter and ClaimCenter simultaneously. It was merging the PolicyCenter-side fields correctly but then overwriting them with nulls from an incomplete ClaimCenter-side merge pass. Fixed the merge sequence to consolidate all linked records before writing the final merged contact. Recovered the corrupted contacts from a database backup and re-ran the merge with the fixed logic.",
-  "priority": "P1",
-  "assignee_team": "CM-DataIntegrity",
-  "guidewire_version": "Innsbruck",
-  "status": "Closed"
-}
+(venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Musaddique/Knowledgeops_gw$ python3 pipeline.py 
+======================================================================
+KNOWLEDGE OPS AGENT -- KNOWLEDGE BASE REFRESH
+======================================================================
+
+[1/4] Ingestion & Normalization  (kb_version=kb-20261116T123515-8aa92c)
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='L...g business operations.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='A...x is most appropriate.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='F...lready bound policies.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='E...are clearly described.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='A...ss operations broadly.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='C...rting high confidence.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+      -> 6 record(s) ingested/changed
+
+[2/4] Structuring Agent (SOP rendering)
+      -> structured SOPs rendered for 6 record(s)
+
+[3/4] SME Curation Gate
+      -> 6 record(s) flagged for SME review (0 auto-approved)
+
+[4/4] Knowledge Store (PostgreSQL + pgvector)
+      -> 6 records written to ticket_records as PendingReview
+      -> refresh run logged as kb-20261116T123515-8aa92c
+
+6 record(s) await SME review. Run: python sme_review.py
+(venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Musaddique/Knowledgeops_gw$ python3 sme_review.py 
+6 record(s) awaiting SME review.
+
+
+======================================================================
+[ticket_records] NR-INC-400003  (source_ref_id=INC-400003)
+Title: Bank rejected claim payments due to routing number format; integration adapter updated to zero-pad.
+Module=ClaimCenter  Category=IntegrationFailure  Severity=SEV1-Critical  Resolution=CodeFix
+tagging_confidence = 0.96
+LLM reasoning: The issue is an IntegrationFailure because claim payments were rejected by the bank due to a format mismatch at the integration boundary. The resolution_type is CodeFix, as the integration adapter code was updated to correct the formatting. The module is ClaimCenter, since the payments are claim-related. The severity is SEV2-High because a major feature (vendor payments) was blocked, but the system was otherwise operational.
+----------------------------------------------------------------------
+## Bank rejected claim payments due to routing number format; integration adapter updated to zero-pad.
+
+**Source:** HistoricalTicket (INC-400003)
+**Module:** ClaimCenter | **Category:** IntegrationFailure | **Severity:** SEV1-Critical
+**Resolution Type:** CodeFix
+**Date:** 2025-11-07
+**Guidewire Version:** Jasper
+
+### Summary / Symptom
+Claim payments to vendors are being rejected by the bank integration. The error message from the bank API says the routing number format is invalid. This started after the bank updated their API to require a 9-digit zero-padded format. Approximately 85 vendor payments are stuck in pending state.
+
+### Resolution
+The root cause was the payment integration adapter sending 8-digit routing numbers, while the bank's updated API required a 9-digit zero-padded format. The integration code was updated to always zero-pad routing numbers to 9 digits before sending. After this fix, the 85 previously stuck vendor payments were reprocessed and successfully accepted by the bank. This resolved the integration failure and restored normal payment processing.
+
+
+[1/6] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: a
+  Approval notes (optional): a
+  -> SMEApproved, embedding generated.
+
+======================================================================
+[ticket_records] NR-INC-500001  (source_ref_id=INC-500001)
+Title: Adjuster notes failed to save with >50 attachments; fixed file handle leak and config limit.
+Module=ClaimCenter  Category=PerformanceDegradation  Severity=SEV1-Critical  Resolution=CodeFix
+tagging_confidence = 0.97
+LLM reasoning: The issue impacted ClaimCenter, as adjuster notes and attachments are core claim functions. The root cause was a resource exhaustion (file descriptor limit), which led to degraded but usable performance, fitting PerformanceDegradation and SEV3-Medium. The resolution involved both code changes (handle cleanup) and configuration updates, but the primary fix was in code, so CodeFix is most appropriate.
+----------------------------------------------------------------------
+## Adjuster notes failed to save with >50 attachments; fixed file handle leak and config limit.
+
+**Source:** HistoricalTicket (INC-500001)
+**Module:** ClaimCenter | **Category:** PerformanceDegradation | **Severity:** SEV1-Critical
+**Resolution Type:** CodeFix
+**Date:** 2025-11-12
+**Guidewire Version:** Innsbruck
+
+### Summary / Symptom
+Adjuster notes are failing to save when claims have more than 50 attachments. Adjusters can work around this by splitting notes into smaller entries or removing older attachments temporarily. The issue is intermittent and affects roughly 20 active large-loss claims.
+
+### Resolution
+The root cause was a file descriptor limit in the attachment service, triggered when claims had more than 50 attachments. The service was not releasing file handles after previewing attachments, leading to intermittent failures when saving adjuster notes. The issue was resolved by explicitly cleaning up file handles in the attachment service code and increasing the per-process file descriptor limit in the server configuration. After these changes, all affected claims were verified as able to save notes without issue.
+
+
+[2/6] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: a
+  Approval notes (optional): a
+  -> SMEApproved, embedding generated.
+
+======================================================================
+[ticket_records] NR-INC-500002  (source_ref_id=INC-500002)
+Title: Fleet discount tier misapplied in commercial auto rating; Gosu rule index corrected and redeployed.
+Module=PolicyCenter  Category=ConfigurationError  Severity=SEV2-High  Resolution=CodeFix
+tagging_confidence = 0.97
+LLM reasoning: The issue fits ConfigurationError as it was caused by a misconfigured lookup in a Gosu rule, and CodeFix is appropriate since the resolution involved changing and redeploying custom code. PolicyCenter is the correct module because the problem relates to commercial auto policy rating. SEV3-Medium is chosen since the defect was non-blocking and underwriters could manually correct premiums before binding, but it required remediation for already bound policies.
+----------------------------------------------------------------------
+## Fleet discount tier misapplied in commercial auto rating; Gosu rule index corrected and redeployed.
+
+**Source:** HistoricalTicket (INC-500002)
+**Module:** PolicyCenter | **Category:** ConfigurationError | **Severity:** SEV2-High
+**Resolution Type:** CodeFix
+**Date:** 2025-11-14
+**Guidewire Version:** Jasper
+
+### Summary / Symptom
+Premium rating for commercial auto policies is producing results that differ from the manual rate calculation sheet by 3-8%. The difference appears only on policies with more than 5 vehicles. Underwriters are manually checking and correcting premiums before binding.
+
+### Resolution
+The root cause was a Gosu rule in PolicyCenter's commercial auto rating logic that incorrectly applied a fleet discount tier using a 0-indexed lookup instead of 1-indexed, resulting in the wrong discount for policies with more than five vehicles. The issue was resolved by correcting the index offset in the Gosu rule and redeploying the fix. Additionally, endorsements were initiated to remediate premiums on 14 affected bound policies. This ensured both future and past policies were corrected.
+
+
+[3/6] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: q
+
+Stopping review early. Remaining records are untouched.
+(venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Musaddique/Knowledgeops_gw$ 
