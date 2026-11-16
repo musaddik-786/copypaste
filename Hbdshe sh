@@ -1,176 +1,168 @@
+(venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Musaddique/Knowledgeops_gw$ python3 pipeline.py 
+======================================================================
+KNOWLEDGE OPS AGENT -- KNOWLEDGE BASE REFRESH
+======================================================================
+
+[1/4] Ingestion & Normalization  (kb_version=kb-20261116T080752-bbe1b7)
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...rting high confidence.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...not the entire system.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...otherwise operational.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<... required remediation."), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...m is otherwise usable.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...ystem remained usable.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...ut not a total outage.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...so confidence is high.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...s degraded but usable.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...invoice/quote context."), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...utage is not detailed.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...g business operations.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...erformanceDegradation.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...d PolicyPeriod.bind().'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...are clearly described."), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...mpact is not detailed."), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...t a workaround exists.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...t fix is not detailed."), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<... than incident-driven.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<... explicitly described.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...n a resolved incident.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...tion is described yet.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...ot a support incident."), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...or resolution details.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...without a full outage.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...pact billing accuracy.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...t a resolved incident."), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...re not yet determined.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...l business operations.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(category=<...are clearly described.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+      -> 34 record(s) ingested/changed
+
+[2/4] Structuring Agent (SOP rendering)
+      -> structured SOPs rendered for 34 record(s)
+
+[3/4] SME Curation Gate
+      -> 34 record(s) flagged for SME review (0 auto-approved)
 
+[4/4] Knowledge Store (PostgreSQL + pgvector)
+      -> 14 records written to ticket_records as PendingReview
+      -> 5 records written to chat_rca_records as PendingReview
+      -> 9 records written to release_note_records as PendingReview
+      -> 6 records written to runbook_records as PendingReview
+      -> refresh run logged as kb-20261116T080752-bbe1b7
 
-Point 3: Should we convert Module only, or both Module + Severity to LLM-based?
+34 record(s) await SME review. Run: python sme_review.py
+(venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Musaddique/Knowledgeops_gw$ python3 sme_review.py 
+34 record(s) awaiting SME review.
 
-My recommendation: Neither should become a pure LLM call. Convert both to a hybrid (deterministic-first, LLM-as-fallback) — but only for the specific weak paths, not uniformly.
 
-Here's the reasoning, broken down by field:
+======================================================================
+[ticket_records] NR-INC-100234  (source_ref_id=INC-100234)
+Title: Policy submission stuck in 'Processing' after 2025.2 upgrade
+Module=PolicyCenter  Category=UpgradeRegression  Severity=SEV1-Critical  Resolution=CodeFix
+tagging_confidence = 0.97
+LLM reasoning: The issue began immediately after a Guidewire version upgrade and was caused by a deprecated API method removed in 2025.2.1, matching UpgradeRegression. The resolution involved patching custom Gosu code and redeploying, fitting CodeFix. The module is PolicyCenter, as the issue is with policy submission. Severity is SEV2-High since new business submissions were blocked but a fix was applied quickly. The explicit cause and fix are documented, supporting high confidence.
+----------------------------------------------------------------------
+## Policy submission stuck in 'Processing' after 2025.2 upgrade
 
-Module — current weak point
+**Source:** HistoricalTicket (INC-100234)
+**Module:** PolicyCenter | **Category:** UpgradeRegression | **Severity:** SEV1-Critical
+**Resolution Type:** CodeFix
+**Date:** 2025-11-02
+**Guidewire Version:** PolicyCenter 2025.2.1
 
-Looking at _resolve_module() again:
+### Summary / Symptom
+Policy submission stuck in 'Processing' after 2025.2 upgrade Underwriters report new business submissions in PolicyCenter hang indefinitely in Processing state. Started immediately after the 2025.2.1 upgrade was deployed to production last night. No error visible to end users, but app server logs show repeated GosuRuntimeException in PolicyPeriod.bind().
 
-Tickets & Runbooks: module_reported is an explicit field already populated by the source system (a dropdown value in ServiceNow, a wiki metadata field). This is near-ground-truth. Deterministic matching here is correct behavior — don't touch it.
-Release Notes: uses raw.affected_modules[0] if raw.affected_modules else raw.product. If affected_modules is empty or product doesn't closely resemble a canonical module string (e.g., product = "InsuranceSuite" or a version label), the fuzzy substring match fails and it silently defaults to PolicyCenter at confidence 0.3. That's not "low confidence, still roughly right" — it can be actively wrong, and PolicyCenter becomes a dumping ground for anything ambiguous.
-Chat/RCA: same module_reported free-text field, same fuzzy-match risk.
+### Resolution
+Root cause was a Gosu rule override (UWApprovalRule.gs) referencing a deprecated API method removed in 2025.2.1 (PolicyPeriod.getLatestPeriod() renamed to getLatestBoundPeriod()). Patched the custom rule, redeployed, cleared stuck submissions via batch script. Confirmed with Guidewire release notes GW-RN-2025-2-1-004 which documented this breaking change.
 
-So the actual problem isn't "module tagging is weak everywhere" — it's specifically the fallback branch (confidence 0.3) that defaults to PolicyCenter. That's the one place an LLM reading the narrative text (title/body) would clearly outperform a string match.
 
-Severity — current weak points
+[1/34] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: a
+  Approval notes (optional): no notes
+  -> SMEApproved, embedding generated.
 
-Tickets: priority (P1-P4) is an authoritative, structured field from the ticketing tool. Keep deterministic — an LLM guessing severity from narrative text would be a downgrade here, not an improvement.
-Chat/RCA with a linked ticket: inherits severity from the ticket (confidence 0.95). Also solid — keep deterministic.
-Chat/RCA with NO linked ticket: single keyword check ("outage" in text) → SEV2_HIGH or SEV3_MEDIUM. Brittle — misses "down," "crash," "unavailable," "degraded," "unreachable," etc.
-Release notes: note_type → fixed severity mapping (confidence 0.75). Coarse but defensible as a starting heuristic (vendor categorization already does real work here).
-Runbooks: keyword check ("outage" or "unresponsive") → SEV1 or SEV3 (confidence 0.55). Same brittleness as the RCA fallback, and it's the most arbitrary of the four source handlers.
+======================================================================
+[ticket_records] NR-INC-100235  (source_ref_id=INC-100235)
+Title: Second wave of stuck submissions, same symptom as INC-100234
+Module=PolicyCenter  Category=PerformanceDegradation  Severity=SEV2-High  Resolution=CodeFix
+tagging_confidence = 0.95
+LLM reasoning: Multiple underwriting teams report submissions stuck/hanging on bind, indicating a performance or process stall rather than a total outage. The issue was resolved by applying a Gosu rule fix (code change) and rolling out a patch to all app servers. PolicyCenter is the correct module as it handles submissions and underwriting. Severity is SEV2-High since a major function is blocked but not the entire system.
+----------------------------------------------------------------------
+## Second wave of stuck submissions, same symptom as INC-100234
 
-Notice the pattern: every path that's already self-reporting low confidence (0.3, 0.4, 0.5, 0.55) is exactly the path that's weak, and every path with high confidence (0.95, 1.0) is backed by a genuinely authoritative field. That's a useful signal — it means the fix is targeted, not a wholesale redesign.
+**Source:** HistoricalTicket (INC-100235)
+**Module:** PolicyCenter | **Category:** PerformanceDegradation | **Severity:** SEV2-High
+**Resolution Type:** CodeFix
+**Date:** 2025-11-02
+**Guidewire Version:** PolicyCenter 2025.2.1
 
-Why not just make everything LLM-based?
+### Summary / Symptom
+Second wave of stuck submissions, same symptom as INC-100234 Additional underwriting team reporting identical hang on bind.
 
-Cost/latency: you already pay one LLM call per record for category+resolution_type. Making module+severity also LLM calls either doubles the API cost per record, or (better) means folding module+severity into the same structured output schema (_TaggingResult already has 4 fields — extending to 6 is trivial and keeps it at one call per record). This matters either way.
-Auditability/determinism: a ticket's priority field or a runbook's module_reported is ground truth that exists in the source system already. Routing that through a probabilistic model (even at temperature=0) is a regression in traceability — "why is this SEV1?" should be answerable by "because the ticketing tool said P1," not "because the LLM inferred it from the text."
-The low-confidence paths are already flagged: the codebase's own confidence scores (0.3, 0.4, 0.5, 0.55) tell you precisely where to intervene. Replacing the high-confidence deterministic paths would mean throwing away a stronger signal in favor of a weaker, more expensive one.
+### Resolution
+Same deployment window. Duplicate of INC-100234. Same Gosu rule fix applied once patch rolled out to remaining app servers.
 
-Proposed approach (for your eventual implementation — not now)
 
-Extend _TaggingResult (and the single _llm_classify() call) to also return module and severity picks + their own confidence/reasoning, so there's zero extra API cost.
-Use the LLM's pick only when the deterministic resolver's confidence is below a threshold (e.g., module fallback at 0.3, severity fallback at ≤0.5/0.55) — otherwise keep the deterministic value and ignore the LLM's module/severity output.
-This targets exactly the PolicyCenter-default problem and the keyword-only severity guesses, while leaving the ticket-priority and ticket-linked-RCA paths untouched.
+[2/34] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: q
 
-Net answer to your question: convert both module and severity, but as a confidence-gated fallback, not a full replacement — module's weak spot is release notes/ambiguous free text, severity's weak spot is the "no linked ticket" / keyword-only branches in chat-RCA and runbooks.
-
-
-
-Point 4: Selective Ingestion + Duplicate-Run Prevention
-
-Agreed this is missing today. Two separate problems here that need separate mechanisms:
-
-Problem A: Selective source ingestion
-
-ingest_all() always loads and processes all 4 JSON files unconditionally. Need a way to say "only run chat_rca + release_notes this time."
-
-Design consideration to flag now (important dependency): normalize_chat_or_rca() needs ticket_index to inherit severity from linked tickets (the 0.95-confidence path). If a selective run excludes tickets, that index would be empty for this run. Two options:
-
-Build ticket_index from the KB's already-stored ticket_records table (query existing severities) rather than only from tickets freshly ingested in this run.
-Or require tickets always be loaded for indexing purposes, even if not written out — but that defeats some of the "selective" intent if tickets.json is large.
-
-I'd lean toward the first option — querying stored ticket severities from Postgres as a fallback index — since it keeps the selective run genuinely independent of what else happens to be in data/raw/.
-
-Problem B: Don't reprocess (re-tag, re-embed) unchanged records on every run
-
-This is the bigger one, and it's not fully solved by what already exists. Let's be precise about what's already handled vs. not:
-
-Already handled:
-
-insert_records_no_embedding()'s ON CONFLICT (record_id) DO UPDATE — won't create duplicate rows.
-Step 4's WHERE embedding IS NULL — won't regenerate embeddings for rows that already have one.
-
-NOT handled — this is the actual gap:
-
-Every run still re-does the LLM tagging call (_llm_classify()) for every record, every time, even if the raw source record hasn't changed at all. That's the expensive, wasteful part you're flagging — not the embedding (already skip-safe) but the classification call.
-There's no concept of "this record was already fully processed in a prior run and nothing about it has changed, so skip it entirely" — ingestion currently has no memory of prior runs.
-
-Proposed mechanism: content-hash-based skip, checked before the LLM call
-
-Add a lightweight tracking table (e.g. ingestion_state: record_id, source_type, content_hash, last_ingested_at, kb_version) — separate from the 4 content tables, so it's one place to check regardless of source.
-For each raw record loaded, compute a hash of its raw fields (not the normalized/tagged output — the input).
-Before calling _llm_classify(): look up record_id in ingestion_state. If the stored hash matches the freshly computed one, skip tagging entirely — pull forward the already-stored tags/SOP/embedding from the KB untouched, don't call the LLM, don't touch the embedding.
-Only records that are new (record_id not seen before) or changed (hash differs) go through the full tag → structure → embed path.
-Update ingestion_state for every record that did get processed.
-
-This is where the real "don't execute again and again" savings live — skipping the Azure OpenAI classify call (and, by extension, never generating an embedding for it either, since step 4 already won't touch populated embeddings) for the ~100% of records that haven't changed between runs.
-
-Two edge cases worth flagging for later, since they'd silently break the hash-skip logic if ignored:
-
-Taxonomy changes: if you later add a new IssueCategory value, previously-tagged records won't get retagged under this, since their raw content hasn't changed — only the available tag set has. Needs a secondary version marker (e.g. taxonomy_version) stored alongside the hash, bumped whenever taxonomy.py changes, forcing a retag even when content is identical.
-Prompt/model changes: same issue if _TAGGING_PROMPT or the Azure deployment changes — you'd want a way to force re-tagging without having to touch every raw record. A --force flag at the pipeline level (bypass the hash check entirely for a manual full refresh) covers this.
-
-Summary of what I'd actually build (when you're ready to implement)
-
-ingest_all(sources: list[SourceType] | None = None) — selective source loading, with ticket_index sourced from the DB when tickets aren't in the selected set.
-An ingestion_state tracking table + content-hash check inserted right before _llm_classify() in each normalize_*() function — this is the actual "don't run again and again" mechanism.
-A --force escape hatch to bypass the hash check for deliberate full re-tagging (prompt/taxonomy changes).
-CLI flags on pipeline.py / step3_populate_data.py: --sources tickets,chat_rca and --force.
-
-Let me know if you want me to proceed with implementing this, or if you'd like to adjust the approach first (e.g., threshold values for the confidence-gated LLM fallback, or whether you'd rather track hashes per-source-table instead of a central table).
-
-
-
-
-
-
-
-below are the changes it did
-
-Point 3: Hybrid LLM-Fallback Tagging for Module & Severity
-
-Files Changed:
-
-ingestion.py (primary changes)
-
-Added constants: MODULE_LLM_FALLBACK_THRESHOLD = 0.5, SEVERITY_LLM_FALLBACK_THRESHOLD = 0.6
-Extended _TaggingResult to include module: GuidewireModule and severity: Severity (now 6 fields instead of 4, same single LLM call)
-Updated _SYSTEM_PROMPT, _FEW_SHOT_EXAMPLES, _TAGGING_PROMPT to request module+severity alongside category+resolution_type
-Modified all four normalize_*() functions (tickets, chat_rca, release_notes, runbooks) with the hybrid fallback logic:
-
-Deterministic module/severity computed first (unchanged logic for each source)
-If deterministic confidence falls below threshold → LLM result overrides it
-Otherwise deterministic result is kept
-Added _content_hash() helper for SHA-256 hashing of raw records
-Updated ingest_all() signature to accept sources and existing_hashes parameters
-schemas.py (minimal, additive)
-
-Added one optional field to NormalizedRecord: content_hash: Optional[str] = None (used only for duplicate detection, not stored in KB tables)
-
-
-
-Point 4: Selective Ingestion + Duplicate-Run Prevention
-
-Files Changed:
-
-ingestion.py (continued from Point 3)
-
-ingest_all(sources=None, existing_hashes=None) with defaults:
-
-sources=None → all 4 (preserves original behavior)
-existing_hashes=None → empty dict (nothing skipped, preserves original behavior)
-Built ticket_index upfront from ALL raw tickets (regardless of selective filtering) for chat/RCA severity inheritance
-For each selected source: compute record_id/content_hash, skip via continue if hash matches existing_hashes, otherwise normalize and set rec.content_hash
-knowledge_store.py (new functions added before log_curation_audit)
-
-fetch_ingestion_hashes(conn) → reads ingestion_state table, returns dict[str, str] of record_id→content_hash
-upsert_ingestion_hashes(conn, records, kb_version) → writes approved records' hashes to ingestion_state table with upsert logic (ON CONFLICT ... DO UPDATE)
-Design intent: only approved records (AutoApproved/SMEApproved) are cached; NeedsRetag records retry every run
-schema.sql (new table added, purely additive via CREATE TABLE IF NOT EXISTS)
-pipeline.py (restructured, graceful degradation preserved)
-
-Added --sources and --force CLI flags
-Moved DB connection earlier (before ingest_all()) so hash-skip actually saves LLM/embedding cost (not just DB-write cost)
-Early-return if ingest_all() returns empty list (nothing changed, nothing to refresh)
-Added upsert_ingestion_hashes(conn, approved, kb_version) call after stage 4
-step3_populate_data.py (similar restructuring as pipeline.py)
-
-Added --sources and --force CLI flags
-Fetches existing_hashes from DB before calling ingest_all()
-Early-return if nothing to process
-Added upsert_ingestion_hashes() call after insert
-
-
-
-What Was NOT Changed
-
-taxonomy.py — completely untouched (Point 1 & 2: enum definitions remain as-is)
-curation.py — no changes
-structuring.py — no changes
-step4_store_embeddings.py — no changes (already has WHERE embedding IS NULL skip logic)
-step1_create_database.py, step2_create_tables.py — no changes
-
-
-
-Verification Done
-
-✅ All changes verified against your live Azure OpenAI deployment (real LLM calls succeeded)
-✅ Concrete real-world validation: RB-CM-011 runbook severity correctly upgraded from SEV3 to SEV1
-✅ Duplicate-run prevention tested: unchanged records skipped with zero LLM calls
-✅ No test data written to your live Postgres instance (only in-memory logic exercised)
+Stopping review early. Remaining records are untouched.
+(venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Musaddique/Knowledgeops_gw$ 
