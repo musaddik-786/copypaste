@@ -1,4 +1,3 @@
-
 """
 Stage 1: Ingestion & Normalization
 (diagram box: "Ingests all sources and tags content by Guidewire module,
@@ -306,23 +305,25 @@ structured output -- never name an alternative value in the reasoning \
 that contradicts your actual pick."""
 
 
-def _sanitize_reasoning(result: _TaggingResult) -> _TaggingResult:
-    """Hard guarantee: if the reasoning text names a severity or module value
-    that contradicts the actual structured fields, wipe it rather than show
-    contradictory information to SME reviewers. The structured fields are
-    always authoritative; the reasoning is informational only."""
-    reasoning_lower = (result.reasoning or "").lower()
+def _clean_reasoning(
+    reasoning: str | None,
+    final_severity: Severity,
+    final_module: GuidewireModule,
+) -> str | None:
+    """Wipe the LLM reasoning if it names a severity or module that
+    contradicts the FINAL tagged values (after deterministic overrides).
 
-    # Severity values (e.g. "sev2-high") are distinctive enough that any
-    # mention of a *wrong* one in the reasoning is a genuine contradiction.
-    wrong_severities = {s.value.lower() for s in Severity if s != result.severity}
-    # Module values (e.g. "policycenter") are also distinctive.
-    wrong_modules = {m.value.lower() for m in GuidewireModule if m != result.module}
-
-    if any(sv in reasoning_lower for sv in wrong_severities) or \
-       any(mod in reasoning_lower for mod in wrong_modules):
-        result.reasoning = None  # wipe -- contradictory reasoning misleads SME reviewers
-    return result
+    Must be called after the override logic in each normalize_*() so it
+    checks the values that actually get stored, not the LLM's raw guess.
+    The structured fields are always authoritative; reasoning is display-only."""
+    if not reasoning:
+        return reasoning
+    r = reasoning.lower()
+    wrong_severities = {s.value.lower() for s in Severity if s != final_severity}
+    wrong_modules = {m.value.lower() for m in GuidewireModule if m != final_module}
+    if any(sv in r for sv in wrong_severities) or any(mod in r for mod in wrong_modules):
+        return None
+    return reasoning
 
 
 def _llm_classify(module: str, title: str, text: str) -> _TaggingResult:
@@ -353,7 +354,7 @@ def _llm_classify(module: str, title: str, text: str) -> _TaggingResult:
         [("system", _SYSTEM_PROMPT), ("human", human_prompt)]
     )
     result.confidence = round(result.confidence, 2)
-    return _sanitize_reasoning(result)
+    return result
 
 
 def _resolve_module(raw_module_text: str | None) -> tuple:
@@ -404,6 +405,7 @@ def normalize_ticket(raw: RawTicket) -> NormalizedRecord:
     if sev_conf < SEVERITY_LLM_FALLBACK_THRESHOLD:
         severity, sev_conf = tag_result.severity, llm_conf
 
+    reasoning = _clean_reasoning(reasoning, severity, module)
     overall_conf = round((module_conf + sev_conf + 2 * llm_conf) / 4, 2)
 
     return NormalizedRecord(
@@ -454,6 +456,7 @@ def normalize_chat_or_rca(raw: RawChatOrRCA, ticket_index: dict) -> NormalizedRe
     if sev_conf < SEVERITY_LLM_FALLBACK_THRESHOLD:
         severity, sev_conf = tag_result.severity, llm_conf
 
+    reasoning = _clean_reasoning(reasoning, severity, module)
     overall_conf = round((module_conf + sev_conf + 2 * llm_conf) / 4, 2)
 
     return NormalizedRecord(
@@ -504,6 +507,7 @@ def normalize_release_note(raw: RawReleaseNote) -> NormalizedRecord:
     if sev_conf < SEVERITY_LLM_FALLBACK_THRESHOLD:
         severity, sev_conf = tag_result.severity, llm_conf
 
+    reasoning = _clean_reasoning(reasoning, severity, module)
     overall_conf = round((module_conf + sev_conf + 2 * llm_conf) / 4, 2)
 
     return NormalizedRecord(
@@ -552,6 +556,7 @@ def normalize_runbook(raw: RawRunbook) -> NormalizedRecord:
     if sev_conf < SEVERITY_LLM_FALLBACK_THRESHOLD:
         severity, sev_conf = tag_result.severity, llm_conf
 
+    reasoning = _clean_reasoning(reasoning, severity, module)
     overall_conf = round((module_conf + sev_conf + 2 * llm_conf) / 4, 2)
 
     return NormalizedRecord(
