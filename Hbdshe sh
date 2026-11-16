@@ -1,10 +1,24 @@
-(venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Musaddique/Knowledgeops_gw$ python3 pipeline.py 
-======================================================================
-KNOWLEDGE OPS AGENT -- KNOWLEDGE BASE REFRESH
-======================================================================
+[runbook_records] NR-RB-CM-011  (source_ref_id=RB-CM-011)
+Title: Runbook: License Pool Exhausted / Users Cannot Log In
+Module=ContactManager  Category=Licensing  Severity=SEV1-Critical  Resolution=DataRemediation
+tagging_confidence = 0.89
+LLM reasoning: The issue is a license pool exhaustion preventing user logins, which fits Licensing. The resolution is running a session-cleanup script to remediate stale sessions, matching DataRemediation. ContactManager is the best module as it handles shared access and session management. Severity is SEV1-Critical since users cannot log in, blocking business operations. Confidence is high as the cause and remediation are clearly described.
+----------------------------------------------------------------------
+## Runbook: License Pool Exhausted / Users Cannot Log In
 
-[1/4] Ingestion & Normalization  (kb_version=kb-20261116T103959-e2239a)
-      -> nothing new or changed for the selected source(s)
+**Source:** RunbookOrSOP (RB-CM-011)
+**Module:** ContactManager | **Category:** Licensing | **Severity:** SEV1-Critical
+**Resolution Type:** DataRemediation
+**Date:** 2025-03-18
 
-Nothing to refresh -- Knowledge Store is already up to date.
+### Summary / Symptom
+Runbook: License Pool Exhausted / Users Cannot Log In Users receive 'no license available' errors despite headcount being within the licensed pool. Check for orphaned/stale sessions, especially following any recent VPN or network outage. Run th
+
+### Resolution
+e session-cleanup script to release stale concurrent-user licenses. Verify license pool is restored to expected availability. If exhaustion recurs without a clear incident cause, request a license headroom review with the Guidewire account team.
+
+
+[40/40] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: a
+  Approval notes (optional): a
+  -> SMEApproved, embedding generated.
 (venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Musaddique/Knowledgeops_gw$ 
