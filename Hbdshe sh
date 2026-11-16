@@ -1,135 +1,186 @@
 """
-Stage 3: SME Curation Gate
-(diagram box: "Human SMEs spot-check a sample of entries and approve
-taxonomy quality before anything goes live." Annotated as: "The one
-deliberate human gate -- a bad tag here poisons every downstream agent's
-matching.")
+Orchestrates the full pipeline exactly as laid out in the architecture
+diagram:
 
-This stage does NOT re-run the classifier. Its job is to decide, per
-record, whether it needs a human SME in front of it before it's allowed
-anywhere near the Knowledge Store:
+    4 raw sources
+        -> Ingestion & Normalization   (ingestion.py)
+        -> Structuring Agent            (structuring.py)
+        -> SME Curation Gate            (curation.py)
+        -> Knowledge Store              (knowledge_store.py, Postgres+pgvector)
 
-  - HistoricalTicket records are AUTO_APPROVED unconditionally, regardless
-        of tagging_confidence. ingestion.py only ever hands this stage
-        tickets whose status is already closed (see
-        ingestion.CLOSED_TICKET_STATUSES) -- a closed ticket's resolution
-        is final, so there's nothing left for an SME to add. These
-        records skip SME review entirely: the pipeline embeds and writes
-        them straight into the Knowledge Store.
-  - Every other source (ChatOrRCAReport, GuidewireReleaseNote,
-        RunbookOrSOP) is still marked CurationStatus.PENDING_REVIEW and
-        held back unconditionally -- SME_APPROVED is NEVER assigned by
-        this function for these; only a human reviewer (sme_review.py)
-        can move one of these out of PendingReview.
+Run with:
+    Fill in .env (copy .env.example) with PG_HOST / PG_PORT / PG_DATABASE / PG_USER / PG_PASSWORD
+    python pipeline.py
 
-A non-ticket record only becomes eligible for embedding + the Knowledge
-Store once a human reviewer runs `python sme_review.py` and explicitly
-approves it (SMEApproved), rejects it (SMERejected), or sends it back for
-retagging (NeedsRetag). The NormalizedRecord shape and CurationStatus enum
-are exactly what that reviewer workflow reads and writes.
+    # Selective ingestion -- only refresh specific source(s), e.g. just
+    # release notes, or tickets + chat/RCA. Omitting --sources (the
+    # default) refreshes all 4, same as always.
+    python pipeline.py --sources release_notes
+    python pipeline.py --sources tickets,chat_rca
 
-`simulate_sme=True` is kept ONLY for ad-hoc local demos of this module in
-isolation (see the `__main__` block below) -- pipeline.py and
-step3_populate_data.py never pass it, so the real pipeline always holds
-every record for a human.
+    # Duplicate-run prevention is on by default: a record whose raw
+    # content hasn't changed since the last run that fully processed it is
+    # skipped entirely (no LLM tagging call, no re-embedding). --force
+    # bypasses that and re-processes every selected record regardless.
+    python pipeline.py --force
+
+Ticket records are auto-approved and embedded right here in this run --
+a closed ticket's resolution is final, so there's no SME step for it (see
+curation.py). Every other source (chat/RCA, release notes, runbooks)
+still lands in its table as curation_status='PendingReview'
+(embedding=NULL), invisible to search_similar() until a human reviews it:
+    python sme_review.py
+Only there does one of those become SMEApproved/SMERejected/NeedsRetag,
+and only on approval is its embedding generated.
+
+This is the "refresh" job referenced in the diagram footer:
+"refreshed continuously as tickets close and re-synced on every Guidewire
+release cycle" -- in production this runs on a schedule (or is triggered
+by a ticket-closed / release-published webhook) rather than manually.
 """
 
 from __future__ import annotations
 
-from schemas import NormalizedRecord
-from taxonomy import AUTO_APPROVE_CONFIDENCE_THRESHOLD, CurationStatus, SourceType
+import argparse
+import sys
+
+from curation import run_curation_gate
+from ingestion import SOURCE_KEY_TO_TYPE, ingest_all
+from knowledge_store import (
+    fetch_ingestion_hashes,
+    get_connection,
+    init_schema,
+    insert_records_no_embedding,
+    log_curation_audit,
+    log_refresh_run,
+    new_kb_version,
+    upsert_ingestion_hashes,
+    upsert_records,
+)
+from structuring import fit_embeddings, render_sops
+from taxonomy import SourceType
 
 
-def run_curation_gate(
-    records: list[NormalizedRecord], simulate_sme: bool = False
-) -> tuple[list[NormalizedRecord], list[NormalizedRecord]]:
-    """
-    Returns (approved_records, held_back_records).
-    Mutates curation_status / curation_notes on every record in place.
-
-    With the default simulate_sme=False (what pipeline.py and
-    step3_populate_data.py use):
-      - Every HistoricalTicket record is auto-approved (AutoApproved) and
-        returned in `approved` -- closed tickets never need SME review.
-      - Every other source is marked PENDING_REVIEW and returned in
-        `held_back`. A non-ticket record can only reach SMEApproved via a
-        real human decision -- see sme_review.py.
-    """
-    approved: list[NormalizedRecord] = []
-    held_back: list[NormalizedRecord] = []
-
-    for r in records:
-        if simulate_sme:
-            decision = _simulate_sme_review(r)
-            r.curation_status = decision["status"]
-            r.curation_notes = decision["notes"]
-            if decision["status"] == CurationStatus.SME_APPROVED:
-                approved.append(r)
-            else:
-                held_back.append(r)
-            continue
-
-        if r.source_type == SourceType.TICKET:
-            r.curation_status = CurationStatus.AUTO_APPROVED
-            r.curation_notes = "Auto-approved: closed ticket, no SME review required."
-            approved.append(r)
-            continue
-
-        # True human-in-the-loop for non-ticket sources: no automatic
-        # approval of any kind.
-        r.curation_status = CurationStatus.PENDING_REVIEW
-        r.curation_notes = "Awaiting SME review (not yet reviewed)."
-        held_back.append(r)
-
-    return approved, held_back
-
-
-def _simulate_sme_review(record: NormalizedRecord) -> dict:
-    """
-    Stand-in for a human reviewer's decision, so this demo can run
-    end-to-end without a real review UI. The heuristic: a tagging
-    confidence of 0.55+ means an SME would typically verify the tags as
-    correct on inspection. Genuinely low-signal records (e.g. fallback
-    classifications) are sent back for retagging instead.
-    """
-    gap = AUTO_APPROVE_CONFIDENCE_THRESHOLD - record.tagging_confidence
-
-    if record.tagging_confidence >= 0.55:
-        return {
-            "status": CurationStatus.SME_APPROVED,
-            "notes": (
-                f"SME reviewed and approved. Confidence {record.tagging_confidence:.2f}; "
-                f"tags verified correct on inspection."
-            ),
-        }
-
-    return {
-        "status": CurationStatus.NEEDS_RETAG,
-        "notes": (
-            f"SME flagged for retagging. Confidence {record.tagging_confidence:.2f} too low "
-            f"to trust (gap={gap:.2f}) -- classifier likely fell back to a default label."
+def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="One-shot Knowledge Base refresh: ingest, structure+embed, SME-gate, write to Postgres."
+    )
+    parser.add_argument(
+        "--sources",
+        type=str,
+        default=None,
+        help=(
+            f"Comma-separated subset of {{{','.join(SOURCE_KEY_TO_TYPE)}}} to refresh. "
+            "Omit to refresh all 4 (default, unchanged behavior)."
         ),
-    }
+    )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Re-tag and re-embed every selected record even if unchanged since the last run.",
+    )
+    return parser.parse_args(argv)
+
+
+def run_pipeline(sources: list[SourceType] | None = None, force: bool = False) -> None:
+    print("=" * 70)
+    print("KNOWLEDGE OPS AGENT -- KNOWLEDGE BASE REFRESH")
+    print("=" * 70)
+
+    kb_version = new_kb_version()
+
+    # Connect early (the same connection is reused for Stage 4 below) so
+    # already-unchanged records can skip re-tagging/re-embedding, not just
+    # re-insertion. Graceful degradation is unchanged from before: if
+    # Postgres isn't reachable, stages 1-3 still run and report results,
+    # and the same "SKIPPED" message prints at the same point (Stage 4).
+    conn = None
+    conn_error: RuntimeError | None = None
+    try:
+        conn = get_connection()
+        init_schema(conn)
+    except RuntimeError as e:
+        conn_error = e
+        conn = None
+
+    existing_hashes: dict[str, str] = {}
+    if conn is not None and not force:
+        existing_hashes = fetch_ingestion_hashes(conn)
+
+    print(f"\n[1/4] Ingestion & Normalization  (kb_version={kb_version})")
+    records = ingest_all(sources=sources, existing_hashes=existing_hashes)
+    if not records:
+        print("      -> nothing new or changed for the selected source(s)")
+        print("\nNothing to refresh -- Knowledge Store is already up to date.")
+        if conn is not None:
+            conn.close()
+        return
+    print(f"      -> {len(records)} record(s) ingested/changed")
+
+    print("\n[2/4] Structuring Agent (SOP rendering)")
+    records = render_sops(records)
+    print(f"      -> structured SOPs rendered for {len(records)} record(s)")
+
+    print("\n[3/4] SME Curation Gate")
+    # Tickets are auto-approved here (closed tickets never need SME
+    # review); the other 3 sources are unconditionally held for human
+    # review, same as before -- see curation.py.
+    approved, held_back = run_curation_gate(records)
+    if approved:
+        print(f"      -> {len(approved)} ticket record(s) auto-approved (no SME review needed)")
+    print(f"      -> {len(held_back)} record(s) flagged for SME review")
+
+    print("\n[4/4] Knowledge Store (PostgreSQL + pgvector)")
+    if conn is None:
+        print(f"      SKIPPED -- {conn_error}")
+        print("\nPipeline stages 1-3 completed successfully (see above).")
+        print("Connect a real Postgres+pgvector instance and re-run to complete stage 4.")
+        sys.exit(0)
+
+    try:
+        if approved:
+            # Auto-approved ticket records are embedded and written
+            # straight into the store here -- no PendingReview stop, no
+            # separate sme_review.py step for these.
+            embeddings = fit_embeddings([r.raw_text for r in approved])
+            for r, emb in zip(approved, embeddings):
+                r.embedding = emb
+            written_approved = upsert_records(conn, approved, kb_version)
+            for table, count in written_approved.items():
+                if count:
+                    print(f"      -> {count} records written to {table} as AutoApproved")
+
+        # Non-ticket records: written with embedding=NULL,
+        # curation_status='PendingReview' -- visible to a human reviewer
+        # but never retrievable (search_similar only returns
+        # AutoApproved/SMEApproved rows).
+        written = insert_records_no_embedding(conn, held_back, kb_version)
+        log_curation_audit(conn, records)
+        log_refresh_run(conn, kb_version, len(records), len(approved), len(held_back))
+        # Register every record's content hash now, at ingestion time --
+        # not only on SME approval. "Already processed by the pipeline"
+        # means "ingested + tagged this run", regardless of review status,
+        # so a still-PendingReview record isn't re-tagged on every future
+        # run just because no one has reviewed it yet. sme_review.py's
+        # own register_approved_hash() call on approval is now redundant
+        # for an unchanged record (same hash) but harmless to leave as is.
+        upsert_ingestion_hashes(conn, records, kb_version)
+        for table, count in written.items():
+            if count:
+                print(f"      -> {count} records written to {table} as PendingReview")
+        print(f"      -> refresh run logged as {kb_version}")
+    finally:
+        conn.close()
+
+    if held_back:
+        print(f"\n{len(held_back)} record(s) await SME review. Run: python sme_review.py")
+    else:
+        print("\nNo records await SME review.")
 
 
 if __name__ == "__main__":
-    from ingestion import ingest_all
-    from structuring import render_sops, fit_embeddings
-
-    # Curation runs before embedding: only SME-approved records ever get
-    # an embedding generated, so rejected/held-back records never cost an
-    # embedding call.
-    records = render_sops(ingest_all())
-    approved, held_back = run_curation_gate(records)
-
-    corpus = [f"{r.title} {r.raw_text}" for r in approved]
-    if corpus:
-        embeddings = fit_embeddings(corpus)
-        for r, emb in zip(approved, embeddings):
-            r.embedding = emb
-
-    print(f"Curation Gate results on {len(records)} records:")
-    print(f"  Approved into Knowledge Store: {len(approved)}")
-    print(f"  Held back (needs retag / pending): {len(held_back)}")
-    for r in held_back:
-        print(f"    - {r.record_id} [{r.curation_status.value}]: {r.curation_notes}")
+    args = _parse_args()
+    selected_sources = None
+    if args.sources:
+        selected_sources = [SOURCE_KEY_TO_TYPE[s.strip()] for s in args.sources.split(",")]
+    run_pipeline(sources=selected_sources, force=args.force)
