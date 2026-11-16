@@ -1,72 +1,93 @@
-[
-  {
-    "ticket_id": "INC-200001",
-    "created_at": "2026-11-10T08:00:00",
-    "closed_at": "2026-11-10T10:30:00",
-    "module_reported": "ClaimCenter",
-    "description": "Adjusters are unable to close claims in ClaimCenter after the 2026.2 upgrade. The close button is visible but clicking it throws a Gosu runtime error: ClaimContact.getActiveRoles() method not found. Only affects claims with multiple claimants. Single-claimant claims close normally.",
-    "resolution_notes": "The method ClaimContact.getActiveRoles() was renamed to ClaimContact.getRolesByStatus() in Guidewire 2026.2. Updated the custom CloseClaimWorkflow.gs rule to use the new method name. Redeployed and confirmed multi-claimant claims close correctly.",
-    "priority": "P1",
-    "assignee_team": "ClaimCenter L3",
-    "guidewire_version": "ClaimCenter 2026.2",
-    "status": "Closed"
-  },
-  {
-    "ticket_id": "INC-200002",
-    "created_at": "2026-11-11T09:15:00",
-    "closed_at": "2026-11-11T14:00:00",
-    "module_reported": "BillingCenter",
-    "description": "The nightly disbursement batch job has been failing silently for 3 days. No error is surfaced in the UI but the job log shows a NullPointerException in DisbursementPlugin.gs at line 142. Payments that should have gone out on Monday, Tuesday and Wednesday have not been issued. Claimants are calling in about missing payments.",
-    "resolution_notes": "The DisbursementPlugin.gs was referencing a payment account field that is null for older claims created before the 2025.1 migration. Added a null check before accessing the field. Re-ran the batch job manually for the 3 missed days and confirmed all outstanding disbursements were issued.",
-    "priority": "P1",
-    "assignee_team": "BillingCenter L2",
-    "guidewire_version": "BillingCenter 2026.1",
-    "status": "Closed"
-  },
-  {
-    "ticket_id": "INC-200003",
-    "created_at": "2026-11-12T11:00:00",
-    "closed_at": "2026-11-12T13:45:00",
-    "module_reported": "PolicyCenter",
-    "description": "Underwriters report that the premium calculation is returning incorrect values for commercial auto policies. The quoted premium is consistently 12-15% lower than expected. Personal auto policies are unaffected. Issue appeared after a configuration change pushed last Thursday.",
-    "resolution_notes": "Identified that the commercial auto rating factor table (CommercialAutoFactors) had an incorrect multiplier entered during last Thursday's config update -- a decimal was misplaced (0.88 instead of 1.088). Corrected the value in the rating configuration and reran affected quotes. No code change required.",
-    "priority": "P2",
-    "assignee_team": "PolicyCenter L2",
-    "guidewire_version": "PolicyCenter 2026.1",
-    "status": "Closed"
-  },
-  {
-    "ticket_id": "INC-200004",
-    "created_at": "2026-11-13T07:30:00",
-    "closed_at": "2026-11-13T09:00:00",
-    "module_reported": "IntegrationGateway",
-    "description": "Outbound policy data files to the reinsurance partner (PartnerRe) have stopped arriving on their SFTP server since yesterday. No errors visible in the Guidewire UI. The integration log shows the files are being generated but the SFTP upload step is timing out after 30 seconds.",
-    "resolution_notes": "The PartnerRe SFTP server had rotated its host key over the weekend without notifying us. The known_hosts entry in our integration server was stale, causing the connection to be refused silently. Updated the known_hosts file with the new host key and confirmed the next scheduled file transfer completed successfully.",
-    "priority": "P2",
-    "assignee_team": "Integration L2",
-    "guidewire_version": null,
-    "status": "Closed"
-  },
-  {
-    "ticket_id": "INC-200005",
-    "created_at": "2026-11-14T10:00:00",
-    "closed_at": "2026-11-14T11:30:00",
-    "description": "Users across all teams are being logged out every 30-45 minutes regardless of activity. The issue started this morning and is affecting all three centers -- PolicyCenter, ClaimCenter and BillingCenter. Users have to log back in multiple times per hour which is severely disrupting work.",
-    "resolution_notes": "The session timeout value in the application server config had been accidentally set to 30 minutes during routine maintenance last night (the intended value was 480 minutes / 8 hours). Reverted the session timeout to 480 minutes and restarted the app server. Confirmed sessions are now persisting correctly.",
-    "priority": "P1",
-    "assignee_team": "Platform L2",
-    "guidewire_version": null,
-    "status": "Closed"
-  },
-  {
-    "ticket_id": "INC-200006",
-    "created_at": "2026-11-15T13:00:00",
-    "closed_at": "2026-11-15T16:30:00",
-    "description": "ClaimCenter search is extremely slow during peak hours (10am-2pm). Searching by claimant name or policy number takes 25-40 seconds to return results. Off-peak searches complete in under 2 seconds. The issue has been present for about a week and is getting worse as claim volume grows.",
-    "resolution_notes": "Database query analysis showed that the full-text index on the claim search table had become severely fragmented after a bulk data import last week. Rebuilt the index during a maintenance window and query times immediately dropped back to under 1 second. Scheduled weekly index maintenance to prevent recurrence.",
-    "priority": "P2",
-    "assignee_team": "ClaimCenter L3",
-    "guidewire_version": "ClaimCenter 2026.1",
-    "status": "Closed"
-  }
-]
+i did not deleted the earlier tickets.json data just added the new data that you gave in same json
+
+belos is what it gave 
+also tell me am i supposed to check anything else to see if it ran correctly 
+
+JarvisClaims@JarvisClaims:~/Agent_Verse_Musaddique$ cd Knowledgeops_gw/
+JarvisClaims@JarvisClaims:~/Agent_Verse_Musaddique/Knowledgeops_gw$ source venv/bin/activate
+(venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Musaddique/Knowledgeops_gw$ python3 pipeline.py 
+======================================================================
+KNOWLEDGE OPS AGENT -- KNOWLEDGE BASE REFRESH
+======================================================================
+
+[1/4] Ingestion & Normalization  (kb_version=kb-20261116T103152-62afaf)
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='P...rting high confidence.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='U...icating high severity.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='C...cked but now resolved."), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='A...otherwise operational.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='S... required remediation.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='F... is not a full outage.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='M...ble but not blocking).'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='B...ut not a total outage."), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='P...act, so SEV4-Low fits.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='C...SEV3-Medium fits best.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='I...ue to invoice context."), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='P... clearly PolicyCenter.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='A...er remediation needed.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='C...but not a full outage."), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='N... explicit in the text.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='A...laims were unaffected.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='M...ffected, so SEV2 fits.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='D...rting high confidence.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='C...is not a total outage.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='S... but quickly restored.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='S...centers were affected.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique/Knowledgeops_gw/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='C...t not completely down.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+      -> 22 record(s) ingested/changed
+
+[2/4] Structuring Agent (SOP rendering)
+      -> structured SOPs rendered for 22 record(s)
+
+[3/4] SME Curation Gate
+      -> 22 record(s) flagged for SME review (0 auto-approved)
+
+[4/4] Knowledge Store (PostgreSQL + pgvector)
+      -> 22 records written to ticket_records as PendingReview
+      -> refresh run logged as kb-20261116T103152-62afaf
+
+22 record(s) await SME review. Run: python sme_review.py
+(venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Musaddique/Knowledgeops_gw$ 
