@@ -1,114 +1,60 @@
-"""
-STEP 3 of 4: Ingest the 4 raw sources, tag them, render SOP text, run
-the SME Curation Gate, and INSERT every one of them into their tables
-with embedding=NULL. Ticket records are auto-approved here (closed
-tickets never need SME review -- see curation.py) and inserted as
-AutoApproved; the other 3 sources are inserted as PendingReview and only
-become SMEApproved once a human runs `python sme_review.py`. Either way,
-embedding generation is step4's job -- it picks up any AutoApproved/
-SMEApproved row that still has embedding=NULL, tickets included.
-
-Run:
-    python step3_populate_data.py
-
-    # Selective ingestion -- only process specific source(s). Omitting
-    # --sources (the default) processes all 4, same as always.
-    python step3_populate_data.py --sources release_notes
-    python step3_populate_data.py --sources tickets,chat_rca
-
-    # Duplicate-run prevention is on by default: a record whose raw
-    # content hasn't changed since the last run that fully processed it is
-    # skipped entirely (no LLM tagging call). --force bypasses that and
-    # re-tags every selected record regardless.
-    python step3_populate_data.py --force
-"""
-
-import argparse
-
-from curation import run_curation_gate
-from ingestion import SOURCE_KEY_TO_TYPE, ingest_all
-from knowledge_store import (
-    fetch_ingestion_hashes,
-    get_connection,
-    insert_records_no_embedding,
-    log_curation_audit,
-    log_refresh_run,
-    new_kb_version,
-    upsert_ingestion_hashes,
-)
-from structuring import render_sops
-from taxonomy import SourceType
-
-
-def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Step 3: ingest + tag + curate + insert (no embeddings yet)."
-    )
-    parser.add_argument(
-        "--sources",
-        type=str,
-        default=None,
-        help=(
-            f"Comma-separated subset of {{{','.join(SOURCE_KEY_TO_TYPE)}}} to ingest. "
-            "Omit to ingest all 4 (default, unchanged behavior)."
-        ),
-    )
-    parser.add_argument(
-        "--force",
-        action="store_true",
-        help="Re-tag every selected record even if unchanged since the last run.",
-    )
-    return parser.parse_args(argv)
-
-
-if __name__ == "__main__":
-    args = _parse_args()
-    selected_sources: list[SourceType] | None = None
-    if args.sources:
-        selected_sources = [SOURCE_KEY_TO_TYPE[s.strip()] for s in args.sources.split(",")]
-
-    kb_version = new_kb_version()
-
-    conn = get_connection()
-    try:
-        existing_hashes = {} if args.force else fetch_ingestion_hashes(conn)
-
-        print("Ingesting + tagging selected source(s)..." if selected_sources else "Ingesting + tagging all 4 sources...")
-        records = ingest_all(sources=selected_sources, existing_hashes=existing_hashes)
-        print(f"  -> {len(records)} record(s) need (re)processing this run")
-
-        if not records:
-            print("Nothing new or changed -- nothing to render, curate, or insert.")
-        else:
-            print("Rendering structured SOP text (no embeddings yet)...")
-            records = render_sops(records)
-
-            print("Running SME Curation Gate...")
-            # simulate_sme defaults to False: ticket records are
-            # auto-approved (closed tickets, no SME needed); every other
-            # record is held as PENDING_REVIEW for a human.
-            approved, held_back = run_curation_gate(records)
-            if approved:
-                print(f"  -> {len(approved)} ticket record(s) auto-approved")
-            print(f"  -> {len(held_back)} record(s) flagged for SME review")
-
-            # Both groups are inserted with embedding=NULL -- step4 backfills
-            # embeddings for anything AutoApproved/SMEApproved, tickets included.
-            written = insert_records_no_embedding(conn, records, kb_version)
-            log_curation_audit(conn, records)
-            log_refresh_run(conn, kb_version, len(records), len(approved), len(held_back))
-            # Register every record's content hash now, at ingestion time
-            # -- not only on SME approval -- so a still-PendingReview
-            # record isn't re-tagged on every future run just because no
-            # one has reviewed it yet.
-            upsert_ingestion_hashes(conn, records, kb_version)
-
-            for table, count in written.items():
-                if count:
-                    print(f"  -> {count} rows inserted into {table} (embedding = NULL)")
-    finally:
-        conn.close()
-
-    print("\nStep 3 complete. Embeddings are NOT set yet.")
-    print("Next: python sme_review.py for pending non-ticket records, then")
-    print("      python step4_store_embeddings.py to backfill embeddings for everything approved.")
+{
+  "ticket_id": "INC-800001",
+  "created_at": "2025-12-04T06:00:00",
+  "closed_at": "2025-12-04T09:00:00",
+  "module_reported": "ContactManager",
+  "description": "Duplicate contact records are being created when the same customer calls in through two different channels (phone and web portal) within the same day. This is causing policy correspondence to be sent twice to the same customer. Support has identified 60 duplicate pairs created in the last week.",
+  "resolution_notes": "The contact matching logic only checked for an exact match on email address, but the web portal submission used a different email casing than the phone channel's recorded email, so the dedup check failed. Updated the contact matching rule to normalize email case before comparison, and merged the 60 existing duplicate pairs using the merge-contacts utility.",
+  "priority": "P2",
+  "assignee_team": "CM-DataQuality",
+  "guidewire_version": "Jasper",
+  "status": "Closed"
+},
+{
+  "ticket_id": "INC-800002",
+  "created_at": "2025-12-05T11:00:00",
+  "closed_at": "2025-12-05T11:45:00",
+  "module_reported": "DigitalPortal",
+  "description": "Customers attempting to download their policy declaration PDF from the self-service portal receive a blank page instead of the document. The download link itself works correctly when tested in a different browser. Only affects customers on the latest version of one specific browser.",
+  "resolution_notes": "A recent browser update changed how that browser renders embedded PDF viewers for cross-origin documents. The portal's PDF viewer component was serving the file without the correct content-disposition header for that browser's new security model. Updated the header configuration so the PDF downloads directly instead of attempting an inline render for that browser.",
+  "priority": "P3",
+  "assignee_team": "Portal-Frontend",
+  "guidewire_version": "Innsbruck",
+  "status": "Closed"
+},
+{
+  "ticket_id": "INC-800003",
+  "created_at": "2025-12-06T14:00:00",
+  "closed_at": "2025-12-07T08:00:00",
+  "module_reported": null,
+  "description": "Nightly batch job that calculates commission payouts for agents failed to run for the second night in a row. Agents are asking about missing commission statements. The job's log shows it starts but terminates after a few seconds with no clear error written to the application log.",
+  "resolution_notes": "The batch job was failing because a scheduled database maintenance window overlapped with its start time, causing it to lose its connection mid-initialization. The job's connection retry logic was not configured to handle this case. Added a retry-with-backoff wrapper around the initial connection step and rescheduled the maintenance window to avoid the overlap. Reran the job manually for both missed nights and all commission statements were generated correctly.",
+  "priority": "P2",
+  "assignee_team": "BillingCenter-Batch",
+  "guidewire_version": "Jasper",
+  "status": "Closed"
+},
+{
+  "ticket_id": "INC-800004",
+  "created_at": "2025-12-08T09:00:00",
+  "closed_at": "2025-12-08T09:30:00",
+  "module_reported": "Rating/Gosu",
+  "description": "A single underwriter reported that one specific rate table lookup returns a rate that is slightly higher than expected for a niche vehicle class in one state. All other rate lookups are unaffected. The discrepancy is small (a few dollars) and does not block quoting.",
+  "resolution_notes": "Investigation found the rate table had a correctly configured value -- it simply reflected a rate change that had been approved by the state regulator two weeks prior and had not yet been communicated to the underwriting team. No defect existed; the rate was correct as configured. Ticket closed as user error / expectation mismatch, and underwriting was notified of the regulator-approved rate change.",
+  "priority": "P4",
+  "assignee_team": "Rating-Support",
+  "guidewire_version": null,
+  "status": "Closed"
+},
+{
+  "ticket_id": "INC-800005",
+  "created_at": "2025-12-09T07:00:00",
+  "closed_at": "2025-12-09T22:00:00",
+  "module_reported": "ClaimCenter",
+  "description": "All claim adjusters are unable to log into ClaimCenter starting this morning. Login attempts hang for 30 seconds then return an authentication timeout error. PolicyCenter and BillingCenter logins are unaffected. Every adjuster across all regions is impacted and claims work has stopped.",
+  "resolution_notes": "The ClaimCenter authentication service was pointed at an identity provider endpoint that had been migrated to a new URL during an infrastructure change the previous night, but ClaimCenter's configuration still referenced the old endpoint, which was timing out instead of returning a clean error. Updated the identity provider endpoint configuration in ClaimCenter to the new URL and restarted the authentication service. All adjusters confirmed able to log in within minutes.",
+  "priority": "P1",
+  "assignee_team": "CC-Auth",
+  "guidewire_version": "Innsbruck",
+  "status": "Closed"
+}
