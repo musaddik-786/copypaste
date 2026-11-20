@@ -1,2 +1,9 @@
-cat ~/Ramakrishna/Allianz/.venv/pyvenv.cfg
+azureuser@slm-ft-t4:~/Ramakrishna/Allianz$ cat ~/Ramakrishna/Allianz/.venv/pyvenv.cfg
 ls -la ~/Ramakrishna/Allianz/.venv/bin/python3
+home = /usr/bin
+include-system-site-packages = false
+version = 3.11.2
+executable = /usr/bin/python3.11
+command = /usr/bin/python3 -m venv /home/JarvisClaims/Ramakrishna/Allianz/.venv
+-rwxr-xr-x 1 azureuser users 6809944 Oct  7 12:35 /home/azureuser/Ramakrishna/Allianz/.venv/bin/python3
+azureuser@slm-ft-t4:~/Ramakrishna/Allianz$ 
