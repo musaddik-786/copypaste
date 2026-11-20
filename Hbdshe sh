@@ -1,52 +1,109 @@
 @echo off
 :: ============================================================
-:: stop_demo.bat — Stop all AgentVerse Claims Demo services on VM
+:: run_demo.bat — AgentVerse Claims Demo Launcher
 ::
-:: Run this to kill all 8 services on the Azure VM.
+:: Double-click this file to:
+::   1. Start all 8 services on the Azure VM
+::   2. Forward port 5000 (kept as 5000 locally too) PLUS the 7
+::      backend MCP/orchestrator ports to your local machine —
+::      the UI's browser code calls those backend ports DIRECTLY
+::      (http://127.0.0.1:<port>), not through a server-side
+::      proxy, so each one must be tunneled at its OWN port
+::      number for the app to work.
+::   3. Open http://localhost:5000 in your browser
+::
+:: Prerequisites: run 1_setup_once.bat once before using this.
 :: ============================================================
 
 setlocal
 set VM_USER=azureuser
 set VM_HOST=20.40.57.76
+set VM_APP_PORT=5000
+set LOCAL_PORT=5000
 set KEY_FILE=%USERPROFILE%\.ssh\agentverse_demo_key
-set LOCAL_PORT=5002
+set REMOTE_SCRIPT=/home/azureuser/Ramakrishna/claims-SLM-Finetune/AgentVerse_Claims_motor/start_services.sh
+
+:: Backend ports the browser calls directly — forwarded 1:1 (local == remote)
 set BACKEND_PORTS=7720 7730 8900 8920 8950 9000 9100
 
-title AgentVerse Claims Demo — Stop Services
+title AgentVerse Claims Demo
 
 echo ============================================================
-echo  AgentVerse Claims Demo — Stopping Services
+echo  AgentVerse Claims Demo
+echo  VM: %VM_USER%@%VM_HOST%
 echo ============================================================
 echo.
 
-:: ── Kill services on VM ───────────────────────────────────────────────────────
-echo [1/2] Stopping services on VM (ports 7720, 7730, 8900, 8920, 8950, 9000, 9100, 5000)...
-ssh -i "%KEY_FILE%" -o StrictHostKeyChecking=accept-new -o BatchMode=yes %VM_USER%@%VM_HOST% ^
-    "for PORT in 7720 7730 8900 8920 8950 9000 9100 5000; do PID=$(lsof -ti:$PORT 2>/dev/null); if [ -n \"$PID\" ]; then kill -9 $PID 2>/dev/null; echo \"  Stopped port $PORT (PID $PID)\"; else echo \"  Port $PORT was not running\"; fi; done"
-
+:: ── Check SSH is available ────────────────────────────────────────────────────
+where ssh >nul 2>&1
 if errorlevel 1 (
-    echo [ERROR] Could not connect to VM.
+    echo [ERROR] SSH not found.
+    echo         Install OpenSSH: Settings ^> Apps ^> Optional Features ^> OpenSSH Client
     pause
     exit /b 1
 )
 
-:: ── Kill local port forwards if running ───────────────────────────────────────
+:: ── Check key exists (remind user to run setup if not) ───────────────────────
+if not exist "%KEY_FILE%" (
+    echo [ERROR] SSH key not found: %KEY_FILE%
+    echo         Please run  1_setup_once.bat  first.
+    pause
+    exit /b 1
+)
+
+:: ── Step 1: Start all services on the VM ─────────────────────────────────────
+echo [1/3] Starting services on VM...
+echo       (This takes about 90-100 seconds for all 8 processes to come up)
 echo.
-echo [2/2] Releasing local ports (%LOCAL_PORT%, %BACKEND_PORTS%)...
-for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":%LOCAL_PORT% " ^| findstr LISTENING 2^>nul') do (
+ssh -i "%KEY_FILE%" -o StrictHostKeyChecking=accept-new -o BatchMode=yes %VM_USER%@%VM_HOST% "bash %REMOTE_SCRIPT%"
+if errorlevel 1 (
+    echo.
+    echo [ERROR] Could not connect to VM or services failed to start.
+    echo         Check that the VM is running at %VM_HOST%.
+    pause
+    exit /b 1
+)
+
+:: ── Step 2: Open browser ─────────────────────────────────────────────────────
+echo.
+:: ── Check if local ports are free; kill anything using them ─────────────────
+echo Checking if local ports are free...
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":%LOCAL_PORT% " ^| findstr LISTENING') do (
+    echo   Found process %%a on port %LOCAL_PORT% — closing it...
     taskkill /PID %%a /F >nul 2>&1
-    echo   Released local port %LOCAL_PORT%
 )
 for %%p in (%BACKEND_PORTS%) do (
-    for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":%%p " ^| findstr LISTENING 2^>nul') do (
+    for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":%%p " ^| findstr LISTENING') do (
+        echo   Found process %%a on port %%p — closing it...
         taskkill /PID %%a /F >nul 2>&1
-        echo   Released local port %%p
     )
 )
 
+echo [2/3] Opening browser at http://localhost:%LOCAL_PORT%...
+timeout /t 2 /nobreak >nul
+start "" "http://localhost:%LOCAL_PORT%"
+
+:: ── Step 3: Port forward (keeps this window open — close to stop demo) ───────
+:: Builds: -L 5000:localhost:5000 -L 7720:localhost:7720 -L 7730:localhost:7730 ...
+set FORWARDS=-L %LOCAL_PORT%:localhost:%VM_APP_PORT%
+for %%p in (%BACKEND_PORTS%) do set FORWARDS=%FORWARDS% -L %%p:localhost:%%p
+
+echo.
+echo [3/3] Port forwarding: localhost:%LOCAL_PORT%  ──^>  VM:%VM_APP_PORT%  (plus backend ports %BACKEND_PORTS%)
 echo.
 echo ============================================================
-echo  All services stopped.
+echo  Demo is LIVE at http://localhost:%LOCAL_PORT%
+echo.
+echo  Keep this window open while the demo runs.
+echo  Close this window (or press Ctrl+C) to stop the tunnel.
 echo ============================================================
+echo.
+
+ssh -i "%KEY_FILE%" -N %FORWARDS% %VM_USER%@%VM_HOST%
+
+:: ── Tunnel closed ─────────────────────────────────────────────────────────────
+echo.
+echo Demo tunnel closed. Services are still running on the VM.
+echo (Re-run this file to reconnect at http://localhost:%LOCAL_PORT%)
 echo.
 pause
