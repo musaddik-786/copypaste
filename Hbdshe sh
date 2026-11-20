@@ -1,52 +1,45 @@
-@echo off
-:: ============================================================
-:: stop_demo.bat — Stop all AgentVerse Claims Demo services on VM
-::
-:: Run this to kill all 8 services on the Azure VM.
-:: ============================================================
+Download the React DevTools for a better development experience: https://react.dev/link/react-devtools
+127.0.0.1:7720/api/v1/policy_coverage/gw_search_policy:1  Failed to load resource: net::ERR_CONNECTION_REFUSED
+Stage1PolicyLookup.tsx:67 Policy lookup error: TypeError: Failed to fetch
+    at handleLookup (Stage1PolicyLookup.tsx:43:25)
+    at Stage1PolicyLookup.tsx:81:10
+    at react-stack-bottom-frame (react-dom-client.development.js:23949:20)
+    at runWithFiberInDEV (react-dom-client.development.js:1519:30)
+    at commitHookEffectListMount (react-dom-client.development.js:11905:29)
+    at commitHookPassiveMountEffects (react-dom-client.development.js:12026:11)
+    at commitPassiveMountOnFiber (react-dom-client.development.js:13841:13)
+    at recursivelyTraversePassiveMountEffects (react-dom-client.development.js:13815:11)
+    at commitPassiveMountOnFiber (react-dom-client.development.js:13957:11)
+    at recursivelyTraversePassiveMountEffects (react-dom-client.development.js:13815:11)
+$RefreshSig$ @ Stage1PolicyLookup.tsx:67
+127.0.0.1:7720/api/v1/policy_coverage/gw_search_policy:1  Failed to load resource: net::ERR_CONNECTION_REFUSED
+Stage1PolicyLookup.tsx:67 Policy lookup error: TypeError: Failed to fetch
+    at handleLookup (Stage1PolicyLookup.tsx:43:25)
+    at onClick (Stage1PolicyLookup.tsx:141:53)
 
-setlocal
-set VM_USER=azureuser
-set VM_HOST=20.40.57.76
-set KEY_FILE=%USERPROFILE%\.ssh\agentverse_demo_key
-set LOCAL_PORT=5000
-set BACKEND_PORTS=7720 7730 8900 8920 8950 9000 9100
+127.0.0.1:7720/api/v1/policy_coverage/gw_search_policy:1  Failed to load resource: net::ERR_CONNECTION_REFUSED
+Stage1PolicyLookup.tsx:67 Policy lookup error: TypeError: Failed to fetch
+    at handleLookup (Stage1PolicyLookup.tsx:43:25)
+    at onClick (Stage1PolicyLookup.tsx:141:53)
 
-title AgentVerse Claims Demo — Stop Services
+127.0.0.1:7720/api/v1/policy_coverage/gw_search_policy:1  Failed to load resource: net::ERR_CONNECTION_REFUSED
+Stage1PolicyLookup.tsx:67 Policy lookup error: TypeError: Failed to fetch
+    at handleLookup (Stage1PolicyLookup.tsx:43:25)
+    at onClick (Stage1PolicyLookup.tsx:141:53)
 
-echo ============================================================
-echo  AgentVerse Claims Demo — Stopping Services
-echo ============================================================
-echo.
+127.0.0.1:7720/api/v1/policy_coverage/gw_search_policy:1  Failed to load resource: net::ERR_CONNECTION_REFUSED
+Stage1PolicyLookup.tsx:67 Policy lookup error: TypeError: Failed to fetch
+    at handleLookup (Stage1PolicyLookup.tsx:43:25)
+    at onClick (Stage1PolicyLookup.tsx:141:53)
 
-:: ── Kill services on VM ───────────────────────────────────────────────────────
-echo [1/2] Stopping services on VM (ports 7720, 7730, 8900, 8920, 8950, 9000, 9100, 5000)...
-ssh -i "%KEY_FILE%" -o StrictHostKeyChecking=accept-new -o BatchMode=yes %VM_USER%@%VM_HOST% ^
-    "for PORT in 7720 7730 8900 8920 8950 9000 9100 5000; do PID=$(lsof -ti:$PORT 2>/dev/null); if [ -n \"$PID\" ]; then kill -9 $PID 2>/dev/null; echo \"  Stopped port $PORT (PID $PID)\"; else echo \"  Port $PORT was not running\"; fi; done"
+127.0.0.1:7720/api/v1/policy_coverage/gw_search_policy:1  Failed to load resource: net::ERR_CONNECTION_REFUSED
+Stage1PolicyLookup.tsx:67 Policy lookup error: TypeError: Failed to fetch
+    at handleLookup (Stage1PolicyLookup.tsx:43:25)
+    at onClick (Stage1PolicyLookup.tsx:141:53)
 
-if errorlevel 1 (
-    echo [ERROR] Could not connect to VM.
-    pause
-    exit /b 1
-)
+127.0.0.1:7720/api/v1/policy_coverage/gw_search_policy:1  Failed to load resource: net::ERR_CONNECTION_REFUSED
+Stage1PolicyLookup.tsx:67 Policy lookup error: TypeError: Failed to fetch
+    at handleLookup (Stage1PolicyLookup.tsx:43:25)
+    at onClick (Stage1PolicyLookup.tsx:141:53)
 
-:: ── Kill local port forwards if running ───────────────────────────────────────
-echo.
-echo [2/2] Releasing local ports (%LOCAL_PORT%, %BACKEND_PORTS%)...
-for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":%LOCAL_PORT% " ^| findstr LISTENING 2^>nul') do (
-    taskkill /PID %%a /F >nul 2>&1
-    echo   Released local port %LOCAL_PORT%
-)
-for %%p in (%BACKEND_PORTS%) do (
-    for /f "tokens=5" %%a in ('netstat -ano ^| findstr ":%%p " ^| findstr LISTENING 2^>nul') do (
-        taskkill /PID %%a /F >nul 2>&1
-        echo   Released local port %%p
-    )
-)
-
-echo.
-echo ============================================================
-echo  All services stopped.
-echo ============================================================
-echo.
-pause
+[NEW] Explain Console errors by using Copilot in Edge: click  to explain an error Learn moreDon’t show again
