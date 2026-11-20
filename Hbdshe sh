@@ -1,4 +1,1 @@
-scp myfile.zip azureuser@20.XX.XX.XX:/home/azureuser/
- 
-/home/azureuser/Ramakrishna
- 
+scp -3 azureuser@20.49.1.3:~/Ramakrishna/Allianz.zip azureuser@20.40.57.76:~/Ramakrishna/Allianz.zip
