@@ -1,21 +1,4 @@
-Search for `(uvicorn|vite|npm run|localhost|127\.0\.0\.1|listen\(|--port|port\s*=|PORT\s*...`
+scp myfile.zip azureuser@20.XX.XX.XX:/home/azureuser/
  
-Read 
-Completed with input: {
-  "path": "/home/JarvisClaims/Ramakrishna/Allianz/backend"
-}
+/home/azureuser/Ramakrishna
  
-Read 
-Completed with input: {
-  "path": "/home/JarvisClaims/Ramakrishna/Allianz"
-}
- 
-Search for `(?i)port`
- 
-From this folder, there’s **no separate frontend port configured**. The frontend dashboard is served by the FastAPI backend, so they use the **same port**.
- 
-- **Currently used for your run:** `8001` (`uvicorn` was started with `--port 8001`).
-- **Default if you omit `--port`:** `8000`.
-- **Frontend:** same origin and port as the backend—`8001` for that run.
- 
-The `.env` files don’t specify a port.
