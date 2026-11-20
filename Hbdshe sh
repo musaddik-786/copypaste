@@ -1,8 +1,275 @@
-cd ~/Agent_Verse_Musaddique/Knowledgeops_gw
-git pull origin main
-pip install -r requirements.txt
-cd backend && python3 pipeline.py && cd ..
-python3 -m unittest retrieval_agent.tests -v
-pytest tests/ -v
-cd ui && npm ci && npm run build && cd ..
-uvicorn app.main:app --port 8000
+(venv) JarvisClaims@JarvisClaims:~/Agent_Verse_M
+usaddique_GW_UI/backend$ python3 pipeline.py
+nput_value=_TaggingResult(summary='P...pport high confidence.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='U...are explicitly stated.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='C...as not a total outage.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='A...otherwise operational.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='S...r business disruption.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='F...s not completely down.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='M...rting high confidence.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='B...g a production outage."), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='P...t, so severity is Low.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='I...closure as user error.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='P... explicitly described.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='A...the original incident.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='C...causing a full outage."), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='B...nt or fix applied yet.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='S...n a specific incident.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='A... a completed incident."), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='P... Normal severity fits.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
+  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='A...rted defect or outage.'), input_type=_TaggingResult])
+  return self.__pydantic_serializer__.to_python(
+      -> 70 record(s) ingested/changed
+
+[2/4] Structuring Agent (SOP rendering)
+      -> structured SOPs rendered for 70 record(s)
+    cur.execute(
+  File "/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/venv/lib/python3.11/site-packages/psycopg/cursor.py", line 117, in execute
+    raise ex.with_traceback(None)
+psycopg.errors.DataException: expected 1536 dimensions, not 3072
+(venv) JarvisClaims@JarvisClaims:~/Agent_Verse_M
+usaddique_GW_UI/backend$
+ 
+
+
+
+
+
+
+
+
+
+
+
+JarvisClaims@JarvisClaims:~/Agent_Verse_Musaddique_GW_UI$ source venv/bin/activate
+(venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Musaddique_GW_UI$ python3 -m unittest retrieval_agent.tests -v
+test_api_uses_configured_retrieval_flow_without_live_services (retrieval_agent.tests.EvidenceAndRetrievalTests.test_api_uses_configured_retrieval_flow_without_live_services) ... ok
+test_assessment_not_a_dict_is_rejected (retrieval_agent.tests.EvidenceAndRetrievalTests.test_assessment_not_a_dict_is_rejected) ... ok
+test_bm25_finds_exact_failure_terms (retrieval_agent.tests.EvidenceAndRetrievalTests.test_bm25_finds_exact_failure_terms) ... ok
+test_embedding_dimension_is_enforced_at_provider_and_database_boundaries (retrieval_agent.tests.EvidenceAndRetrievalTests.test_embedding_dimension_is_enforced_at_provider_and_database_boundaries) ... ok
+test_hybrid_rank_fuses_relevant_candidates_and_applies_threshold (retrieval_agent.tests.EvidenceAndRetrievalTests.test_hybrid_rank_fuses_relevant_candidates_and_applies_threshold) ... ok
+test_invalid_confidence_is_rejected (retrieval_agent.tests.EvidenceAndRetrievalTests.test_invalid_confidence_is_rejected) ... ok
+test_invalid_itil_type_is_rejected (retrieval_agent.tests.EvidenceAndRetrievalTests.test_invalid_itil_type_is_rejected) ... ok
+test_invalid_suggested_level_is_rejected (retrieval_agent.tests.EvidenceAndRetrievalTests.test_invalid_suggested_level_is_rejected) ... ok
+test_missing_assessment_field_is_rejected (retrieval_agent.tests.EvidenceAndRetrievalTests.test_missing_assessment_field_is_rejected) ... ok
+test_model_cannot_return_an_unretrieved_ticket_id (retrieval_agent.tests.EvidenceAndRetrievalTests.test_model_cannot_return_an_unretrieved_ticket_id) ... ok
+test_retrieval_returns_prompt_shape_and_three_line_summary (retrieval_agent.tests.EvidenceAndRetrievalTests.test_retrieval_returns_prompt_shape_and_three_line_summary) ... ok
+test_temporal_boost_favors_recent_tickets (retrieval_agent.tests.TemporalBoostTests.test_temporal_boost_favors_recent_tickets) ... ok
+test_temporal_boost_handles_invalid_dates (retrieval_agent.tests.TemporalBoostTests.test_temporal_boost_handles_invalid_dates) ... ok
+test_temporal_boost_handles_missing_created (retrieval_agent.tests.TemporalBoostTests.test_temporal_boost_handles_missing_created) ... ok
+test_temporal_boost_uses_configured_magnitude (retrieval_agent.tests.TemporalBoostTests.test_temporal_boost_uses_configured_magnitude) ... ok
+test_json_string_metadata_and_event_date_fallback (retrieval_agent.tests.TicketRecordMappingTests.test_json_string_metadata_and_event_date_fallback) ... ok
+test_ticket_records_row_maps_to_pipeline_record (retrieval_agent.tests.TicketRecordMappingTests.test_ticket_records_row_maps_to_pipeline_record) ... ok
+test_wrong_stored_dimension_is_rejected (retrieval_agent.tests.TicketRecordMappingTests.test_wrong_stored_dimension_is_rejected) ... ok
+
+----------------------------------------------------------------------
+Ran 18 tests in 0.009s
+
+OK
+(venv) JarvisClaims@
+(venv) JarvisClaims@JarvisClaims:~/Agent
+_Verse_Musaddique_GW_UI$               python3 -m unit
+test retrieval_agent.tests -v
+test_api_uses_configured_retrieval_flow_without_live_services (retrieval_agent.tests.EvidenceAndRetrievalTests.test_api_uses_configured_retrieval_flow_without_live_services) ... ok
+test_assessment_not_a_dict_is_rejected (retrieval_agent.tests.EvidenceAndRetrievalTests.test_assessment_not_a_dict_is_rejected) ... ok
+test_bm25_finds_exact_failure_terms (retrieval_agent.tests.EvidenceAndRetrievalTests.test_bm25_finds_exact_failure_terms) ... ok
+test_embedding_dimension_is_enforced_at_provider_and_database_boundaries (retrieval_agent.tests.EvidenceAndRetrievalTests.test_embedding_dimension_is_enforced_at_provider_and_database_boundaries) ... ok
+test_hybrid_rank_fuses_relevant_candidates_and_applies_threshold (retrieval_agent.tests.EvidenceAndRetrievalTests.test_hybrid_rank_fuses_relevant_candidates_and_applies_threshold) ... ok
+test_invalid_confidence_is_rejected (retrieval_agent.tests.EvidenceAndRetrievalTests.test_invalid_confidence_is_rejected) ... ok
+test_invalid_itil_type_is_rejected (retrieval_agent.tests.EvidenceAndRetrievalTests.test_invalid_itil_type_is_rejected) ... ok
+test_invalid_suggested_level_is_rejected (retrieval_agent.tests.EvidenceAndRetrievalTests.test_invalid_suggested_level_is_rejected) ... ok
+test_missing_assessment_field_is_rejected (retrieval_agent.tests.EvidenceAndRetrievalTests.test_missing_assessment_field_is_rejected) ... ok
+test_model_cannot_return_an_unretrieved_ticket_id (retrieval_agent.tests.EvidenceAndRetrievalTests.test_model_cannot_return_an_unretrieved_ticket_id) ... ok
+test_retrieval_returns_prompt_shape_and_three_line_summary (retrieval_agent.tests.EvidenceAndRetrievalTests.test_retrieval_returns_prompt_shape_and_three_line_summary) ... ok
+test_temporal_boost_favors_recent_tickets (retrieval_agent.tests.TemporalBoostTests.test_temporal_boost_favors_recent_tickets) ... ok
+test_temporal_boost_handles_invalid_dates (retrieval_agent.tests.TemporalBoostTests.test_temporal_boost_handles_invalid_dates) ... ok
+test_temporal_boost_handles_missing_created (retrieval_agent.tests.TemporalBoostTests.test_temporal_boost_handles_missing_created) ... ok
+test_temporal_boost_uses_configured_magnitude (retrieval_agent.tests.TemporalBoostTests.test_temporal_boost_uses_configured_magnitude) ... ok
+test_json_string_metadata_and_event_date_fallback (retrieval_agent.tests.TicketRecordMappingTests.test_json_string_metadata_and_event_date_fallback) ... ok
+test_ticket_records_row_maps_to_pipeline_record (retrieval_agent.tests.TicketRecordMappingTests.test_ticket_records_row_maps_to_pipeline_record) ... ok
+test_wrong_stored_dimension_is_rejected (retrieval_agent.tests.TicketRecordMappingTests.test_wrong_stored_dimension_is_rejected) ... ok
+
+----------------------------------------------------------------------
+Ran 18 tests in 0.010s
+
+OK
+(venv) JarvisClaims@JarvisClaims:~/Agent_Verse_M
+usaddique_GW_UI$ 
+
+
+
+JarvisClaims@JarvisClaims:~/Agent_Verse_Musaddique_GW_UI$ source venv/bin/activate
+(venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Musaddique_GW_UI$ pytest tests/ -v
+============================= test session starts ==============================
+platform linux -- Python 3.11.2, pytest-9.2.0, pluggy-1.7.0 -- /home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/venv/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/JarvisClaims/Agent_Verse_Musaddique_GW_UI
+plugins: anyio-4.16.0, langsmith-0.15.1
+collecting 18 items                                                     collected 24 items                                                             
+
+tests/test_api.py::test_health PASSED                                    [  4%]
+tests/test_api.py::test_tickets_and_modules PASSED                       [  8%]
+tests/test_api.py::test_db_failure_returns_500 PASSED                    [ 12%]
+tests/test_api.py::test_assignee_teams_from_raw_json PASSED              [ 16%]
+tests/test_api.py::test_retrieve_validation PASSED                       [ 20%]
+tests/test_consolidation.py::test_no_data_loss_tickets_and_release_notes PASSED [ 25%]
+tests/test_consolidation.py::test_embedding_dimension_is_single_env_setting_defaulting_to_3072 PASSED [ 29%]
+tests/test_consolidation.py::test_new_db_script_refuses_same_name_and_never_alters PASSED [ 33%]
+tests/test_consolidation.py::test_secrets_ignored_and_not_tracked PASSED [ 37%]
+tests/test_consolidation.py::test_backend_paths_resolve_to_root PASSED   [ 41%]
+tests/test_kb_resolver.py::test_ranking_puts_audit_card_first PASSED     [ 45%]
+tests/test_kb_resolver.py::test_resolve_returns_verbatim_card_and_missing_items PASSED [ 50%]
+tests/test_kb_resolver.py::test_llm_can_abstain PASSED                   [ 54%]
+tests/test_kb_resolver.py::test_llm_cannot_invent_a_card PASSED          [ 58%]
+tests/test_kb_resolver.py::test_azure_down_falls_back_to_unverified_top_candidate PASSED [ 62%]
+tests/test_kb_units.py::test_thirteen_units_validate PASSED              [ 66%]
+tests/test_kb_units.py::test_match_text_describes_problem_not_fix PASSED [ 70%]
+tests/test_kb_units.py::test_content_hash_is_stable_and_sensitive PASSED [ 75%]
+tests/test_similar.py::test_matches_are_enriched_and_self_excluded PASSED [ 79%]
+tests/test_similar.py::test_no_confident_match_passthrough PASSED        [ 83%]
+tests/test_similar.py::test_requires_text PASSED                         [ 87%]
+tests/test_similar.py::test_errors_map_to_status[exc0-422] PASSED        [ 91%]
+tests/test_similar.py::test_errors_map_to_status[exc1-502] PASSED        [ 95%]
+tests/test_similar.py::test_errors_map_to_status[exc2-503] PASSED        [100%]
+
+============================== 24 passed in 1.84s ==============================
+(venv) JarvisClaims@
+(venv) JarvisClaims@JarvisClaims:~/Agent
+_Verse_Musaddique_GW_UI$               pytest tests/ -
+v
+============================= test session starts ==============================
+platform linux -- Python 3.11.2, pytest-9.2.0, pluggy-1.7.0 -- /home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/venv/bin/python3
+cachedir: .pytest_cache
+rootdir: /home/JarvisClaims/Agent_Verse_Musaddique_GW_UI
+plugins: anyio-4.16.0, langsmith-0.15.1
+collected 24 items                                                             
+
+tests/test_api.py::test_health PASSED                                    [  4%]
+tests/test_api.py::test_tickets_and_modules PASSED                       [  8%]
+tests/test_api.py::test_db_failure_returns_500 PASSED                    [ 12%]
+tests/test_api.py::test_assignee_teams_from_raw_json PASSED              [ 16%]
+tests/test_api.py::test_retrieve_validation PASSED                       [ 20%]
+tests/test_consolidation.py::test_no_data_loss_tickets_and_release_notes PASSED [ 25%]
+tests/test_consolidation.py::test_embedding_dimension_is_single_env_setting_defaulting_to_3072 PASSED [ 29%]
+tests/test_consolidation.py::test_new_db_script_refuses_same_name_and_never_alters PASSED [ 33%]
+tests/test_consolidation.py::test_secrets_ignored_and_not_tracked PASSED [ 37%]
+tests/test_consolidation.py::test_backend_paths_resolve_to_root PASSED   [ 41%]
+tests/test_kb_resolver.py::test_ranking_puts_audit_card_first PASSED     [ 45%]
+tests/test_kb_resolver.py::test_resolve_returns_verbatim_card_and_missing_items PASSED [ 50%]
+tests/test_kb_resolver.py::test_llm_can_abstain PASSED                   [ 54%]
+tests/test_kb_resolver.py::test_llm_cannot_invent_a_card PASSED          [ 58%]
+tests/test_kb_resolver.py::test_azure_down_falls_back_to_unverified_top_candidate PASSED [ 62%]
+tests/test_kb_units.py::test_thirteen_units_validate PASSED              [ 66%]
+tests/test_kb_units.py::test_match_text_describes_problem_not_fix PASSED [ 70%]
+tests/test_kb_units.py::test_content_hash_is_stable_and_sensitive PASSED [ 75%]
+tests/test_similar.py::test_matches_are_enriched_and_self_excluded PASSED [ 79%]
+tests/test_similar.py::test_no_confident_match_passthrough PASSED        [ 83%]
+tests/test_similar.py::test_requires_text PASSED                         [ 87%]
+tests/test_similar.py::test_errors_map_to_status[exc0-422] PASSED        [ 91%]
+tests/test_similar.py::test_errors_map_to_status[exc1-502] PASSED        [ 95%]
+tests/test_similar.py::test_errors_map_to_status[exc2-503] PASSED        [100%]
+
+============================== 24 passed in 1.78s ==============================
+(venv) JarvisClaims@JarvisClaims:~/Agent_Verse_M
+usaddique_GW_UI$ 
+
+
+(venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Musaddique_GW_UI/ui
+$                  d ui && npm ci && npm run buil
+d && cd ..
+bash: cd: ui: No such file or directory
+(venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Musaddique_GW_UI/ui
+..                     c
+(venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Musaddique_GW_UI$ cd ui && npm ci && npm run build && cd ..
+
+added 303 packages, and audited 304 packages in 8s
+
+55 packages are looking for funding
+  run `npm fund` for details
+
+2 vulnerabilities (1 moderate, 1 high)
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+
+> gw-agent-ui@1.0.0 build
+> vite build
+
+vite v5.4.21 building for production...
+✓ 1664 modules transformed.
+../dist/index.html                   0.41 kB │ gzip:  0.29 kB
+../dist/assets/index-CF3ZSSm_.css   21.30 kB │ gzip:  5.02 kB
+../dist/assets/index-BQ5uUcW8.js   290.51 kB │ gzip: 94.82 kB
+✓ built in 4.56s
+(venv) JarvisClaims@JarvisC
+(venv) JarvisClaims@JarvisC
+(venv) JarvisClaims@JarvisC
+(venv) JarvisClaims@JarvisC
+(venv) JarvisClaims@JarvisC
+(venv) JarvisClaims@JarvisC
+(venv) JarvisClaims@JarvisC
+(venv) JarvisClaims@JarvisC
+(venv) JarvisClaims@JarvisC
+(venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Musaddi
+que_GW_UI$ 
+
+
+JarvisClaims@JarvisClaims:~/Ag
+JarvisClaims@JarvisClaims:~/Agent_Ve
+JarvisClaims@JarvisClaims:~/Ag
+ent_Ve
+JarvisClaims@JarvisClaims:~/Ag
+JarvisClaims@JarvisClaims:~/Agent_Verse_Mu
+sadsourc
+e venv/bin/activate
+(venv) JarvisClaims@JarvisClaims:~/Agent_V
+erse_Musaddique_GW_UI
+$                   uvicorn app.main:apuvicorn app.main:ap
+p --port 8000
+INFO:     Started server process [21886]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:54336 - "GET / HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54336 - "GET /assets/index-BQ5uUcW8.js HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54338 - "GET /assets/index-CF3ZSSm_.css HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54338 - "GET /api/tickets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54336 - "GET /favicon.ico HTTP/1.1" 200 OK
+
+
