@@ -1,119 +1,120 @@
-azureuser@slm-ft-t4:~/Ramakrishna$ cd ~/Ramakrishna/claims-SLM-Finetune/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP
-source ~/Ramakrishna/claims-SLM-Finetune/slm-env/bin/activate
-python3 main.py
-/home/azureuser/Ramakrishna/claims-SLM-Finetune/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP/main.py:332: DeprecationWarning: 
-        on_event is deprecated, use lifespan event handlers instead.
+#!/bin/bash
+# start_services.sh
+# Lives on the VM at:
+#   /home/azureuser/Ramakrishna/claims-SLM-Finetune/AgentVerse_Claims_motor/start_services.sh
+# Called by run_demo.bat on the manager's Windows machine.
+# Kills stale processes, then starts all 8 services in the background.
+# If all 8 services are already running, skips startup entirely.
 
-        Read more about it in the
-        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
-        
-  @app.on_event("startup")
-INFO:     Started server process [92416]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     Uvicorn running on http://0.0.0.0:7720 (Press CTRL+C to quit)
+ROOT=/home/azureuser/Ramakrishna/claims-SLM-Finetune
+PYTHON=$ROOT/slm-env/bin/python3
+BASE=$ROOT/AgentVerse_Claims_motor
+JARVIS=$BASE/Jarvis_claims_agents_v3_copy_new
+LOG_DIR=/tmp/agentverse_demo_logs
 
+mkdir -p "$LOG_DIR"
 
-azureuser@slm-ft-t4:~/Ramakrishna$ cd ~/Ramakrishna/claims-SLM-Finetune/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/FNOLOrchestrator
-source ~/Ramakrishna/claims-SLM-Finetune/slm-env/bin/activate
-python3 server.py
-INFO:     Uvicorn running on http://0.0.0.0:7730 (Press CTRL+C to quit)
-INFO:     Started parent process [92630]
-INFO:     Started server process [92648]
-INFO:     Started server process [92650]
-INFO:     Waiting for application startup.
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     Application startup complete.
-INFO:     Started server process [92649]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     Started server process [92651]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
+echo "=== AgentVerse Claims Demo — Service Startup ==="
+echo "Base: $BASE"
+echo ""
 
+# Port -> label map used for both the "already up" check and the final report
+PORTS="7720 7730 8900 8920 8950 9000 9100 5000"
 
+# ── Check if all services are already running ─────────────────────────────────
+ALL_UP=true
+for PORT in $PORTS; do
+    if ! lsof -ti:$PORT >/dev/null 2>&1; then
+        ALL_UP=false
+        break
+    fi
+done
 
-azureuser@slm-ft-t4:~/Ramakrishna$ cd ~/Ramakrishna/claims-SLM-Finetune/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/AdjusterAgents/MCP
-source ~/Ramakrishna/claims-SLM-Finetune/slm-env/bin/activate
-uvicorn main:app --host 0.0.0.0 --port 8900
-INFO:     Started server process [92761]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     Uvicorn running on http://0.0.0.0:8900 (Press CTRL+C to quit)
+if [ "$ALL_UP" = true ]; then
+    echo "All services are already running — skipping startup."
+    echo ""
+    echo "=== Port check ==="
+    for PORT in $PORTS; do
+        echo "  [OK]  Port $PORT is listening"
+    done
+    echo ""
+    echo "Done. Port forwarding will connect now."
+    exit 0
+fi
 
+# ── Kill anything already running on these ports ──────────────────────────────
+for PORT in $PORTS; do
+    PID=$(lsof -ti:$PORT 2>/dev/null)
+    if [ -n "$PID" ]; then
+        kill -9 $PID 2>/dev/null
+        echo "[cleanup] Stopped existing process on port $PORT (PID $PID)"
+    fi
+done
+sleep 1
 
+# ── 1: Policyholder_MCP (port 7720) ──────────────────────────────────────────
+# Gets extra warm-up time: the UI's policy lookup depends on this being fully
+# ready (not just port-open) before the first request, or it fails with
+# "policy could not be verified" on a cold start.
+cd "$JARVIS/PolicyholderAgents/MCP"
+nohup $PYTHON main.py > "$LOG_DIR/policyholder_mcp.log" 2>&1 &
+echo "[1/8] Policyholder_MCP started (PID $!, port 7720) — waiting 20s for warm-up..."
+sleep 20
 
-azureuser@slm-ft-t4:~/Ramakrishna$ cd ~/Ramakrishna/claims-SLM-Finetune/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/AdjusterAgents/AdjusterOrchestrator
-source ~/Ramakrishna/claims-SLM-Finetune/slm-env/bin/activate
-python3 server.py
-INFO:     Uvicorn running on http://0.0.0.0:8920 (Press CTRL+C to quit)
-INFO:     Started parent process [92884]
-INFO:     Started server process [92902]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     Started server process [92904]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     Started server process [92903]
-INFO:     Started server process [92901]
-INFO:     Waiting for application startup.
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     Application startup complete.
+# ── 2: Policyholder_orchestrator / FNOLOrchestrator (port 7730) ──────────────
+cd "$JARVIS/PolicyholderAgents/FNOLOrchestrator"
+nohup $PYTHON server.py > "$LOG_DIR/policyholder_orchestrator.log" 2>&1 &
+echo "[2/8] Policyholder_orchestrator started (PID $!, port 7730) — waiting 15s for warm-up..."
+sleep 15
 
+# ── 3: Adjuster_MCP (port 8900) ──────────────────────────────────────────────
+cd "$JARVIS/AdjusterAgents/MCP"
+nohup $PYTHON -m uvicorn main:app --host 0.0.0.0 --port 8900 > "$LOG_DIR/adjuster_mcp.log" 2>&1 &
+echo "[3/8] Adjuster_MCP started (PID $!, port 8900) — waiting 10s..."
+sleep 10
 
-azureuser@slm-ft-t4:~/Ramakrishna$ cd ~/Ramakrishna/claims-SLM-Finetune/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/ClaimAnalystAgents/MCP
-source ~/Ramakrishna/claims-SLM-Finetune/slm-env/bin/activate
-uvicorn main:app --host 0.0.0.0 --port 8950
-INFO:     Started server process [93028]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     Uvicorn running on http://0.0.0.0:8950 (Press CTRL+C to quit)
+# ── 4: Adjuster_orchestrator (port 8920) ─────────────────────────────────────
+cd "$JARVIS/AdjusterAgents/AdjusterOrchestrator"
+nohup $PYTHON server.py > "$LOG_DIR/adjuster_orchestrator.log" 2>&1 &
+echo "[4/8] Adjuster_orchestrator started (PID $!, port 8920) — waiting 10s..."
+sleep 10
 
+# ── 5: ClaimAnalyst_MCP (port 8950) ──────────────────────────────────────────
+cd "$JARVIS/ClaimAnalystAgents/MCP"
+nohup $PYTHON -m uvicorn main:app --host 0.0.0.0 --port 8950 > "$LOG_DIR/claimanalyst_mcp.log" 2>&1 &
+echo "[5/8] ClaimAnalyst_MCP started (PID $!, port 8950) — waiting 10s..."
+sleep 10
 
+# ── 6: SIU_MCP (port 9000) ───────────────────────────────────────────────────
+cd "$JARVIS/SIUAgents/MCP"
+nohup $PYTHON main.py > "$LOG_DIR/siu_mcp.log" 2>&1 &
+echo "[6/8] SIU_MCP started (PID $!, port 9000) — waiting 10s..."
+sleep 10
 
-azureuser@slm-ft-t4:~/Ramakrishna$ cd ~/Ramakrishna/claims-SLM-Finetune/AgentVerse_Claims_motor/claims-solution-integration
-PORT=5000 ADJUSTER_MCP_URL=http://localhost:8900 CLAIM_ANALYST_MCP_URL=http://localhost:8950 POLICYHOLDER_MCP_URL=http://localhost:7720 node_modules/.bin/vite --config vite.config.ts
+# ── 7: VendorMCP (port 9100) ──────────────────────────────────────────────────
+cd "$JARVIS/VendorManagerAgents/MCP"
+nohup $PYTHON main.py > "$LOG_DIR/vendor_mcp.log" 2>&1 &
+echo "[7/8] VendorMCP started (PID $!, port 9100) — waiting 10s..."
+sleep 10
 
-  VITE v7.3.6  ready in 252 ms
+# ── 8: UI / claims-solution-integration (port 5000) ──────────────────────────
+cd "$BASE/claims-solution-integration"
+PORT=5000 ADJUSTER_MCP_URL=http://localhost:8900 CLAIM_ANALYST_MCP_URL=http://localhost:8950 POLICYHOLDER_MCP_URL=http://localhost:7720 \
+    nohup node_modules/.bin/vite --config vite.config.ts > "$LOG_DIR/ui.log" 2>&1 &
+echo "[8/8] UI started (PID $!, port 5000) — waiting 8s..."
+sleep 8
 
-  ➜  Local:   http://localhost:5000/
-  ➜  Network: http://172.16.0.4:5000/
-  ➜  press h + enter to show help
+# ── Health check ──────────────────────────────────────────────────────────────
+echo ""
+echo "=== Port check ==="
+for PORT in $PORTS; do
+    if lsof -ti:$PORT >/dev/null 2>&1; then
+        echo "  [OK]  Port $PORT is listening"
+    else
+        echo "  [!!]  Port $PORT is NOT listening — check $LOG_DIR/*.log"
+    fi
+done
 
-
-
-azureuser@slm-ft-t4:~/Ramakrishna$ cd ~/Ramakrishna/claims-SLM-Finetune/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/SIUAgents/MCP
-source ~/Ramakrishna/claims-SLM-Finetune/slm-env/bin/activate
-python3 main.py
-/home/azureuser/Ramakrishna/claims-SLM-Finetune/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/SIUAgents/MCP/main.py:309: DeprecationWarning: 
-        on_event is deprecated, use lifespan event handlers instead.
-
-        Read more about it in the
-        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
-        
-  @app.on_event("startup")
-INFO:     Started server process [93282]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     Uvicorn running on http://0.0.0.0:9000 (Press CTRL+C to quit)
-
-
-
-azureuser@slm-ft-t4:~/Ramakrishna$ cd ~/Ramakrishna/claims-SLM-Finetune/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/VendorManagerAgents/MCP
-source ~/Ramakrishna/claims-SLM-Finetune/slm-env/bin/activate
-python3 main.py
-/home/azureuser/Ramakrishna/claims-SLM-Finetune/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/VendorManagerAgents/MCP/main.py:287: DeprecationWarning: 
-        on_event is deprecated, use lifespan event handlers instead.
-
-        Read more about it in the
-        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
-        
-  @app.on_event("startup")
-INFO:     Started server process [93389]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     Uvicorn running on http://0.0.0.0:9100 (Press CTRL+C to quit)
-
-
+echo ""
+echo "Logs: $LOG_DIR/"
+echo "Done. Port forwarding will connect now."
