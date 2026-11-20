@@ -1,2 +1,28 @@
-tail -100 /tmp/agentverse_demo_logs/policyholder_mcp.log
-tail -100 /tmp/agentverse_demo_logs/policyholder_orchestrator.log
+azureuser@slm-ft-t4:~/Ramakrishna$ tail -100 /tmp/agentverse_demo_logs/policyholder_mcp.log
+/home/azureuser/Ramakrishna/claims-SLM-Finetune/AgentVerse_Claims_motor/Jarvis_claims_agents_v3_copy_new/PolicyholderAgents/MCP/main.py:332: DeprecationWarning: 
+        on_event is deprecated, use lifespan event handlers instead.
+
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+        
+  @app.on_event("startup")
+INFO:     Started server process [100172]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:7720 (Press CTRL+C to quit)
+azureuser@slm-ft-t4:~/Ramakrishna$ tail -100 /tmp/agentverse_demo_logs/policyholder_orchestrator.log
+INFO:     Uvicorn running on http://0.0.0.0:7730 (Press CTRL+C to quit)
+INFO:     Started parent process [100305]
+INFO:     Started server process [100314]
+INFO:     Started server process [100312]
+INFO:     Waiting for application startup.
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Application startup complete.
+INFO:     Started server process [100311]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Started server process [100313]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+azureuser@slm-ft-t4:~/Ramakrishna$ 
