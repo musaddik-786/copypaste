@@ -1,12 +1,8 @@
-mv ~/Ramakrishna/claims-SLM-Finetune/start_services.sh ~/Ramakrishna/claims-SLM-Finetune/AgentVerse_Claims_motor/start_services.sh
+azureuser@slm-ft-t4:~/Ramakrishna$ mv ~/Ramakrishna/claims-SLM-Finetune/start_services.sh ~/Ramakrishna/claims-SLM-Finetune/AgentVerse_Claims_motor/start_services.sh
 chmod +x ~/Ramakrishna/claims-SLM-Finetune/AgentVerse_Claims_motor/start_services.sh
-
-
-
-
-ls -la ~/Ramakrishna/claims-SLM-Finetune/AgentVerse_Claims_motor/start_services.sh
-
-
-
-
-ls ~/Ramakrishna/claims-SLM-Finetune/ | grep -i agentverse
+azureuser@slm-ft-t4:~/Ramakrishna$ ls -la ~/Ramakrishna/claims-SLM-Finetune/AgentVerse_Claims_motor/start_services.sh
+-rwx------ 1 azureuser users 5262 Nov 20 12:22 /home/azureuser/Ramakrishna/claims-SLM-Finetune/AgentVerse_Claims_motor/start_services.sh
+azureuser@slm-ft-t4:~/Ramakrishna$ ls ~/Ramakrishna/claims-SLM-Finetune/ | grep -i agentverse
+AgentVerse_Claims_motor
+AgentVerse_Claims_motor_TL
+azureuser@slm-ft-t4:~/Ramakrishna$ 
