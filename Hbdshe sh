@@ -1,10 +1,1 @@
-(.venv) azureuser@slm-ft-t4:~/Ramakrishna/Allianz$ cd ~/Ramakrishna/Allianz/backend
-source ~/Ramakrishna/Allianz/.venv/bin/activate
-python -m uvicorn server:app --reload --port 8001
-INFO:     Will watch for changes in these directories: ['/home/azureuser/Ramakrishna/Allianz/backend']
-INFO:     Uvicorn running on http://127.0.0.1:8001 (Press CTRL+C to quit)
-INFO:     Started reloader process [139846] using WatchFiles
-INFO:     Started server process [139848]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-
+pkill -f "uvicorn server:app" 2>/dev/null
