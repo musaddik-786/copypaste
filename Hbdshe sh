@@ -1,9 +1,9 @@
 SELECT 'chat_rca_records' AS tbl, severity, curation_status, (embedding IS NULL) AS no_embedding, count(*)
 FROM chat_rca_records
 WHERE severity IN ('Emergency','High')
-GROUP BY severity, curation_status, no_embedding
+GROUP BY severity, curation_status, (embedding IS NULL)
 UNION ALL
-SELECT 'release_note_records', severity, curation_status, (embedding IS NULL), count(*)
+SELECT 'release_note_records' AS tbl, severity, curation_status, (embedding IS NULL) AS no_embedding, count(*)
 FROM release_note_records
 WHERE severity IN ('Emergency','High')
-GROUP BY severity, curation_status, no_embedding;
+GROUP BY severity, curation_status, (embedding IS NULL);
