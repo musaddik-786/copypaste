@@ -1,7 +1,7 @@
-SELECT 'ticket_records' AS tbl, format_type(atttypid, atttypmod) AS t FROM pg_attribute WHERE attrelid='ticket_records'::regclass AND attname='embedding'
-UNION ALL
-SELECT 'chat_rca_records', format_type(atttypid, atttypmod) FROM pg_attribute WHERE attrelid='chat_rca_records'::regclass AND attname='embedding'
-UNION ALL
-SELECT 'release_note_records', format_type(atttypid, atttypmod) FROM pg_attribute WHERE attrelid='release_note_records'::regclass AND attname='embedding'
-UNION ALL
-SELECT 'runbook_records', format_type(atttypid, atttypmod) FROM pg_attribute WHERE attrelid='runbook_records'::regclass AND attname='embedding';
+cd backend
+python step3_populate_data.py
+python sme_review.py
+python step4_store_embeddings.py
+cd ..
+python scripts/kb_load.py --dry-run
+python scripts/kb_load.py
