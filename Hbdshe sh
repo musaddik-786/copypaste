@@ -1,7 +1,328 @@
-cd backend
-python step3_populate_data.py
-python sme_review.py
-python step4_store_embeddings.py
-cd ..
-python scripts/kb_load.py --dry-run
-python scripts/kb_load.py
+(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents/backend$ python3 step3_populate_data.py 
+Ingesting + tagging all 4 sources...
+  -> 0 record(s) need (re)processing this run
+Nothing new or changed -- nothing to render, curate, or insert.
+
+Step 3 complete. Embeddings are NOT set yet.
+Next: python sme_review.py for pending non-ticket records, then
+      python step4_store_embeddings.py to backfill embeddings for everythin
+(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents/backend$ 
+
+
+
+
+(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents/backend$ python3 step3_populate_data.py 
+Ingesting + tagging all 4 sources...
+  -> 0 record(s) need (re)processing this run
+Nothing new or changed -- nothing to render, curate, or insert.
+
+Step 3 complete. Embeddings are NOT set yet.
+Next: python sme_review.py for pending non-ticket records, then
+      python step4_store_embeddings.py to backfill embeddings for everything approved.
+(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents/backend$ 
+
+JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ source .venv/bin/activate
+(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ cd backend/
+(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents/backend$ python3 sme_review.py 
+37 record(s) awaiting SME review.
+
+
+======================================================================
+[ticket_records] NR-T-TEST-102  (source_ref_id=T-TEST-102)
+Title: Claim document uploads timeout for large PDFs; chunked upload and timeout fix validated in staging.
+Module=ClaimCenter  Category=PerformanceDegradation  Severity=High  Resolution=CodeFix
+tagging_confidence = 0.93
+----------------------------------------------------------------------
+## Claim document uploads timeout for large PDFs; chunked upload and timeout fix validated in staging.
+
+**Source:** HistoricalTicket (T-TEST-102)
+**Module:** ClaimCenter | **Category:** PerformanceDegradation | **Severity:** SEV2-High
+**Resolution Type:** CodeFix
+**Date:** 2025-11-12
+**Guidewire Version:** Jasper
+
+### Summary / Symptom
+Adjusters report claim document uploads timing out for PDF files over 15MB. Fix has been identified and deployed to staging, currently being validated before production rollout.
+
+### Resolution
+Increased upload timeout threshold and added chunked upload support. Currently under validation in staging -- not yet promoted to production.
+
+
+[1/37] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: a
+  Approval notes (optional): a
+  -> SMEApproved, embedding generated.
+
+======================================================================
+[ticket_records] NR-T-TEST-103  (source_ref_id=T-TEST-103)
+Title: Refund amounts off by cents on cancellations; rounding mode changed in refund calculator.
+Module=BillingCenter  Category=DataCorruption  Severity=Normal  Resolution=CodeFix
+tagging_confidence = 0.97
+LLM reasoning: The issue involves incorrect refund amounts due to rounding, which fits DataCorruption. The fix is a code change to the rounding logic, matching CodeFix. The context is refund calculation, which is a BillingCenter function. The impact is minor (off by a few cents), so SEV3-Medium is appropriate.
+----------------------------------------------------------------------
+## Refund amounts off by cents on cancellations; rounding mode changed in refund calculator.
+
+**Source:** HistoricalTicket (T-TEST-103)
+**Module:** BillingCenter | **Category:** DataCorruption | **Severity:** SEV3-Medium
+**Resolution Type:** CodeFix
+**Date:** 2025-11-13
+**Guidewire Version:** Jasper
+
+### Summary / Symptom
+Billing team flagged refund amounts off by a few cents on prorated cancellations. A fix changing the rounding mode to banker's rounding has been coded and is pending QA sign-off.
+
+### Resolution
+Changed rounding strategy from HALF_UP to HALF_EVEN in the refund calculator. Fix is in review, not yet merged to the release branch.
+
+
+[2/37] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: a
+  Approval notes (optional): a
+  -> SMEApproved, embedding generated.
+
+======================================================================
+[ticket_records] NR-T-TEST-104  (source_ref_id=T-TEST-104)
+Title: Claim intake form submits duplicate records on double-click; root cause under investigation.
+Module=ClaimCenter  Category=DataCorruption  Severity=Normal  Resolution=Workaround
+tagging_confidence = 0.85
+LLM reasoning: The issue involves duplicate claim records, fitting DataCorruption, and occurs in the claim intake process, matching ClaimCenter. Since no fix is implemented and investigation is ongoing, Workaround is the closest resolution_type. The impact is noticeable but not blocking, so SEV3-Medium is appropriate. Confidence is moderate due to lack of confirmed root cause or resolution.
+----------------------------------------------------------------------
+## Claim intake form submits duplicate records on double-click; root cause under investigation.
+
+**Source:** HistoricalTicket (T-TEST-104)
+**Module:** ClaimCenter | **Category:** DataCorruption | **Severity:** SEV3-Medium
+**Resolution Type:** Workaround
+**Date:** 2025-11-09
+**Guidewire Version:** Jasper
+
+### Summary / Symptom
+New claim intake form occasionally submits duplicate claim records when the user double-clicks submit. Root cause not yet confirmed.
+
+### Resolution
+Not yet resolved -- actively being investigated.
+
+
+[3/37] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: a
+  Approval notes (optional): a
+  -> SMEApproved, embedding generated.
+
+======================================================================
+[ticket_records] NR-T-TEST-202  (source_ref_id=T-TEST-202)
+Title: Rate cache patch adds per-risk-class invalidation after quarterly rate table update issue.
+Module=Rating/Gosu  Category=ConfigurationError  Severity=High  Resolution=PatchApplied
+tagging_confidence = 0.85
+----------------------------------------------------------------------
+## Rate cache patch adds per-risk-class invalidation after quarterly rate table update issue.
+
+**Source:** HistoricalTicket (T-TEST-202)
+**Module:** Rating/Gosu | **Category:** ConfigurationError | **Severity:** SEV2-High
+**Resolution Type:** PatchApplied
+**Date:** 2025-11-14
+**Guidewire Version:** Jasper
+
+### Summary / Symptom
+After the quarterly rate table update, new quotes are still using the previous quarter's rates for about 15% of risk classes. Cache invalidation logic has been patched and is currently soaking in staging before rollout.
+
+### Resolution
+Rate cache wasn't being invalidated per risk-class key, only globally. Patch adds per-key invalidation on table update. Currently in staging soak test, not yet promoted to production.
+
+
+[4/37] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: a
+  Approval notes (optional): a
+  -> SMEApproved, embedding generated.
+
+======================================================================
+[ticket_records] NR-T-TEST-204  (source_ref_id=T-TEST-204)
+Title: Auto-pay enrollments failed to link correct payment plan; code fix deployed to QA for validation.
+Module=BillingCenter  Category=IntegrationFailure  Severity=High  Resolution=CodeFix
+tagging_confidence = 0.95
+LLM reasoning: The issue is an IntegrationFailure because the self-service portal failed to link auto-pay enrollments to the correct payment plan in BillingCenter. The resolution_type is CodeFix, as a code change was made and deployed to QA. The module is BillingCenter, since payment plans and auto-pay are core billing functions. The severity is SEV2-High because a major feature (auto-pay enrollment) is broken, but the system is otherwise operational.
+----------------------------------------------------------------------
+## Auto-pay enrollments failed to link correct payment plan; code fix deployed to QA for validation.
+
+**Source:** HistoricalTicket (T-TEST-204)
+**Module:** BillingCenter | **Category:** IntegrationFailure | **Severity:** SEV2-High
+**Resolution Type:** CodeFix
+**Date:** 2025-11-15
+**Guidewire Version:** Jasper
+
+### Summary / Symptom
+Customers enrolling in auto-pay via the self-service portal were silently failing to be linked to the correct payment plan in BillingCenter. A fix has been coded and deployed to QA; validation is in progress before production release.
+
+### Resolution
+The payment-plan linkage call was using the account's old plan ID cached at login instead of re-fetching the current plan. Fixed to always fetch the live plan ID. Currently under QA validation, not yet released to production.
+
+
+[5/37] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: a
+  Approval notes (optional): a
+  -> SMEApproved, embedding generated.
+
+======================================================================
+[ticket_records] NR-T-TEST-205  (source_ref_id=T-TEST-205)
+Title: SSO token refresh interval misconfiguration caused agent logouts; config fix pending deployment.
+Module=DigitalPortal  Category=AuthenticationAccess  Severity=Normal  Resolution=ConfigChange
+tagging_confidence = 0.95
+----------------------------------------------------------------------
+## SSO token refresh interval misconfiguration caused agent logouts; config fix pending deployment.
+
+**Source:** HistoricalTicket (T-TEST-205)
+**Module:** DigitalPortal | **Category:** AuthenticationAccess | **Severity:** SEV3-Medium
+**Resolution Type:** ConfigChange
+**Date:** 2025-11-16
+**Guidewire Version:** Jasper
+
+### Summary / Symptom
+Agents using SSO to log into the Digital Portal are intermittently getting logged out mid-session, forcing re-authentication. A fix adjusting the SSO token refresh interval has been developed and is pending CAB sign-off before deployment.
+
+### Resolution
+SSO token refresh was set to a shorter interval than the identity provider's token lifetime, causing premature expiry. Adjusted refresh interval to align with IdP token lifetime. Fix is pending change advisory board approval, not yet deployed.
+
+
+[6/37] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: r
+  Rejection reason: r
+  -> SMERejected.
+
+======================================================================
+[ticket_records] NR-INC-910001  (source_ref_id=INC-910001)
+Title: Commercial auto new business submission slow due to rating table lookup; fix in staging.
+Module=PolicyCenter  Category=PerformanceDegradation  Severity=High  Resolution=CodeFix
+tagging_confidence = 0.90
+----------------------------------------------------------------------
+## Commercial auto new business submission slow due to rating table lookup; fix in staging.
+
+**Source:** HistoricalTicket (INC-910001)
+**Module:** PolicyCenter | **Category:** PerformanceDegradation | **Severity:** High
+**Resolution Type:** CodeFix
+**Date:** 2025-12-15
+**Guidewire Version:** Jasper
+
+### Summary / Symptom
+New business submission for commercial auto policies is taking over 2 minutes to complete, compared to the usual 10-15 seconds.
+
+### Resolution
+Investigating whether the slowdown correlates with the new underwriting rule deployed last week. Narrowed down to a specific rating table lookup. Fix is being tested in staging.
+
+
+[7/37] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: a
+  Approval notes (optional): a
+  -> SMEApproved, embedding generated.
+
+======================================================================
+[ticket_records] NR-INC-910002  (source_ref_id=INC-910002)
+Title: Incorrect adjuster assignment after batch job; code fix pending deployment.
+Module=ClaimCenter  Category=BatchJobFailure  Severity=Normal  Resolution=CodeFix
+tagging_confidence = 0.93
+----------------------------------------------------------------------
+## Incorrect adjuster assignment after batch job; code fix pending deployment.
+
+**Source:** HistoricalTicket (INC-910002)
+**Module:** ClaimCenter | **Category:** BatchJobFailure | **Severity:** Normal
+**Resolution Type:** CodeFix
+**Date:** 2025-12-15
+**Guidewire Version:** Innsbruck
+
+### Summary / Symptom
+A handful of claims are showing an incorrect adjuster assignment after the nightly reassignment batch job runs.
+
+### Resolution
+Suspect the round-robin assignment logic has an off-by-one error when the adjuster pool size changes mid-cycle. Fix drafted, pending code review before deployment.
+
+
+[8/37] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: r
+  Rejection reason: r
+  -> SMERejected.
+
+======================================================================
+[ticket_records] NR-INC-910003  (source_ref_id=INC-910003)
+Title: Refund checks miscalculated due to rounding error; code fix pending QA and finance approval.
+Module=BillingCenter  Category=DataCorruption  Severity=High  Resolution=CodeFix
+tagging_confidence = 0.93
+----------------------------------------------------------------------
+## Refund checks miscalculated due to rounding error; code fix pending QA and finance approval.
+
+**Source:** HistoricalTicket (INC-910003)
+**Module:** BillingCenter | **Category:** DataCorruption | **Severity:** High
+**Resolution Type:** CodeFix
+**Date:** 2025-12-15
+**Guidewire Version:** Jasper
+
+### Summary / Symptom
+Refund checks for cancelled policies are being calculated with the wrong pro-rated amount in a small number of cases.
+
+### Resolution
+Root cause appears to be a rounding discrepancy in the pro-ration formula for policies cancelled mid-billing-cycle. Proposed fix is in QA, awaiting sign-off from finance team before closing.
+
+
+[9/37] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: a
+  Approval notes (optional): a
+  -> SMEApproved, embedding generated.
+
+======================================================================
+[ticket_records] NR-INC-910004  (source_ref_id=INC-910004)
+Title: Outbound claims feed sends duplicate records due to retry logic; fix proposal under review.
+Module=IntegrationGateway  Category=IntegrationFailure  Severity=Normal  Resolution=Workaround
+tagging_confidence = 0.85
+LLM reasoning: The issue is an IntegrationFailure since the outbound claims feed sends duplicate records to a reinsurance partner, which is a data exchange problem. The module is IntegrationGateway, as the problem involves external data feeds. The resolution_type is Workaround because a fix proposal is under review but not yet implemented, indicating only mitigation so far. Severity is Normal since the system is usable and the issue is intermittent, not blocking all operations.
+----------------------------------------------------------------------
+## Outbound claims feed sends duplicate records due to retry logic; fix proposal under review.
+
+**Source:** HistoricalTicket (INC-910004)
+**Module:** IntegrationGateway | **Category:** IntegrationFailure | **Severity:** Normal
+**Resolution Type:** Workaround
+**Date:** 2025-12-15
+**Guidewire Version:** Innsbruck
+
+### Summary / Symptom
+Outbound claims data feed to the reinsurance partner occasionally sends a record twice within the same batch.
+
+### Resolution
+Likely a retry mechanism re-sending a record after a timeout, without checking whether the original send actually succeeded. Fix proposal under review by the integrations lead.
+
+
+[10/37] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: a
+  Approval notes (optional): a
+  -> SMEApproved, embedding generated.
+
+======================================================================
+[ticket_records] NR-INC-910005  (source_ref_id=INC-910005)
+Title: Payment button on portal requires double click; code fix pending QA validation.
+Module=DigitalPortal  Category=UIRenderingBug  Severity=Low  Resolution=CodeFix
+tagging_confidence = 0.93
+----------------------------------------------------------------------
+## Payment button on portal requires double click; code fix pending QA validation.
+
+**Source:** HistoricalTicket (INC-910005)
+**Module:** DigitalPortal | **Category:** UIRenderingBug | **Severity:** Low
+**Resolution Type:** CodeFix
+**Date:** 2025-12-15
+**Guidewire Version:** Jasper
+
+### Summary / Symptom
+Some customers report the 'Make a Payment' button on the portal homepage is unresponsive on first click and requires a second click to work.
+
+### Resolution
+Suspected a JS event binding race condition on page load. A candidate fix has been written and is being validated by QA before this ticket is closed.
+
+
+[11/37] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: q
+
+Stopping review early. Remaining records are untouched.
+(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents/backend$ 
+
+JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ source /home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/bin/activate
+(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ cd backend/
+(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents/backend$ python3 step4_store_embeddings.py 
+Finding rows without an embedding yet...
+Nothing to embed -- every row already has an embedding.
+(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents/backend$ cd ..
+(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ python3 scripts/kb_load.py --dry-run
+Validated 13 units: PC-AUD-01, PC-AUD-02, PC-AUD-03, PC-AUD-04, PC-AUD-05, PC-AUD-06, PC-OOS-01, PC-OOS-02, PC-OOS-03, PC-OOS-04, PC-PRM-01, PC-PRM-02, PC-PRM-03
+(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ 
+
+
+JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ source /home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/bin/activate
+(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ python3 scripts/kb_load.py
+Validated 13 units: PC-AUD-01, PC-AUD-02, PC-AUD-03, PC-AUD-04, PC-AUD-05, PC-AUD-06, PC-OOS-01, PC-OOS-02, PC-OOS-03, PC-OOS-04, PC-PRM-01, PC-PRM-02, PC-PRM-03
+0 new/changed, 13 unchanged
+Done.
+(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ 
+
+
