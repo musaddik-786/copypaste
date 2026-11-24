@@ -1,1 +1,66 @@
-pkill -f "uvicorn server:app" 2>/dev/null
+Step-by-step: test backend + all agents via the orchestrator
+1. Install deps (now includes the langgraph fix)
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+2. Make sure ticket_records has embedded data
+
+If you haven't already run the population steps against your DB:
+
+cd backend
+python step3_populate_data.py
+python step4_store_embeddings.py
+cd ..
+3. Start the main app (needed by the orchestrator's KB-resolve call and used by classification's downstream enrichment)
+uvicorn app.main:app --port 8000
+
+Check: curl http://localhost:8000/health → {"status":"ok"}
+
+4. Start each of the four agents, each in its own terminal
+python agents/ticket_classification_triage/server.py
+python agents/similar_ticket/server.py
+python agents/resolution_summary/server.py
+python agents/ticket_support_orchestrator/server.py
+
+Check each is alive before moving on:
+
+curl http://localhost:8010/health
+curl http://localhost:7741/health
+curl http://localhost:7742/health
+curl http://localhost:7743/health
+
+All four + the main app should return {"status": "healthy", ...} style JSON. If any fails to even start, that's an import/config error worth capturing (stack trace from that terminal).
+
+5. Test each agent individually first (isolates failures before blaming the orchestrator)
+
+Classification agent:
+
+curl -X POST http://localhost:8010/api/ticket-classification/classify -H "Content-Type: application/json" -d "{\"ticket_id\":\"T-1\",\"title\":\"VPN disconnects\",\"description\":\"VPN drops every 10 minutes for PolicyCenter users\"}"
+
+Expect itil_type, suggested_level, system, failure_pattern, confidence (per TicketAssessment).
+
+Similar-ticket agent:
+
+curl -X POST http://localhost:7741/resolve -H "Content-Type: application/json" -d "{\"id\":\"T-1\",\"short_description\":\"VPN disconnects\",\"description\":\"VPN drops every 10 minutes\"}"
+
+Expect new_ticket_assessment, matches[], no_confident_match, suggested_next_step, plain_summary.
+
+Resolution-summary agent: needs an agent3_result (use the similar-ticket agent's output from above) and the ticket:
+
+curl -X POST http://localhost:7742/summarize -H "Content-Type: application/json" -d "{\"ticket\":{\"id\":\"T-1\",\"short_description\":\"VPN disconnects\",\"description\":\"VPN drops every 10 minutes\"},\"agent3_result\":{...paste similar-ticket response here...}}"
+6. Test the full chain through the orchestrator
+curl -X POST http://localhost:7743/process-ticket -H "Content-Type: application/json" -d "{\"ticket\":{\"id\":\"T-1\",\"short_description\":\"VPN disconnects\",\"description\":\"VPN drops every 10 minutes for PolicyCenter users\"}}"
+
+Expect a JSON body with three keys: agent2 (classification result), agent3 (similar-ticket result), agent4 (resolution summary). If agent2 comes back null, the orchestrator's httpx.RequestError catch silently swallowed a failure reaching the classification agent on :8010 — check that terminal's logs.
+
+Also try the streaming variant to confirm SSE works:
+
+curl -N -X POST http://localhost:7743/chat -H "Content-Type: application/json" -d "{\"message\":\"check this ticket\",\"ticket\":{\"id\":\"T-1\",\"short_description\":\"VPN disconnects\",\"description\":\"VPN drops every 10 minutes\"}}"
+
+You should see data: [Agent: ...] Starting... / Done lines stream in, ending with the JSON resolution summary.
+
+7. What to watch for / likely failure points
+Classification agent 502/503 → usually AZURE_OPENAI_* env mismatch (AZURE_OPENAI_CHAT_DEPLOYMENT vs AZURE_OPENAI_DEPLOYMENT_NAME fallback in similar_ticket/server.py:128-129 — classification's own service.py may expect a different var name, worth checking if it errors).
+Similar-ticket agent /resolve DB error (503) → PsycopgError, meaning PG_*/AZURE_PG_* mismatch or ticket_records not populated/embedded yet.
+Orchestrator agent2: null → classification agent unreachable or non-200; not fatal to the chain, but means triage enrichment didn't happen.
+KB result missing in resolution summary → orchestrator's call to MAIN_API_URL/api/kb/resolve failed silently (same swallow-on-RequestError pattern) — check the uvicorn app.main:app terminal.
