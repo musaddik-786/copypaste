@@ -1,6 +1,1 @@
-JarvisClaims@JarvisClaims:~/Agent_Verse_Guidewire_AI_AMS$ sudo apt install -y postgresql-15-pgvector
-Reading package lists... Done
-Building dependency tree... Done
-Reading state information... Done
-E: Unable to locate package postgresql-15-pgvector
-JarvisClaims@JarvisClaims:~/Agent_Verse_Guidewire_AI_AMS$ 
+sudo apt install -y git build-essential postgresql-server-dev-15
