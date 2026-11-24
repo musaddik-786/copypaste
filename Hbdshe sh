@@ -1,37 +1,7 @@
-JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ source /home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/bin/activate
-(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ curl -s -X POST http://localhost:7741/resolve \
+curl -s -i -X POST http://localhost:7741/resolve \
   -H "Content-Type: application/json" \
   -d '{
-    "short_description": "Submissions stuck in Processing after upgrade",
-    "description": "New business submissions are stuck in Processing status since this mornings deployment. App logs show GosuRuntimeException in PolicyPeriod.bind()."
-  }' | python3 -m json.tool
-Expecting value: line 1 column 1 (char 0)
-(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ curl -s -X POST http://localhost:7741/resolve   -H "Content-Type: application/json"   -d '{
-    "short_description": "Submissions stuck in Processing after upgrade",
-    "description": "New business submissions are stuck in Processing status since this mornings deployment. App logs show GosuRuntimeException in PolicyPeriod.bind()."
-  }' | python3 -m json.tool
-Expecting value: line 1 column 1 (char 0)
-(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ curl -s -i -X POST http://localhost:7741/resolve \
-  -H "Content-Type: application/json" \
-  -d '{
+    "id": "INC-100234",
     "short_description": "Submissions stuck in Processing after upgrade",
     "description": "New business submissions are stuck in Processing status since this mornings deployment. App logs show GosuRuntimeException in PolicyPeriod.bind()."
   }'
-HTTP/1.1 500 Internal Server Error
-date: Tue, 24 Nov 2026 10:54:01 GMT
-server: uvicorn
-content-length: 21
-content-type: text/plain; charset=utf-8
-
-Internal Server Error(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ curl -s -i -X POST http://localhost:7741/resolve   -H "Content-Type: application/json"   -d '{
-    "short_description": "Submissions stuck in Processing after upgrade",
-    "description": "New business submissions are stuck in Processing status since this mornings deployment. App logs show GosuRuntimeException in PolicyPeriod.bind()."
-  }'
-HTTP/1.1 200 OK
-date: Tue, 24 Nov 2026 11:00:19 GMT
-server: uvicorn
-content-length: 3244
-content-type: application/json
-vary: Origin
-
-{"new_ticket_assessment":{"itil_type":"Incident","suggested_level":"L3-Dev","system":"PolicyCenter","failure_pattern":"New business submissions stuck in Processing after upgrade; GosuRuntimeException in PolicyPeriod.bind()","confidence":"high"},"matches":[{"id":"INC-100234","rank":1,"match_strength":"strong","why_similar":"Both tickets involve PolicyCenter new business submissions hanging in Processing state immediately after a production upgrade. Both cite repeated GosuRuntimeException in PolicyPeriod.bind(). The root cause in the match was a Gosu rule override referencing a deprecated API method removed in the upgrade.","what_differs":"The specific method referenced in the GosuRuntimeException is not detailed in the new ticket, and the custom rule name is not provided. The new ticket does not mention confirmation with release notes or the exact method change.","reusable_info":"INC-100234: Root cause was a Gosu rule override (UWApprovalRule.gs) referencing a deprecated API method removed in 2025.2.1 (PolicyPeriod.getLatestPeriod() renamed to getLatestBoundPeriod()). Patched the custom rule, redeployed, cleared stuck submissions via batch script. Confirmed with Guidewire release notes GW-RN-2025-2-1-004.","missing_info":["custom rule name","exact deprecated method","confirmation with release notes","rca"]},{"id":"INC-700001","rank":2,"match_strength":"partial","why_similar":"Both are PolicyCenter incidents where new business submissions are blocked after an overnight deployment due to a Gosu rule error. Both required code rollback or fix to restore submission functionality.","what_differs":"INC-700001 is a 500 error on submission due to a syntax error in a validation script, not a hang in Processing or a GosuRuntimeException in PolicyPeriod.bind(). The new ticket is specifically about submissions stuck in Processing with a runtime exception after an upgrade.","reusable_info":"INC-700001: Overnight deployment included a Gosu rule change with a syntax error in the commercial lines submission validation script. Rolled back the rule to restore submissions.","missing_info":["error details in logs","relation to PolicyPeriod.bind()","confirmation of runtime exception","rca"]}],"no_confident_match":false,"suggested_next_step":"Review recent Gosu rule changes and customizations to PolicyPeriod.bind() for deprecated or removed API usage post-upgrade. Compare with Guidewire release notes for breaking changes. Patch any custom rules referencing outdated methods, redeploy, and clear stuck submissions as per INC-100234.","plain_summary":"Assessment: Incident / L3-Dev\nTop match: INC-100234 (strong) - Both tickets involve PolicyCenter new business submissions hanging in Processing state immediately after a production upgrade. Both cite repeated GosuRuntimeException in PolicyPeriod.bind(). The root cause in the match was a Gosu rule override referencing a deprecated API method removed in the upgrade.\nNext step: Review recent Gosu rule changes and customizations to PolicyPeriod.bind() for deprecated or removed API usage post-upgrade. Compare with Guidewire release notes for breaking changes. Patch any custom rules referencing outdated methods, redeploy, and clear stuck submissions as per INC-100234."}(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ 
