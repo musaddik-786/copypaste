@@ -4,3 +4,13 @@ Validated 13 units: PC-AUD-01, PC-AUD-02, PC-AUD-03, PC-AUD-04, PC-AUD-05, PC-AU
 13 new/changed, 0 unchanged
 Done.
 (.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ 
+
+
+
+
+curl -s -i -X POST http://localhost:8000/api/kb/resolve \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "GL audit premium moving wrong direction",
+    "description": "Audited payroll basis increased but the GL audit premium decreased instead of going up for this commercial general liability policy."
+  }'
