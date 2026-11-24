@@ -1,3 +1,10 @@
+langchain-core>=0.3
+langgraph>=0.2
+
+
+
+
+
 Step-by-step: test backend + all agents via the orchestrator
 1. Install deps (now includes the langgraph fix)
 python -m venv .venv
