@@ -1,727 +1,156 @@
-Immediate: disabled AuditLogInterceptor via feature flag (gw.audit.interceptor.enabled=false), restored service at 18:20 UTC. Short-term: vendor case GW-88213 opened, Guidewire confirmed defect and committed a fix in 2025.2.2 patch (expected 2025-12-01). Long-term: added a load test scenario at 4x UAT concurrency to the pre-upgrade regression suite for every future release; added deadlock-detection alerting on JVM thread dumps in production APM.
-
-
-[2/27] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: a
-  Approval notes (optional): a
-  -> SMEApproved, embedding generated.
-
-======================================================================
-[chat_rca_records] NR-CHAT-5512  (source_ref_id=CHAT-5512)
-Title: War-room chat: PolicyCenter submissions stuck after 2025.2.1 deploy
-Module=PolicyCenter  Category=UpgradeRegression  Severity=High  Resolution=CodeFix
-tagging_confidence = 0.96
-LLM reasoning: The issue is an UpgradeRegression since the stuck submissions and GosuRuntimeException are directly tied to an API rename in the 2025.2.1 upgrade. The resolution_type is CodeFix because the custom UWApprovalRule.gs was patched and redeployed. The module is PolicyCenter, as submissions and PolicyPeriod.bind() are core policy functions. Severity is SEV2-High because submissions were blocked but resolved quickly, impacting a major feature. Confidence is high (0.95) due to explicit cause and fix details.
-----------------------------------------------------------------------
-## War-room chat: PolicyCenter submissions stuck after 2025.2.1 deploy
-
-**Source:** ChatOrRCAReport (CHAT-5512)
-**Module:** PolicyCenter | **Category:** UpgradeRegression | **Severity:** SEV2-High
-**Resolution Type:** CodeFix
-**Date:** 2025-11-02
-
-### Summary / Symptom
-priya.s: seeing a pile of submissions stuck in Processing since the 9am deploy window
-marcus.t: same here, app logs full of GosuRuntimeException in PolicyPeriod.bind()
-priya.s: checked the release notes for 2025.2.1, there's an API rename listed - getLatestPeriod -> getLatestBoundPeriod
-marcus.t: yep that's it, our custom UWApprovalRule.gs still calls the old method name
-priya.s: patching now, will redeploy to app01 first then roll to the rest
-marcus.t: confirmed fixed on app01, stuck submissions reprocessing cleanly
-priya.s: rolling to app02-04, will close out once all clear
-
-### Resolution
-priya.s: seeing a pile of submissions stuck in Processing since the 9am deploy window
-marcus.t: same here, app logs full of GosuRuntimeException in PolicyPeriod.bind()
-priya.s: checked the release notes for 2025.2.1, there's an API rename listed - getLatestPeriod -> getLatestBoundPeriod
-marcus.t: yep that's it, our custom UWApprovalRule.gs still calls the old method name
-priya.s: patching now, will redeploy to app01 first then roll to the rest
-marcus.t: confirmed fixed on app01, stuck submissions reprocessing cleanly
-priya.s: rolling to app02-04, will close out once all clear
-
-
-[3/27] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: a
-  Approval notes (optional): a
-  -> SMEApproved, embedding generated.
-
-======================================================================
-[chat_rca_records] NR-RCA-2025-038  (source_ref_id=RCA-2025-038)
-Title: RCA-2025-038: Autopay Invoice Gap - 1,200 Accounts Missed in Monthly Run
-Module=BillingCenter  Category=UpgradeRegression  Severity=High  Resolution=ConfigChange
-tagging_confidence = 0.96
-LLM reasoning: The issue is an UpgradeRegression because the batch job failed to invoice accounts due to a filter not updated after a BillingCenter 2025.1 upgrade. The resolution_type is ConfigChange, as the fix involved updating the batch job's filter configuration. The module is BillingCenter, as the incident concerns invoice generation. The severity is SEV2-High since a major feature (autopay invoicing) was broken for 1,200 accounts, but a same-day fix was applied.
-----------------------------------------------------------------------
-## RCA-2025-038: Autopay Invoice Gap - 1,200 Accounts Missed in Monthly Run
-
-**Source:** ChatOrRCAReport (RCA-2025-038)
-**Module:** BillingCenter | **Category:** UpgradeRegression | **Severity:** SEV2-High
-**Resolution Type:** ConfigChange
-**Date:** 2025-11-07
-
-### Summary / Symptom
-Monthly invoice batch on 2025-11-07 completed with a 0% reported error rate, giving a false sense of success. Finance reconciliation on 2025-11-07 afternoon discovered 1,200 autopay-enrolled accounts had no invoice generated for the cycle. Investigation found InvoiceGenBatch.gs filters accounts using the legacy boolean field cg_autopayenabled_legacy, which was deprecated in BillingCenter 2025.1 in favor of the cg_autopayenrollment entity, but the batch job's filter was never migrated during that upgrade.
-
-### Resolution
-Config change to point InvoiceGenBatch.gs at cg_autopayenrollment (same day fix). Added a post-batch reconciliation check comparing invoice count against active billable accounts, alerting if variance exceeds 1%. Added this class of 'silent batch success with data gap' to the upgrade regression checklist.
-
-
-[4/27] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: a
-  Approval notes (optional): a
-  -> SMEApproved, embedding generated.
-
-======================================================================
-[chat_rca_records] NR-CHAT-5601  (source_ref_id=CHAT-5601)
-Title: Chat: claims payment file rejections to bank SFTP
-Module=IntegrationGateway  Category=IntegrationFailure  Severity=High  Resolution=ConfigChange
-tagging_confidence = 0.96
-LLM reasoning: The issue is an IntegrationFailure as the payment file was rejected by the bank SFTP due to a format validation error. The resolution_type is ConfigChange since the mapping template was updated to match the new field width. The module is IntegrationGateway because the problem involves file exchange with an external bank system. The severity is SEV2-High as payment processing was blocked but quickly resolved. Confidence is high (0.95) because the cause and fix are explicitly described.
-----------------------------------------------------------------------
-## Chat: claims payment file rejections to bank SFTP
-
-**Source:** ChatOrRCAReport (CHAT-5601)
-**Module:** IntegrationGateway | **Category:** IntegrationFailure | **Severity:** SEV2-High
-**Resolution Type:** ConfigChange
-**Date:** 2025-11-11
-
-### Summary / Symptom
-k.wong: bank rejected our payment extract again this morning, format validation error on field 14
-integration-oncall: checking their advisory emails... found it, they widened field 14 from 10 to 12 chars two weeks ago
-k.wong: we never got that email, distro list issue?
-integration-oncall: yeah we weren't on the updated distro, adding us now
-k.wong: updating the mapping template to 12 chars, testing against their sandbox
-integration-oncall: sandbox validation passed, pushing to prod mapping
-k.wong: resolved, file accepted on retry
-
-### Resolution
-k.wong: bank rejected our payment extract again this morning, format validation error on field 14
-integration-oncall: checking their advisory emails... found it, they widened field 14 from 10 to 12 chars two weeks ago
-k.wong: we never got that email, distro list issue?
-integration-oncall: yeah we weren't on the updated distro, adding us now
-k.wong: updating the mapping template to 12 chars, testing against their sandbox
-integration-oncall: sandbox validation passed, pushing to prod mapping
-k.wong: resolved, file accepted on retry
-
-
-[5/27] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: a
-  Approval notes (optional): a
-  -> SMEApproved, embedding generated.
-
-======================================================================
-[chat_rca_records] NR-RCA-2025-045  (source_ref_id=RCA-2025-045)
-Title: RCA-2025-045: ClaimCenter Peak-Hour Latency - N+1 Query in Activity Widget
-Module=ClaimCenter  Category=PerformanceDegradation  Severity=Normal  Resolution=CodeFix
-tagging_confidence = 0.96
-LLM reasoning: The issue is a 'PerformanceDegradation' as it describes slow page loads under peak load, specifically due to an N+1 query in a ClaimCenter widget. The resolution was a 'CodeFix'—rewriting the widget's data access to use a batched query. The module is 'ClaimCenter' as the problem and fix are both within ClaimCenter's claim summary UI. The severity is 'SEV3-Medium' because the system is degraded but usable, with slow performance only during peak hours. The confidence is high (0.95) as the text explicitly details the cause and fix.
-----------------------------------------------------------------------
-## RCA-2025-045: ClaimCenter Peak-Hour Latency - N+1 Query in Activity Widget
-
-**Source:** ChatOrRCAReport (RCA-2025-045)
-**Module:** ClaimCenter | **Category:** PerformanceDegradation | **Severity:** SEV3-Medium
-**Resolution Type:** CodeFix
-**Date:** 2025-11-12
-
-### Summary / Symptom
-Users reported 10-15 second page loads on the claim summary screen specifically between 12pm-2pm, the system's known peak concurrency window. APM distributed traces isolated the slow span to the newly introduced ClaimActivitySummary widget (shipped 3 weeks prior), which fetches related claim activities with one query per activity row instead of a single batched query - a classic N+1 pattern that only becomes visible once concurrent user count and per-claim activity count both cross a threshold.
-
-### Resolution
-Rewrote the widget's data access to use a single batched query keyed by claim_id list. Added a peak-load performance test (simulated 2x historical peak concurrency) to the pre-release checklist for any new ClaimCenter UI widget touching related-entity lookups.
-
-
-[6/27] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: a
-  Approval notes (optional): a
-  -> SMEApproved, embedding generated.
-
-======================================================================
-[release_note_records] NR-XENG-1806  (source_ref_id=XENG-1806)
-Title: Inactivity timer debug logs do not reset after an interaction
-Module=DigitalPortal  Category=UIRenderingBug  Severity=High  Resolution=VendorEscalation
-tagging_confidence = 0.79
-----------------------------------------------------------------------
-## Inactivity timer debug logs do not reset after an interaction
-
-**Source:** GuidewireReleaseNote (XENG-1806)
-**Module:** DigitalPortal | **Category:** UIRenderingBug | **Severity:** SEV2-High
-**Resolution Type:** VendorEscalation
-**Date:** 2025-03-01
-**Guidewire Version:** EnterpriseEngage Mammoth (2025.03)
-
-### Summary / Symptom
-The debug logs for the inactivity timer do not reset after an interaction is made. The console timer also keeps counting down, and the problem affects both inactivity tracking and the modal display. Guidewire is aware of the issue; no fix is available yet. Status: Open.
-
-### Resolution
-The debug logs for the inactivity timer do not reset after an interaction is made. The console timer also keeps counting down, and the problem affects both inactivity tracking and the modal display. Guidewire is aware of the issue; no fix is available yet. Status: Open.
-
-
-[7/27] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: a
-  Approval notes (optional): a
-  -> SMEApproved, embedding generated.
-
-======================================================================
-[release_note_records] NR-XENG-1913  (source_ref_id=XENG-1913)
-Title: Unable to create Workers Comp submission through the EnterpriseEngage UI
-Module=DigitalPortal  Category=ConfigurationError  Severity=High  Resolution=Workaround
-tagging_confidence = 0.79
-LLM reasoning: The issue is a configuration error, as the workaround involves updating allowed roles in ClaimContactAuthorizer.gs. The module is DigitalPortal, since the problem occurs in the EnterpriseEngage UI. The severity is SEV2-High because a major feature (submission creation) is broken but a workaround exists. The resolution_type is Workaround, as the fix is a temporary configuration change. Confidence is 0.7 due to the workaround status and open issue.
-----------------------------------------------------------------------
-## Unable to create Workers Comp submission through the EnterpriseEngage UI
-
-**Source:** GuidewireReleaseNote (XENG-1913)
-**Module:** DigitalPortal | **Category:** ConfigurationError | **Severity:** SEV2-High
-**Resolution Type:** Workaround
-**Date:** 2025-03-01
-**Guidewire Version:** EnterpriseEngage Mammoth (2025.03)
-
-### Summary / Symptom
-The submitClaim request fails and prevents you from creating a Workers' Comp submission in the EnterpriseEngage UI. Workaround: add the claimant role to the authorityPolicyRolesAllowed function in the ClaimContactAuthorizer.gs file, located in the ClaimCenter configuration module. Status: Open.
-
-### Resolution
-The submitClaim request fails and prevents you from creating a Workers' Comp submission in the EnterpriseEngage UI. Workaround: add the claimant role to the authorityPolicyRolesAllowed function in the ClaimContactAuthorizer.gs file, located in the ClaimCenter configuration module. Status: Open.
-
-
-[8/27] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: a
-  Approval notes (optional): a
-  -> SMEApproved, embedding generated.
-
-======================================================================
-[release_note_records] NR-XENG-1911  (source_ref_id=XENG-1911)
-Title: Claims could not be opened when reported by someone other than the policyholder
-Module=DigitalPortal  Category=UIRenderingBug  Severity=Normal  Resolution=CodeFix
-tagging_confidence = 0.84
-LLM reasoning: The issue is a display defect (claims opening blank) in ProducerEngage, fitting the UIRenderingBug category, and was resolved by a fix, matching CodeFix. The module is DigitalPortal, as ProducerEngage is a digital portal feature. Severity is SEV3-Medium since the defect is non-blocking but impacts usability. Confidence is 0.8 as the fix is mentioned but details are limited.
-----------------------------------------------------------------------
-## Claims could not be opened when reported by someone other than the policyholder
-
-**Source:** GuidewireReleaseNote (XENG-1911)
-**Module:** DigitalPortal | **Category:** UIRenderingBug | **Severity:** SEV3-Medium
-**Resolution Type:** CodeFix
-**Date:** 2025-03-01
-**Guidewire Version:** ProducerEngage Mammoth (2025.03)
-
-### Summary / Symptom
-Known prior to the Mammoth (2025.03) release and now fixed: a claim opened blank in ProducerEngage when the 'Reported by' field named someone other than the policyholder.
-
-### Resolution
-Known prior to the Mammoth (2025.03) release and now fixed: a claim opened blank in ProducerEngage when the 'Reported by' field named someone other than the policyholder.
-
-
-[9/27] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: a
-  Approval notes (optional): a
-  -> SMEApproved, embedding generated.
-
-======================================================================
-[release_note_records] NR-XENG-1912  (source_ref_id=XENG-1912)
-Title: Insecure Direct Object Reference (IDOR) in the policy diff
-Module=PolicyCenter  Category=ConfigurationError  Severity=Normal  Resolution=CodeFix
-tagging_confidence = 0.79
-----------------------------------------------------------------------
-## Insecure Direct Object Reference (IDOR) in the policy diff
-
-**Source:** GuidewireReleaseNote (XENG-1912)
-**Module:** PolicyCenter | **Category:** ConfigurationError | **Severity:** SEV3-Medium
-**Resolution Type:** CodeFix
-**Date:** 2025-03-01
-**Guidewire Version:** PolicyCenter Mammoth (2025.03)
-
-### Summary / Symptom
-Known prior to the Mammoth (2025.03) release and now fixed: an Insecure Direct Object Reference (IDOR) vulnerability existed in the policy diff endpoint.
-
-### Resolution
-Known prior to the Mammoth (2025.03) release and now fixed: an Insecure Direct Object Reference (IDOR) vulnerability existed in the policy diff endpoint.
-
-
-[10/27] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: a
-  Approval notes (optional): a
-  -> SMEApproved, embedding generated.
-
-======================================================================
-[release_note_records] NR-JUT-20814  (source_ref_id=JUT-20814)
-Title: Applications sometimes didn't log out after a set period of time
-Module=DigitalPortal  Category=AuthenticationAccess  Severity=Normal  Resolution=CodeFix
-tagging_confidence = 0.84
-LLM reasoning: The issue involved inconsistent inactivity-based logout, matching AuthenticationAccess, and was fixed in the Mammoth 2025.03 release, indicating CodeFix. The affected modules are all DigitalPortal components. Since the issue was annoying but not blocking, SEV3-Medium fits. Confidence is 0.8 as the fix is mentioned but details are limited.
-----------------------------------------------------------------------
-## Applications sometimes didn't log out after a set period of time
-
-**Source:** GuidewireReleaseNote (JUT-20814)
-**Module:** DigitalPortal | **Category:** AuthenticationAccess | **Severity:** SEV3-Medium
-**Resolution Type:** CodeFix
-**Date:** 2025-03-01
-**Guidewire Version:** Multiple Engage apps Mammoth (2025.03)
-
-### Summary / Symptom
-Known prior to the Mammoth (2025.03) release and now fixed. Affected CustomerEngage Account Management, CustomerEngage Claims Management, ProducerEngage, ProducerEngage Claims Management, ServiceRepEngage, and VendorEngage: inactivity-based automatic logout worked inconsistently.
-
-### Resolution
-Known prior to the Mammoth (2025.03) release and now fixed. Affected CustomerEngage Account Management, CustomerEngage Claims Management, ProducerEngage, ProducerEngage Claims Management, ServiceRepEngage, and VendorEngage: inactivity-based automatic logout worked inconsistently.
-
-
-[11/27] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: a
-  Approval notes (optional): a
-a  -> SMEApproved, embedding generated.
-
-======================================================================
-[release_note_records] NR-PC-RN-palisades-sync  (source_ref_id=PC-RN-palisades-sync)
-Title: Improved and optimized product model synchronization
-Module=PolicyCenter  Category=PerformanceDegradation  Severity=Low  Resolution=ConfigChange
-tagging_confidence = 0.79
-----------------------------------------------------------------------
-## Improved and optimized product model synchronization
-
-**Source:** GuidewireReleaseNote (PC-RN-palisades-sync)
-**Module:** PolicyCenter | **Category:** PerformanceDegradation | **Severity:** SEV4-Low
-**Resolution Type:** ConfigChange
-**Date:** 2026-04-01
-**Guidewire Version:** PolicyCenter Palisades
-
-### Summary / Symptom
-A new synchronization architecture (version 2.0) shortens quote-time syncing by updating coverables only when a value they reference in an APD rule or lookup table has changed. Applies only to APD lines and can be enabled for specific lines or all of them.
-
-### Resolution
-A new synchronization architecture (version 2.0) shortens quote-time syncing by updating coverables only when a value they reference in an APD rule or lookup table has changed. Applies only to APD lines and can be enabled for specific lines or all of them.
-
-
-[12/27] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: 
-  Approval notes (optional): a
-a  -> SMEApproved, embedding generated.
-
-======================================================================
-[release_note_records] NR-PC-RN-palisades-editionplugin  (source_ref_id=PC-RN-palisades-editionplugin)
-Title: IProductEditionPlugin deprecated
-Module=PolicyCenter  Category=UpgradeRegression  Severity=Low  Resolution=VendorEscalation
-tagging_confidence = 0.79
-LLM reasoning: The record describes a deprecation due to a Guidewire upgrade, fitting UpgradeRegression, and recommends contacting Guidewire, matching VendorEscalation. The module is PolicyCenter, as it concerns product editions. The severity is SEV4-Low since this is an informational notice about a future change, not an active defect. Confidence is moderate because no incident or fix is described, only guidance.
-----------------------------------------------------------------------
-## IProductEditionPlugin deprecated
-
-**Source:** GuidewireReleaseNote (PC-RN-palisades-editionplugin)
-**Module:** PolicyCenter | **Category:** UpgradeRegression | **Severity:** SEV4-Low
-**Resolution Type:** VendorEscalation
-**Date:** 2026-04-01
-**Guidewire Version:** PolicyCenter Palisades
-
-### Summary / Symptom
-Clause-level product editions are now supported for APD-managed products, so the older IProductEditionPlugin interface is deprecated. Teams with custom implementations of this plugin should contact Guidewire to plan a transition before upgrading.
-
-### Resolution
-Clause-level product editions are now supported for APD-managed products, so the older IProductEditionPlugin interface is deprecated. Teams with custom implementations of this plugin should contact Guidewire to plan a transition before upgrading.
-
-
-[13/27] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: 
-  Approval notes (optional): a
-a
-  -> SMEApproved, embedding generated.
-
-======================================================================
-[release_note_records] NR-BC-RN-palisades-funds  (source_ref_id=BC-RN-palisades-funds)
-Title: Enhanced Funds Tracking (Early Access)
-Module=BillingCenter  Category=ConfigurationError  Severity=Low  Resolution=ConfigChange
-tagging_confidence = 0.74
-LLM reasoning: This record describes a new feature (Enhanced Funds Tracking) in BillingCenter that is off by default and can be enabled via configuration, fitting the ConfigurationError category and ConfigChange resolution_type. As there is no incident or defect, SEV4-Low is most appropriate. Confidence is 0.6 due to the informational nature of the record rather than a clear issue or resolution.
-----------------------------------------------------------------------
-## Enhanced Funds Tracking (Early Access)
-
-**Source:** GuidewireReleaseNote (BC-RN-palisades-funds)
-**Module:** BillingCenter | **Category:** ConfigurationError | **Severity:** SEV4-Low
-**Resolution Type:** ConfigChange
-**Date:** 2026-04-01
-**Guidewire Version:** BillingCenter Palisades
-
-### Summary / Symptom
-Adds unapplied fund slices, which link each funds source (payments, ad-hoc credits, endorsements, suspense payments) to fund use events. Off by default; can be turned on from the Server Tools section.
-
-### Resolution
-Adds unapplied fund slices, which link each funds source (payments, ad-hoc credits, endorsements, suspense payments) to fund use events. Off by default; can be turned on from the Server Tools section.
-
-
-[14/27] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit:   Approval notes (optional): a
-a
-  -> SMEApproved, embedding generated.
-
-======================================================================
-[release_note_records] NR-BC-RN-palisades-previews  (source_ref_id=BC-RN-palisades-previews)
-Title: Policy transaction previews
-Module=BillingCenter  Category=ConfigurationError  Severity=Low  Resolution=NoActionByDesign
-tagging_confidence = 0.69
-LLM reasoning: The record describes the policy transaction previews feature in BillingCenter without reporting a defect or incident, so SEV4-Low, ConfigurationError, and NoActionByDesign are the closest fits. The module is BillingCenter as it discusses invoice items. Confidence is low due to lack of explicit issue or resolution.
-----------------------------------------------------------------------
-## Policy transaction previews
-
-**Source:** GuidewireReleaseNote (BC-RN-palisades-previews)
-**Module:** BillingCenter | **Category:** ConfigurationError | **Severity:** SEV4-Low
-**Resolution Type:** NoActionByDesign
-**Date:** 2026-04-01
-**Guidewire Version:** BillingCenter Palisades
-
-### Summary / Symptom
-Lets you see the invoice items that policy transactions would create before running them. Supported transactions are cancellations, policy changes, reinstatements, rewrites, renewals, and audits.
-
-### Resolution
-Lets you see the invoice items that policy transactions would create before running them. Supported transactions are cancellations, policy changes, reinstatements, rewrites, renewals, and audits.
-
-
-[15/27] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit:   Approval notes (optional): a
-  -> SMEApproved, embedding generated.
-
-======================================================================
-[release_note_records] NR-GW-RN-2025-2-1-004  (source_ref_id=GW-RN-2025-2-1-004)
-Title: Breaking API change: PolicyPeriod.getLatestPeriod() renamed
-Module=PolicyCenter  Category=UpgradeRegression  Severity=High  Resolution=ConfigChange
-tagging_confidence = 0.84
-----------------------------------------------------------------------
-## Breaking API change: PolicyPeriod.getLatestPeriod() renamed
-
-**Source:** GuidewireReleaseNote (GW-RN-2025-2-1-004)
-**Module:** PolicyCenter | **Category:** UpgradeRegression | **Severity:** High
-**Resolution Type:** ConfigChange
-**Date:** 2025-11-01
-**Guidewire Version:** PolicyCenter 2025.2.1
-
-### Summary / Symptom
-As part of the 2025.2.1 API cleanup, PolicyPeriod.getLatestPeriod() has been renamed to PolicyPeriod.getLatestBoundPeriod() to clarify semantics. Custom Gosu rules referencing the old method name will throw GosuRuntimeException at runtime. Customers should search custom rule sets for getLatestPeriod() prior to upgrading.
-
-### Resolution
-As part of the 2025.2.1 API cleanup, PolicyPeriod.getLatestPeriod() has been renamed to PolicyPeriod.getLatestBoundPeriod() to clarify semantics. Custom Gosu rules referencing the old method name will throw GosuRuntimeException at runtime. Customers should search custom rule sets for getLatestPeriod() prior to upgrading.
-
-
-[16/27] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: a
-  Approval notes (optional): a
-  -> SMEApproved, embedding generated.
-
-======================================================================
-[release_note_records] NR-GW-RN-2025-2-1-012  (source_ref_id=GW-RN-2025-2-1-012)
-Title: New SOC2-compliant audit logging interceptor
-Module=PolicyCenter  Category=ConfigurationError  Severity=Low  Resolution=ConfigChange
-tagging_confidence = 0.79
-LLM reasoning: The record describes a new audit logging feature in PolicyCenter, which is enabled by default and can be disabled via configuration. This fits the ConfigurationError category and ConfigChange resolution_type, as the main action is adjusting a config flag. The severity is Low since it's informational and not tied to a defect, and confidence is 0.7 due to lack of explicit incident or resolution details.
-----------------------------------------------------------------------
-## New SOC2-compliant audit logging interceptor
-
-**Source:** GuidewireReleaseNote (GW-RN-2025-2-1-012)
-**Module:** PolicyCenter | **Category:** ConfigurationError | **Severity:** Low
-**Resolution Type:** ConfigChange
-**Date:** 2025-11-01
-**Guidewire Version:** PolicyCenter 2025.2.1
-
-### Summary / Symptom
-Introduces AuditLogInterceptor to capture all document-generation and policy-bind events for SOC2 compliance. Enabled by default. Can be disabled via gw.audit.interceptor.enabled=false if issues are observed.
-
-### Resolution
-Introduces AuditLogInterceptor to capture all document-generation and policy-bind events for SOC2 compliance. Enabled by default. Can be disabled via gw.audit.interceptor.enabled=false if issues are observed.
-
-
-[17/27] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: a
-  Approval notes (optional): a
-  -> SMEApproved, embedding generated.
-
-======================================================================
-[release_note_records] NR-GW-RN-2025-2-2-001  (source_ref_id=GW-RN-2025-2-2-001)
-Title: Fix: Deadlock between AuditLogInterceptor and DocumentGenService under high concurrency
-Module=PolicyCenter  Category=PerformanceDegradation  Severity=Normal  Resolution=PatchApplied
-tagging_confidence = 0.91
-----------------------------------------------------------------------
-## Fix: Deadlock between AuditLogInterceptor and DocumentGenService under high concurrency
-
-**Source:** GuidewireReleaseNote (GW-RN-2025-2-2-001)
-**Module:** PolicyCenter | **Category:** PerformanceDegradation | **Severity:** Normal
-**Resolution Type:** PatchApplied
-**Date:** 2025-12-01
-**Guidewire Version:** PolicyCenter 2025.2.2
-
-### Summary / Symptom
-Resolves a lock-ordering deadlock (vendor case GW-88213) between the new audit-logging interceptor and document generation service that could cause full application unresponsiveness under high concurrent load. Customers who disabled gw.audit.interceptor.enabled as a workaround may safely re-enable it after applying 2025.2.2.
-
-### Resolution
-Resolves a lock-ordering deadlock (vendor case GW-88213) between the new audit-logging interceptor and document generation service that could cause full application unresponsiveness under high concurrent load. Customers who disabled gw.audit.interceptor.enabled as a workaround may safely re-enable it after applying 2025.2.2.
-
-
-[18/27] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: a
-  Approval notes (optional): a
-  -> SMEApproved, embedding generated.
-
-======================================================================
-[release_note_records] NR-GW-RN-2025-1-0-009  (source_ref_id=GW-RN-2025-1-0-009)
-Title: Autopay data model migration: cg_autopayenabled_legacy deprecated
-Module=BillingCenter  Category=ConfigurationError  Severity=High  Resolution=ConfigChange
-tagging_confidence = 0.79
-----------------------------------------------------------------------
-## Autopay data model migration: cg_autopayenabled_legacy deprecated
-
-**Source:** GuidewireReleaseNote (GW-RN-2025-1-0-009)
-**Module:** BillingCenter | **Category:** ConfigurationError | **Severity:** High
-**Resolution Type:** ConfigChange
-**Date:** 2025-09-15
-**Guidewire Version:** BillingCenter 2025.1.0
-
-### Summary / Symptom
-The legacy cg_autopayenabled_legacy boolean field is deprecated in favor of the new cg_autopayenrollment entity, which supports multiple payment methods per account. Any custom batch jobs or reports filtering on the legacy field must be migrated before this field is removed in a future release.
-
-### Resolution
-The legacy cg_autopayenabled_legacy boolean field is deprecated in favor of the new cg_autopayenrollment entity, which supports multiple payment methods per account. Any custom batch jobs or reports filtering on the legacy field must be migrated before this field is removed in a future release.
-
-
-[19/27] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: a
-  Approval notes (optional): a
-  -> SMEApproved, embedding generated.
-
-======================================================================
-[release_note_records] NR-GW-RN-2025-1-3-002  (source_ref_id=GW-RN-2025-1-3-002)
-Title: Performance improvements to claim activity retrieval APIs
-Module=ClaimCenter  Category=PerformanceDegradation  Severity=Normal  Resolution=CodeFix
-tagging_confidence = 0.79
-----------------------------------------------------------------------
-## Performance improvements to claim activity retrieval APIs
-
-**Source:** GuidewireReleaseNote (GW-RN-2025-1-3-002)
-**Module:** ClaimCenter | **Category:** PerformanceDegradation | **Severity:** Normal
-**Resolution Type:** CodeFix
-**Date:** 2025-10-20
-**Guidewire Version:** ClaimCenter 2025.1.3
-
-### Summary / Symptom
-Underlying activity retrieval APIs now support batch fetch by claim_id list to reduce N+1 query patterns in custom widgets. Existing custom widgets must be updated to use the new batch API to benefit; the old per-row API remains available but is now marked deprecated.
-
-### Resolution
-Underlying activity retrieval APIs now support batch fetch by claim_id list to reduce N+1 query patterns in custom widgets. Existing custom widgets must be updated to use the new batch API to benefit; the old per-row API remains available but is now marked deprecated.
-
-
-[20/27] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: a
-  Approval notes (optional): a
-  -> SMEApproved, embedding generated.
-
-======================================================================
-[release_note_records] NR-GW-RN-2025-2-1-020  (source_ref_id=GW-RN-2025-2-1-020)
-Title: Advisory: Rate table refactor changes discount comparison operators
-Module=Rating/Gosu  Category=UpgradeRegression  Severity=Normal  Resolution=NoActionByDesign
-tagging_confidence = 0.79
-----------------------------------------------------------------------
-## Advisory: Rate table refactor changes discount comparison operators
-
-**Source:** GuidewireReleaseNote (GW-RN-2025-2-1-020)
-**Module:** Rating/Gosu | **Category:** UpgradeRegression | **Severity:** Normal
-**Resolution Type:** NoActionByDesign
-**Date:** 2025-11-01
-**Guidewire Version:** PolicyCenter 2025.2.1
-
-### Summary / Symptom
-As part of the rating engine refactor shipped in 2025.2.1, several bundled discount rule templates were regenerated from updated rate tables. Guidewire recommends re-running backtest suites against sample quotes for any customized discount rules derived from these templates, as comparison operators in generated code may differ subtly from prior versions.
-
-### Resolution
-As part of the rating engine refactor shipped in 2025.2.1, several bundled discount rule templates were regenerated from updated rate tables. Guidewire recommends re-running backtest suites against sample quotes for any customized discount rules derived from these templates, as comparison operators in generated code may differ subtly from prior versions.
-
-
-[21/27] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: a
-  Approval notes (optional): a
-  -> SMEApproved, embedding generated.
-
-======================================================================
-[runbook_records] NR-RB-PC-014  (source_ref_id=RB-PC-014)
-Title: Runbook: Submissions Stuck in Processing State
-Module=PolicyCenter  Category=UpgradeRegression  Severity=High  Resolution=CodeFix
-tagging_confidence = 0.93
-LLM reasoning: The issue is classified as UpgradeRegression because submissions are stuck after a deployment or upgrade, with the root cause being deprecated or removed API usage in custom Gosu rules. The resolution_type is CodeFix, as the runbook instructs patching the custom rule and redeploying. The module is PolicyCenter, as the issue involves PolicyPeriod and submissions. Severity is SEV2-High since submissions are blocked but a remediation process exists. The confidence is 0.9 because the text explicitly details the cause and fix.
-----------------------------------------------------------------------
-## Runbook: Submissions Stuck in Processing State
-
-**Source:** RunbookOrSOP (RB-PC-014)
-**Module:** PolicyCenter | **Category:** UpgradeRegression | **Severity:** SEV2-High
-**Resolution Type:** CodeFix
-**Date:** 2025-08-10
-
-### Summary / Symptom
-Multiple PolicyPeriod records stuck in 'Processing' with no user-visible error, typically following a deployment or upgrade.
-
-### Resolution
-1. Check app server logs for GosuRuntimeException around PolicyPeriod.bind() or related bind-time rules.
-2. Cross-reference the exception against the latest Guidewire release notes for any renamed or removed API methods in custom rule sets.
-3. If a custom Gosu rule references a deprecated/removed API, patch the rule and redeploy to one app server first to validate before full rollout.
-4. Run the StuckSubmissionReprocess batch script to clear and resubmit affected PolicyPeriods once the fix is deployed.
-5. Notify underwriting leads once cleared and confirm no new occurrences for 2 hours.
-
-
-[22/27] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: a
-  Approval notes (optional): a
-  -> SMEApproved, embedding generated.
-
-======================================================================
-[runbook_records] NR-RB-BC-007  (source_ref_id=RB-BC-007)
-Title: Runbook: Monthly Invoice Batch Reconciliation Check
-Module=BillingCenter  Category=BatchJobFailure  Severity=Low  Resolution=Workaround
-tagging_confidence = 0.77
-LLM reasoning: The record describes a runbook to detect and investigate silent failures in the monthly invoice batch, which fits BatchJobFailure. The guidance is a procedural workaround (not a permanent fix), so Workaround is appropriate. The module is BillingCenter, as it concerns invoice batches. Severity is SEV4-Low since this is a preventive check, not an active incident. Confidence is 0.7 because no specific incident or resolution is described, just a mitigation process.
-----------------------------------------------------------------------
-## Runbook: Monthly Invoice Batch Reconciliation Check
-
-**Source:** RunbookOrSOP (RB-BC-007)
-**Module:** BillingCenter | **Category:** BatchJobFailure | **Severity:** SEV4-Low
-**Resolution Type:** Workaround
-**Date:** 2025-06-01
-
-### Summary / Symptom
-After every monthly invoice generation batch run, regardless of reported batch status.
-
-### Resolution
-1. Do not rely solely on batch job 'success' status - a 0-error run can still silently skip accounts.
-2. Run the post-batch reconciliation report comparing invoice count to count of active billable accounts.
-3. If variance exceeds 1%, investigate filter conditions in InvoiceGenBatch.gs for any deprecated fields.
-4. Escalate to BillingCenter L3 if the data model has changed in a recent upgrade and batch filters were not migrated.
-
-
-[23/27] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: a
-  Approval notes (optional): a
-  -> SMEApproved, embedding generated.
-
-======================================================================
-[runbook_records] NR-RB-CC-022  (source_ref_id=RB-CC-022)
-Title: Runbook: Diagnosing Peak-Hour UI Latency
-Module=ClaimCenter  Category=PerformanceDegradation  Severity=Normal  Resolution=CodeFix
-tagging_confidence = 0.77
-LLM reasoning: The issue described is slow page loads during peak hours, which matches PerformanceDegradation. The recommended resolution is to rewrite the widget's data access layer, indicating a CodeFix. The module is ClaimCenter, as specified and supported by the context. The severity is SEV3-Medium since the system is degraded but usable. Confidence is moderate (0.7) because this is a runbook, not a specific incident resolution.
-----------------------------------------------------------------------
-## Runbook: Diagnosing Peak-Hour UI Latency
-
-**Source:** RunbookOrSOP (RB-CC-022)
-**Module:** ClaimCenter | **Category:** PerformanceDegradation | **Severity:** SEV3-Medium
-**Resolution Type:** CodeFix
-**Date:** 2025-07-15
-
-### Summary / Symptom
-User reports of slow page loads concentrated in a specific time window (e.g. lunch-hour peak concurrency).
-
-### Resolution
-1. Pull APM distributed traces for the affected screen during the reported time window.
-2. Look for N+1 query patterns, especially in recently added or modified UI widgets.
-3. If found, confirm whether a batch-fetch API exists as a replacement (check latest ClaimCenter release notes).
-4. Rewrite the widget's data access layer to use the batch API and load-test at 2x historical peak concurrency before deploying.
-
-
-[24/27] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: a
-  Approval notes (optional): a
-  -> SMEApproved, embedding generated.
-
-======================================================================
-[runbook_records] NR-RB-MIM-001  (source_ref_id=RB-MIM-001)
-Title: Runbook: Full Application Outage / Unresponsive App Servers
-Module=PolicyCenter  Category=PerformanceDegradation  Severity=Emergency  Resolution=Workaround
-tagging_confidence = 0.77
-LLM reasoning: The record describes a full application outage with unresponsive app servers, which matches PerformanceDegradation. The module is PolicyCenter, as indicated by both the hint and the context. The severity is SEV1-Critical because users cannot load the application at all. The resolution_type is Workaround, as the runbook suggests immediate mitigations (feature flag disablement, thread dump analysis) rather than a root cause fix. Confidence is moderate (0.7) since this is a runbook, not a resolved incident.
-----------------------------------------------------------------------
-## Runbook: Full Application Outage / Unresponsive App Servers
-
-**Source:** RunbookOrSOP (RB-MIM-001)
-**Module:** PolicyCenter | **Category:** PerformanceDegradation | **Severity:** SEV1-Critical
-**Resolution Type:** Workaround
-**Date:** 2025-05-20
-
-### Summary / Symptom
-All or most app server threads unresponsive; users report complete inability to load the application.
-
-### Resolution
-1. Open MIM bridge immediately and declare incident commander.
-2. Collect thread dumps from at least 2 affected app server nodes before any restart.
-3. Analyze thread dumps for lock contention or deadlock patterns, especially around recently deployed interceptors or filters.
-4. If a recently released feature is implicated, check for a feature flag to disable it as immediate mitigation rather than a full rollback.
-5. Engage vendor support with thread dump evidence if the root cause is in vendor-shipped code.
-6. File a formal RCA within 48 hours including root cause, immediate mitigation, and long-term corrective actions.
-
-
-[25/27] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: a
-  Approval notes (optional): a
-  -> SMEApproved, embedding generated.
-
-======================================================================
-[runbook_records] NR-RB-IG-009  (source_ref_id=RB-IG-009)
-Title: Runbook: Outbound File Rejected by External Partner
-Module=IntegrationGateway  Category=IntegrationFailure  Severity=Normal  Resolution=ConfigChange
-tagging_confidence = 0.93
-LLM reasoning: The issue is an IntegrationFailure as the outbound file was rejected by an external partner due to a format mismatch. The resolution_type is ConfigChange because the mapping template was updated to match the new specification. The module is IntegrationGateway, as the record involves file transfer and mapping updates. The severity is SEV3-Medium since the issue is disruptive but not business-critical, and the resolution is clearly described, supporting a confidence of 0.9.
-----------------------------------------------------------------------
-## Runbook: Outbound File Rejected by External Partner
-
-**Source:** RunbookOrSOP (RB-IG-009)
-**Module:** IntegrationGateway | **Category:** IntegrationFailure | **Severity:** SEV3-Medium
-**Resolution Type:** ConfigChange
-**Date:** 2025-04-02
-
-### Summary / Symptom
-A scheduled outbound file transfer (payments, data extracts) is rejected by an external partner's validation.
-
-### Resolution
-1. Check the partner's most recent format/spec advisory emails or portal notices.
-2. Confirm our team is on the correct advisory distribution list for this partner; if not, request to be added immediately.
-3. Update the IntegrationGateway mapping template to match the new spec.
-4. Validate against the partner's sandbox/test endpoint before resubmitting to production.
-5. Document the spec change and add it to the integration partner's change log for future reference.
-
-
-[26/27] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: a
-  Approval notes (optional): a
-  -> SMEApproved, embedding generated.
-
-======================================================================
-[runbook_records] NR-RB-CM-011  (source_ref_id=RB-CM-011)
-Title: Runbook: License Pool Exhausted / Users Cannot Log In
-Module=ContactManager  Category=Licensing  Severity=High  Resolution=DataRemediation
-tagging_confidence = 0.93
-LLM reasoning: The issue is classified as Licensing because users are blocked by license pool exhaustion. The resolution_type is DataRemediation since stale sessions are cleaned up to restore license availability. The module is ContactManager, as user access and session management are handled there. Severity is SEV2-High because login is blocked for multiple users, but remediation is possible. Confidence is high due to explicit description of cause and fix.
-----------------------------------------------------------------------
-## Runbook: License Pool Exhausted / Users Cannot Log In
-
-**Source:** RunbookOrSOP (RB-CM-011)
-**Module:** ContactManager | **Category:** Licensing | **Severity:** SEV2-High
-**Resolution Type:** DataRemediation
-**Date:** 2025-03-18
-
-### Summary / Symptom
-Users receive 'no license available' errors despite headcount being within the licensed pool.
-
-### Resolution
-1. Check for orphaned/stale sessions, especially following any recent VPN or network outage.
-2. Run the session-cleanup script to release stale concurrent-user licenses.
-3. Verify license pool is restored to expected availability.
-4. If exhaustion recurs without a clear incident cause, request a license headroom review with the Guidewire account team.
-
-
-[27/27] Decision -- [a]pprove / [r]eject / [n]eeds-retag / [s]kip / [q]uit: a
-  Approval notes (optional): a
-  -> SMEApproved, embedding generated.
-a(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents/backend$ a
-bash: a: command not found
-(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents/backend$ a
-bash: a: command not found
-(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents/backend$ 
-
-
-
-
-(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ cd backend/
-(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents/backend$ python3 query_demo.py
-
---- L1 Guided Resolution Agent ---
-Query: "underwriter sees new business submissions stuck in processing after upgrade"
-  [0.445] NR-RB-PC-014     RunbookOrSOP         PolicyCenter     High          CodeFix          -- Runbook: Submissions Stuck in Processing State
-  [0.460] NR-INC-100234    HistoricalTicket     PolicyCenter     Emergency     CodeFix          -- PolicyCenter submissions hang post-upgrade; patched Gosu rule to fix deprecated API usage.
-  [0.558] NR-INC-910001    HistoricalTicket     PolicyCenter     High          CodeFix          -- Commercial auto new business submission slow due to rating table lookup; fix in staging.
-
---- L2 Resolution Intelligence Agent ---
-Query: "PolicyCenter issues similar to post-upgrade submission problems"
-  [0.511] NR-INC-100234    HistoricalTicket     PolicyCenter     Emergency     CodeFix          -- PolicyCenter submissions hang post-upgrade; patched Gosu rule to fix deprecated API usage.
-  [0.524] NR-CHAT-5512     ChatOrRCAReport      PolicyCenter     High          CodeFix          -- War-room chat: PolicyCenter submissions stuck after 2025.2.1 deploy
-  [0.585] NR-RB-PC-014     RunbookOrSOP         PolicyCenter     High          CodeFix          -- Runbook: Submissions Stuck in Processing State
-  [0.600] NR-INC-900004    HistoricalTicket     PolicyCenter     Emergency     CodeFix          -- Risk scoring widget failed due to API schema change; parsing code updated to restore scores.
-  [0.617] NR-INC-910001    HistoricalTicket     PolicyCenter     High          CodeFix          -- Commercial auto new business submission slow due to rating table lookup; fix in staging.
-  [0.619] NR-INC-700001    HistoricalTicket     PolicyCenter     Emergency     CodeFix          -- Commercial policy submissions blocked nationwide by Gosu rule error; rollback restored service.
-
---- L3 Problem Ops & RCA Agent ---
-Query: "why do we keep seeing issues right after Guidewire upgrades"
-  [0.396] NR-RCA-2025-041  ChatOrRCAReport      PolicyCenter     Emergency     Workaround       -- RCA-2025-041: PolicyCenter Full Outage Due to Audit-Logging Deadlock
-  [0.438] NR-CHAT-5512     ChatOrRCAReport      PolicyCenter     High          CodeFix          -- War-room chat: PolicyCenter submissions stuck after 2025.2.1 deploy
-  [0.517] NR-RCA-2025-038  ChatOrRCAReport      BillingCenter    High          ConfigChange     -- RCA-2025-038: Autopay Invoice Gap - 1,200 Accounts Missed in Monthly Run
-  [0.565] NR-XENG-1913     GuidewireReleaseNote DigitalPortal    High          Workaround       -- Unable to create Workers Comp submission through the EnterpriseEngage UI
-  [0.571] NR-XENG-1806     GuidewireReleaseNote DigitalPortal    High          VendorEscalation -- Inactivity timer debug logs do not reset after an interaction
-
---- L4 MIM Coordination Agent ---
-Query: "PolicyCenter completely down, all app servers unresponsive"
-  [0.331] NR-RB-MIM-001    RunbookOrSOP         PolicyCenter     Emergency     Workaround       -- Runbook: Full Application Outage / Unresponsive App Servers
-  [0.472] NR-RCA-2025-041  ChatOrRCAReport      PolicyCenter     Emergency     Workaround       -- RCA-2025-041: PolicyCenter Full Outage Due to Audit-Logging Deadlock
-  [0.479] NR-INC-100480    HistoricalTicket     PolicyCenter     Emergency     Workaround       -- PolicyCenter outage due to audit-logging deadlock; mitigated via feature flag rollback, patch pending.
-  [0.566] NR-INC-200005    HistoricalTicket     ContactManager   Emergency     ConfigChange     -- Session timeout misconfiguration logged out all users; reverted config and restarted servers.
-  [0.575] NR-INC-100234    HistoricalTicket     PolicyCenter     Emergency     CodeFix          -- PolicyCenter submissions hang post-upgrade; patched Gosu rule to fix deprecated API usage.
-(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents/backend$ 
+Here's the complete, copy-paste-ready sequence for your VS Code terminal (your environment is bash/Linux based on the logs you've pasted, so I'll use `curl`, not PowerShell).
+
+## 1. Start all 5 servers — one in each terminal tab
+
+Open 5 terminal tabs in VS Code (`Ctrl+Shift+` ` each time), activate the venv in each, and run one command per tab:
+
+**Tab 1 — main app**
+```bash
+source .venv/bin/activate && uvicorn app.main:app --port 8000
+```
+**Expected:** `Uvicorn running on http://127.0.0.1:8000` — no traceback.
+
+**Tab 2 — classification agent**
+```bash
+source .venv/bin/activate && python3 agents/ticket_classification_triage/server.py
+```
+**Expected:** `Uvicorn running on http://0.0.0.0:8010`.
+
+**Tab 3 — similar-ticket agent**
+```bash
+source .venv/bin/activate && python3 agents/similar_ticket/server.py
+```
+**Expected:** `Uvicorn running on http://0.0.0.0:7741` (the LangChain deprecation warning is fine, ignore it).
+
+**Tab 4 — resolution-summary agent**
+```bash
+source .venv/bin/activate && python3 agents/resolution_summary/server.py
+```
+**Expected:** `Uvicorn running on http://0.0.0.0:7742`.
+
+**Tab 5 — orchestrator**
+```bash
+source .venv/bin/activate && python3 agents/ticket_support_orchestrator/server.py
+```
+**Expected:** `Uvicorn running on http://0.0.0.0:7743`.
+
+Leave all 5 running. Open a **6th terminal tab** for the actual test commands below.
+
+---
+
+## 2. Test commands (run each in Tab 6, one at a time)
+
+### Test A — Classification agent
+```bash
+curl -s -X POST http://localhost:8010/api/ticket-classification/classify \
+  -H "Content-Type: application/json" \
+  -d '{
+    "ticket_id": "TEST-CLS-1",
+    "title": "Commercial auto premiums too low",
+    "description": "Underwriters say commercial auto premium quotes are coming in 12-15% lower than expected since last weeks rating config change. Personal auto is fine.",
+    "priority": "P2",
+    "status": "Open"
+  }' | python3 -m json.tool
+```
+**Expected output (check each field):**
+- `"module": "PolicyCenter"`
+- `"severity": "High"`, `"severity_source": "priority"` ← hard pass/fail check (P2 must force High)
+- `"resolution_type": "not recorded"` ← ticket is Open, must not invent a fix type
+- `"category"` something like `"ConfigurationError"`
+
+### Test B — Similar-ticket agent (use Saga 1: PolicyPeriod rename)
+```bash
+curl -s -X POST http://localhost:7741/resolve \
+  -H "Content-Type: application/json" \
+  -d '{
+    "short_description": "Submissions stuck in Processing after upgrade",
+    "description": "New business submissions are stuck in Processing status since this mornings deployment. App logs show GosuRuntimeException in PolicyPeriod.bind()."
+  }' | python3 -m json.tool
+```
+**Expected output:**
+- `matches[]` should include `INC-100234` and/or `CHAT-5512` and/or `RB-PC-014` near the top (strong/partial match_strength)
+- `no_confident_match: false`
+
+**Save this response** — you'll paste it into Test D.
+
+### Test C — Self-match exclusion (negative test)
+```bash
+curl -s -X POST http://localhost:7741/resolve \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": "INC-100234",
+    "short_description": "Submissions stuck in Processing after upgrade",
+    "description": "New business submissions are stuck in Processing status since this mornings deployment. App logs show GosuRuntimeException in PolicyPeriod.bind()."
+  }' | python3 -m json.tool
+```
+**Expected:** `INC-100234` must **never** appear anywhere in `matches[]`.
+
+### Test D — Resolution-summary agent
+Take Test B's actual JSON response and paste it in place of `<AGENT3_RESULT>` below (as a single-line JSON string, or save it to a file and use `$(cat response.json)`):
+```bash
+curl -s -X POST http://localhost:7742/summarize \
+  -H "Content-Type: application/json" \
+  -d '{
+    "ticket": {"short_description": "Submissions stuck in Processing after upgrade", "description": "New business submissions are stuck in Processing status since this mornings deployment. App logs show GosuRuntimeException in PolicyPeriod.bind()."},
+    "agent3_result": <AGENT3_RESULT>
+  }' | python3 -m json.tool
+```
+**Expected:**
+- `grounded_ticket_ids` is a subset of the IDs that were in Test B's `matches[]`
+- `suggested_next_step` mentions the method rename / Gosu rule patch
+
+### Test E — KB resolve (main app)
+```bash
+curl -s -X POST http://localhost:8000/api/kb/resolve \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "GL audit premium moving wrong direction",
+    "description": "Audited payroll basis increased but the GL audit premium decreased instead of going up for this commercial general liability policy."
+  }' | python3 -m json.tool
+```
+**Expected:** match on `article_id: "KB-PC-AUD-001"` / `unit_id: "PC-AUD-01"`, `matched: true`.
+
+### Test F — Orchestrator (full chain, the big one)
+```bash
+curl -s -X POST http://localhost:7743/process-ticket \
+  -H "Content-Type: application/json" \
+  -d '{
+    "ticket": {
+      "short_description": "Submissions stuck in Processing after upgrade",
+      "description": "New business submissions are stuck in Processing status since this mornings deployment. App logs show GosuRuntimeException in PolicyPeriod.bind()."
+    }
+  }' | python3 -m json.tool
+```
+**Expected output (this is the one that proves everything is wired together):**
+- `agent2.module == "PolicyCenter"`
+- `agent3.matches` includes `INC-100234`/`CHAT-5512`/`RB-PC-014`
+- `agent4.grounded_ticket_ids` overlaps with `agent3.matches`' IDs
+- `agent4.kb_result` is **not** `null` (confirms the orchestrator's call to `/api/kb/resolve` on the main app succeeded)
+
+### Test G — Audit-outage saga (Saga 2, second data point so one pass isn't a fluke)
+```bash
+curl -s -X POST http://localhost:7743/process-ticket \
+  -H "Content-Type: application/json" \
+  -d '{
+    "ticket": {
+      "short_description": "PolicyCenter completely unresponsive",
+      "description": "All PolicyCenter app servers became unresponsive under high concurrent load. Suspect a deadlock related to a recently enabled audit logging feature."
+    }
+  }' | python3 -m json.tool
+```
+**Expected:** `agent3.matches` includes `INC-100480` and/or `RCA-2025-041` and/or `RB-MIM-001`; `agent2.severity` should likely be `"Emergency"` given the full-outage description.
+
+### Test H — Negative test (garbage input, must NOT force a match)
+```bash
+curl -s -X POST http://localhost:7741/resolve \
+  -H "Content-Type: application/json" \
+  -d '{
+    "short_description": "Office printer out of toner",
+    "description": "Need a replacement toner cartridge for the HP printer near the break room."
+  }' | python3 -m json.tool
+```
+**Expected:** `no_confident_match: true`, no strong matches.
+
+---
+
+Run these in order (A → H), paste me each response as you go, and I'll tell you pass/fail against the expected outcomes above.
