@@ -1,35 +1,58 @@
-Yes — your `tickets.json` (74 records) is exactly what gets ingested, tagged, embedded, and made searchable. Here's how to know, concretely, whether each piece actually works — not just "didn't error," but "returned the *right* answer." I pulled real examples from your seed data so you have known-good expected results to check against.
+Fair — additive is safer anyway (no risk of losing what you already verified). Since `step3`/`step4`/`kb_load.py` are all idempotent via content-hash, rerunning them just picks up whatever's new or still pending — nothing gets touched or lost.
 
-## Reference tickets from your own data/raw/tickets.json
+## Step A — re-seed additively (nothing truncated, nothing lost)
 
-| ID | Module | Priority | What happened | Fix |
-|---|---|---|---|---|
-| **INC-200001** | ClaimCenter | P1 | `ClaimContact.getActiveRoles()` Gosu method missing after 2026.2 upgrade, blocks closing multi-claimant claims | Renamed to `getRolesByStatus()` in the custom rule |
-| **INC-200002** | BillingCenter | P1 | Nightly disbursement batch silently failing, `NullPointerException` in `DisbursementPlugin.gs` | Null check added, batch rerun manually |
-| **INC-200003** | PolicyCenter | P2 | Commercial auto premiums 12-15% low after a config push | Misplaced decimal (0.88 vs 1.088) in rating factor table corrected |
+Confirm `.env` still has:
+```
+PG_DATABASE=Knowledgeops_gw_1536
+AZURE_PG_DATABASE=Knowledgeops_gw_1536
+EMBEDDING_DIMENSIONS=1536
+```
 
-These are your **known-good answers** — if you send a new ticket that closely resembles one of these, you know exactly what a correct response should contain, so a wrong/empty response is unambiguously a bug, not guesswork.
+```powershell
+cd backend
+python step3_populate_data.py
+```
+Content-hash skip means unchanged records (your earlier 59 auto-approved tickets, pre-existing chat_rca/runbook rows) are left untouched — only genuinely new/changed records get (re)tagged.
+
+```powershell
+python sme_review.py
+```
+This is the step you hadn't run yet. It'll surface everything still sitting at `PendingReview` — the 11 tickets flagged earlier, plus the 8 Emergency/High chat-RCA/release-note rows we found stuck. Approve what makes sense (or check its own output/flags for how it decides — it may auto-simulate approval, see what it prints).
+
+```powershell
+python step4_store_embeddings.py
+```
+Now, with `EMBEDDING_DIMENSIONS=1536` correctly set, this should succeed for **everything** newly approved — expect it to report pending rows across `ticket_records`, `chat_rca_records`, and `release_note_records` this time, not just the 3 ticket rows from before.
+
+```powershell
+cd ..
+python scripts/kb_load.py --dry-run
+python scripts/kb_load.py
+```
+
+**Verify before testing agents:**
+```powershell
+cd backend
+python query_demo.py
+cd ..
+```
+**Pass bar:** all 4 tiers (L1–L4) return at least one match now — L3 in particular, since that was the one blocked by the pending-review gate. If L3 is still empty, re-run the diagnostic SQL from before to check whether those specific rows actually got approved.
 
 ---
 
-## Test 1 — Seed data sanity (before touching any agent)
+## Step B — detailed test cases per agent, with exact expected output
 
-```sql
-SELECT curation_status, (embedding IS NULL) AS no_embedding, count(*)
-FROM ticket_records GROUP BY curation_status, no_embedding;
-```
-**Pass:** rows exist with `curation_status IN ('AutoApproved','SMEApproved')` and `no_embedding = false`. **Fail:** everything stuck at `PendingReview`/`no_embedding = true` → you skipped `sme_review.py` or `step4`.
+Using real tickets already in your `data/raw/tickets.json`, so you have ground truth to check against (not guessing whether a response "looks okay"):
 
-```sql
-SELECT count(*) FROM ticket_records WHERE source_ref_id = 'INC-200003';
-```
-**Pass:** returns `1`. If `0`, that specific ticket never made it through ingestion — check `step3`'s console output for a validation error on that record.
+| Ref ticket | Module | Priority | Issue |
+|---|---|---|---|
+| **INC-200001** | ClaimCenter | P1 | `ClaimContact.getActiveRoles()` missing after 2026.2 upgrade — renamed to `getRolesByStatus()` |
+| **INC-200002** | BillingCenter | P1 | Nightly disbursement batch NPE in `DisbursementPlugin.gs` — null check added |
+| **INC-200003** | PolicyCenter | P2 | Commercial auto premiums 12-15% low — misplaced decimal in rating factor table |
 
----
-
-## Test 2 — Classification agent (`POST localhost:8010/api/ticket-classification/classify`)
-
-Send a **new** ticket (not INC-200003's exact text — a paraphrase, to prove it's reasoning, not matching verbatim):
+### Test 1 — Classification agent
+`POST localhost:8010/api/ticket-classification/classify`
 ```json
 {
   "ticket_id": "TEST-CLS-1",
@@ -39,95 +62,58 @@ Send a **new** ticket (not INC-200003's exact text — a paraphrase, to prove it
   "status": "Open"
 }
 ```
-**Pass criteria (check each field):**
-- `module` = `"PolicyCenter"` — if it says something else, the module tagger is misreading the text.
-- `category` = something like `"ConfigurationError"` (a rating config value was wrong) — `"UpgradeRegression"` or similar would be a plausible miss, not necessarily wrong, but `"Licensing"` or `"UIRenderingBug"` would be a clear miscategorization.
-- `severity` = `"High"` — this is the deterministic check: P2 **must** map to High regardless of what the LLM would've guessed (see [agents/ticket_classification_triage/service.py:37-48](agents/ticket_classification_triage/service.py)). If severity is anything else, the priority-override logic is broken.
-- `severity_source` = `"priority"` (not `"model"`) — confirms the override actually fired.
-- `resolution_type` = `"not recorded"` — because `status` is `"Open"`, not closed. **If it returns an actual resolution type here, that's a real bug** (the guard at [service.py:76-79](agents/ticket_classification_triage/service.py) failed).
-- `confidence` — a reasonable number (>0.5 ideally, given how clear-cut this example is).
+**Expected output:**
+- `module: "PolicyCenter"`
+- `category:` something like `"ConfigurationError"`
+- `severity: "High"` and `severity_source: "priority"` — this is the hard pass/fail check: P2 **must** force `"High"` regardless of what the model would've guessed ([agents/ticket_classification_triage/service.py:37-48](agents/ticket_classification_triage/service.py)). Wrong value here = the override is broken.
+- `resolution_type: "not recorded"` — ticket is `"Open"`, so any invented resolution type here is a bug ([service.py:76-79](agents/ticket_classification_triage/service.py)).
+- `confidence` reasonably high (clear-cut example).
 
-**Fail:** HTTP 422/502/503, or any of the above fields wrong.
-
----
-
-## Test 3 — Similar-ticket agent (`POST localhost:7741/resolve`)
-
-Same paraphrased ticket:
+### Test 2 — Similar-ticket agent
+`POST localhost:7741/resolve`, same paraphrased ticket (no `id` field — it's a new ticket):
 ```json
-{
-  "id": "TEST-SIM-1",
-  "short_description": "Commercial auto premiums too low",
-  "description": "Underwriters say commercial auto premium quotes are coming in 12-15% lower than expected since last week's rating config change. Personal auto is fine."
-}
+{"short_description": "Commercial auto premiums too low", "description": "Underwriters say commercial auto premium quotes are coming in 12-15% lower than expected since last week's rating config change. Personal auto is fine."}
 ```
-**Pass criteria:**
-- `matches[0].id` should be **`INC-200003`** — this is your strongest, most concrete pass/fail signal in this whole test plan. If `INC-200003` doesn't show up at all, or shows up ranked below unrelated tickets, that's a real retrieval-quality problem (bad embedding, bad ranking, or `INC-200003` never got embedded).
-- `matches[0].match_strength` should be `"strong"` or at least `"partial"` — the description is a near-paraphrase, so a `"weak"` top match would be suspicious.
-- `matches[0].reusable_info` should reference the rating-factor/decimal fix, not something unrelated.
-- `no_confident_match` should be `false`.
+**Expected output:** `matches[0].id == "INC-200003"`, `match_strength` ∈ {`"strong"`,`"partial"`}, `reusable_info` mentions the rating-factor/decimal fix, `no_confident_match: false`. **This is your single strongest pass/fail signal** — if `INC-200003` isn't the top hit, something in embedding/ranking is off, not a matter of opinion.
 
-**Negative test — self-match exclusion** (the one the README explicitly guarantees): send the **exact same ID** that's already in the DB:
+**Negative test A — self-match must never happen:**
 ```json
 {"id": "INC-200003", "short_description": "Commercial auto premiums too low", "description": "..."}
 ```
-**Pass:** `INC-200003` must **never** appear in `matches[]`. If it does, the self-exclusion filter in [retrieval_agent/database.py:50-51](retrieval_agent/database.py) (or the agent's own copy in `agents/similar_ticket/service.py:31-36`) is broken.
+**Expected:** `INC-200003` never appears in `matches[]`.
 
-**Negative test — no match should exist:** send something unrelated to anything in your data:
+**Negative test B — unrelated input must not force a match:**
 ```json
-{"short_description": "Office printer on 3rd floor is out of toner", "description": "Need a replacement toner cartridge for the HP printer near the break room."}
+{"short_description": "Office printer out of toner", "description": "Need a replacement toner cartridge for the HP printer near the break room."}
 ```
-**Pass:** `no_confident_match: true`, and either an empty `matches[]` or only weak/low-confidence ones. **Fail:** it confidently returns a "strong" match to some Guidewire ticket — that means the fallback/confidence logic isn't actually filtering nonsense out.
+**Expected:** `no_confident_match: true`, no strong matches.
 
----
-
-## Test 4 — Resolution-summary agent (`POST localhost:7742/summarize`)
-
-Take Test 3's real response and wrap it:
+### Test 3 — Resolution-summary agent
+`POST localhost:7742/summarize`, feeding Test 2's actual response:
 ```json
-{
-  "ticket": {"id": "TEST-SIM-1", "short_description": "Commercial auto premiums too low", "description": "..."},
-  "agent3_result": { "...paste Test 3's full JSON here..." }
-}
+{"ticket": {"short_description": "Commercial auto premiums too low", "description": "..."}, "agent3_result": {"...paste Test 2's full JSON..."}}
 ```
-**Pass criteria:**
-- `grounded_ticket_ids` is a **subset** of the IDs that were actually in `agent3_result.matches` (should include `INC-200003` if it was there). If it contains an ID that wasn't in `agent3_result`, the hallucination-grounding filter at [agents/resolution_summary/service.py:54-63](agents/resolution_summary/service.py) failed.
-- `suggested_next_step` should sound like "verify the rating config value" / "check the rating factor table," not something generic/unrelated.
+**Expected:** `grounded_ticket_ids` is a subset of the IDs that were actually in `agent3_result.matches` (should include `INC-200003`), `suggested_next_step` references verifying the rating config value.
 
----
-
-## Test 5 — KB resolve (`POST localhost:8000/api/kb/resolve`)
-
-Using your actual `knowledge/units/PC-AUD-01.json` card (GL audit premium direction issue):
+### Test 4 — KB resolve
+`POST localhost:8000/api/kb/resolve`, targeting your `PC-AUD-01` card:
 ```json
 {"title": "GL audit premium moving wrong direction", "description": "Audited payroll basis increased but the GL audit premium decreased instead of going up for this commercial general liability policy."}
 ```
-**Pass:** returns a match referencing `article_id: "KB-PC-AUD-001"` or `unit_id: "PC-AUD-01"`, with `matched: true`. **Fail:** no match, or it returns an unrelated KB card (there are 13 — e.g. an `OOS` or `PRM` card instead of the `AUD` one would mean KB matching isn't discriminating properly).
+**Expected:** match on `article_id: "KB-PC-AUD-001"` / `unit_id: "PC-AUD-01"`, `matched: true`.
+
+### Test 5 — Orchestrator (`POST localhost:7743/process-ticket`)
+Same Test 1/2 ticket. **Expected cross-consistency** (this is the real integration check):
+- `agent2.module == "PolicyCenter"`
+- `agent3.matches` contains `INC-200003`
+- `agent4.grounded_ticket_ids` overlaps `agent3.matches` IDs
+- `agent4.kb_result` is not `null`
+
+If all four line up on the same ticket in one call, that's proof the whole chain is wired correctly end to end — not just each service independently returning *some* JSON.
+
+### Also re-try the ClaimCenter and BillingCenter tickets
+Repeat Test 1/2/5 with paraphrases of **INC-200001** and **INC-200002** too — one data point proves nothing; three different modules (PolicyCenter/ClaimCenter/BillingCenter) each correctly matching their own ticket is what actually proves the system generalizes rather than got lucky once.
 
 ---
 
-## Test 6 — Orchestrator full chain (`POST localhost:7743/process-ticket`)
-
-Use the Test 2/3 paraphrased ticket as the input. This is your **integration pass/fail gate** — check that the three nested results are *internally consistent*, not just individually non-null:
-- `agent2.module` (classification) should equal `agent3.matches[0].ticket.system` / the module context you'd expect (`PolicyCenter`) — if classification says one module and similar-ticket matched a totally different module's ticket as top result, something's inconsistent, not necessarily wrong, but worth a second look.
-- `agent4.grounded_ticket_ids` should overlap with `agent3.matches[].id`.
-- `agent4.kb_result` should be populated (not `null`) — confirms the orchestrator's call to the main app's `/api/kb/resolve` succeeded, not silently swallowed.
-
-**The single clearest "it's all wired correctly" signal:** if `INC-200003` shows up in `agent3.matches` **and** `agent4.grounded_ticket_ids` **and** `agent2.module == "PolicyCenter"`, all in one `/process-ticket` call — that's proof all four pieces (classification, retrieval, KB, summary) actually agree with each other on the same ticket, not just each returning *some* JSON independently.
-
----
-
-## Summary: how you'll know testing passed or failed
-
-| Signal | Pass | Fail |
-|---|---|---|
-| HTTP status | 200 everywhere | 422/502/503 anywhere |
-| Known ticket retrieval | `INC-200003` found for its paraphrase | Not found, or ranked low |
-| Self-match | Ticket never matches its own ID | It matches itself |
-| Garbage input | `no_confident_match: true`, weak/no matches | Confident match to unrelated ticket |
-| Severity override | P2 → `"High"`, `severity_source: "priority"` | Any other severity, or `source: "model"` |
-| Open ticket resolution_type | `"not recorded"` | An actual resolution type invented |
-| Grounding | `grounded_ticket_ids` ⊆ `agent3_result` match IDs | An ID appears that wasn't in agent3 |
-| Orchestrator consistency | `agent2`/`agent3`/`agent4` agree on the same ticket | Contradictory modules/IDs, or `null` sub-results |
-
-Run through these in order and tell me what you get at each one — paste the actual response bodies and I'll tell you pass/fail against this table rather than you having to judge it yourself.
+Run Step A and send me the console output the same way as before — I'll check it against these pass bars before you move to Step B.
