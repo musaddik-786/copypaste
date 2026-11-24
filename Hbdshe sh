@@ -1,2 +1,2 @@
-
-UPDATE kb_units SET content_hash = 'force-reembed-1536';
+cd /home/JarvisClaims/Agent_Verse_Rohan_GW_Agents
+python3 scripts/kb_load.py
