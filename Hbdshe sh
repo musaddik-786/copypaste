@@ -1,3 +1,5 @@
-cat /proc/version
-
-ip route | grep default
+JarvisClaims@JarvisClaims:~/Agent_Verse_Guidewire_AI_AMS$ cat /proc/version
+Linux version 6.1.0-54-cloud-amd64 (debian-kernel@lists.debian.org) (gcc-12 (Debian 12.2.0-14+deb12u1) 12.2.0, GNU ld (GNU Binutils for Debian) 2.40) #1 SMP PREEMPT_DYNAMIC Debian 6.1.190-1 (2026-10-16)
+JarvisClaims@JarvisClaims:~/Agent_Verse_Guidewire_AI_AMS$ ip route | grep default
+default via 10.0.0.1 dev eth0 proto dhcp src 10.0.0.4 metric 100 
+JarvisClaims@JarvisClaims:~/Agent_Verse_Guidewire_AI_AMS$ 
