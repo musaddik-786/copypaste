@@ -1,6 +1,14 @@
-curl -s -i -X POST http://localhost:8000/api/kb/resolve \
+JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ source /home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/bin/activate
+(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ curl -s -i -X POST http://localhost:8000/api/kb/resolve \
   -H "Content-Type: application/json" \
   -d '{
     "title": "GL audit premium moving wrong direction",
     "description": "Audited payroll basis increased but the GL audit premium decreased instead of going up for this commercial general liability policy."
   }'
+HTTP/1.1 422 Unprocessable Entity
+date: Tue, 24 Nov 2026 11:04:55 GMT
+server: uvicorn
+content-length: 69
+content-type: application/json
+
+{"detail":"PC-AUD-01: stored embedding has 3072 dims, expected 1536"}(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ 
