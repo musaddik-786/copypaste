@@ -1,6 +1,6 @@
-(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ curl -s -X POST http://localhost:7741/resolve   -H "Content-Type: application/json"   -d '{
+curl -s -i -X POST http://localhost:7741/resolve \
+  -H "Content-Type: application/json" \
+  -d '{
     "short_description": "Submissions stuck in Processing after upgrade",
     "description": "New business submissions are stuck in Processing status since this mornings deployment. App logs show GosuRuntimeException in PolicyPeriod.bind()."
-  }' | python3 -m json.tool
-Expecting value: line 1 column 1 (char 0)
-(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ 
+  }'
