@@ -1,3 +1,1 @@
-JarvisClaims@JarvisClaims:~$ sudo -u postgres psql -c "ALTER USER helpdesk_user WITH PASSWORD 'Hd7k#mQ2vXz9&pLr4Nw8';"
-ALTER ROLE
-JarvisClaims@JarvisClaims:~$ 
+sudo cat /etc/postgresql/15/main/pg_hba.conf | grep -vE '^#|^$'
