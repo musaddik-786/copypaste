@@ -687,3 +687,41 @@ bash: a: command not found
 (.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents/backend$ a
 bash: a: command not found
 (.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents/backend$ 
+
+
+
+
+(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ cd backend/
+(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents/backend$ python3 query_demo.py
+
+--- L1 Guided Resolution Agent ---
+Query: "underwriter sees new business submissions stuck in processing after upgrade"
+  [0.445] NR-RB-PC-014     RunbookOrSOP         PolicyCenter     High          CodeFix          -- Runbook: Submissions Stuck in Processing State
+  [0.460] NR-INC-100234    HistoricalTicket     PolicyCenter     Emergency     CodeFix          -- PolicyCenter submissions hang post-upgrade; patched Gosu rule to fix deprecated API usage.
+  [0.558] NR-INC-910001    HistoricalTicket     PolicyCenter     High          CodeFix          -- Commercial auto new business submission slow due to rating table lookup; fix in staging.
+
+--- L2 Resolution Intelligence Agent ---
+Query: "PolicyCenter issues similar to post-upgrade submission problems"
+  [0.511] NR-INC-100234    HistoricalTicket     PolicyCenter     Emergency     CodeFix          -- PolicyCenter submissions hang post-upgrade; patched Gosu rule to fix deprecated API usage.
+  [0.524] NR-CHAT-5512     ChatOrRCAReport      PolicyCenter     High          CodeFix          -- War-room chat: PolicyCenter submissions stuck after 2025.2.1 deploy
+  [0.585] NR-RB-PC-014     RunbookOrSOP         PolicyCenter     High          CodeFix          -- Runbook: Submissions Stuck in Processing State
+  [0.600] NR-INC-900004    HistoricalTicket     PolicyCenter     Emergency     CodeFix          -- Risk scoring widget failed due to API schema change; parsing code updated to restore scores.
+  [0.617] NR-INC-910001    HistoricalTicket     PolicyCenter     High          CodeFix          -- Commercial auto new business submission slow due to rating table lookup; fix in staging.
+  [0.619] NR-INC-700001    HistoricalTicket     PolicyCenter     Emergency     CodeFix          -- Commercial policy submissions blocked nationwide by Gosu rule error; rollback restored service.
+
+--- L3 Problem Ops & RCA Agent ---
+Query: "why do we keep seeing issues right after Guidewire upgrades"
+  [0.396] NR-RCA-2025-041  ChatOrRCAReport      PolicyCenter     Emergency     Workaround       -- RCA-2025-041: PolicyCenter Full Outage Due to Audit-Logging Deadlock
+  [0.438] NR-CHAT-5512     ChatOrRCAReport      PolicyCenter     High          CodeFix          -- War-room chat: PolicyCenter submissions stuck after 2025.2.1 deploy
+  [0.517] NR-RCA-2025-038  ChatOrRCAReport      BillingCenter    High          ConfigChange     -- RCA-2025-038: Autopay Invoice Gap - 1,200 Accounts Missed in Monthly Run
+  [0.565] NR-XENG-1913     GuidewireReleaseNote DigitalPortal    High          Workaround       -- Unable to create Workers Comp submission through the EnterpriseEngage UI
+  [0.571] NR-XENG-1806     GuidewireReleaseNote DigitalPortal    High          VendorEscalation -- Inactivity timer debug logs do not reset after an interaction
+
+--- L4 MIM Coordination Agent ---
+Query: "PolicyCenter completely down, all app servers unresponsive"
+  [0.331] NR-RB-MIM-001    RunbookOrSOP         PolicyCenter     Emergency     Workaround       -- Runbook: Full Application Outage / Unresponsive App Servers
+  [0.472] NR-RCA-2025-041  ChatOrRCAReport      PolicyCenter     Emergency     Workaround       -- RCA-2025-041: PolicyCenter Full Outage Due to Audit-Logging Deadlock
+  [0.479] NR-INC-100480    HistoricalTicket     PolicyCenter     Emergency     Workaround       -- PolicyCenter outage due to audit-logging deadlock; mitigated via feature flag rollback, patch pending.
+  [0.566] NR-INC-200005    HistoricalTicket     ContactManager   Emergency     ConfigChange     -- Session timeout misconfiguration logged out all users; reverted config and restarted servers.
+  [0.575] NR-INC-100234    HistoricalTicket     PolicyCenter     Emergency     CodeFix          -- PolicyCenter submissions hang post-upgrade; patched Gosu rule to fix deprecated API usage.
+(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents/backend$ 
