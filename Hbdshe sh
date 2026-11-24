@@ -1,6 +1,13 @@
-curl -s -i -X POST http://localhost:7741/resolve \
+(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ curl -s -i -X POST http://localhost:7741/resolve \
   -H "Content-Type: application/json" \
   -d '{
     "short_description": "Submissions stuck in Processing after upgrade",
     "description": "New business submissions are stuck in Processing status since this mornings deployment. App logs show GosuRuntimeException in PolicyPeriod.bind()."
   }'
+HTTP/1.1 500 Internal Server Error
+date: Tue, 24 Nov 2026 10:54:01 GMT
+server: uvicorn
+content-length: 21
+content-type: text/plain; charset=utf-8
+
+Internal Server Error(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ 
