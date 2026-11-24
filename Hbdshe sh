@@ -1,9 +1,94 @@
-SELECT 'chat_rca_records' AS tbl, severity, curation_status, (embedding IS NULL) AS no_embedding, count(*)
-FROM chat_rca_records
-WHERE severity IN ('Emergency','High')
-GROUP BY severity, curation_status, (embedding IS NULL)
-UNION ALL
-SELECT 'release_note_records' AS tbl, severity, curation_status, (embedding IS NULL) AS no_embedding, count(*)
-FROM release_note_records
-WHERE severity IN ('Emergency','High')
-GROUP BY severity, curation_status, (embedding IS NULL);
+Good — let's do one clean run-through, incorporating the two real things we found (the `EMBEDDING_DIMENSIONS` mismatch, and the SME-review gate needing a pass before non-ticket sources go live). One thing first, since it determines whether we wipe or reuse:
+
+Good — since `Knowledgeops_gw_1536` already exists with the correct `vector(1536)` schema (created by `db/create_new_db.py`), the cleanest "fresh" path is to truncate it rather than drop/recreate (safer, no re-running schema/extension setup). Here's the full run, start to finish.
+
+## Full from-scratch test run
+
+### Step 0 — point `.env` at the right DB, with the right dimension
+Make sure your `.env` (on your laptop) has:
+```
+PG_DATABASE=Knowledgeops_gw_1536
+AZURE_PG_DATABASE=Knowledgeops_gw_1536
+EMBEDDING_DIMENSIONS=1536
+```
+This is the fix from earlier — without it, `step4` will fail again with the same `expected 1536 dimensions, not 3072` error. `Knowledgeops_gw_1536` already has the correct `vector(1536)` schema from your earlier `db/create_new_db.py` run, so we don't need to recreate it.
+
+### Step 1 — wipe it to a true blank slate
+Connect to `Knowledgeops_gw_1536` (via your pgAdmin/VS Code Postgres extension, same place you ran the count queries) and run:
+```sql
+TRUNCATE ticket_records, chat_rca_records, release_note_records, runbook_records,
+         curation_audit_log, kb_refresh_log, ingestion_state, kb_units
+RESTART IDENTITY;
+```
+This clears every row from all 4 source tables plus the governance/audit tables and `kb_units`, so nothing is left over from the earlier test run.
+
+### Step 2 — install deps (confirms the `langgraph` fix is in place)
+```powershell
+pip install -r requirements.txt
+```
+
+### Step 3 — run the KB pipeline, in order
+```powershell
+cd backend
+python step2_create_tables.py
+python step3_populate_data.py
+python sme_review.py
+python step4_store_embeddings.py
+cd ..
+```
+- `step2` is a no-op if tables already exist (uses `IF NOT EXISTS`) — safe to run anyway.
+- `step3` ingests all 4 raw sources (`data/raw/*.json`), tags, and inserts. Expect it to process **all** 74 tickets + all release notes/chat-RCA/runbooks this time (nothing to skip via content-hash, since the table is empty).
+- **`sme_review.py` is the step we learned is required** — anything below the 0.72 auto-approve confidence lands as `PendingReview` and stays invisible to retrieval until this step approves it. Run it and approve the pending records (or confirm its default simulated-approval behavior — check what it prints) so nothing gets silently stuck this time.
+- `step4` embeds everything now cleared for embedding (`AutoApproved`/`SMEApproved` + `embedding IS NULL`) — should report rows pending across potentially **all 4 tables** this time, not just `ticket_records`, since this is a clean slate.
+
+### Step 4 — load the KB cards
+```powershell
+python scripts/kb_load.py --dry-run
+python scripts/kb_load.py
+```
+Populates `kb_units` for the `/api/kb/resolve` path.
+
+### Step 5 — verify the seed is real before touching any agent
+```powershell
+cd backend
+python query_demo.py
+cd ..
+```
+This time, check **all four** tiers (L1–L4) return matches, not just three — if L3 is still empty, rerun the diagnostic query from earlier against the fresh data to confirm whether it's a genuine no-match or another PendingReview gate:
+```sql
+SELECT tbl, severity, curation_status, no_embedding, count FROM (
+  SELECT 'chat_rca_records' AS tbl, severity, curation_status, (embedding IS NULL) AS no_embedding
+  FROM chat_rca_records WHERE severity IN ('Emergency','High')
+  UNION ALL
+  SELECT 'release_note_records', severity, curation_status, (embedding IS NULL)
+  FROM release_note_records WHERE severity IN ('Emergency','High')
+) t GROUP BY tbl, severity, curation_status, no_embedding, no_embedding;
+```
+(simplify back to the corrected two-branch version from before if this errors — same alias rule applies)
+
+### Step 6 — start all 5 servers
+```powershell
+uvicorn app.main:app --port 8000
+```
+```powershell
+python agents/ticket_classification_triage/server.py
+```
+```powershell
+python agents/similar_ticket/server.py
+```
+```powershell
+python agents/resolution_summary/server.py
+```
+```powershell
+python agents/ticket_support_orchestrator/server.py
+```
+
+### Step 7 — Swagger test sequence (same as before, now against clean, fully-verified data)
+Use a ticket description you can see in `query_demo.py`'s actual output this time (so you know it *should* match something), in this order:
+1. `localhost:8000/docs` → `POST /api/tickets/similar` and `POST /api/kb/resolve`
+2. `localhost:8010/docs` → `POST /api/ticket-classification/classify`
+3. `localhost:7741/docs` → `POST /resolve`
+4. `localhost:7742/docs` → `POST /summarize` (feed it step 3's response as `agent3_result`)
+5. `localhost:7743/docs` → `POST /process-ticket` (the full chain in one call) and `POST /chat` (streaming, via curl)
+
+Go ahead and run steps 0–5 on your laptop and paste me the output at each stage (same as before) — I'll check it the same way before you move to Swagger.
