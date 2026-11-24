@@ -1,287 +1,31 @@
-(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ cd backend/
-(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents/backend$ python3 step3_populate_data.py 
-Ingesting + tagging all 4 sources...
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='M...tions remained usable.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='D...tion of cause and fix.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='I...he severity is Normal.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='S... cause a broad outage.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='S...pport high confidence.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='C...are clearly described.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='T...tion of cause and fix."), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='D... explicitly described.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='C... explicitly described.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='C...ports high confidence.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='T... and data reprocessed.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='I...t critically impacted.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary="C...em was not fully down.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='B... explicitly described.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='L... explicitly described.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='A...are clearly described.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='F... cause and resolution.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='P...ransaction processing.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='A...are explicitly stated.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='C...rting high confidence.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='O...t critically impacted.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='E... explicitly described.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='C...tion of cause and fix.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='U... policies is affected.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='C...rting high confidence."), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='M...are clearly described.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='I...pport high confidence.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='E...rting high confidence.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='D...rting high confidence.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='P...other browser) exists.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='C...igh confidence (0.95).'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='R... cause and resolution.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='C...pport high confidence.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='R...are clearly described.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='A... billing and payments.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='M...ports high confidence.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='A...with the next refresh.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='C...t not fully confirmed.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='I...are explicitly stated.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='R...system remains usable.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='O...ocking all operations.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='P...are clearly described.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='B...rting high confidence.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='P...are clearly described."), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='C...major business impact."), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='N...the cause and the fix.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='P...cause and fix details.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='U... resolution specifics.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='A... explicitly described.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='S...ports high confidence.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='F...s not completely down.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='M... of the cause and fix.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='B...r business disruption."), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='P...bes the cause and fix."), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='C... cause and resolution.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='I... cause and resolution.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='P...ported by the context.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='A...ith no ongoing impact.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='C...remediation available."), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='B...solution is described.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='S...or resolution details."), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='D...is the correct module.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='A... and module are clear.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='P...n a resolved incident.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/pydantic/main.py:520: UserWarning: Pydantic serializer warnings:
-  PydanticSerializationUnexpectedValue(Expected `none` - serialized value may not be as expected [field_name='parsed', input_value=_TaggingResult(summary='A... not a blocking issue.'), input_type=_TaggingResult])
-  return self.__pydantic_serializer__.to_python(
-  -> 70 record(s) need (re)processing this run
-Rendering structured SOP text (no embeddings yet)...
-Running SME Curation Gate...
-  -> 59 ticket record(s) auto-approved
-  -> 11 record(s) flagged for SME review
-  -> 64 rows inserted into ticket_records (embedding = NULL)
-  -> 6 rows inserted into release_note_records (embedding = NULL)
-
-Step 3 complete. Embeddings are NOT set yet.
-Next: python sme_review.py for pending non-ticket records, then
-      python step4_store_embeddings.py to backfill embeddings for everything approved.
-(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents/backend$ 
-
-
 JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ source .venv/bin/activate
 (.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ cd backend/
-(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents/backend$ python3 step4_store_embeddings.py 
-Finding rows without an embedding yet...
-  -> 3 rows pending in ticket_records
+(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents/backend$ python3 query_demo.py 
 
-Generating embeddings for 3 rows (fitting one shared vector space across all of them)...
-  -> 3 embeddings generated, 3072 dimensions each
+--- L1 Guided Resolution Agent ---
+Query: "underwriter sees new business submissions stuck in processing after upgrade"
+  [0.460] NR-INC-100234    HistoricalTicket     PolicyCenter     Emergency     CodeFix          -- PolicyCenter submissions hang post-upgrade; patched Gosu rule to fix deprecated API usage.
+  [0.576] NR-INC-700001    HistoricalTicket     PolicyCenter     Emergency     CodeFix          -- Commercial policy submissions blocked nationwide by Gosu rule error; rollback restored service.
+  [0.596] NR-INC-930001    HistoricalTicket     PolicyCenter     Emergency     ConfigChange     -- Bind workflow failed due to missing field mapping; mapping added and binds now succeed.
 
-Writing each embedding back to its row...
-Traceback (most recent call last):
-  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/backend/step4_store_embeddings.py", line 42, in <module>
-    update_embedding(conn, table, record_id, embedding)
-  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/backend/knowledge_store.py", line 968, in update_embedding
-    cur.execute(
-  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/psycopg/cursor.py", line 117, in execute
-    raise ex.with_traceback(None)
-psycopg.errors.DataException: expected 1536 dimensions, not 3072
+--- L2 Resolution Intelligence Agent ---
+Query: "PolicyCenter issues similar to post-upgrade submission problems"
+  [0.511] NR-INC-100234    HistoricalTicket     PolicyCenter     Emergency     CodeFix          -- PolicyCenter submissions hang post-upgrade; patched Gosu rule to fix deprecated API usage.
+  [0.600] NR-INC-900004    HistoricalTicket     PolicyCenter     Emergency     CodeFix          -- Risk scoring widget failed due to API schema change; parsing code updated to restore scores.
+  [0.619] NR-INC-700001    HistoricalTicket     PolicyCenter     Emergency     CodeFix          -- Commercial policy submissions blocked nationwide by Gosu rule error; rollback restored service.
+  [0.646] NR-INC-300001    HistoricalTicket     PolicyCenter     Emergency     CodeFix          -- Texas auto policy renewals failed due to null bug; code fix and data backfill applied.
+  [0.653] NR-INC-900001    HistoricalTicket     PolicyCenter     Normal        CodeFix          -- Renewal quote screen slow; batching rating calls fixed performance for multi-vehicle policies.
+  [0.673] NR-INC-200003    HistoricalTicket     PolicyCenter     High          ConfigChange     -- Incorrect premium for commercial auto due to rating config error; multiplier corrected, quotes rerun.
+
+--- L3 Problem Ops & RCA Agent ---
+Query: "why do we keep seeing issues right after Guidewire upgrades"
+  (no matches)
+
+--- L4 MIM Coordination Agent ---
+Query: "PolicyCenter completely down, all app servers unresponsive"
+  [0.479] NR-INC-100480    HistoricalTicket     PolicyCenter     Emergency     Workaround       -- PolicyCenter outage due to audit-logging deadlock; mitigated via feature flag rollback, patch pending.
+  [0.566] NR-INC-200005    HistoricalTicket     ContactManager   Emergency     ConfigChange     -- Session timeout misconfiguration logged out all users; reverted config and restarted servers.
+  [0.575] NR-INC-100234    HistoricalTicket     PolicyCenter     Emergency     CodeFix          -- PolicyCenter submissions hang post-upgrade; patched Gosu rule to fix deprecated API usage.
+  [0.605] NR-INC-700001    HistoricalTicket     PolicyCenter     Emergency     CodeFix          -- Commercial policy submissions blocked nationwide by Gosu rule error; rollback restored service.
+  [0.615] NR-INC-500004    HistoricalTicket     BillingCenter    Emergency     RestartRecycle   -- Agent premium disbursements blocked by expired certificate; resolved by renewal and service restart.
 (.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents/backend$ 
-
-
-
-JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ kill $(lsof -t -i :8000)
-JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ uvicorn app.main:app --port 8000
-INFO:     Started server process [44809]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
-
-
-
-JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ source .venv/bin/activate
-(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ python3 ag
-ents/ticket_classification_triage/server.py
-INFO:     Started server process [45364]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     Uvicorn running on http://127.0.0.1:8010 (Press CTRL+C to quit)
-
-
-
-JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ source .venv/bin/activate
-(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ python3 ag
-ents/similar_ticket/server.py
-/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/langgraph/cache/base/__init__.py:8: LangChainPendingDeprecationWarning: The default value of `allowed_objects` will change in a future version. Pass an explicit value (e.g., allowed_objects='messages' or allowed_objects='core') to suppress this warning.
-  from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
-INFO:     Started server process [45793]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     Uvicorn running on http://0.0.0.0:7741 (Press CTRL+C to quit)
-
-
-
-JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ source .venv/bin/activate
-(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ python3 ag
-ents/resolution_summary/server.py
-INFO:     Started server process [46087]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     Uvicorn running on http://0.0.0.0:7742 (Press CTRL+C to quit)
-
-
-
-
-
-
-JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ source .venv/bin/activate
-(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ python3 ag
-ents/ticket_support_orchestrator/server.py
-INFO:     Started server process [46336]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     Uvicorn running on http://0.0.0.0:7743 (Press CTRL+C to quit)
-
-
