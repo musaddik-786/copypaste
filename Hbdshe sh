@@ -1,2 +1,6 @@
-cd /home/JarvisClaims/Agent_Verse_Rohan_GW_Agents
+(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ cd /home/JarvisClaims/Agent_Verse_Rohan_GW_Agents
 python3 scripts/kb_load.py
+Validated 13 units: PC-AUD-01, PC-AUD-02, PC-AUD-03, PC-AUD-04, PC-AUD-05, PC-AUD-06, PC-OOS-01, PC-OOS-02, PC-OOS-03, PC-OOS-04, PC-PRM-01, PC-PRM-02, PC-PRM-03
+13 new/changed, 0 unchanged
+Done.
+(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ 
