@@ -1,13 +1,296 @@
-(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ curl -s -i -X POST http://localhost:7741/resolve \
-  -H "Content-Type: application/json" \
-  -d '{
-    "short_description": "Submissions stuck in Processing after upgrade",
-    "description": "New business submissions are stuck in Processing status since this mornings deployment. App logs show GosuRuntimeException in PolicyPeriod.bind()."
-  }'
-HTTP/1.1 500 Internal Server Error
-date: Tue, 24 Nov 2026 10:54:01 GMT
-server: uvicorn
-content-length: 21
-content-type: text/plain; charset=utf-8
-
-Internal Server Error(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ 
+JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ source /home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/bin/activate
+(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ source .venv/bin/activate && python3 agents/similar_ticket/server.py
+/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/langgraph/cache/base/__init__.py:8: LangChainPendingDeprecationWarning: The default value of `allowed_objects` will change in a future version. Pass an explicit value (e.g., allowed_objects='messages' or allowed_objects='core') to suppress this warning.
+  from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
+INFO:     Started server process [107538]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:7741 (Press CTRL+C to quit)
+INFO:     127.0.0.1:55110 - "POST /resolve HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 422, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 63, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/fastapi/applications.py", line 1224, in __call__
+    await super().__call__(scope, receive, send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/starlette/applications.py", line 96, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/fastapi/telemetry/_asgi.py", line 151, in __call__
+    await self.app(scope, receive, send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/fastapi/_body_limit.py", line 80, in __call__
+    await self.app(scope, receive, send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/starlette/middleware/cors.py", line 91, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/starlette/middleware/cors.py", line 149, in simple_response
+    await self.app(scope, receive, send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/starlette/routing.py", line 683, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 2929, in app
+    await route.handle(scope, receive, send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 1375, in handle
+    await super().handle(scope, receive, send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/starlette/routing.py", line 289, in handle
+    await self.app(scope, receive, send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 175, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 161, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 762, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 381, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/agents/similar_ticket/server.py", line 114, in resolve
+    return resolve_similar(ticket)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/agents/similar_ticket/service.py", line 39, in resolve_similar
+    return retrieve(
+           ^^^^^^^^^
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/retrieval_agent/pipeline.py", line 270, in retrieve
+    ranked = rank_candidates(ticket, records, embed_query(query), settings)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/retrieval_agent/pipeline.py", line 151, in rank_candidates
+    fused += _temporal_boost(record.get("created"), settings)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/retrieval_agent/pipeline.py", line 99, in _temporal_boost
+    days_ago = (now - created).days
+                ~~~~^~~~~~~~~
+TypeError: can't subtract offset-naive and offset-aware datetimes
+INFO:     127.0.0.1:44576 - "POST /resolve HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 422, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 63, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/fastapi/applications.py", line 1224, in __call__
+    await super().__call__(scope, receive, send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/starlette/applications.py", line 96, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/fastapi/telemetry/_asgi.py", line 151, in __call__
+    await self.app(scope, receive, send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/fastapi/_body_limit.py", line 80, in __call__
+    await self.app(scope, receive, send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/starlette/middleware/cors.py", line 91, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/starlette/middleware/cors.py", line 149, in simple_response
+    await self.app(scope, receive, send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/starlette/routing.py", line 683, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 2929, in app
+    await route.handle(scope, receive, send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 1375, in handle
+    await super().handle(scope, receive, send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/starlette/routing.py", line 289, in handle
+    await self.app(scope, receive, send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 175, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 161, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 762, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 381, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/agents/similar_ticket/server.py", line 114, in resolve
+    return resolve_similar(ticket)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/agents/similar_ticket/service.py", line 39, in resolve_similar
+    return retrieve(
+           ^^^^^^^^^
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/retrieval_agent/pipeline.py", line 270, in retrieve
+    ranked = rank_candidates(ticket, records, embed_query(query), settings)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/retrieval_agent/pipeline.py", line 151, in rank_candidates
+    fused += _temporal_boost(record.get("created"), settings)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/retrieval_agent/pipeline.py", line 99, in _temporal_boost
+    days_ago = (now - created).days
+                ~~~~^~~~~~~~~
+TypeError: can't subtract offset-naive and offset-aware datetimes
+INFO:     127.0.0.1:51432 - "POST /resolve HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 422, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 63, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/fastapi/applications.py", line 1224, in __call__
+    await super().__call__(scope, receive, send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/starlette/applications.py", line 96, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/fastapi/telemetry/_asgi.py", line 151, in __call__
+    await self.app(scope, receive, send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/fastapi/_body_limit.py", line 80, in __call__
+    await self.app(scope, receive, send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/starlette/middleware/cors.py", line 91, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/starlette/middleware/cors.py", line 149, in simple_response
+    await self.app(scope, receive, send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/starlette/routing.py", line 683, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 2929, in app
+    await route.handle(scope, receive, send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 1375, in handle
+    await super().handle(scope, receive, send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/starlette/routing.py", line 289, in handle
+    await self.app(scope, receive, send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 175, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 161, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 762, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 381, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/agents/similar_ticket/server.py", line 114, in resolve
+    return resolve_similar(ticket)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/agents/similar_ticket/service.py", line 39, in resolve_similar
+    return retrieve(
+           ^^^^^^^^^
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/retrieval_agent/pipeline.py", line 270, in retrieve
+    ranked = rank_candidates(ticket, records, embed_query(query), settings)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/retrieval_agent/pipeline.py", line 151, in rank_candidates
+    fused += _temporal_boost(record.get("created"), settings)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/retrieval_agent/pipeline.py", line 99, in _temporal_boost
+    days_ago = (now - created).days
+                ~~~~^~~~~~~~~
+TypeError: can't subtract offset-naive and offset-aware datetimes
+INFO:     127.0.0.1:58316 - "POST /resolve HTTP/1.1" 500 Internal Server Error
+ERROR:    Exception in ASGI application
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/uvicorn/protocols/http/httptools_impl.py", line 422, in run_asgi
+    result = await app(  # type: ignore[func-returns-value]
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/uvicorn/middleware/proxy_headers.py", line 63, in __call__
+    return await self.app(scope, receive, send)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/fastapi/applications.py", line 1224, in __call__
+    await super().__call__(scope, receive, send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/starlette/applications.py", line 96, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/starlette/middleware/errors.py", line 186, in __call__
+    raise exc
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/starlette/middleware/errors.py", line 164, in __call__
+    await self.app(scope, receive, _send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/fastapi/telemetry/_asgi.py", line 151, in __call__
+    await self.app(scope, receive, send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/fastapi/_body_limit.py", line 80, in __call__
+    await self.app(scope, receive, send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/starlette/middleware/cors.py", line 91, in __call__
+    await self.simple_response(scope, receive, send, request_headers=headers)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/starlette/middleware/cors.py", line 149, in simple_response
+    await self.app(scope, receive, send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 63, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/fastapi/middleware/asyncexitstack.py", line 18, in __call__
+    await self.app(scope, receive, send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/starlette/routing.py", line 683, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 2929, in app
+    await route.handle(scope, receive, send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 1375, in handle
+    await super().handle(scope, receive, send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/starlette/routing.py", line 289, in handle
+    await self.app(scope, receive, send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 175, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
+    raise exc
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 42, in wrapped_app
+    await app(scope, receive, sender)
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 161, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 762, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/lib/python3.11/site-packages/fastapi/routing.py", line 381, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/agents/similar_ticket/server.py", line 114, in resolve
+    return resolve_similar(ticket)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/agents/similar_ticket/service.py", line 39, in resolve_similar
+    return retrieve(
+           ^^^^^^^^^
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/retrieval_agent/pipeline.py", line 270, in retrieve
+    ranked = rank_candidates(ticket, records, embed_query(query), settings)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/retrieval_agent/pipeline.py", line 151, in rank_candidates
+    fused += _temporal_boost(record.get("created"), settings)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/retrieval_agent/pipeline.py", line 99, in _temporal_boost
+    days_ago = (now - created).days
+                ~~~~^~~~~~~~~
+TypeError: can't subtract offset-naive and offset-aware datetimes
