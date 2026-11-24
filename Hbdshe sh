@@ -1,15 +1,3 @@
-JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ source /home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/bin/activate
-(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ curl -s -i -X POST http://localhost:7741/resolve \
-  -H "Content-Type: application/json" \
-  -d '{
-    "short_description": "Office printer out of toner",
-    "description": "Need a replacement toner cartridge for the HP printer near the break room."
-  }'
-HTTP/1.1 200 OK
-date: Tue, 24 Nov 2026 11:13:24 GMT
-server: uvicorn
-content-length: 1725
-content-type: application/json
-vary: Origin
+cat /proc/version
 
-{"new_ticket_assessment":{"itil_type":"Service Request","suggested_level":"L1","system":"Office printer (HP, break room)","failure_pattern":"Printer out of toner; requires replacement cartridge","confidence":"high"},"matches":[{"id":"INC-200005","rank":1,"match_strength":"weak","why_similar":"Both involve user disruption and require intervention to restore normal function.","what_differs":"INC-200005 is an application session timeout misconfiguration affecting ContactManager, not a hardware supply issue. The new ticket is a physical printer consumable request.","reusable_info":"not recorded","missing_info":["printer model","toner part number","urgency","resolution","rca"]},{"id":"INC-600003","rank":2,"match_strength":"weak","why_similar":"Both relate to printing issues impacting business processes.","what_differs":"INC-600003 is about incorrect payee names on printed checks due to a template configuration error in BillingCenter, not a hardware or supply issue. The new ticket is a request for printer toner.","reusable_info":"not recorded","missing_info":["printer model","toner part number","urgency","resolution","rca"]}],"no_confident_match":true,"suggested_next_step":"Assign to L1 Service Desk for fulfillment. Confirm printer model and toner cartridge type, check stock, and dispatch replacement. No similar past incident or problem record found.","plain_summary":"Assessment: Service Request / L1\nTop match: INC-200005 (weak) - Both involve user disruption and require intervention to restore normal function.\nNext step: Assign to L1 Service Desk for fulfillment. Confirm printer model and toner cartridge type, check stock, and dispatch replacement. No similar past incident or problem record found."}(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ 
+ip route | grep default
