@@ -1,1 +1,11 @@
-sudo cat /etc/postgresql/15/main/pg_hba.conf | grep -vE '^#|^$'
+JarvisClaims@JarvisClaims:~$ sudo -u postgres psql -c "ALTER USER helpdesk_user WITH PASSWORD 'Hd7k#mQ2vXz9&pLr4Nw8';"
+ALTER ROLE
+JarvisClaims@JarvisClaims:~$ sudo cat /etc/postgresql/15/main/pg_hba.conf | grep -vE '^#|^$'
+local   all             postgres                                peer
+local   all             all                                     peer
+host    all             all             127.0.0.1/32            scram-sha-256
+host    all             all             ::1/128                 scram-sha-256
+local   replication     all                                     peer
+host    replication     all             127.0.0.1/32            scram-sha-256
+host    replication     all             ::1/128                 scram-sha-256
+JarvisClaims@JarvisClaims:~$ 
