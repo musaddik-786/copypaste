@@ -1,7 +1,15 @@
-sudo -u postgres psql -c "CREATE USER helpdesk_user WITH PASSWORD 'change_me_later';"
+JarvisClaims@JarvisClaims:~/pgvector$ sudo -u postgres psql -c "CREATE USER helpdesk_user WITH PASSWORD 'change_me_later';"
 sudo -u postgres psql -c "CREATE DATABASE helpdesk_db OWNER helpdesk_user;"
 sudo -u postgres psql -d helpdesk_db -c "CREATE EXTENSION IF NOT EXISTS vector;"
+CREATE ROLE
+CREATE DATABASE
+CREATE EXTENSION
+JarvisClaims@JarvisClaims:~/pgvector$ sudo -u postgres psql -d helpdesk_db -c "\dx"
+                             List of installed extensions
+  Name   | Version |   Schema   |                     Description                      
+---------+---------+------------+------------------------------------------------------
+ plpgsql | 1.0     | pg_catalog | PL/pgSQL procedural language
+ vector  | 0.7.4   | public     | vector data type and ivfflat and hnsw access methods
+(2 rows)
 
-
-
-sudo -u postgres psql -d helpdesk_db -c "\dx"
+JarvisClaims@JarvisClaims:~/pgvector$ 
