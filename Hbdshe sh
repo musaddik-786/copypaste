@@ -1,31 +1,3 @@
-JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ source .venv/bin/activate
-(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ cd backend/
-(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents/backend$ python3 query_demo.py 
-
---- L1 Guided Resolution Agent ---
-Query: "underwriter sees new business submissions stuck in processing after upgrade"
-  [0.460] NR-INC-100234    HistoricalTicket     PolicyCenter     Emergency     CodeFix          -- PolicyCenter submissions hang post-upgrade; patched Gosu rule to fix deprecated API usage.
-  [0.576] NR-INC-700001    HistoricalTicket     PolicyCenter     Emergency     CodeFix          -- Commercial policy submissions blocked nationwide by Gosu rule error; rollback restored service.
-  [0.596] NR-INC-930001    HistoricalTicket     PolicyCenter     Emergency     ConfigChange     -- Bind workflow failed due to missing field mapping; mapping added and binds now succeed.
-
---- L2 Resolution Intelligence Agent ---
-Query: "PolicyCenter issues similar to post-upgrade submission problems"
-  [0.511] NR-INC-100234    HistoricalTicket     PolicyCenter     Emergency     CodeFix          -- PolicyCenter submissions hang post-upgrade; patched Gosu rule to fix deprecated API usage.
-  [0.600] NR-INC-900004    HistoricalTicket     PolicyCenter     Emergency     CodeFix          -- Risk scoring widget failed due to API schema change; parsing code updated to restore scores.
-  [0.619] NR-INC-700001    HistoricalTicket     PolicyCenter     Emergency     CodeFix          -- Commercial policy submissions blocked nationwide by Gosu rule error; rollback restored service.
-  [0.646] NR-INC-300001    HistoricalTicket     PolicyCenter     Emergency     CodeFix          -- Texas auto policy renewals failed due to null bug; code fix and data backfill applied.
-  [0.653] NR-INC-900001    HistoricalTicket     PolicyCenter     Normal        CodeFix          -- Renewal quote screen slow; batching rating calls fixed performance for multi-vehicle policies.
-  [0.673] NR-INC-200003    HistoricalTicket     PolicyCenter     High          ConfigChange     -- Incorrect premium for commercial auto due to rating config error; multiplier corrected, quotes rerun.
-
---- L3 Problem Ops & RCA Agent ---
-Query: "why do we keep seeing issues right after Guidewire upgrades"
-  (no matches)
-
---- L4 MIM Coordination Agent ---
-Query: "PolicyCenter completely down, all app servers unresponsive"
-  [0.479] NR-INC-100480    HistoricalTicket     PolicyCenter     Emergency     Workaround       -- PolicyCenter outage due to audit-logging deadlock; mitigated via feature flag rollback, patch pending.
-  [0.566] NR-INC-200005    HistoricalTicket     ContactManager   Emergency     ConfigChange     -- Session timeout misconfiguration logged out all users; reverted config and restarted servers.
-  [0.575] NR-INC-100234    HistoricalTicket     PolicyCenter     Emergency     CodeFix          -- PolicyCenter submissions hang post-upgrade; patched Gosu rule to fix deprecated API usage.
-  [0.605] NR-INC-700001    HistoricalTicket     PolicyCenter     Emergency     CodeFix          -- Commercial policy submissions blocked nationwide by Gosu rule error; rollback restored service.
-  [0.615] NR-INC-500004    HistoricalTicket     BillingCenter    Emergency     RestartRecycle   -- Agent premium disbursements blocked by expired certificate; resolved by renewal and service restart.
-(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents/backend$ 
+SELECT 'chat_rca_records' AS tbl, severity, count(*) FROM chat_rca_records GROUP BY severity
+UNION ALL
+SELECT 'release_note_records', severity, count(*) FROM release_note_records GROUP BY severity;
