@@ -1,48 +1,5 @@
-Here's the complete, copy-paste-ready sequence for your VS Code terminal (your environment is bash/Linux based on the logs you've pasted, so I'll use `curl`, not PowerShell).
-
-## 1. Start all 5 servers — one in each terminal tab
-
-Open 5 terminal tabs in VS Code (`Ctrl+Shift+` ` each time), activate the venv in each, and run one command per tab:
-
-**Tab 1 — main app**
-```bash
-source .venv/bin/activate && uvicorn app.main:app --port 8000
-```
-**Expected:** `Uvicorn running on http://127.0.0.1:8000` — no traceback.
-
-**Tab 2 — classification agent**
-```bash
-source .venv/bin/activate && python3 agents/ticket_classification_triage/server.py
-```
-**Expected:** `Uvicorn running on http://0.0.0.0:8010`.
-
-**Tab 3 — similar-ticket agent**
-```bash
-source .venv/bin/activate && python3 agents/similar_ticket/server.py
-```
-**Expected:** `Uvicorn running on http://0.0.0.0:7741` (the LangChain deprecation warning is fine, ignore it).
-
-**Tab 4 — resolution-summary agent**
-```bash
-source .venv/bin/activate && python3 agents/resolution_summary/server.py
-```
-**Expected:** `Uvicorn running on http://0.0.0.0:7742`.
-
-**Tab 5 — orchestrator**
-```bash
-source .venv/bin/activate && python3 agents/ticket_support_orchestrator/server.py
-```
-**Expected:** `Uvicorn running on http://0.0.0.0:7743`.
-
-Leave all 5 running. Open a **6th terminal tab** for the actual test commands below.
-
----
-
-## 2. Test commands (run each in Tab 6, one at a time)
-
-### Test A — Classification agent
-```bash
-curl -s -X POST http://localhost:8010/api/ticket-classification/classify \
+JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ source /home/JarvisClaims/Agent_Verse_Rohan_GW_Agents/.venv/bin/activate
+(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ curl -s -X POST http://localhost:8010/api/ticket-classification/classify \
   -H "Content-Type: application/json" \
   -d '{
     "ticket_id": "TEST-CLS-1",
@@ -51,106 +8,18 @@ curl -s -X POST http://localhost:8010/api/ticket-classification/classify \
     "priority": "P2",
     "status": "Open"
   }' | python3 -m json.tool
-```
-**Expected output (check each field):**
-- `"module": "PolicyCenter"`
-- `"severity": "High"`, `"severity_source": "priority"` ← hard pass/fail check (P2 must force High)
-- `"resolution_type": "not recorded"` ← ticket is Open, must not invent a fix type
-- `"category"` something like `"ConfigurationError"`
-
-### Test B — Similar-ticket agent (use Saga 1: PolicyPeriod rename)
-```bash
-curl -s -X POST http://localhost:7741/resolve \
-  -H "Content-Type: application/json" \
-  -d '{
-    "short_description": "Submissions stuck in Processing after upgrade",
-    "description": "New business submissions are stuck in Processing status since this mornings deployment. App logs show GosuRuntimeException in PolicyPeriod.bind()."
-  }' | python3 -m json.tool
-```
-**Expected output:**
-- `matches[]` should include `INC-100234` and/or `CHAT-5512` and/or `RB-PC-014` near the top (strong/partial match_strength)
-- `no_confident_match: false`
-
-**Save this response** — you'll paste it into Test D.
-
-### Test C — Self-match exclusion (negative test)
-```bash
-curl -s -X POST http://localhost:7741/resolve \
-  -H "Content-Type: application/json" \
-  -d '{
-    "id": "INC-100234",
-    "short_description": "Submissions stuck in Processing after upgrade",
-    "description": "New business submissions are stuck in Processing status since this mornings deployment. App logs show GosuRuntimeException in PolicyPeriod.bind()."
-  }' | python3 -m json.tool
-```
-**Expected:** `INC-100234` must **never** appear anywhere in `matches[]`.
-
-### Test D — Resolution-summary agent
-Take Test B's actual JSON response and paste it in place of `<AGENT3_RESULT>` below (as a single-line JSON string, or save it to a file and use `$(cat response.json)`):
-```bash
-curl -s -X POST http://localhost:7742/summarize \
-  -H "Content-Type: application/json" \
-  -d '{
-    "ticket": {"short_description": "Submissions stuck in Processing after upgrade", "description": "New business submissions are stuck in Processing status since this mornings deployment. App logs show GosuRuntimeException in PolicyPeriod.bind()."},
-    "agent3_result": <AGENT3_RESULT>
-  }' | python3 -m json.tool
-```
-**Expected:**
-- `grounded_ticket_ids` is a subset of the IDs that were in Test B's `matches[]`
-- `suggested_next_step` mentions the method rename / Gosu rule patch
-
-### Test E — KB resolve (main app)
-```bash
-curl -s -X POST http://localhost:8000/api/kb/resolve \
-  -H "Content-Type: application/json" \
-  -d '{
-    "title": "GL audit premium moving wrong direction",
-    "description": "Audited payroll basis increased but the GL audit premium decreased instead of going up for this commercial general liability policy."
-  }' | python3 -m json.tool
-```
-**Expected:** match on `article_id: "KB-PC-AUD-001"` / `unit_id: "PC-AUD-01"`, `matched: true`.
-
-### Test F — Orchestrator (full chain, the big one)
-```bash
-curl -s -X POST http://localhost:7743/process-ticket \
-  -H "Content-Type: application/json" \
-  -d '{
-    "ticket": {
-      "short_description": "Submissions stuck in Processing after upgrade",
-      "description": "New business submissions are stuck in Processing status since this mornings deployment. App logs show GosuRuntimeException in PolicyPeriod.bind()."
-    }
-  }' | python3 -m json.tool
-```
-**Expected output (this is the one that proves everything is wired together):**
-- `agent2.module == "PolicyCenter"`
-- `agent3.matches` includes `INC-100234`/`CHAT-5512`/`RB-PC-014`
-- `agent4.grounded_ticket_ids` overlaps with `agent3.matches`' IDs
-- `agent4.kb_result` is **not** `null` (confirms the orchestrator's call to `/api/kb/resolve` on the main app succeeded)
-
-### Test G — Audit-outage saga (Saga 2, second data point so one pass isn't a fluke)
-```bash
-curl -s -X POST http://localhost:7743/process-ticket \
-  -H "Content-Type: application/json" \
-  -d '{
-    "ticket": {
-      "short_description": "PolicyCenter completely unresponsive",
-      "description": "All PolicyCenter app servers became unresponsive under high concurrent load. Suspect a deadlock related to a recently enabled audit logging feature."
-    }
-  }' | python3 -m json.tool
-```
-**Expected:** `agent3.matches` includes `INC-100480` and/or `RCA-2025-041` and/or `RB-MIM-001`; `agent2.severity` should likely be `"Emergency"` given the full-outage description.
-
-### Test H — Negative test (garbage input, must NOT force a match)
-```bash
-curl -s -X POST http://localhost:7741/resolve \
-  -H "Content-Type: application/json" \
-  -d '{
-    "short_description": "Office printer out of toner",
-    "description": "Need a replacement toner cartridge for the HP printer near the break room."
-  }' | python3 -m json.tool
-```
-**Expected:** `no_confident_match: true`, no strong matches.
-
----
-
-Run these in order (A → H), paste me each response as you go, and I'll tell you pass/fail against the expected outcomes above.
+{
+    "ticket_id": "TEST-CLS-1",
+    "summary": "Commercial auto premium quotes are 12-15% lower than expected after recent rating configuration change; personal auto unaffected.",
+    "itil_type": "Incident",
+    "suggested_level": "L2",
+    "module": "Rating/Gosu",
+    "category": "ConfigurationError",
+    "severity": "High",
+    "severity_source": "priority",
+    "resolution_type": "not recorded",
+    "failure_pattern": "Commercial auto premiums consistently lower post-rating config change; personal auto unaffected.",
+    "confidence": 0.95,
+    "reasoning": "Ticket describes a deviation in commercial auto premium calculations following a configuration change, indicating an incident likely requiring L2 investigation. Module is Rating/Gosu due to rating config involvement. Severity is High based on priority P2 and business impact. Resolution type is not recorded as ticket is open and lacks resolution notes."
+}
+(.venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Rohan_GW_Agents$ 
