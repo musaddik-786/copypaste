@@ -1,1 +1,3 @@
-sudo -u postgres psql -c "ALTER USER helpdesk_user WITH PASSWORD 'Hd7k#mQ2vXz9&pLr4Nw8';"
+JarvisClaims@JarvisClaims:~$ sudo -u postgres psql -c "ALTER USER helpdesk_user WITH PASSWORD 'Hd7k#mQ2vXz9&pLr4Nw8';"
+ALTER ROLE
+JarvisClaims@JarvisClaims:~$ 
