@@ -1,101 +1,86 @@
-import { useState } from "react";
-import { AlertTriangle, Loader2, Tag } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { ChevronRight, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { classifyTicket } from "@/lib/api";
-import { classificationToTicketPatch, type ClassificationResult, type Ticket } from "@/lib/types";
+import { Badge } from "@/components/ui/badge";
+import type { Ticket } from "@/lib/types";
+import { SimilarTicketsPanel } from "@/components/similar-tickets-panel";
+import { FixWorkbench } from "@/components/fix-workbench";
+import { ClassificationPanel } from "@/components/classification-panel";
 
-interface Props {
-  ticket: Ticket;
+interface TicketDetailDialogProps {
+  ticket: Ticket | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   onClassified: (patch: Partial<Ticket> & { recordId: string }) => void;
 }
 
-function curationBadgeClass(status: string) {
-  switch (status) {
-    case "AutoApproved":
-    case "SMEApproved":
-      return "bg-success/10 text-success";
-    case "PendingReview":
-      return "bg-secondary text-secondary-foreground";
-    default:
-      return "bg-muted text-muted-foreground";
-  }
+function formatTimestamp(value: string | null): string {
+  if (!value) return "Open";
+  return new Date(value).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
 }
 
-/** Ticket Classification & Triage Agent: tags/retags this ticket against the controlled
- * taxonomy (module/category/severity/resolution_type), same as backend/ingestion.py uses
- * for the batch knowledge pipeline. This is what clears "Needs Retag" on an osTicket-synced
- * ticket -- see app/routers/classify.py. */
-export function ClassificationPanel({ ticket, onClassified }: Props) {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  const [result, setResult] = useState<ClassificationResult | null>(null);
+function Row({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-start justify-between gap-4 border-b border-border py-2.5 last:border-0">
+      <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</dt>
+      <dd className="text-right text-sm font-medium text-slate-900">{value}</dd>
+    </div>
+  );
+}
 
-  const needsRetag = ticket.curationStatus === "NeedsRetag";
+const Card = ({ title, children }: { title: string; children: React.ReactNode }) => (
+  <section className="rounded-lg border border-border bg-card shadow-sm">
+    <h2 className="border-b border-border px-5 py-3 text-sm font-semibold text-[#0B2A4A]">{title}</h2>
+    <div className="p-5">{children}</div>
+  </section>
+);
 
-  const run = async () => {
-    setBusy(true);
-    setError("");
-    try {
-      const r = await classifyTicket(ticket.recordId);
-      setResult(r);
-      onClassified(classificationToTicketPatch(r));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong");
-    } finally {
-      setBusy(false);
-    }
-  };
+export function TicketDetailDialog({ ticket, open, onOpenChange, onClassified }: TicketDetailDialogProps) {
+  if (!ticket || !open) return null;
 
   return (
-    <section className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-[#0B2A4A]/5 px-5 py-3 text-[#0B2A4A]">
-        <div className="flex items-center gap-2 font-semibold">
-          <Tag className="h-4 w-4 text-primary" /> Classification &amp; Triage
+    <div className="fixed bottom-0 left-64 right-0 top-12 z-50 overflow-y-auto bg-background">
+      <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-border bg-card px-8 py-3 shadow-sm">
+        <div className="min-w-0">
+          <nav className="flex items-center gap-1 text-xs text-slate-500">
+            <button type="button" className="hover:underline" onClick={() => onOpenChange(false)}>AI Insights</button>
+            <ChevronRight className="h-3 w-3" /> <span>Ticket #{ticket.id}</span>
+          </nav>
+          <h1 className="truncate text-lg font-bold text-[#0B2A4A]">{ticket.title}</h1>
         </div>
-        {needsRetag && !result && (
-          <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-800">
-            Needs Retag
-          </Badge>
-        )}
+        <Button variant="outline" onClick={() => onOpenChange(false)}><X className="mr-1 h-4 w-4" />Close</Button>
       </div>
 
-      <div className="space-y-3 px-5 py-4 text-sm">
-        {error && (
-          <p className="flex items-center gap-2 text-destructive">
-            <AlertTriangle className="h-4 w-4" />
-            {error}
-          </p>
-        )}
+      <div className="mx-auto grid max-w-[1400px] gap-6 px-8 py-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="space-y-6">
+          <Card title="Description">
+            <p className="text-sm leading-relaxed text-slate-700">{ticket.description}</p>
+          </Card>
+          <ClassificationPanel ticket={ticket} onClassified={onClassified} />
+          <FixWorkbench ticket={{ id: ticket.id, title: ticket.title, description: ticket.description }} />
+          <SimilarTicketsPanel
+            auto
+            query={{ id: ticket.id, title: ticket.title, description: ticket.description, module: ticket.module,
+              severity: ticket.severity, created: ticket.createdAt ?? undefined }}
+          />
+        </div>
 
-        <Button onClick={run} disabled={busy}>
-          {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {busy ? "Classifying…" : needsRetag ? "Classify ticket" : "Re-classify ticket"}
-        </Button>
-
-        {result && (
-          <div className="space-y-2 rounded-md border border-border bg-muted/30 p-3">
-            <div>
-              <span className="font-medium">Summary: </span>
-              {result.summary}
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Badge variant="outline">{result.module}</Badge>
-              <Badge variant="outline">{result.category}</Badge>
-              <Badge variant="outline">
-                {result.severity}
-                {result.severity_source === "priority" ? " (from priority)" : " (model)"}
-              </Badge>
-              <Badge variant="outline">{result.resolution_type ?? "not recorded"}</Badge>
-              <Badge variant="outline">Confidence {(result.tagging_confidence * 100).toFixed(0)}%</Badge>
-              <Badge className={curationBadgeClass(result.curation_status)}>{result.curation_status}</Badge>
-            </div>
-            {result.tagging_reasoning && (
-              <p className="text-muted-foreground">{result.tagging_reasoning}</p>
-            )}
-          </div>
-        )}
+        <aside className="h-fit lg:sticky lg:top-24">
+          <Card title="Ticket details">
+            <dl>
+              <Row label="Ticket" value={`#${ticket.id}`} />
+              <Row label="Module" value={<Badge variant="outline">{ticket.module}</Badge>} />
+              <Row label="Severity" value={ticket.severity} />
+              <Row label="Category" value={ticket.category} />
+              <Row label="Assignee team" value={ticket.assigneeTeam ?? "—"} />
+              <Row label="Resolution type" value={ticket.resolutionType} />
+              <Row label="Curation" value={<Badge>{ticket.curationStatus}</Badge>} />
+              <Row label="Version" value={ticket.guidewireVersion ?? "—"} />
+              <Row label="Created" value={formatTimestamp(ticket.createdAt)} />
+              <Row label="Closed" value={formatTimestamp(ticket.closedAt)} />
+            </dl>
+          </Card>
+        </aside>
       </div>
-    </section>
+    </div>
   );
 }
