@@ -1,109 +1,101 @@
-import { mapTicketRow, type ClassificationResult, type KbResolveResult, type SimilarQuery, type SimilarResult, type Ticket, type TicketRecordRow } from "./types";
+import { useState } from "react";
+import { AlertTriangle, Loader2, Tag } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { classifyTicket } from "@/lib/api";
+import { classificationToTicketPatch, type ClassificationResult, type Ticket } from "@/lib/types";
 
-async function getJson<T>(url: string): Promise<T> {
-  const res = await fetch(url);
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.error || `Request to ${url} failed with ${res.status}`);
+interface Props {
+  ticket: Ticket;
+  onClassified: (patch: Partial<Ticket> & { recordId: string }) => void;
+}
+
+function curationBadgeClass(status: string) {
+  switch (status) {
+    case "AutoApproved":
+    case "SMEApproved":
+      return "bg-success/10 text-success";
+    case "PendingReview":
+      return "bg-secondary text-secondary-foreground";
+    default:
+      return "bg-muted text-muted-foreground";
   }
-  return res.json();
 }
 
-export async function fetchTickets(): Promise<Ticket[]> {
-  const rows = await getJson<TicketRecordRow[]>("/api/tickets");
-  return rows.map(mapTicketRow);
-}
+/** Ticket Classification & Triage Agent: tags/retags this ticket against the controlled
+ * taxonomy (module/category/severity/resolution_type), same as backend/ingestion.py uses
+ * for the batch knowledge pipeline. This is what clears "Needs Retag" on an osTicket-synced
+ * ticket -- see app/routers/classify.py. */
+export function ClassificationPanel({ ticket, onClassified }: Props) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [result, setResult] = useState<ClassificationResult | null>(null);
 
-export async function fetchModules(): Promise<string[]> {
-  return getJson<string[]>("/api/modules");
-}
+  const needsRetag = ticket.curationStatus === "NeedsRetag";
 
-export async function fetchAssigneeTeams(): Promise<string[]> {
-  return getJson<string[]>("/api/assignee-teams");
-}
+  const run = async () => {
+    setBusy(true);
+    setError("");
+    try {
+      const r = await classifyTicket(ticket.recordId);
+      setResult(r);
+      onClassified(classificationToTicketPatch(r));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Something went wrong");
+    } finally {
+      setBusy(false);
+    }
+  };
 
-export async function classifyTicket(recordId: string): Promise<ClassificationResult> {
-  const res = await fetch(`/api/classify/${encodeURIComponent(recordId)}`, { method: "POST" });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.detail || body.error || `Classification failed (${res.status})`);
-  }
-  return res.json();
-}
+  return (
+    <section className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-[#0B2A4A]/5 px-5 py-3 text-[#0B2A4A]">
+        <div className="flex items-center gap-2 font-semibold">
+          <Tag className="h-4 w-4 text-primary" /> Classification &amp; Triage
+        </div>
+        {needsRetag && !result && (
+          <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-800">
+            Needs Retag
+          </Badge>
+        )}
+      </div>
 
-export async function fetchSimilarTickets(query: SimilarQuery): Promise<SimilarResult> {
-  const res = await fetch("/api/tickets/similar", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(query),
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.detail || body.error || `Similar-ticket search failed (${res.status})`);
-  }
-  return res.json();
-}
+      <div className="space-y-3 px-5 py-4 text-sm">
+        {error && (
+          <p className="flex items-center gap-2 text-destructive">
+            <AlertTriangle className="h-4 w-4" />
+            {error}
+          </p>
+        )}
 
-export async function resolveKbCard(query: { id?: string; title?: string; description?: string }): Promise<KbResolveResult> {
-  const res = await fetch("/api/kb/resolve", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(query),
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.detail || body.error || `Suggested-fix lookup failed (${res.status})`);
-  }
-  return res.json();
-}
+        <Button onClick={run} disabled={busy}>
+          {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {busy ? "Classifying…" : needsRetag ? "Classify ticket" : "Re-classify ticket"}
+        </Button>
 
-async function fixCall<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`/api/fix${path}`, { headers: { "Content-Type": "application/json" }, ...init });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.detail || body.error || `Request failed (${res.status})`);
-  }
-  return res.json();
-}
-
-export const getFixRun = (id: string) => fixCall<import("./types").FixRun>(`/${encodeURIComponent(id)}`);
-export const runFixStage = (id: string, stage: "l1" | "l2" | "l3", t: { title: string; description: string }, user: string) =>
-  fixCall<{ source: string }>(`/${encodeURIComponent(id)}/run/${stage}`, { method: "POST", body: JSON.stringify({ ...t, user }) });
-export const decideFix = (id: string, kind: "approve" | "reject", body: { approver: string; change_id: string; note?: string }) =>
-  fixCall<import("./types").FixRun>(`/${encodeURIComponent(id)}/${kind}`, { method: "POST", body: JSON.stringify(body) });
-export const resolveFix = (id: string, body: { level: string; resolution_type: string; notes: string; resolved_by: string }) =>
-  fixCall<import("./types").FixRun>(`/${encodeURIComponent(id)}/resolve`, { method: "POST", body: JSON.stringify(body) });
-export const getFixAudit = () => fixCall<import("./types").FixAuditRow[]>("/audit");
-
-export interface L0Reply {
-  reply: string;
-  module: string | null;
-  steps: string[];
-  ask_for: string[];
-  matched_card: string | null;
-  ticket_draft: { title: string; description: string };
-}
-export async function l0Chat(messages: { role: "user" | "assistant"; content: string }[], session_id: string): Promise<L0Reply> {
-  const res = await fetch("/api/l0/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages, session_id }) });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.detail || `Chat failed (${res.status})`);
-  }
-  return res.json();
-}
-
-export const getL0Stats = async (): Promise<{ chats: number; resolved_without_ticket: number; tickets_created: number; deflection_rate: number }> => {
-  const res = await fetch("/api/l0/stats");
-  if (!res.ok) throw new Error(`Stats failed (${res.status})`);
-  return res.json();
-};
-export const setL0Outcome = (session_id: string, outcome: "resolved" | "ticket_created" | "open") =>
-  fetch("/api/l0/outcome", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ session_id, outcome }) });
-export async function createL0Ticket(body: { session_id: string; name: string; email: string; title: string; description: string; module: string | null }): Promise<{ ticket_number: string }> {
-  const res = await fetch("/api/l0/ticket", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-  if (!res.ok) {
-    const e = await res.json().catch(() => ({}));
-    throw new Error(e.detail || `Could not create the ticket (${res.status})`);
-  }
-  return res.json();
+        {result && (
+          <div className="space-y-2 rounded-md border border-border bg-muted/30 p-3">
+            <div>
+              <span className="font-medium">Summary: </span>
+              {result.summary}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="outline">{result.module}</Badge>
+              <Badge variant="outline">{result.category}</Badge>
+              <Badge variant="outline">
+                {result.severity}
+                {result.severity_source === "priority" ? " (from priority)" : " (model)"}
+              </Badge>
+              <Badge variant="outline">{result.resolution_type ?? "not recorded"}</Badge>
+              <Badge variant="outline">Confidence {(result.tagging_confidence * 100).toFixed(0)}%</Badge>
+              <Badge className={curationBadgeClass(result.curation_status)}>{result.curation_status}</Badge>
+            </div>
+            {result.tagging_reasoning && (
+              <p className="text-muted-foreground">{result.tagging_reasoning}</p>
+            )}
+          </div>
+        )}
+      </div>
+    </section>
+  );
 }
