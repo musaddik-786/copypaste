@@ -1,2 +1,1 @@
-Backend: uvicorn app.main:app --reload from the repo root (needs your .env with PG_* and AZURE_OPENAI_* set), then POST /api/classify/<record_id> against any ticket currently sitting at NeedsRetag.
-UI: cd ui && npm install && npm run check (runs tsc --noEmit) to type-check, then npm run dev to click through it — open a ticket, hit "Classify ticket" in the new panel, and confirm the module/category/severity/resolution type/curation status update both in the detail sidebar and back in the table.
+uvicorn app.main:app --reload --port 8000
