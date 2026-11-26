@@ -1,37 +1,262 @@
-Here's the exact sequence to run, in order, each in its own terminal:
+(venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Musaddique_GW_UI/AMS_END_TO_END/agents/MCP$ python3 main.py 
+INFO:     Started server process [95716]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:9900 (Press CTRL+C to quit)
+INFO:     127.0.0.1:36616 - "POST /api/v1/ticket_classification_triage/classify HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:36624 - "POST /api/v1/ticket_classification_triage/classify HTTP/1.1" 404 Not Found
 
-**1. Shared MCP server** (hosts all the agents' tools, port 9900 — required now)
-```powershell
-cd agents/MCP
-py -3 main.py
-```
 
-**2. Orchestrator Agent** (the real LLM-driven process the UI's L1/L2/L3 buttons hit, port 9021 — required now)
-```powershell
-cd agents/orchestrator
-py -3 server.py
-```
+(venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Musaddique_GW_UI/AMS_END_TO_END/agents/orchestrator$ python3 server.py 
+INFO:     Started server process [95769]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:9021 (Press CTRL+C to quit)
 
-**3. Main app** (port 9000 — serves classify/approve/reject/resolve, and is what the UI's `/api` proxy targets)
-```powershell
-uvicorn app.main:app --port 9000
-```
 
-**4. osTicket** (yours, unchanged)
-```powershell
-php -S 127.0.0.1:8081 -t ~/osticket
-```
 
-**5. UI**
-```powershell
-cd ui
-npm ci
-npm run build
-npm run dev
-```
-Dev server comes up on **9173**, proxying `/api` → 9000 and `/orchestrator-agent` → 9021.
 
-**Env vars to have set before starting 1–3** (same `.env` as before, nothing new needed):
-`PG_HOST`/`PG_PORT`/`PG_DATABASE`/`PG_USER`/`PG_PASSWORD`, `AZURE_OPENAI_API_KEY`/`AZURE_OPENAI_ENDPOINT`/`AZURE_OPENAI_API_VERSION`/`AZURE_OPENAI_CHAT_DEPLOYMENT`.
 
-Note: the 9 individual domain agents (ports 9011–9020) do **not** need to run as their own processes — the Orchestrator Agent (step 2) reaches their tools through the MCP server (step 1), not by calling each agent's own port directly.
+
+JarvisClaims@JarvisClaims:~/Agent_Verse_Musaddique_GW_UI/AMS_END_TO_END$ uvicorn app.main:app --port 9000
+INFO:     Started server process [95835]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:9000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:60088 - "GET /api/l0/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60074 - "GET /api/tickets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33682 - "GET /api/orchestrator/452636 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:33694 - "POST /api/tickets/similar HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43506 - "GET /api/tickets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43512 - "GET /api/l0/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43526 - "GET /api/orchestrator/197390 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43528 - "POST /api/tickets/similar HTTP/1.1" 200 OK
+INFO:     127.0.0.1:43154 - "POST /api/orchestrator/classify/osticket-18 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:43156 - "POST /api/orchestrator/classify/osticket-18 HTTP/1.1" 404 Not Found
+
+
+
+(venv) JarvisClaims@JarvisClaims:~/Agent_Verse_Musaddique_GW_UI/AMS_END_TO_END$ php -S 127.0.0.1:8081 -t ~/osticket
+[Thu Nov 26 12:23:53 2026] PHP 8.2.35 Development Server (http://127.0.0.1:8081) started
+[Thu Nov 26 12:25:16 2026] 127.0.0.1:49908 Accepted
+[Thu Nov 26 12:25:16 2026] 127.0.0.1:49908 [200]: GET /open.php
+[Thu Nov 26 12:25:16 2026] 127.0.0.1:49908 Closing
+[Thu Nov 26 12:25:16 2026] 127.0.0.1:49922 Accepted
+[Thu Nov 26 12:25:17 2026] 127.0.0.1:49922 [200]: GET /css/osticket.css?8d38b06
+[Thu Nov 26 12:25:17 2026] 127.0.0.1:49922 Closing
+[Thu Nov 26 12:25:18 2026] 127.0.0.1:49930 Accepted
+[Thu Nov 26 12:25:18 2026] 127.0.0.1:49930 [200]: GET /css/typeahead.css?8d38b06
+[Thu Nov 26 12:25:18 2026] 127.0.0.1:49930 Closing
+[Thu Nov 26 12:25:18 2026] 127.0.0.1:49932 Accepted
+[Thu Nov 26 12:25:18 2026] 127.0.0.1:49932 [200]: GET /assets/default/css/theme.css?8d38b06
+[Thu Nov 26 12:25:18 2026] 127.0.0.1:49932 Closing
+[Thu Nov 26 12:25:18 2026] 127.0.0.1:49936 Accepted
+[Thu Nov 26 12:25:18 2026] 127.0.0.1:49936 [200]: GET /css/ui-lightness/jquery-ui-1.13.2.custom.min.css?8d38b06
+[Thu Nov 26 12:25:18 2026] 127.0.0.1:49936 Closing
+[Thu Nov 26 12:25:18 2026] 127.0.0.1:49938 Accepted
+[Thu Nov 26 12:25:18 2026] 127.0.0.1:49938 [200]: GET /css/jquery-ui-timepicker-addon.css?8d38b06
+[Thu Nov 26 12:25:18 2026] 127.0.0.1:49938 Closing
+[Thu Nov 26 12:25:18 2026] 127.0.0.1:49952 Accepted
+[Thu Nov 26 12:25:18 2026] 127.0.0.1:49952 [200]: GET /css/thread.css?8d38b06
+[Thu Nov 26 12:25:18 2026] 127.0.0.1:49952 Closing
+[Thu Nov 26 12:25:18 2026] 127.0.0.1:49954 Accepted
+[Thu Nov 26 12:25:18 2026] 127.0.0.1:49954 [200]: GET /css/redactor.css?8d38b06
+[Thu Nov 26 12:25:18 2026] 127.0.0.1:49954 Closing
+[Thu Nov 26 12:25:19 2026] 127.0.0.1:49968 Accepted
+[Thu Nov 26 12:25:19 2026] 127.0.0.1:49974 Accepted
+[Thu Nov 26 12:25:19 2026] 127.0.0.1:49968 [200]: GET /css/flags.css?8d38b06
+[Thu Nov 26 12:25:19 2026] 127.0.0.1:49974 [200]: GET /css/font-awesome.min.css?8d38b06
+[Thu Nov 26 12:25:19 2026] 127.0.0.1:49968 Closing
+[Thu Nov 26 12:25:19 2026] 127.0.0.1:49974 Closing
+[Thu Nov 26 12:25:19 2026] 127.0.0.1:49986 Accepted
+[Thu Nov 26 12:25:19 2026] 127.0.0.1:49988 Accepted
+[Thu Nov 26 12:25:19 2026] 127.0.0.1:49986 [200]: GET /css/select2.min.css?8d38b06
+[Thu Nov 26 12:25:19 2026] 127.0.0.1:49986 Closing
+[Thu Nov 26 12:25:19 2026] 127.0.0.1:49988 [200]: GET /css/rtl.css?8d38b06
+[Thu Nov 26 12:25:19 2026] 127.0.0.1:49988 Closing
+[Thu Nov 26 12:25:19 2026] 127.0.0.1:49990 Accepted
+[Thu Nov 26 12:25:19 2026] 127.0.0.1:49990 [200]: GET /js/jquery-3.7.0.min.js?8d38b06
+[Thu Nov 26 12:25:19 2026] 127.0.0.1:49990 Closing
+[Thu Nov 26 12:25:19 2026] 127.0.0.1:50000 Accepted
+[Thu Nov 26 12:25:19 2026] 127.0.0.1:50000 [200]: GET /js/jquery-ui-1.13.2.custom.min.js?8d38b06
+[Thu Nov 26 12:25:19 2026] 127.0.0.1:50000 Closing
+[Thu Nov 26 12:25:20 2026] 127.0.0.1:50014 Accepted
+[Thu Nov 26 12:25:20 2026] 127.0.0.1:50014 [200]: GET /js/jquery-ui-timepicker-addon.js?8d38b06
+[Thu Nov 26 12:25:20 2026] 127.0.0.1:50020 Accepted
+[Thu Nov 26 12:25:20 2026] 127.0.0.1:50014 Closing
+[Thu Nov 26 12:25:20 2026] 127.0.0.1:50020 [200]: GET /js/osticket.js?8d38b06
+[Thu Nov 26 12:25:20 2026] 127.0.0.1:50020 Closing
+[Thu Nov 26 12:25:20 2026] 127.0.0.1:50030 Accepted
+[Thu Nov 26 12:25:20 2026] 127.0.0.1:50030 [200]: GET /js/filedrop.field.js?8d38b06
+[Thu Nov 26 12:25:20 2026] 127.0.0.1:50030 Closing
+[Thu Nov 26 12:25:20 2026] 127.0.0.1:50032 Accepted
+[Thu Nov 26 12:25:20 2026] 127.0.0.1:50032 [200]: GET /js/bootstrap-typeahead.js?8d38b06
+[Thu Nov 26 12:25:20 2026] 127.0.0.1:50032 Closing
+[Thu Nov 26 12:25:20 2026] 127.0.0.1:50042 Accepted
+[Thu Nov 26 12:25:20 2026] 127.0.0.1:50042 [200]: GET /js/redactor.min.js?8d38b06
+[Thu Nov 26 12:25:20 2026] 127.0.0.1:50042 Closing
+[Thu Nov 26 12:25:20 2026] 127.0.0.1:50052 Accepted
+[Thu Nov 26 12:25:20 2026] 127.0.0.1:50052 [200]: GET /js/redactor-plugins.js?8d38b06
+[Thu Nov 26 12:25:20 2026] 127.0.0.1:50052 Closing
+[Thu Nov 26 12:25:21 2026] 127.0.0.1:50062 Accepted
+[Thu Nov 26 12:25:21 2026] 127.0.0.1:50064 Accepted
+[Thu Nov 26 12:25:21 2026] 127.0.0.1:50062 [200]: GET /js/select2.min.js?8d38b06
+[Thu Nov 26 12:25:21 2026] 127.0.0.1:50062 Closing
+[Thu Nov 26 12:25:21 2026] 127.0.0.1:50064 [200]: GET /js/redactor-osticket.js?8d38b06
+[Thu Nov 26 12:25:21 2026] 127.0.0.1:50064 Closing
+[Thu Nov 26 12:25:22 2026] 127.0.0.1:50078 Accepted
+[Thu Nov 26 12:25:22 2026] 127.0.0.1:50078 [302]: GET /logo.php
+[Thu Nov 26 12:25:22 2026] 127.0.0.1:50078 Closing
+[Thu Nov 26 12:25:23 2026] 127.0.0.1:50094 Accepted
+[Thu Nov 26 12:25:23 2026] 127.0.0.1:50096 Accepted
+[Thu Nov 26 12:25:23 2026] 127.0.0.1:50094 [200]: GET /assets/default/images/page_bg.png
+[Thu Nov 26 12:25:23 2026] 127.0.0.1:50096 [200]: GET /assets/default/css/print.css?8d38b06
+[Thu Nov 26 12:25:23 2026] 127.0.0.1:50094 Closing
+[Thu Nov 26 12:25:23 2026] 127.0.0.1:50096 Closing
+[Thu Nov 26 12:25:23 2026] 127.0.0.1:50102 Accepted
+[Thu Nov 26 12:25:23 2026] 127.0.0.1:50102 [200]: GET /assets/default/images/nav_bg.png
+[Thu Nov 26 12:25:23 2026] 127.0.0.1:50102 Closing
+[Thu Nov 26 12:25:23 2026] 127.0.0.1:50110 Accepted
+[Thu Nov 26 12:25:23 2026] 127.0.0.1:50110 [200]: GET /assets/default/images/icons/new.png
+[Thu Nov 26 12:25:23 2026] 127.0.0.1:50110 Closing
+[Thu Nov 26 12:25:23 2026] 127.0.0.1:50126 Accepted
+[Thu Nov 26 12:25:23 2026] 127.0.0.1:50126 [200]: GET /assets/default/images/icons/home.png
+[Thu Nov 26 12:25:23 2026] 127.0.0.1:50126 Closing
+[Thu Nov 26 12:25:23 2026] 127.0.0.1:50142 Accepted
+[Thu Nov 26 12:25:23 2026] 127.0.0.1:50142 [200]: GET /assets/default/images/icons/status.png
+[Thu Nov 26 12:25:23 2026] 127.0.0.1:50142 Closing
+[Thu Nov 26 12:25:24 2026] 127.0.0.1:50148 Accepted
+[Thu Nov 26 12:25:24 2026] 127.0.0.1:50148 [200]: GET /assets/default/images/logo.png
+[Thu Nov 26 12:25:24 2026] 127.0.0.1:50148 Closing
+[Thu Nov 26 12:25:24 2026] 127.0.0.1:50154 Accepted
+[Thu Nov 26 12:25:24 2026] 127.0.0.1:50154 [200]: GET /assets/default/images/poweredby.png
+[Thu Nov 26 12:25:24 2026] 127.0.0.1:50154 Closing
+[Thu Nov 26 12:25:25 2026] 127.0.0.1:50164 Accepted
+[Thu Nov 26 12:25:25 2026] 127.0.0.1:50164 [200]: GET /images/oscar-favicon-32x32.png
+[Thu Nov 26 12:25:25 2026] 127.0.0.1:50164 Closing
+[Thu Nov 26 12:26:11 2026] 127.0.0.1:34882 Accepted
+[Thu Nov 26 12:26:11 2026] 127.0.0.1:34882 [200]: GET /ajax.php/form/help-topic/14
+[Thu Nov 26 12:26:11 2026] 127.0.0.1:34882 Closing
+[Thu Nov 26 12:26:12 2026] 127.0.0.1:34898 Accepted
+[Thu Nov 26 12:26:12 2026] 127.0.0.1:34898 [200]: GET /css/filedrop.css
+[Thu Nov 26 12:26:12 2026] 127.0.0.1:34898 Closing
+[Thu Nov 26 12:26:12 2026] 127.0.0.1:34910 Accepted
+[Thu Nov 26 12:26:12 2026] 127.0.0.1:34910 [200]: GET /assets/font/fontawesome-webfont.woff?v=3.2.1
+[Thu Nov 26 12:26:12 2026] 127.0.0.1:34910 Closing
+[Thu Nov 26 12:26:40 2026] 127.0.0.1:43014 Accepted
+[Thu Nov 26 12:26:40 2026] 127.0.0.1:43016 Accepted
+sh: 1: /usr/sbin/sendmail: not found
+[Thu Nov 26 12:26:40 2026] 127.0.0.1:43014 [200]: POST /open.php
+[Thu Nov 26 12:26:40 2026] 127.0.0.1:43014 Closing
+[Thu Nov 26 12:26:40 2026] 127.0.0.1:43016 [200]: GET /images/FhHRx-Spinner.gif
+[Thu Nov 26 12:26:40 2026] 127.0.0.1:43016 Closing
+[Thu Nov 26 12:26:41 2026] 127.0.0.1:43024 Accepted
+[Thu Nov 26 12:26:41 2026] 127.0.0.1:43028 Accepted
+[Thu Nov 26 12:26:41 2026] 127.0.0.1:43042 Accepted
+[Thu Nov 26 12:26:41 2026] 127.0.0.1:43058 Accepted
+[Thu Nov 26 12:26:41 2026] 127.0.0.1:43074 Accepted
+[Thu Nov 26 12:26:41 2026] 127.0.0.1:43080 Accepted
+[Thu Nov 26 12:26:41 2026] 127.0.0.1:43024 [200]: GET /css/osticket.css?8d38b06
+[Thu Nov 26 12:26:41 2026] 127.0.0.1:43028 [200]: GET /css/jquery-ui-timepicker-addon.css?8d38b06
+[Thu Nov 26 12:26:41 2026] 127.0.0.1:43024 Closing
+[Thu Nov 26 12:26:41 2026] 127.0.0.1:43042 [200]: GET /css/typeahead.css?8d38b06
+[Thu Nov 26 12:26:41 2026] 127.0.0.1:43058 [200]: GET /assets/default/css/theme.css?8d38b06
+[Thu Nov 26 12:26:41 2026] 127.0.0.1:43028 Closing
+[Thu Nov 26 12:26:41 2026] 127.0.0.1:43074 [200]: GET /css/thread.css?8d38b06
+[Thu Nov 26 12:26:41 2026] 127.0.0.1:43042 Closing
+[Thu Nov 26 12:26:41 2026] 127.0.0.1:43058 Closing
+[Thu Nov 26 12:26:41 2026] 127.0.0.1:43080 [200]: GET /css/ui-lightness/jquery-ui-1.13.2.custom.min.css?8d38b06
+[Thu Nov 26 12:26:41 2026] 127.0.0.1:43074 Closing
+[Thu Nov 26 12:26:41 2026] 127.0.0.1:43080 Closing
+[Thu Nov 26 12:26:42 2026] 127.0.0.1:43094 Accepted
+[Thu Nov 26 12:26:42 2026] 127.0.0.1:43094 [200]: GET /css/font-awesome.min.css?8d38b06
+[Thu Nov 26 12:26:42 2026] 127.0.0.1:43094 Closing
+[Thu Nov 26 12:26:43 2026] 127.0.0.1:43100 Accepted
+[Thu Nov 26 12:26:43 2026] 127.0.0.1:43114 Accepted
+[Thu Nov 26 12:26:43 2026] 127.0.0.1:43100 [200]: GET /css/redactor.css?8d38b06
+[Thu Nov 26 12:26:43 2026] 127.0.0.1:43114 [200]: GET /css/flags.css?8d38b06
+[Thu Nov 26 12:26:43 2026] 127.0.0.1:43100 Closing
+[Thu Nov 26 12:26:43 2026] 127.0.0.1:43114 Closing
+[Thu Nov 26 12:26:43 2026] 127.0.0.1:43124 Accepted
+[Thu Nov 26 12:26:43 2026] 127.0.0.1:43124 [200]: GET /css/select2.min.css?8d38b06
+[Thu Nov 26 12:26:43 2026] 127.0.0.1:43124 Closing
+[Thu Nov 26 12:26:43 2026] 127.0.0.1:43132 Accepted
+[Thu Nov 26 12:26:43 2026] 127.0.0.1:43132 [200]: GET /js/jquery-3.7.0.min.js?8d38b06
+[Thu Nov 26 12:26:43 2026] 127.0.0.1:43132 Closing
+[Thu Nov 26 12:26:43 2026] 127.0.0.1:43140 Accepted
+[Thu Nov 26 12:26:43 2026] 127.0.0.1:43140 [200]: GET /css/rtl.css?8d38b06
+[Thu Nov 26 12:26:43 2026] 127.0.0.1:43140 Closing
+[Thu Nov 26 12:26:44 2026] 127.0.0.1:43142 Accepted
+[Thu Nov 26 12:26:44 2026] 127.0.0.1:43142 [200]: GET /js/jquery-ui-1.13.2.custom.min.js?8d38b06
+[Thu Nov 26 12:26:44 2026] 127.0.0.1:43142 Closing
+[Thu Nov 26 12:26:44 2026] 127.0.0.1:43154 Accepted
+[Thu Nov 26 12:26:44 2026] 127.0.0.1:43168 Accepted
+[Thu Nov 26 12:26:44 2026] 127.0.0.1:43182 Accepted
+[Thu Nov 26 12:26:44 2026] 127.0.0.1:43154 [200]: GET /js/jquery-ui-timepicker-addon.js?8d38b06
+[Thu Nov 26 12:26:44 2026] 127.0.0.1:43168 [200]: GET /js/filedrop.field.js?8d38b06
+[Thu Nov 26 12:26:44 2026] 127.0.0.1:43154 Closing
+[Thu Nov 26 12:26:44 2026] 127.0.0.1:43182 [200]: GET /js/osticket.js?8d38b06
+[Thu Nov 26 12:26:44 2026] 127.0.0.1:43168 Closing
+[Thu Nov 26 12:26:44 2026] 127.0.0.1:43182 Closing
+[Thu Nov 26 12:26:44 2026] 127.0.0.1:43188 Accepted
+[Thu Nov 26 12:26:44 2026] 127.0.0.1:43188 [200]: GET /js/redactor.min.js?8d38b06
+[Thu Nov 26 12:26:44 2026] 127.0.0.1:43188 Closing
+[Thu Nov 26 12:26:45 2026] 127.0.0.1:43196 Accepted
+[Thu Nov 26 12:26:45 2026] 127.0.0.1:43196 [200]: GET /js/bootstrap-typeahead.js?8d38b06
+[Thu Nov 26 12:26:45 2026] 127.0.0.1:43196 Closing
+[Thu Nov 26 12:26:46 2026] 127.0.0.1:56136 Accepted
+[Thu Nov 26 12:26:46 2026] 127.0.0.1:56140 Accepted
+[Thu Nov 26 12:26:46 2026] 127.0.0.1:56154 Accepted
+[Thu Nov 26 12:26:46 2026] 127.0.0.1:56136 [200]: GET /js/select2.min.js?8d38b06
+[Thu Nov 26 12:26:46 2026] 127.0.0.1:56140 [200]: GET /js/redactor-osticket.js?8d38b06
+[Thu Nov 26 12:26:46 2026] 127.0.0.1:56136 Closing
+[Thu Nov 26 12:26:46 2026] 127.0.0.1:56154 [200]: GET /js/redactor-plugins.js?8d38b06
+[Thu Nov 26 12:26:46 2026] 127.0.0.1:56140 Closing
+[Thu Nov 26 12:26:46 2026] 127.0.0.1:56154 Closing
+[Thu Nov 26 12:26:47 2026] 127.0.0.1:56166 Accepted
+[Thu Nov 26 12:26:47 2026] 127.0.0.1:56176 Accepted
+[Thu Nov 26 12:26:47 2026] 127.0.0.1:56166 [200]: GET /assets/default/images/page_bg.png
+[Thu Nov 26 12:26:47 2026] 127.0.0.1:56166 Closing
+[Thu Nov 26 12:26:47 2026] 127.0.0.1:56176 [200]: GET /assets/default/css/print.css?8d38b06
+[Thu Nov 26 12:26:47 2026] 127.0.0.1:56176 Closing
+[Thu Nov 26 12:26:47 2026] 127.0.0.1:56186 Accepted
+[Thu Nov 26 12:26:47 2026] 127.0.0.1:56186 [200]: GET /assets/default/images/nav_bg.png
+[Thu Nov 26 12:26:47 2026] 127.0.0.1:56186 Closing
+[Thu Nov 26 12:26:47 2026] 127.0.0.1:56190 Accepted
+[Thu Nov 26 12:26:47 2026] 127.0.0.1:56190 [200]: GET /assets/default/images/icons/ok.png
+[Thu Nov 26 12:26:47 2026] 127.0.0.1:56190 Closing
+[Thu Nov 26 12:26:47 2026] 127.0.0.1:56194 Accepted
+[Thu Nov 26 12:26:47 2026] 127.0.0.1:56194 [200]: GET /assets/default/images/icons/home.png
+[Thu Nov 26 12:26:47 2026] 127.0.0.1:56194 Closing
+[Thu Nov 26 12:26:47 2026] 127.0.0.1:56206 Accepted
+[Thu Nov 26 12:26:47 2026] 127.0.0.1:56206 [200]: GET /assets/default/images/icons/new.png
+[Thu Nov 26 12:26:47 2026] 127.0.0.1:56206 Closing
+[Thu Nov 26 12:26:48 2026] 127.0.0.1:56212 Accepted
+[Thu Nov 26 12:26:48 2026] 127.0.0.1:56212 [200]: GET /assets/default/images/logo.png
+[Thu Nov 26 12:26:48 2026] 127.0.0.1:56212 Closing
+[Thu Nov 26 12:26:48 2026] 127.0.0.1:56228 Accepted
+[Thu Nov 26 12:26:48 2026] 127.0.0.1:56228 [200]: GET /assets/default/images/icons/status.png
+[Thu Nov 26 12:26:48 2026] 127.0.0.1:56228 Closing
+[Thu Nov 26 12:26:48 2026] 127.0.0.1:56234 Accepted
+[Thu Nov 26 12:26:48 2026] 127.0.0.1:56234 [200]: GET /assets/default/images/poweredby.png
+[Thu Nov 26 12:26:48 2026] 127.0.0.1:56234 Closing
+
+
+JarvisClaims@JarvisClaims:~/Agent_Verse_Musaddique_GW_UI/AMS_END_TO_END/ui$ celar
+bash: celar: command not found
+JarvisClaims@JarvisClaims:~/Agent_Verse_Musaddique_GW_UI/AMS_END_TO_END/ui$ npm run dev
+
+> gw-agent-ui@1.0.0 dev
+> vite
+
+
+  VITE v5.4.21  ready in 265 ms
+
+  ➜  Local:   http://localhost:9173/
+  ➜  Network: http://10.0.0.4:9173/
+  ➜  press h + enter to show help
+
+
+
+
+
