@@ -1,65 +1,37 @@
-## Orchestrator workflow, in order
+Here's the exact sequence to run, in order, each in its own terminal:
 
-The orchestrator keeps the ticket’s current state and passes outputs between steps. **HITL** below means a person clicks a UI action or makes a decision.
+**1. Shared MCP server** (hosts all the agents' tools, port 9900 — required now)
+```powershell
+cd agents/MCP
+py -3 main.py
+```
 
-### Main ticket-resolution flow
+**2. Orchestrator Agent** (the real LLM-driven process the UI's L1/L2/L3 buttons hit, port 9021 — required now)
+```powershell
+cd agents/orchestrator
+py -3 server.py
+```
 
-1. **Ticket is available**  
-   The ticket already exists in the current workflow; the roadmap’s Ticket Intake agent is marked not implemented, so it is not included here.
+**3. Main app** (port 9000 — serves classify/approve/reject/resolve, and is what the UI's `/api` proxy targets)
+```powershell
+uvicorn app.main:app --port 9000
+```
 
-2. **Ticket Classification & Triage** — *HITL: click “Classify”*  
-   - **Input:** Ticket title, description, priority, status, and any resolution notes.  
-   - **Output:** Module, category, severity, resolution type, confidence, and reasoning.  
-   - The orchestrator stores those results. Classification can help later retrieval, but the roadmap says KB matching can run without it.
+**4. osTicket** (yours, unchanged)
+```powershell
+php -S 127.0.0.1:8081 -t ~/osticket
+```
 
-3. **KB Matching** — *HITL: click “Run L1 Guide”*  
-   - **Input:** Ticket title and description.  
-   - **Output:** A matched KB card (`unit_id`) or no match, confidence, reason, missing information, and candidates.  
-   - The chosen card supplies the checklist for the next step.
+**5. UI**
+```powershell
+cd ui
+npm ci
+npm run build
+npm run dev
+```
+Dev server comes up on **9173**, proxying `/api` → 9000 and `/orchestrator-agent` → 9021.
 
-4. **L1 Information Collector** — *continues from the L1 Guide action; no separate approval click*  
-   - **Input:** Ticket text and the matched card’s information-to-collect checklist.  
-   - **Output:** Which checklist items are answered or missing, supporting text, missing-item count, and a drafted requester reply.  
-   - If no KB card is matched, the checklist-dependent L1 step does not have its required input.
+**Env vars to have set before starting 1–3** (same `.env` as before, nothing new needed):
+`PG_HOST`/`PG_PORT`/`PG_DATABASE`/`PG_USER`/`PG_PASSWORD`, `AZURE_OPENAI_API_KEY`/`AZURE_OPENAI_ENDPOINT`/`AZURE_OPENAI_API_VERSION`/`AZURE_OPENAI_CHAT_DEPLOYMENT`.
 
-5. **Similar Incident Retrieval** — *separate HITL: click “Find similar tickets”*  
-   - **Input:** Ticket text and, where available, module/severity and ticket ID.  
-   - **Output:** Ranked historical tickets with match strength and reusable resolution details.  
-   - This is a **separate branch**: it does not run automatically with “Run L1 Guide” and its results do not gate the L1 → evidence → L2 sequence.
-
-6. **PolicyCenter Evidence Planner/Collector** — *after L1 fields are confirmed*  
-   - **Input:** Confirmed ticket identifiers from L1 and the matched card’s diagnosis steps.  
-   - **Output:** The checks performed and their results/facts.  
-   - **Roadmap caveat:** This is currently described as partially implemented, using demo evidence rather than live PolicyCenter data.
-
-7. **L2 Diagnostic** — *HITL: click “Continue to L2 Diagnosis”*  
-   - **Input:** L1-confirmed fields, evidence results, ticket text, and the card’s cause/diagnosis steps.  
-   - **Output:** A diagnosis and evidence-based conclusion, confidence, check results, and `needs_data_fix` (true/false).
-
-8. **Decision after L2**
-   - If `needs_data_fix` is **false**, L3 is not run. A person may choose **Close and save to knowledge** at L2.
-   - If `needs_data_fix` is **true**, the orchestrator proceeds to L3.
-
-9. **L3 Remediation Proposal** — *conditional on L2 finding a data fix is needed*  
-   - **Input:** L2 conclusion/checks, evidence, matched card’s permanent-fix guidance, and relevant policy/audit identifiers.  
-   - **Output:** A proposed Gosu script, explanation, expected effect, safety-check result, and change-control document.  
-   - The proposal is not executed by the agent.
-
-10. **Human Approval** — *HITL: approve or reject the L3 proposal*  
-    - **Input:** The proposal, approver name, and change-control ID.  
-    - **Output:** Approved or rejected status and an audit record.  
-    - Approval is a human gate, not an AI agent.
-
-11. **Close and save to knowledge**  
-    - At **L1 or L2**, a person can choose **Close and save to knowledge** to close the ticket and trigger ingestion.
-    - For **L3**, approve the proposal first; then select **L3** in the dropdown and choose **Close and save to knowledge**.
-
-12. **Knowledge Ingestion & Curation** — *triggered by “Close and save to knowledge”*  
-    - **Input:** The closed ticket and its resolution information.  
-    - **Output:** A normalized, curated knowledge record and embedding stored for future retrieval.
-
-### Separate path
-
-**L0 Self-Service** is a separate requester-facing path: it uses KB Matching to provide approved self-service guidance and track the requester’s outcome. It is not a step in the ticket-resolution sequence above.
-
-This ordering combines the `roadmap workbook` with the UI triggers in the `orchestrator document`.
+Note: the 9 individual domain agents (ports 9011–9020) do **not** need to run as their own processes — the Orchestrator Agent (step 2) reaches their tools through the MCP server (step 1), not by calling each agent's own port directly.
