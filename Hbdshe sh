@@ -1,10 +1,10 @@
-Output (what it produces and writes back)
-Field	Type	How it's decided
-summary	string	one-line LLM-generated summary of the issue
-module	enum (8 values)	LLM pick, grounded in the ticket text
-category	enum (9 values)	LLM pick
-severity	enum (4 values)	deterministic from priority if it maps cleanly; otherwise falls back to the LLM's own read
-resolution_type	enum (9 values) or null	only ever set if status is resolved/closed and resolution_notes exist — otherwise forced to "not recorded," never guessed
-confidence	0–1	LLM's self-reported confidence
-reasoning	string	short justification, checked to actually reference the values it returned (no contradicting itself)
-curation_status	AutoApproved or PendingReview	deterministic rule, not the LLM's call: confidence ≥ 0.72 (same threshold backend/taxonomy.py already uses elsewhere) → auto-approved, else sent for human review
+Commands:
+ 
+cd ui && npm ci && npm run build && cd ..
+uvicorn app.main:app --port 8000
+ 
+osTicket:
+php -S 127.0.0.1:8081 -t ~/osticket
+ 
+Bammidi Kavitha - spend time on running this for testing purpose. Let's connect at 11:45 to 12 to see what gaps are to fix
+
