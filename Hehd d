@@ -4,7 +4,8 @@ Trigger: "Classify" button (HITL) — routes through /api/orchestrator/classify/
 MCP tool: classify_ticket_record
 Input: record_id (the ticket's DB record ID)
 What it does: Fetches the ticket row from ticket_records, sends its title/description/priority/status/resolution_notes to Azure OpenAI against the fixed taxonomy, computes confidence, and persists the result.
-Output: category, severity, severity_source ("priority" or "model"), resolution_type (null unless the ticket is resolved/closed with notes), confidence, reasoning, summary, curation_status (AutoApproved if confidence ≥ threshold, else PendingReview).
+Output: category, severity, severity_source (always "model" in the current code — the model determines severity itself from the ticket text; the "priority" branch exists in the type but is never actually produced), resolution_type (null unless the ticket is resolved/closed with notes), confidence, reasoning, summary, curation_status (AutoApproved if confidence ≥ threshold, else PendingReview).
+Note: a ticket synced from osTicket starts with a placeholder severity/category/module (not real data, not derived from osTicket's priority) until this agent actually runs — so nothing shown before Classify can be mistaken for its real output.
 
 2. KB Matching Agent
 
@@ -12,23 +13,27 @@ Trigger: "Run L1 Guide" button (HITL) — first step of the Orchestrator Agent's
 MCP tool: match_kb_card
 Input: ticket title, description
 What it does: Ranks the ticket against the 13 SME-authored KB cards (BM25 + cosine similarity + RRF), then an LLM call confirms the top candidate or abstains.
-Output: matched (bool), unit (the full matched card content, or null), confidence, reason, missing_info[], candidates[] (ranked near-misses even on no-match).
+Output: matched (bool), unit (the full matched card wrapper — unit_id, article_id, version, kb_version, content), card (new: the exact flat object — unit.content — to pass straight through to save_l1_result's own card argument when matched; null when not matched), confidence, reason, missing_info[], candidates[] (ranked near-misses even on no-match).
+If matched=false: the Orchestrator now still persists this result via save_l1_result (card=this result, l1/evidence left empty) — the UI shows "No KB card matched this ticket — <reason>" instead of silently doing nothing, which is what it used to do.
 
 3. Similar Incident Retrieval Agent
 
-Trigger: fires automatically, unconditionally, right after KB Matching — same "Run L1 Guide" click, regardless of whether KB Matching found a card.
+Trigger: two independent paths now —
+(a) fires automatically, unconditionally, right after KB Matching, as part of the "Run L1 Guide" click, regardless of whether KB Matching found a card; or
+(b) its own standalone "Find similar tickets" button, routed through /api/orchestrator/similar/{ticket_id} → real MCP call directly, no LLM, independent of L1/L2/L3 entirely.
 MCP tool: find_similar_incidents
 Input: ticket id, title, description, module, severity, created
 What it does: Hybrid BM25 + vector search over ticket_records (past resolved tickets, excluding the ticket itself), then an LLM reranks/explains the top matches.
 Output: new_ticket_assessment, matches[] (each with match_strength, why_similar, reusable_info, and the matched ticket's own detail), no_confident_match, suggested_next_step.
+Both triggers write to the same persisted outputs.similar field, so the UI shows the same result regardless of which path produced it.
 
 4. L1 Information Collector Agent
 
 Trigger: same "Run L1 Guide" click, only if KB Matching found a card.
 MCP tool: collect_l1_info
 Input: ticket title, description
-What it does: Checks the matched KB card's info_to_collect checklist against the ticket's text only (never evidence/diagnosis).
-Output: items[] (each {item, answered, found}), missing_count, requester_reply (drafted message asking for whatever's missing), escalation text.
+What it does: Re-matches the card, then checks its info_to_collect checklist against the ticket's text only (never evidence/diagnosis).
+Output: card (re-matched, for chaining), l1 (new: the exact object — items, missing_count, requester_reply, escalation — to pass straight through to save_l1_result's own l1 argument), plus those same fields at the top level too.
 
 5. PolicyCenter Evidence Planner/Collector Agent
 
@@ -37,8 +42,9 @@ MCP tool: collect_evidence
 Input: unit_id (the matched KB card's ID)
 What it does: Partially implemented — loads a static demo evidence fixture for that card (no live PolicyCenter connector yet).
 Output: policy_number, audit_job, checks[] (each with what it checked, the query, the result/facts).
+New: this is now actually displayed in the UI, under "PolicyCenter evidence" in the L1 guided-steps panel — previously it was computed and persisted but never shown.
 
-→ All four of the above (card, L1, evidence, similar) get persisted at the end of this one /chat call via save_l1_result (the Orchestrator Agent's own state tool) — this is what makes the results show up on GET /api/orchestrator/{ticket_id} afterward.
+→ All four of the above (card, L1, evidence, similar) get persisted at the end of this one /chat call via save_l1_result (the Orchestrator Agent's own state tool) — this is what makes the results show up on GET /api/orchestrator/{ticket_id} afterward. Both card and l1 are now passed through verbatim from steps 2/4's own dedicated fields, never reconstructed by the LLM, to eliminate dropped-field bugs downstream (the L3 requirement document's "missing: source_card" error you hit traced back to exactly this).
 
 6. L2 Diagnostic Agent
 
@@ -55,7 +61,7 @@ Trigger: "Escalate to L3 data fix" button (HITL) — only runs if L2 found needs
 MCP tool: author_remediation
 Input: ticket_id, title, description, card, l2 (L2's result), evidence
 What it does: Drafts a Gosu script + change-requirement doc; runs it through gosu_guard's deterministic safety rules, with one automatic self-repair retry if it fails.
-Output: gosu (the script), explanation, expected_effect, guard ({passed, rules[]}), repairs (0 or 1), requirement (the change-control document).
+Output: gosu (the script), explanation, expected_effect, guard ({passed, rules[]}), repairs (0 or 1), requirement (the change-control document, or {error: ...} if validation failed — the UI now shows this gracefully instead of crashing blank if any of these sub-fields come back malformed).
 → Persisted via save_l3_result (also records run_by, used next for self-approval blocking).
 
 8. Human Approval Agent
@@ -69,7 +75,16 @@ Output: status (approved/rejected), approver, change_id, note, script_sha256 (ta
 9. Knowledge Ingestion & Curation Agent
 
 Trigger: "Close ticket and save to knowledge" button (HITL) — available at every stage, plain REST, no LLM.
-MCP tool: ingest_closed_ticket (new tool I added — not the batch run_ingestion)
+MCP tool: ingest_closed_ticket (not the batch run_ingestion)
 Input: ticket_id, resolution_type, notes
 What it does: Writes the resolution onto the real ticket_records row and embeds title+description+resolution so Similar Incident Retrieval can find it later.
 Output: ticket_store (bool), embedded (bool), embed_error (if embedding failed but the resolution still saved).
+
+10. L0 Self-Service Agent (new — standalone, never orchestrated)
+
+Trigger: the Self-service chat page itself, every message a requester sends — routed to this agent's own real process (port 7014), via POST /l0-agent/chat → real network call, genuinely independent of the Orchestrator Agent and the ticket workbench above.
+MCP tool: run_l0_chat (plus record_outcome, get_stats)
+Input: the conversation so far (reconstructed from the message text sent), a session id
+What it does: Answers only from a matched KB card's reviewed self_service block — never diagnosis/root cause; records the session's outcome (open/resolved/ticket_created) once the conversation concludes.
+Output: reply, module, steps[], ask_for[], ticket_draft, verified, resolved_by_bot, unit_id — the agent's final chat message is now this full JSON object (re-emitted verbatim from its own tool call), not just plain prose, so the UI can render the numbered steps and "please tell us" box exactly as before.
+Note: "Yes, solved" and "Create ticket in osTicket" stay plain REST (/api/l0/outcome, /api/l0/ticket) — deterministic actions, not agent decisions.
