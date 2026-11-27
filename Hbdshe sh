@@ -1,30 +1,349 @@
-from __future__ import annotations
+"""
+server.py — Orchestrator Agent
+───────────────────────────────────
+LangGraph agent that IS the live entry point the UI hits for the
+classify / L1-guide / L2-diagnosis / L3-remediation buttons. The UI's Vite
+dev server proxies a relative path (see ui/vite.config.ts) to this
+process's /chat endpoint -- a real network call reaching this real running
+process, matching how the claims-solution-integration reference project
+triggers its own orchestrator agents. An LLM inside this one process
+decides which of the other 9 agents' MCP tools to call, in what order, for
+whichever single action the UI asked for.
 
-from typing import Any, Optional
+Approve/Reject, Close-ticket-and-save-to-knowledge, and plain read
+("GET /api/orchestrator/{ticket_id}") stay on app/routers/orchestrator.py's
+plain REST endpoints, exactly like the claims solution's own decideApproval/
+fetchPendingApprovals -- those are deterministic, form-driven actions an
+LLM has no business deciding, so they never go through this /chat agent.
 
-from pydantic import BaseModel, ConfigDict
+Each L1/L2/L3 tool call here is pure compute with no DB side effect, so
+this agent also calls a save_*_result tool (orchestrator_state, this
+agent's own MCP sub-app) after each stage to persist the result into
+fix_runs -- the same table app/routers/orchestrator.py's GET endpoint
+reads, so the UI can throw away this agent's chat reply and just re-fetch
+to display results (also matching the claims solution's own pattern:
+trigger via chat, display via a separate DB-backed read).
+
+Bound tools, across all 10 agents (9 domain agents + this agent's own
+state tools):
+  1. classify_ticket_record            (Ticket Classification & Triage Agent)
+  2. match_kb_card                     (KB Matching Agent)
+  3. find_similar_incidents            (Similar Incident Retrieval Agent --
+                                         always run after KB Matching, no
+                                         matter whether it matched or not)
+  4. collect_l1_info                   (L1 Information Collector Agent)
+  5. collect_evidence                  (PolicyCenter Evidence Collector Agent)
+  6. diagnose                          (L2 Diagnostic Agent -- only once a
+                                         human says to continue to L2)
+  7. author_remediation                (L3 Remediation Proposal Agent --
+                                         only once L2 found needs_data_fix,
+                                         and only once a human says to
+                                         escalate to L3)
+  8. decide_approval / ingest_closed_ticket / run_ingestion (bound for
+                                         conversational completeness, but
+                                         the UI reaches these via plain
+                                         REST, not through this agent)
+  9. get_ticket_run / save_l1_result / save_l2_result / save_l3_result
+                                        (orchestrator_state -- this agent's
+                                         own read/persist tools)
+
+No ticket-domain agent's own functionality changes here -- this only adds
+the real conversational entry point, plus the persistence step each stage
+was missing.
+
+Port: 7021 (ORCHESTRATOR_AGENT_PORT)
+MCP : http://localhost:7900/api/v1/<slug>/mcp for each of the 10 agents
+
+Run:
+    py -3 server.py
+"""
+
+import json
+import logging
+import os
+import sys
+import time
+import traceback
+from datetime import datetime, timedelta
+from typing import Annotated, TypedDict
+
+import uvicorn
+from dotenv import load_dotenv, find_dotenv
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
+from langchain_core.messages import AIMessage, SystemMessage
+from langchain_mcp_adapters.client import MultiServerMCPClient
+from langchain_openai.chat_models import AzureChatOpenAI
+from langgraph.graph import END, START, StateGraph
+from langgraph.graph.message import add_messages
+from langgraph.prebuilt import ToolNode
+
+load_dotenv(find_dotenv())
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
+    stream=sys.stdout,
+    force=True,
+)
+logger = logging.getLogger("orchestrator_agent")
+
+MCP_BASE_URL = os.getenv("MCP_BASE_URL", "http://localhost:7900")
+AGENT_PORT = int(os.getenv("ORCHESTRATOR_AGENT_PORT", "7021"))
+
+_SLUGS = [
+    "ticket_classification_triage",
+    "kb_matching",
+    "similar_incident_retrieval",
+    "l1_information_collector",
+    "policycenter_evidence_collector",
+    "l2_diagnostic",
+    "l3_remediation_proposal",
+    "human_approval",
+    "knowledge_ingestion_curation",
+    "orchestrator_state",
+]
+
+config_mcp_server = {
+    slug: {
+        "url": f"{MCP_BASE_URL}/api/v1/{slug}/mcp",
+        "transport": "streamable_http",
+        "timeout": timedelta(seconds=120),
+        "sse_read_timeout": timedelta(seconds=600),
+    }
+    for slug in _SLUGS
+}
+
+app = FastAPI(title="Orchestrator Agent")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
-class SaveL1ResultRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    card: dict[str, Any]
-    l1: Optional[dict[str, Any]] = None
-    evidence: Optional[dict[str, Any]] = None
-    similar: Optional[dict[str, Any]] = None
-    user: str = "analyst"
+class State(TypedDict):
+    messages: Annotated[list, add_messages]
 
 
-class SaveL2ResultRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+def router(state: State):
+    last = state["messages"][-1]
+    if isinstance(last, AIMessage) and getattr(last, "tool_calls", None):
+        return "tools"
+    if isinstance(last, AIMessage) and last.content:
+        if "Continue" in last.content:
+            return "tools"
+        if "End" in last.content:
+            return "End"
+    return "End"
 
-    l2: dict[str, Any]
-    user: str = "analyst"
+
+SYSTEM_PROMPT = """
+You are the Orchestrator Agent for an IT ticket platform. You walk one
+ticket through Classification, KB Matching, Similar Incident Retrieval, L1
+guidance, Evidence Collection, L2 Diagnosis, L3 Remediation, and Human
+Approval -- by calling each agent's own tool in the right order, with the
+same human checkpoints the UI already has.
+
+STEP 1 -- CLASSIFY
+  Call classify_ticket_record(record_id=<ticket's record_id>). This only
+  happens when a human asks for it (the "Classify" button) -- never guess a
+  classification yourself.
+
+Every one of these three steps ends by PERSISTING its result with the
+matching save_*_result tool (orchestrator_state) -- never skip that call,
+or the UI's own ticket view will show nothing from this run. Each step also
+starts by calling get_ticket_run(ticket_id=...) to read back whatever an
+earlier step already saved -- never assume you remember it from earlier in
+this same conversation, since the UI may call you fresh for each stage.
+
+STEP 2 -- L1 GUIDE (KB Matching -> Similar Incident Retrieval -> L1 -> Evidence)
+  Only after a human asks to run the L1 guide:
+  1. Call match_kb_card(title=..., description=...).
+  2. Regardless of whether that matched or not, ALSO call
+     find_similar_incidents(id=..., title=..., description=..., module=None,
+     severity=None, created=None) -- this always runs, it is never gated on
+     KB Matching's result.
+  3. If match_kb_card found no card (matched=false), still call
+     save_l1_result(ticket_id=..., card=<match_kb_card's full result
+     exactly as returned -- matched=false, reason, missing_info,
+     candidates>, similar=<find_similar_incidents's result>) -- never skip
+     this call just because there is nothing to guide on; the UI only
+     learns why from what you persist here, never from your reply text.
+     Do NOT call collect_l1_info or collect_evidence in this case (there is
+     no matched card to collect against). Then say so plainly in your reply
+     and stop -- there is nothing further to guide on at L1.
+  4. If it matched, call collect_l1_info(title=..., description=...) to get
+     the checklist results, then collect_evidence(unit_id=<the matched
+     card's unit_id>) to gather the demo evidence for that card.
+  5. Call save_l1_result(ticket_id=..., card=<match_kb_card's full result>,
+     l1=<collect_l1_info's result, minus its own "card" key>,
+     evidence=<collect_evidence's result>, similar=<find_similar_incidents's
+     result>). This is what the UI reads back -- do this every time, even if
+     you already described the results in your reply.
+  6. Report the KB card matched, the similar past tickets found, and the L1
+     checklist (answered/missing items, the requester reply) -- evidence has
+     been collected and saved, ready for L2 once a human says so.
+
+STEP 3 -- L2 DIAGNOSIS (only once a human says "continue to L2 diagnosis" /
+  "run L2 diagnosis")
+  1. Call get_ticket_run(ticket_id=...) to retrieve the card and evidence
+     L1 already saved. If there's no card/evidence yet, say L1 needs to run
+     first and stop.
+  2. Call diagnose(title=..., description=..., card=<from get_ticket_run>,
+     evidence=<from get_ticket_run>).
+  3. Call save_l2_result(ticket_id=..., l2=<diagnose's result>).
+  4. Report the conclusion and whether needs_data_fix is true -- that's the
+     gate for L3.
+
+STEP 4 -- L3 REMEDIATION (only once a human says "escalate to L3 data fix",
+  and only if L2 found needs_data_fix=true)
+  1. Call get_ticket_run(ticket_id=...) to retrieve the card, evidence, and
+     L2 result already saved. If L2 hasn't run, or its needs_data_fix is not
+     true, say so plainly and stop -- there is nothing to remediate.
+  2. Call author_remediation(ticket_id=..., title=..., description=...,
+     card=<from get_ticket_run>, l2=<from get_ticket_run>,
+     evidence=<from get_ticket_run>).
+  3. Call save_l3_result(ticket_id=..., l3=<author_remediation's result>,
+     run_by=<whoever is running this step -- from the message, default
+     "analyst">).
+  4. Report the Gosu script's explanation, expected_effect, and whether the
+     safety guard passed.
+
+STEP 5 -- APPROVE / REJECT (only when a human gives an explicit decision)
+  Call decide_approval(approve=true-or-false, gosu=<L3's gosu script>,
+  guard_passed=<L3's guard.passed>, run_by=<whoever ran L3>,
+  approver=<the deciding human's name>, change_id=<required to approve>,
+  note=...). Relay the result plainly, including why if it was rejected by
+  the deterministic rules (self-approval, failed guard, missing change_id).
+
+CLOSE TICKET AND SAVE TO KNOWLEDGE (available at every stage, whenever a
+  human clicks it)
+  Call ingest_closed_ticket(ticket_id=..., resolution_type=..., notes=...).
+  This persists the resolution on the real ticket and embeds it so Similar
+  Incident Retrieval can find it later -- it does NOT run the batch
+  run_ingestion tool (that one only ever touches the separate raw-JSON demo
+  sources, never a live ticket).
+
+GENERAL RULES
+  - Never skip a human checkpoint: Classify, L2, L3, Approve/Reject, and
+    Close-and-save-to-knowledge each only happen when a human asks for that
+    specific action, never on your own initiative.
+  - Never fabricate a tool's result. If a tool errors, say plainly what
+    broke and stop rather than guessing.
+
+When done, end your response with "End".
+"""
 
 
-class SaveL3ResultRequest(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+def create_graph(model, tools, prompt):
+    graph_builder = StateGraph(State)
+    llm_with_tools = model.bind_tools(tools)
 
-    l3: dict[str, Any]
-    run_by: str
-    user: str = "analyst"
+    async def agent_node(state: State):
+        messages = state["messages"]
+        all_messages = [SystemMessage(content=prompt)] + messages
+        message = await llm_with_tools.ainvoke(all_messages)
+        return {"messages": [message]}
+
+    graph_builder.add_node("agent", agent_node)
+    graph_builder.add_node("tools", ToolNode(tools=tools))
+    graph_builder.add_edge(START, "agent")
+    graph_builder.add_conditional_edges("agent", router, {"tools": "tools", "End": END})
+    graph_builder.add_edge("tools", "agent")
+    return graph_builder.compile()
+
+
+async def get_tools():
+    client = MultiServerMCPClient(config_mcp_server)
+    tools = await client.get_tools()
+    logger.info("Tools loaded from MCP: %s", [t.name for t in tools])
+    return tools
+
+
+async def stream_graph(graph, initial_state, config):
+    async for event in graph.astream_events(initial_state, config=config, version="v2"):
+        kind = event.get("event", "")
+
+        if kind == "on_chat_model_stream":
+            chunk = event["data"].get("chunk")
+            if chunk and hasattr(chunk, "content") and chunk.content:
+                yield f"data: {chunk.content}\n\n"
+
+        elif kind == "on_tool_start":
+            tool_name = event.get("name", "unknown_tool")
+            yield f"data: [Tool: {tool_name}] Starting...\n\n"
+
+        elif kind == "on_tool_end":
+            tool_name = event.get("name", "unknown_tool")
+            yield f"data: [Tool: {tool_name}] Done\n\n"
+
+
+@app.post("/chat")
+async def chat_stream(request: Request):
+    tools = await get_tools()
+
+    model = AzureChatOpenAI(
+        api_key=os.getenv("AZURE_OPENAI_API_KEY"),
+        api_version=os.getenv("AZURE_OPENAI_API_VERSION"),
+        azure_deployment=os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT"),
+        azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
+    )
+
+    body = await request.json()
+    user_message = body.get("message", "Run the next step of the ticket workflow")
+
+    graph = create_graph(model=model, tools=tools, prompt=SYSTEM_PROMPT)
+
+    async def generate():
+        start = time.time()
+        last_event_at = start
+        last_tool = None
+        try:
+            async for event in stream_graph(
+                graph=graph,
+                initial_state={"messages": [user_message]},
+                config={"recursion_limit": 250},
+            ):
+                last_event_at = time.time()
+                if isinstance(event, str) and event.startswith("data: [Tool:"):
+                    try:
+                        last_tool = event.split("[Tool:", 1)[1].split("]", 1)[0]
+                    except Exception:
+                        pass
+                yield event
+        except BaseException as e:
+            elapsed = time.time() - start
+            since_last = time.time() - last_event_at
+            err = {
+                "exception_class": type(e).__name__,
+                "message": str(e),
+                "elapsed_total_seconds": round(elapsed, 2),
+                "seconds_since_last_event": round(since_last, 2),
+                "last_tool_invoked": last_tool,
+                "traceback": traceback.format_exc(),
+                "timestamp_utc": datetime.utcnow().isoformat(),
+            }
+            logger.error("AGENT_ERROR %s", json.dumps(err, default=str))
+            try:
+                yield f"data: [AGENT_ERROR] {json.dumps(err, default=str)}\n\n"
+            except Exception:
+                pass
+            import asyncio
+            if isinstance(e, asyncio.CancelledError):
+                raise
+
+    return StreamingResponse(generate(), media_type="text/event-stream")
+
+
+@app.get("/health")
+async def health():
+    return {"status": "healthy", "agent": "orchestrator_agent"}
+
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=AGENT_PORT)
