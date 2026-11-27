@@ -1,67 +1,100 @@
--- ============================================================
--- HELP DESK — PHASE 1 SEED DATA
--- ============================================================
+import { X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import type { Ticket } from "@/lib/types";
+import { SimilarTicketsPanel } from "@/components/similar-tickets-panel";
+import { SuggestedFixPanel } from "@/components/suggested-fix-panel";
 
--- 1. users: 3 requesters, 2 agents (one senior), 1 admin
-INSERT INTO users (name, email, role, department) VALUES
-('Alice Chen',  'alice@company.com',  'requester', 'Marketing'),
-('Mark Reyes',  'mark@company.com',   'requester', 'Sales'),
-('Sofia Diaz',  'sofia@company.com',  'requester', 'Finance'),
-('Raj Patel',   'raj@company.com',    'agent',     'IT Support'),
-('Priya Nair',  'priya@company.com',  'agent',     'IT Support (Senior)'),
-('Tom Walsh',   'tom@company.com',    'admin',     'IT Support');
+interface TicketDetailDialogProps {
+  ticket: Ticket | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
 
--- 2. assets: a mix of assigned and in-stock
-INSERT INTO assets (asset_tag, asset_type, model, assigned_to, status) VALUES
-('LAP-0234', 'laptop',            'Dell Latitude 5440', 1, 'in_use'),
-('LIC-0091', 'software_license',  'Adobe Photoshop',    1, 'in_use'),
-('LAP-0190', 'laptop',            'Dell Latitude 5440', NULL, 'in_stock'),
-('MON-0045', 'monitor',           'Dell UltraSharp 27', 2, 'in_use'),
-('PHN-0012', 'phone',             'iPhone 14',          3, 'in_use');
+function formatTimestamp(value: string | null): string {
+  if (!value) return "Open (not closed yet)";
+  return new Date(value).toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
 
--- 3. sla_policies: response/resolution targets by priority
-INSERT INTO sla_policies (priority, response_time_hours, resolution_time_hours) VALUES
-('critical', 1,  4),
-('high',     4,  24),
-('medium',   8,  72),
-('low',      24, 120);
+function Field({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="space-y-2">
+      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+      </div>
+      <div className="text-base font-medium">{value}</div>
+    </div>
+  );
+}
 
--- 4. tickets: a realistic spread of statuses and priorities
-INSERT INTO tickets (requester_id, assigned_agent_id, asset_id, category, priority, status, subject, description, created_at, resolved_at) VALUES
-(1, 4, 1,    'hardware', 'high',     'in_progress', 'Laptop won''t boot after update',
-    'Tried restarting twice, gets stuck on Dell logo screen.', now() - interval '3 hours', NULL),
-(2, 5, NULL, 'access',   'medium',   'resolved',    'Need access to shared Sales drive',
-    'Lost access after team restructure last week.', now() - interval '2 days', now() - interval '1 day'),
-(3, NULL, NULL, 'software', 'low',   'open',        'Excel crashes when opening large file',
-    'Happens specifically with the Q3 budget spreadsheet.', now() - interval '30 minutes', NULL),
-(1, 4, 2,    'software', 'critical', 'open',        'Photoshop license shows expired',
-    'Was working yesterday, blocking a client deliverable today.', now() - interval '45 minutes', NULL),
-(2, 5, NULL, 'network',  'high',     'closed',      'VPN keeps disconnecting',
-    'Drops every 10-15 minutes while working from home.', now() - interval '5 days', now() - interval '4 days');
+export function TicketDetailDialog({ ticket, open, onOpenChange }: TicketDetailDialogProps) {
+  if (!ticket || !open) return null;
 
--- 5. ticket_comments: conversation threads
-INSERT INTO ticket_comments (ticket_id, author_id, comment_text, is_internal) VALUES
-(1, 4, 'Can you try a hard reset — hold power button 10 seconds?', false),
-(1, 1, 'Tried that, same issue. Still stuck on the logo.', false),
-(1, 4, 'Escalating to Priya, might be a failed firmware update.', true),
-(2, 5, 'Access granted, please confirm you can see the drive now.', false),
-(2, 2, 'Confirmed, thank you!', false);
+  return (
+    <div className="fixed inset-y-0 left-64 right-0 z-50 overflow-y-auto bg-background">
+      <div className="mx-auto max-w-[1200px] px-10 py-10">
+        <div className="mb-8 flex items-start justify-between gap-6 border-b border-border pb-6">
+          <h1 className="text-2xl font-bold leading-snug tracking-tight">
+            #{ticket.id} — {ticket.title}
+          </h1>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            <X className="h-4 w-4" />
+            Close
+          </Button>
+        </div>
 
--- 6. sla_tracking: deadlines computed from sla_policies at creation time
-INSERT INTO sla_tracking (ticket_id, sla_policy_id, response_due_at, resolution_due_at, first_response_at, resolved_at, is_breached) VALUES
-(1, 2, (now() - interval '3 hours') + interval '4 hours',  (now() - interval '3 hours') + interval '24 hours', now() - interval '2 hours 30 minutes', NULL, false),
-(2, 3, (now() - interval '2 days') + interval '8 hours',   (now() - interval '2 days') + interval '72 hours',  now() - interval '1 day 20 hours', now() - interval '1 day', false),
-(3, 4, (now() - interval '30 minutes') + interval '24 hours', (now() - interval '30 minutes') + interval '120 hours', NULL, NULL, false),
-(4, 1, (now() - interval '45 minutes') + interval '1 hour', (now() - interval '45 minutes') + interval '4 hours', NULL, NULL, false),
-(5, 2, (now() - interval '5 days') + interval '4 hours',   (now() - interval '5 days') + interval '24 hours',  now() - interval '4 days 20 hours', now() - interval '4 days', false);
+        <div className="space-y-10">
+          <div className="grid grid-cols-1 gap-8 rounded-lg border border-dashed border-border bg-muted/40 p-8 sm:grid-cols-3">
+            <Field label="Ticket ID" value={ticket.id} />
+            <Field label="Created At" value={formatTimestamp(ticket.createdAt)} />
+            <Field label="Closed At" value={formatTimestamp(ticket.closedAt)} />
+          </div>
 
--- 7. access_requests: one pending approval — this is what the
--- HITL gate (Phase 6) will pause on and ask a human to approve
-INSERT INTO access_requests (ticket_id, requested_by, request_type, target_system, status) VALUES
-(2, 2, 'access_grant', 'Sales Shared Drive', 'completed'),
-(1, 1, 'password_reset', 'Email Account', 'pending_approval');
+          <div className="grid grid-cols-1 gap-8 sm:grid-cols-4">
+            <Field label="Application / Module" value={<Badge variant="outline">{ticket.module}</Badge>} />
+            <Field label="Assignee Team" value={ticket.assigneeTeam ?? "—"} />
+            <Field label="Severity" value={ticket.severity} />
+            <Field label="Category" value={ticket.category} />
+          </div>
 
--- system_manuals / manual_chunks / audit_log intentionally left
--- empty here — those get populated by code (Phase 2 ingestion
--- pipeline, and audit_log gets written BY the handlers themselves,
--- not seeded by hand).
+          <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
+            <Field label="Resolution Type" value={ticket.resolutionType} />
+            <Field label="Curation Status" value={<Badge>{ticket.curationStatus}</Badge>} />
+            <Field label="Guidewire Version" value={ticket.guidewireVersion ?? "—"} />
+          </div>
+
+          <div className="space-y-2 border-t border-border pt-8">
+            <Field
+              label="Description"
+              value={
+                <p className="font-normal leading-relaxed text-foreground/90">
+                  {ticket.description}
+                </p>
+              }
+            />
+          </div>
+
+          <SuggestedFixPanel query={{ id: ticket.id, title: ticket.title, description: ticket.description }} />
+
+          <SimilarTicketsPanel
+            auto
+            query={{
+              id: ticket.id,
+              title: ticket.title,
+              description: ticket.description,
+              module: ticket.module,
+              severity: ticket.severity,
+              created: ticket.createdAt ?? undefined,
+            }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
