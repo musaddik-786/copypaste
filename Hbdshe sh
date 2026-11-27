@@ -1,163 +1,44 @@
-// import { ChevronRight, X } from "lucide-react";
-// import { Button } from "@/components/ui/button";
-// import { Badge } from "@/components/ui/badge";
-// import type { Ticket } from "@/lib/types";
-// import { SimilarTicketsPanel } from "@/components/similar-tickets-panel";
-// import { FixWorkbench } from "@/components/fix-workbench";
+import { ShieldCheck } from "lucide-react";
+import { AppSidebar } from "@/components/app-sidebar";
 
-// interface TicketDetailDialogProps {
-//   ticket: Ticket | null;
-//   open: boolean;
-//   onOpenChange: (open: boolean) => void;
-// }
-
-// function formatTimestamp(value: string | null): string {
-//   if (!value) return "Open";
-//   return new Date(value).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
-// }
-
-// function Row({ label, value }: { label: string; value: React.ReactNode }) {
-//   return (
-//     <div className="flex items-start justify-between gap-4 border-b border-border py-2.5 last:border-0">
-//       <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</dt>
-//       <dd className="text-right text-sm font-medium text-slate-900">{value}</dd>
-//     </div>
-//   );
-// }
-
-// const Card = ({ title, children }: { title: string; children: React.ReactNode }) => (
-//   <section className="rounded-lg border border-border bg-card shadow-sm">
-//     <h2 className="border-b border-border px-5 py-3 text-sm font-semibold text-[#0B2A4A]">{title}</h2>
-//     <div className="p-5">{children}</div>
-//   </section>
-// );
-
-// export function TicketDetailDialog({ ticket, open, onOpenChange }: TicketDetailDialogProps) {
-//   if (!ticket || !open) return null;
-
-//   return (
-//     <div className="fixed bottom-0 left-64 right-0 top-12 z-50 overflow-y-auto bg-background">
-//       <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-border bg-card px-8 py-3 shadow-sm">
-//         <div className="min-w-0">
-//           <nav className="flex items-center gap-1 text-xs text-slate-500">
-//             <button type="button" className="hover:underline" onClick={() => onOpenChange(false)}>AI Insights</button>
-//             <ChevronRight className="h-3 w-3" /> <span>Ticket #{ticket.id}</span>
-//           </nav>
-//           <h1 className="truncate text-lg font-bold text-[#0B2A4A]">{ticket.title}</h1>
-//         </div>
-//         <Button variant="outline" onClick={() => onOpenChange(false)}><X className="mr-1 h-4 w-4" />Close</Button>
-//       </div>
-
-//       <div className="mx-auto grid max-w-[1400px] gap-6 px-8 py-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-//         <div className="space-y-6">
-//           <Card title="Description">
-//             <p className="text-sm leading-relaxed text-slate-700">{ticket.description}</p>
-//           </Card>
-//           <FixWorkbench ticket={{ id: ticket.id, title: ticket.title, description: ticket.description }} />
-//           <SimilarTicketsPanel
-//             auto
-//             query={{ id: ticket.id, title: ticket.title, description: ticket.description, module: ticket.module,
-//               severity: ticket.severity, created: ticket.createdAt ?? undefined }}
-//           />
-//         </div>
-
-//         <aside className="h-fit lg:sticky lg:top-24">
-//           <Card title="Ticket details">
-//             <dl>
-//               <Row label="Ticket" value={`#${ticket.id}`} />
-//               <Row label="Module" value={<Badge variant="outline">{ticket.module}</Badge>} />
-//               <Row label="Severity" value={ticket.severity} />
-//               <Row label="Category" value={ticket.category} />
-//               <Row label="Assignee team" value={ticket.assigneeTeam ?? "—"} />
-//               <Row label="Resolution type" value={ticket.resolutionType} />
-//               <Row label="Curation" value={<Badge>{ticket.curationStatus}</Badge>} />
-//               <Row label="Version" value={ticket.guidewireVersion ?? "—"} />
-//               <Row label="Created" value={formatTimestamp(ticket.createdAt)} />
-//               <Row label="Closed" value={formatTimestamp(ticket.closedAt)} />
-//             </dl>
-//           </Card>
-//         </aside>
-//       </div>
-//     </div>
-//   );
-// }
-
-
-
-import { ChevronRight, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import type { Ticket } from "@/lib/types";
-import { FixWorkbench } from "@/components/fix-workbench";
-
-interface TicketDetailDialogProps {
-  ticket: Ticket | null;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+interface Props {
+  active: string;
+  title: string;
+  subtitle?: string;
+  actions?: React.ReactNode;
+  children: React.ReactNode;
+  overlay?: React.ReactNode;
 }
 
-function formatTimestamp(value: string | null): string {
-  if (!value) return "Open";
-  return new Date(value).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
-}
-
-function Row({ label, value }: { label: string; value: React.ReactNode }) {
+/** One frame for every screen: navy top bar, left navigation, page header, content on a light canvas. */
+export function AppShell({ active, title, subtitle, actions, children, overlay }: Props) {
   return (
-    <div className="flex items-start justify-between gap-4 border-b border-border py-2.5 last:border-0">
-      <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</dt>
-      <dd className="text-right text-sm font-medium text-slate-900">{value}</dd>
-    </div>
-  );
-}
-
-const Card = ({ title, children }: { title: string; children: React.ReactNode }) => (
-  <section className="rounded-lg border border-border bg-card shadow-sm">
-    <h2 className="border-b border-border px-5 py-3 text-sm font-semibold text-[#0B2A4A]">{title}</h2>
-    <div className="p-5">{children}</div>
-  </section>
-);
-
-export function TicketDetailDialog({ ticket, open, onOpenChange }: TicketDetailDialogProps) {
-  if (!ticket || !open) return null;
-
-  return (
-    <div className="fixed bottom-0 left-64 right-0 top-12 z-50 overflow-y-auto bg-background">
-      <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-border bg-card px-8 py-3 shadow-sm">
-        <div className="min-w-0">
-          <nav className="flex items-center gap-1 text-xs text-slate-500">
-            <button type="button" className="hover:underline" onClick={() => onOpenChange(false)}>AI Insights</button>
-            <ChevronRight className="h-4 w-4" /> <span>Ticket #{ticket.id}</span>
-          </nav>
-          <h1 className="truncate text-lg font-bold text-[#0B2A4A]">{ticket.title}</h1>
+    <div className="flex h-screen w-full flex-col bg-background">
+      <header className="flex h-12 shrink-0 items-center justify-between bg-[#0B2A4A] px-5 text-white">
+        <div className="flex items-center gap-3">
+          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-sm font-bold">H</div>
+          <span className="text-sm font-semibold tracking-wide">Hexaware <span className="text-sky-300">AMS</span></span>
+          <span className="hidden h-4 w-px bg-white/25 sm:inline-block" />
+          <span className="hidden text-sm text-white/70 sm:inline">Guidewire Application Support</span>
         </div>
-        <Button variant="outline" onClick={() => onOpenChange(false)}><X className="mr-1 h-4 w-4" />Close</Button>
+        <span className="flex items-center gap-1.5 text-xs text-white/70"><ShieldCheck className="h-4 w-4" aria-hidden />Production support</span>
+      </header>
+      <div className="flex min-h-0 flex-1">
+        <AppSidebar activeItem={active} />
+        <main className="flex-1 overflow-y-auto bg-background">
+          <div className="mx-auto max-w-[1400px] px-8 py-6">
+            <div className="mb-6 flex flex-wrap items-end justify-between gap-4 border-b border-border pb-4">
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight text-[#0B2A4A]">{title}</h1>
+                {subtitle && <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>}
+              </div>
+              {actions}
+            </div>
+            {children}
+          </div>
+        </main>
       </div>
-
-      <div className="mx-auto grid max-w-[1400px] gap-6 px-8 py-6 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="space-y-6">
-          <Card title="Description">
-            <p className="text-sm leading-relaxed text-slate-700">{ticket.description}</p>
-          </Card>
-          <FixWorkbench ticket={{ id: ticket.id, title: ticket.title, description: ticket.description }} />
-        </div>
-
-        <aside className="h-fit lg:sticky lg:top-24">
-          <Card title="Ticket details">
-            <dl>
-              <Row label="Ticket" value={`#${ticket.id}`} />
-              <Row label="Module" value={<Badge variant="outline">{ticket.module}</Badge>} />
-              <Row label="Severity" value={ticket.newUnclassified || ticket.curationStatus === "NeedsRetag" ? "—" : ticket.severity} />
-              <Row label="Category" value={ticket.newUnclassified || ticket.curationStatus === "NeedsRetag" ? "—" : ticket.category} />
-              <Row label="Assignee team" value={ticket.assigneeTeam ?? "—"} />
-              <Row label="Resolution type" value={ticket.resolutionType} />
-              <Row label="Curation" value={<Badge>{ticket.curationStatus}</Badge>} />
-              <Row label="Version" value={ticket.guidewireVersion ?? "—"} />
-              <Row label="Created" value={formatTimestamp(ticket.createdAt)} />
-              <Row label="Closed" value={formatTimestamp(ticket.closedAt)} />
-            </dl>
-          </Card>
-        </aside>
-      </div>
+      {overlay}
     </div>
   );
 }
