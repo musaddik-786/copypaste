@@ -1,1 +1,203 @@
-{ticket.newUnclassified || ticket.curationStatus === "NeedsRetag" ? (
+-- ============================================================
+-- HELP DESK INTELLIGENCE PLATFORM — PHASE 1 SCHEMA
+-- ============================================================
+
+-- ------------------------------------------------------------
+-- 1. users
+-- Concept: two kinds of people — requesters (raise tickets) and
+-- agents (resolve them) — kept in one table via a `role` column,
+-- since an agent is also a user who might raise their own tickets.
+-- CHECK constraints guard against garbage values slipping in,
+-- the same discipline Cedera uses for financial/status fields.
+-- Example: (1, Alice Chen, requester, Marketing), (2, Raj Patel, agent, IT Support)
+-- ------------------------------------------------------------
+CREATE TABLE users (
+    user_id         SERIAL PRIMARY KEY,
+    name            TEXT NOT NULL,
+    email           TEXT NOT NULL UNIQUE,
+    role            TEXT NOT NULL CHECK (role IN ('requester', 'agent', 'admin')),
+    department      TEXT,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ------------------------------------------------------------
+-- 2. assets
+-- Concept: hardware/software the IT dept tracks — the equivalent
+-- of Cedera's cedera_policies. Tickets reference these.
+-- `assigned_to` is nullable — unassigned stock has no owner yet.
+-- Example: (LAP-0234, laptop, Dell Latitude 5440, assigned to Alice, in_use)
+-- ------------------------------------------------------------
+CREATE TABLE assets (
+    asset_id        SERIAL PRIMARY KEY,
+    asset_tag       TEXT NOT NULL UNIQUE,
+    asset_type      TEXT NOT NULL CHECK (asset_type IN ('laptop', 'monitor', 'phone', 'software_license', 'peripheral')),
+    model           TEXT,
+    assigned_to     INTEGER REFERENCES users(user_id),
+    status          TEXT NOT NULL DEFAULT 'in_stock' CHECK (status IN ('in_stock', 'in_use', 'retired', 'repair')),
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ------------------------------------------------------------
+-- 3. tickets
+-- Concept: the core entity — Alice raises it, Raj gets assigned,
+-- optionally tied to an asset. `category` and `priority` are
+-- deliberately left for the LLM to classify in Phase 3 via
+-- with_structured_output(TicketClassification) — Gap Module 1.
+-- Example: (requester Alice, agent Raj, asset her laptop,
+--           category hardware, priority high, "won't boot after update")
+-- ------------------------------------------------------------
+CREATE TABLE tickets (
+    ticket_id           SERIAL PRIMARY KEY,
+    requester_id        INTEGER NOT NULL REFERENCES users(user_id),
+    assigned_agent_id   INTEGER REFERENCES users(user_id),
+    asset_id            INTEGER REFERENCES assets(asset_id),
+    category            TEXT NOT NULL CHECK (category IN ('hardware', 'software', 'network', 'access', 'other')),
+    priority            TEXT NOT NULL CHECK (priority IN ('low', 'medium', 'high', 'critical')),
+    status              TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'in_progress', 'resolved', 'closed')),
+    subject             TEXT NOT NULL,
+    description         TEXT,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+    resolved_at         TIMESTAMPTZ
+);
+
+-- ------------------------------------------------------------
+-- 4. ticket_comments
+-- Concept: the conversation thread on a ticket — Raj asks Alice
+-- a clarifying question, she replies, Raj notes something only
+-- IT should see (`is_internal`). Mirrors how a real help desk
+-- tool (Zendesk/Jira Service Desk) separates public vs internal notes.
+-- Example: (ticket 1042, author Raj, "Can you try a hard reset?", is_internal=false)
+-- ------------------------------------------------------------
+CREATE TABLE ticket_comments (
+    comment_id      SERIAL PRIMARY KEY,
+    ticket_id       INTEGER NOT NULL REFERENCES tickets(ticket_id),
+    author_id       INTEGER NOT NULL REFERENCES users(user_id),
+    comment_text    TEXT NOT NULL,
+    is_internal     BOOLEAN NOT NULL DEFAULT false,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ------------------------------------------------------------
+-- 5. sla_policies
+-- Concept: the target response/resolution times by priority —
+-- a "critical" ticket must get a first response within 1 hour
+-- and be resolved within 4; "low" priority can wait longer.
+-- This is the equivalent of Cedera's compliance_obligations —
+-- a rule table other tables measure actual tickets against.
+-- Example: (critical, response 1h, resolution 4h), (low, response 24h, resolution 120h)
+-- ------------------------------------------------------------
+CREATE TABLE sla_policies (
+    sla_policy_id           SERIAL PRIMARY KEY,
+    priority                TEXT NOT NULL UNIQUE CHECK (priority IN ('low', 'medium', 'high', 'critical')),
+    response_time_hours     NUMERIC NOT NULL,
+    resolution_time_hours   NUMERIC NOT NULL
+);
+
+-- ------------------------------------------------------------
+-- 6. sla_tracking
+-- Concept: per-ticket deadlines computed FROM sla_policies at
+-- ticket-creation time, plus whether those deadlines were met.
+-- This is where the SLA Agent's "is this breached?" logic reads
+-- from — deliberately NOT recomputed from sla_policies every time,
+-- the same "read from layer_erosion, not treaty_terms" principle
+-- Cedera uses for recovery calculations: the snapshot at creation
+-- time is what matters, not today's policy table.
+-- Example: ticket 1042, response_due_at = created_at + 1h, is_breached = false
+-- ------------------------------------------------------------
+CREATE TABLE sla_tracking (
+    sla_tracking_id     SERIAL PRIMARY KEY,
+    ticket_id           INTEGER NOT NULL UNIQUE REFERENCES tickets(ticket_id),
+    sla_policy_id       INTEGER NOT NULL REFERENCES sla_policies(sla_policy_id),
+    response_due_at     TIMESTAMPTZ NOT NULL,
+    resolution_due_at   TIMESTAMPTZ NOT NULL,
+    first_response_at   TIMESTAMPTZ,
+    resolved_at         TIMESTAMPTZ,
+    is_breached         BOOLEAN NOT NULL DEFAULT false
+);
+
+-- ------------------------------------------------------------
+-- 7. system_manuals
+-- Concept: metadata for each uploaded PDF (a VPN setup guide, a
+-- password policy doc, a printer troubleshooting manual) — the
+-- equivalent of Cedera's treaty_documents. The actual searchable
+-- text lives in manual_chunks below; this table is just "what
+-- file is this, what system does it cover."
+-- Example: (title "VPN Client Setup Guide", system_name "VPN", file_name "vpn_setup.pdf")
+-- ------------------------------------------------------------
+CREATE TABLE system_manuals (
+    manual_id       SERIAL PRIMARY KEY,
+    title           TEXT NOT NULL,
+    system_name     TEXT NOT NULL,
+    file_name       TEXT NOT NULL,
+    uploaded_at     TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- ------------------------------------------------------------
+-- 8. manual_chunks
+-- Concept: the pgvector table — each manual gets split into
+-- chunks (Phase 2), each chunk gets an embedding. The Knowledge
+-- Agent's RAG search queries THIS table, ordering by cosine
+-- distance against a query embedding. Mirrors Cedera's
+-- treaty_clauses exactly, including the embedding dimensions.
+-- Example: (manual_id 1, chunk_text "To connect to VPN, open...",
+--           section_header "Step 2: Connecting", embedding <1536 floats>)
+-- ------------------------------------------------------------
+CREATE EXTENSION IF NOT EXISTS vector;
+
+CREATE TABLE manual_chunks (
+    chunk_id        SERIAL PRIMARY KEY,
+    manual_id       INTEGER NOT NULL REFERENCES system_manuals(manual_id),
+    chunk_text      TEXT NOT NULL,
+    section_header  TEXT,
+    embedding       VECTOR(1536),
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX ON manual_chunks USING hnsw (embedding vector_cosine_ops);
+
+-- ------------------------------------------------------------
+-- 9. access_requests
+-- Concept: THE HITL-gated table. A ticket asks for a password
+-- reset or an access grant — the agent does NOT execute it
+-- immediately. It creates a row here with status
+-- 'pending_approval', the graph calls interrupt(), a human
+-- approves/rejects, and only then does the status flip to
+-- 'approved' and the action actually happens. This table is
+-- the concrete answer to "show me where HITL fits in your system"
+-- in an interview — Gap Module 4.
+-- Example: (ticket 1042, requested_by Alice, request_type password_reset,
+--           target_system "Email", status pending_approval)
+-- ------------------------------------------------------------
+CREATE TABLE access_requests (
+    access_request_id  SERIAL PRIMARY KEY,
+    ticket_id           INTEGER REFERENCES tickets(ticket_id),
+    requested_by        INTEGER NOT NULL REFERENCES users(user_id),
+    request_type        TEXT NOT NULL CHECK (request_type IN ('password_reset', 'access_grant', 'software_install')),
+    target_system       TEXT NOT NULL,
+    status               TEXT NOT NULL DEFAULT 'pending_approval' CHECK (status IN ('pending_approval', 'approved', 'rejected', 'completed')),
+    approved_by          INTEGER REFERENCES users(user_id),
+    requested_at         TIMESTAMPTZ NOT NULL DEFAULT now(),
+    decided_at           TIMESTAMPTZ
+);
+
+-- ------------------------------------------------------------
+-- 10. audit_log
+-- Concept: every tool call that touched data gets a row here —
+-- which agent/tool ran, what table/record it touched, what it
+-- did. This is the concrete backing for the "never trust the
+-- LLM, always validate and log" interview story — Gap Module 6
+-- (Reliability). `details` is JSONB so it can hold whatever
+-- shape of before/after data each tool call produces, without
+-- needing a new column per tool.
+-- Example: (actor "ticket_agent", action "create_ticket",
+--           table_name "tickets", record_id 1042, details {...})
+-- ------------------------------------------------------------
+CREATE TABLE audit_log (
+    audit_id        SERIAL PRIMARY KEY,
+    actor           TEXT NOT NULL,
+    action          TEXT NOT NULL,
+    table_name      TEXT NOT NULL,
+    record_id       INTEGER,
+    details         JSONB,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
