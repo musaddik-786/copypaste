@@ -1,77 +1,640 @@
-. Ticket Classification & Triage Agent
+200 OK
+INFO:     127.0.0.1:47186 - "POST /api/v1/similar_incident_retrieval/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47188 - "POST /api/v1/l1_information_collector/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47194 - "POST /api/v1/policycenter_evidence_collector/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47160 - "POST /api/v1/ticket_classification_triage/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47200 - "POST /api/v1/l2_diagnostic/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47210 - "POST /api/v1/l3_remediation_proposal/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47220 - "POST /api/v1/human_approval/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47232 - "POST /api/v1/knowledge_ingestion_curation/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47234 - "POST /api/v1/orchestrator_state/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47172 - "POST /api/v1/kb_matching/mcp HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:47186 - "POST /api/v1/similar_incident_retrieval/mcp HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:47188 - "POST /api/v1/l1_information_collector/mcp HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:47194 - "POST /api/v1/policycenter_evidence_collector/mcp HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:47160 - "POST /api/v1/ticket_classification_triage/mcp HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:47200 - "POST /api/v1/l2_diagnostic/mcp HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:47210 - "POST /api/v1/l3_remediation_proposal/mcp HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:47220 - "POST /api/v1/human_approval/mcp HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:47232 - "POST /api/v1/knowledge_ingestion_curation/mcp HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:47234 - "POST /api/v1/orchestrator_state/mcp HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:47310 - "POST /api/v1/kb_matching/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47326 - "POST /api/v1/similar_incident_retrieval/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47330 - "POST /api/v1/l1_information_collector/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47344 - "POST /api/v1/human_approval/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47356 - "POST /api/v1/policycenter_evidence_collector/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47368 - "POST /api/v1/ticket_classification_triage/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47374 - "POST /api/v1/l2_diagnostic/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47376 - "POST /api/v1/l3_remediation_proposal/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47382 - "POST /api/v1/orchestrator_state/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47384 - "POST /api/v1/knowledge_ingestion_curation/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47310 - "DELETE /api/v1/kb_matching/mcp HTTP/1.1" 200 OK
+ERROR:mcp.server.streamable_http:Error in standalone SSE writer
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/NEW_AMS_END_TO_END/vevn/lib/python3.11/site-packages/mcp/server/streamable_http.py", line 765, in standalone_sse_writer
+    async for event_message in standalone_stream_reader:
+  File "/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/NEW_AMS_END_TO_END/vevn/lib/python3.11/site-packages/anyio/abc/_streams.py", line 37, in __anext__
+    return await self.receive()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/NEW_AMS_END_TO_END/vevn/lib/python3.11/site-packages/anyio/streams/memory.py", line 141, in receive
+    raise ClosedResourceError from None
+anyio.ClosedResourceError
+INFO:     127.0.0.1:47326 - "DELETE /api/v1/similar_incident_retrieval/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47236 - "GET /api/v1/kb_matching/mcp HTTP/1.1" 200 OK
+ERROR:mcp.server.streamable_http:Error in standalone SSE writer
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/NEW_AMS_END_TO_END/vevn/lib/python3.11/site-packages/mcp/server/streamable_http.py", line 765, in standalone_sse_writer
+    async for event_message in standalone_stream_reader:
+  File "/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/NEW_AMS_END_TO_END/vevn/lib/python3.11/site-packages/anyio/abc/_streams.py", line 37, in __anext__
+    return await self.receive()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/NEW_AMS_END_TO_END/vevn/lib/python3.11/site-packages/anyio/streams/memory.py", line 141, in receive
+    raise ClosedResourceError from None
+anyio.ClosedResourceError
+INFO:     127.0.0.1:47330 - "DELETE /api/v1/l1_information_collector/mcp HTTP/1.1" 200 OK
+ERROR:mcp.server.streamable_http:Error in standalone SSE writer
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/NEW_AMS_END_TO_END/vevn/lib/python3.11/site-packages/mcp/server/streamable_http.py", line 765, in standalone_sse_writer
+    async for event_message in standalone_stream_reader:
+  File "/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/NEW_AMS_END_TO_END/vevn/lib/python3.11/site-packages/anyio/abc/_streams.py", line 37, in __anext__
+    return await self.receive()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/NEW_AMS_END_TO_END/vevn/lib/python3.11/site-packages/anyio/streams/memory.py", line 141, in receive
+    raise ClosedResourceError from None
+anyio.ClosedResourceError
+INFO:     127.0.0.1:47244 - "GET /api/v1/similar_incident_retrieval/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47344 - "DELETE /api/v1/human_approval/mcp HTTP/1.1" 200 OK
+ERROR:mcp.server.streamable_http:Error in standalone SSE writer
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/NEW_AMS_END_TO_END/vevn/lib/python3.11/site-packages/mcp/server/streamable_http.py", line 765, in standalone_sse_writer
+    async for event_message in standalone_stream_reader:
+  File "/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/NEW_AMS_END_TO_END/vevn/lib/python3.11/site-packages/anyio/abc/_streams.py", line 37, in __anext__
+    return await self.receive()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/NEW_AMS_END_TO_END/vevn/lib/python3.11/site-packages/anyio/streams/memory.py", line 141, in receive
+    raise ClosedResourceError from None
+anyio.ClosedResourceError
+INFO:     127.0.0.1:47254 - "GET /api/v1/l1_information_collector/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47356 - "DELETE /api/v1/policycenter_evidence_collector/mcp HTTP/1.1" 200 OK
+ERROR:mcp.server.streamable_http:Error in standalone SSE writer
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/NEW_AMS_END_TO_END/vevn/lib/python3.11/site-packages/mcp/server/streamable_http.py", line 765, in standalone_sse_writer
+    async for event_message in standalone_stream_reader:
+  File "/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/NEW_AMS_END_TO_END/vevn/lib/python3.11/site-packages/anyio/abc/_streams.py", line 37, in __anext__
+    return await self.receive()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/NEW_AMS_END_TO_END/vevn/lib/python3.11/site-packages/anyio/streams/memory.py", line 141, in receive
+    raise ClosedResourceError from None
+anyio.ClosedResourceError
+INFO:     127.0.0.1:47294 - "GET /api/v1/human_approval/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47368 - "DELETE /api/v1/ticket_classification_triage/mcp HTTP/1.1" 200 OK
+ERROR:mcp.server.streamable_http:Error in standalone SSE writer
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/NEW_AMS_END_TO_END/vevn/lib/python3.11/site-packages/mcp/server/streamable_http.py", line 765, in standalone_sse_writer
+    async for event_message in standalone_stream_reader:
+  File "/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/NEW_AMS_END_TO_END/vevn/lib/python3.11/site-packages/anyio/abc/_streams.py", line 37, in __anext__
+    return await self.receive()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/NEW_AMS_END_TO_END/vevn/lib/python3.11/site-packages/anyio/streams/memory.py", line 141, in receive
+    raise ClosedResourceError from None
+anyio.ClosedResourceError
+INFO:     127.0.0.1:47374 - "DELETE /api/v1/l2_diagnostic/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47260 - "GET /api/v1/policycenter_evidence_collector/mcp HTTP/1.1" 200 OK
+ERROR:mcp.server.streamable_http:Error in standalone SSE writer
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/NEW_AMS_END_TO_END/vevn/lib/python3.11/site-packages/mcp/server/streamable_http.py", line 765, in standalone_sse_writer
+    async for event_message in standalone_stream_reader:
+  File "/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/NEW_AMS_END_TO_END/vevn/lib/python3.11/site-packages/anyio/abc/_streams.py", line 37, in __anext__
+    return await self.receive()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/NEW_AMS_END_TO_END/vevn/lib/python3.11/site-packages/anyio/streams/memory.py", line 141, in receive
+    raise ClosedResourceError from None
+anyio.ClosedResourceError
+INFO:     127.0.0.1:47376 - "DELETE /api/v1/l3_remediation_proposal/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47382 - "DELETE /api/v1/orchestrator_state/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47384 - "DELETE /api/v1/knowledge_ingestion_curation/mcp HTTP/1.1" 200 OK
+ERROR:mcp.server.streamable_http:Error in standalone SSE writer
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/NEW_AMS_END_TO_END/vevn/lib/python3.11/site-packages/mcp/server/streamable_http.py", line 765, in standalone_sse_writer
+    async for event_message in standalone_stream_reader:
+  File "/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/NEW_AMS_END_TO_END/vevn/lib/python3.11/site-packages/anyio/abc/_streams.py", line 37, in __anext__
+    return await self.receive()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/NEW_AMS_END_TO_END/vevn/lib/python3.11/site-packages/anyio/streams/memory.py", line 141, in receive
+    raise ClosedResourceError from None
+anyio.ClosedResourceError
+ERROR:mcp.server.streamable_http:Error in standalone SSE writer
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/NEW_AMS_END_TO_END/vevn/lib/python3.11/site-packages/mcp/server/streamable_http.py", line 765, in standalone_sse_writer
+    async for event_message in standalone_stream_reader:
+  File "/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/NEW_AMS_END_TO_END/vevn/lib/python3.11/site-packages/anyio/abc/_streams.py", line 37, in __anext__
+    return await self.receive()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/NEW_AMS_END_TO_END/vevn/lib/python3.11/site-packages/anyio/streams/memory.py", line 141, in receive
+    raise ClosedResourceError from None
+anyio.ClosedResourceError
+ERROR:mcp.server.streamable_http:Error in standalone SSE writer
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/NEW_AMS_END_TO_END/vevn/lib/python3.11/site-packages/mcp/server/streamable_http.py", line 765, in standalone_sse_writer
+    async for event_message in standalone_stream_reader:
+  File "/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/NEW_AMS_END_TO_END/vevn/lib/python3.11/site-packages/anyio/abc/_streams.py", line 37, in __anext__
+    return await self.receive()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/NEW_AMS_END_TO_END/vevn/lib/python3.11/site-packages/anyio/streams/memory.py", line 141, in receive
+    raise ClosedResourceError from None
+anyio.ClosedResourceError
+INFO:     127.0.0.1:47272 - "GET /api/v1/ticket_classification_triage/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47286 - "GET /api/v1/l2_diagnostic/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47290 - "GET /api/v1/l3_remediation_proposal/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47302 - "GET /api/v1/orchestrator_state/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47298 - "GET /api/v1/knowledge_ingestion_curation/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47398 - "POST /api/v1/orchestrator_state/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47398 - "POST /api/v1/orchestrator_state/mcp HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:47406 - "POST /api/v1/orchestrator_state/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47406 - "POST /api/v1/orchestrator_state/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47406 - "DELETE /api/v1/orchestrator_state/mcp HTTP/1.1" 200 OK
+ERROR:mcp.server.streamable_http:Error in standalone SSE writer
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/NEW_AMS_END_TO_END/vevn/lib/python3.11/site-packages/mcp/server/streamable_http.py", line 765, in standalone_sse_writer
+    async for event_message in standalone_stream_reader:
+  File "/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/NEW_AMS_END_TO_END/vevn/lib/python3.11/site-packages/anyio/abc/_streams.py", line 37, in __anext__
+    return await self.receive()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/NEW_AMS_END_TO_END/vevn/lib/python3.11/site-packages/anyio/streams/memory.py", line 141, in receive
+    raise ClosedResourceError from None
+anyio.ClosedResourceError
+INFO:     127.0.0.1:47400 - "GET /api/v1/orchestrator_state/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47416 - "POST /api/v1/l3_remediation_proposal/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47416 - "POST /api/v1/l3_remediation_proposal/mcp HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:51570 - "POST /api/v1/l3_remediation_proposal/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51570 - "POST /api/v1/l3_remediation_proposal/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51570 - "DELETE /api/v1/l3_remediation_proposal/mcp HTTP/1.1" 200 OK
+ERROR:mcp.server.streamable_http:Error in standalone SSE writer
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/NEW_AMS_END_TO_END/vevn/lib/python3.11/site-packages/mcp/server/streamable_http.py", line 765, in standalone_sse_writer
+    async for event_message in standalone_stream_reader:
+  File "/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/NEW_AMS_END_TO_END/vevn/lib/python3.11/site-packages/anyio/abc/_streams.py", line 37, in __anext__
+    return await self.receive()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/NEW_AMS_END_TO_END/vevn/lib/python3.11/site-packages/anyio/streams/memory.py", line 141, in receive
+    raise ClosedResourceError from None
+anyio.ClosedResourceError
+INFO:     127.0.0.1:47420 - "GET /api/v1/l3_remediation_proposal/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56980 - "POST /api/v1/orchestrator_state/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56980 - "POST /api/v1/orchestrator_state/mcp HTTP/1.1" 202 Accepted
+INFO:     127.0.0.1:57004 - "POST /api/v1/orchestrator_state/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57004 - "POST /api/v1/orchestrator_state/mcp HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57004 - "DELETE /api/v1/orchestrator_state/mcp HTTP/1.1" 200 OK
+ERROR:mcp.server.streamable_http:Error in standalone SSE writer
+Traceback (most recent call last):
+  File "/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/NEW_AMS_END_TO_END/vevn/lib/python3.11/site-packages/mcp/server/streamable_http.py", line 765, in standalone_sse_writer
+    async for event_message in standalone_stream_reader:
+  File "/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/NEW_AMS_END_TO_END/vevn/lib/python3.11/site-packages/anyio/abc/_streams.py", line 37, in __anext__
+    return await self.receive()
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/JarvisClaims/Agent_Verse_Musaddique_GW_UI/NEW_AMS_END_TO_END/vevn/lib/python3.11/site-packages/anyio/streams/memory.py", line 141, in receive
+    raise ClosedResourceError from None
+anyio.ClosedResourceError
+INFO:     127.0.0.1:46784 - "POST /api/v1/human_approval/api/human_approval/decide HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56410 - "POST /api/v1/knowledge_ingestion_curation/api/knowledge_ingestion_curation/ingest_closed_ticket HTTP/1.1" 200 OK
 
-Trigger: "Classify" button (HITL) — routes through /api/orchestrator/classify/{record_id} → real MCP call, no LLM decision needed.
-MCP tool: classify_ticket_record
-Input: record_id (the ticket's DB record ID)
-What it does: Fetches the ticket row from ticket_records, sends its title/description/priority/status/resolution_notes to Azure OpenAI against the fixed taxonomy, computes confidence, and persists the result.
-Output: category, severity, severity_source ("priority" or "model"), resolution_type (null unless the ticket is resolved/closed with notes), confidence, reasoning, summary, curation_status (AutoApproved if confidence ≥ threshold, else PendingReview).
 
-2. KB Matching Agent
 
-Trigger: "Run L1 Guide" button (HITL) — first step of the Orchestrator Agent's /chat call.
-MCP tool: match_kb_card
-Input: ticket title, description
-What it does: Ranks the ticket against the 13 SME-authored KB cards (BM25 + cosine similarity + RRF), then an LLM call confirms the top candidate or abstains.
-Output: matched (bool), unit (the full matched card content, or null), confidence, reason, missing_info[], candidates[] (ranked near-misses even on no-match).
+i-version=2025-01-01-preview "HTTP/1.1 200 OK"
+2026-11-27 09:36:29,320 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/orchestrator_state/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:29,320 | INFO     | mcp.client.streamable_http | Received session ID: 1d188c49654f43d990fcb3f49d2adc57
+2026-11-27 09:36:29,320 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-27 09:36:29,324 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/orchestrator_state/mcp "HTTP/1.1 202 Accepted"
+2026-11-27 09:36:29,438 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/orchestrator_state/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:29,444 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/orchestrator_state/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:29,447 | INFO     | httpx | HTTP Request: DELETE http://localhost:7900/api/v1/orchestrator_state/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:30,194 | INFO     | httpx2 | HTTP Request: POST https://azureclaimsopenai.openai.azure.com/openai/deployments/gpt-4.1-Knowledgeops-gw/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+2026-11-27 09:36:34,349 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/l2_diagnostic/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:34,349 | INFO     | mcp.client.streamable_http | Received session ID: 86d70461f53d4bf893a9b48780c693fe
+2026-11-27 09:36:34,349 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-27 09:36:34,360 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/l2_diagnostic/mcp "HTTP/1.1 202 Accepted"
+2026-11-27 09:36:37,879 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/l2_diagnostic/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:37,884 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/l2_diagnostic/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:37,887 | INFO     | httpx | HTTP Request: DELETE http://localhost:7900/api/v1/l2_diagnostic/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:38,425 | INFO     | httpx2 | HTTP Request: POST https://azureclaimsopenai.openai.azure.com/openai/deployments/gpt-4.1-Knowledgeops-gw/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+2026-11-27 09:36:39,904 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/orchestrator_state/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:39,904 | INFO     | mcp.client.streamable_http | Received session ID: 1f53db22c4574b76b11916d9f7a889a8
+2026-11-27 09:36:39,905 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-27 09:36:39,909 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/orchestrator_state/mcp "HTTP/1.1 202 Accepted"
+2026-11-27 09:36:40,177 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/orchestrator_state/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:40,184 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/orchestrator_state/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:40,188 | INFO     | httpx | HTTP Request: DELETE http://localhost:7900/api/v1/orchestrator_state/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:40,657 | INFO     | httpx2 | HTTP Request: POST https://azureclaimsopenai.openai.azure.com/openai/deployments/gpt-4.1-Knowledgeops-gw/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+2026-11-27 09:36:50,333 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/kb_matching/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:50,333 | INFO     | mcp.client.streamable_http | Received session ID: ebe840f1ab5a4620851eb4f38873a4ba
+2026-11-27 09:36:50,334 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/similar_incident_retrieval/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:50,334 | INFO     | mcp.client.streamable_http | Received session ID: 8fd897195b384b049fbf6ae7a7ae3056
+2026-11-27 09:36:50,335 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-27 09:36:50,336 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-27 09:36:50,336 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/l1_information_collector/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:50,336 | INFO     | mcp.client.streamable_http | Received session ID: a1d5b689ded64f06847aae012c3a3b1d
+2026-11-27 09:36:50,337 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/policycenter_evidence_collector/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:50,337 | INFO     | mcp.client.streamable_http | Received session ID: 5a361bdc1c0c4e13ada1862a28b598c7
+2026-11-27 09:36:50,337 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-27 09:36:50,338 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/ticket_classification_triage/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:50,338 | INFO     | mcp.client.streamable_http | Received session ID: 43fe086d8dbf489b8d077ef22c4fbfe8
+2026-11-27 09:36:50,338 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/l2_diagnostic/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:50,339 | INFO     | mcp.client.streamable_http | Received session ID: 6811e5d3eef2404fb3d5a4f2d60874c6
+2026-11-27 09:36:50,339 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/l3_remediation_proposal/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:50,339 | INFO     | mcp.client.streamable_http | Received session ID: e9a85a6da0a84464ac673ccce4b74b45
+2026-11-27 09:36:50,340 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/human_approval/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:50,340 | INFO     | mcp.client.streamable_http | Received session ID: f603640d82db4dc7bd1f38ac577b3804
+2026-11-27 09:36:50,340 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-27 09:36:50,341 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-27 09:36:50,341 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-27 09:36:50,341 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-27 09:36:50,342 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-27 09:36:50,342 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/knowledge_ingestion_curation/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:50,342 | INFO     | mcp.client.streamable_http | Received session ID: 8a2832893eca474cba42a25db9e7be1e
+2026-11-27 09:36:50,342 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/orchestrator_state/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:50,343 | INFO     | mcp.client.streamable_http | Received session ID: ac3eede3efee4ad88b107df728d9c8eb
+2026-11-27 09:36:50,343 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-27 09:36:50,344 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-27 09:36:50,363 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/kb_matching/mcp "HTTP/1.1 202 Accepted"
+2026-11-27 09:36:50,363 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/similar_incident_retrieval/mcp "HTTP/1.1 202 Accepted"
+2026-11-27 09:36:50,366 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/l1_information_collector/mcp "HTTP/1.1 202 Accepted"
+2026-11-27 09:36:50,370 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/human_approval/mcp "HTTP/1.1 202 Accepted"
+2026-11-27 09:36:50,370 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/policycenter_evidence_collector/mcp "HTTP/1.1 202 Accepted"
+2026-11-27 09:36:50,371 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/ticket_classification_triage/mcp "HTTP/1.1 202 Accepted"
+2026-11-27 09:36:50,371 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/l2_diagnostic/mcp "HTTP/1.1 202 Accepted"
+2026-11-27 09:36:50,372 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/l3_remediation_proposal/mcp "HTTP/1.1 202 Accepted"
+2026-11-27 09:36:50,373 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/orchestrator_state/mcp "HTTP/1.1 202 Accepted"
+2026-11-27 09:36:50,374 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/knowledge_ingestion_curation/mcp "HTTP/1.1 202 Accepted"
+2026-11-27 09:36:50,417 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/kb_matching/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:50,418 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/similar_incident_retrieval/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:50,419 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/l1_information_collector/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:50,420 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/human_approval/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:50,421 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/policycenter_evidence_collector/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:50,422 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/ticket_classification_triage/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:50,422 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/l2_diagnostic/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:50,424 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/l3_remediation_proposal/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:50,425 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/orchestrator_state/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:50,425 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/knowledge_ingestion_curation/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:50,435 | INFO     | httpx | HTTP Request: GET http://localhost:7900/api/v1/kb_matching/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:50,436 | INFO     | httpx | HTTP Request: DELETE http://localhost:7900/api/v1/kb_matching/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:50,438 | INFO     | mcp.client.streamable_http | GET stream disconnected, reconnecting in 1000ms...
+2026-11-27 09:36:50,438 | INFO     | httpx | HTTP Request: DELETE http://localhost:7900/api/v1/similar_incident_retrieval/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:50,441 | INFO     | httpx | HTTP Request: GET http://localhost:7900/api/v1/similar_incident_retrieval/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:50,441 | INFO     | httpx | HTTP Request: DELETE http://localhost:7900/api/v1/l1_information_collector/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:50,443 | INFO     | mcp.client.streamable_http | GET stream disconnected, reconnecting in 1000ms...
+2026-11-27 09:36:50,443 | INFO     | httpx | HTTP Request: GET http://localhost:7900/api/v1/l1_information_collector/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:50,444 | INFO     | httpx | HTTP Request: DELETE http://localhost:7900/api/v1/human_approval/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:50,445 | INFO     | mcp.client.streamable_http | GET stream disconnected, reconnecting in 1000ms...
+2026-11-27 09:36:50,446 | INFO     | httpx | HTTP Request: GET http://localhost:7900/api/v1/human_approval/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:50,447 | INFO     | httpx | HTTP Request: DELETE http://localhost:7900/api/v1/policycenter_evidence_collector/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:50,448 | INFO     | mcp.client.streamable_http | GET stream disconnected, reconnecting in 1000ms...
+2026-11-27 09:36:50,448 | INFO     | httpx | HTTP Request: DELETE http://localhost:7900/api/v1/l2_diagnostic/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:50,449 | INFO     | httpx | HTTP Request: GET http://localhost:7900/api/v1/policycenter_evidence_collector/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:50,450 | INFO     | httpx | HTTP Request: DELETE http://localhost:7900/api/v1/ticket_classification_triage/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:50,450 | INFO     | mcp.client.streamable_http | GET stream disconnected, reconnecting in 1000ms...
+2026-11-27 09:36:50,451 | INFO     | httpx | HTTP Request: DELETE http://localhost:7900/api/v1/orchestrator_state/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:50,451 | INFO     | httpx | HTTP Request: DELETE http://localhost:7900/api/v1/knowledge_ingestion_curation/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:50,452 | INFO     | httpx | HTTP Request: DELETE http://localhost:7900/api/v1/l3_remediation_proposal/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:50,457 | INFO     | orchestrator_agent | Tools loaded from MCP: ['classify_ticket_record', 'list_kb_units', 'match_kb_card', 'find_similar_incidents', 'collect_l1_info', 'collect_evidence', 'diagnose', 'author_remediation', 'requirement_to_markdown', 'decide_approval', 'run_ingestion', 'ingest_closed_ticket', 'get_ticket_run', 'save_l1_result', 'save_l2_result', 'save_l3_result']
+INFO:     127.0.0.1:37568 - "POST /chat HTTP/1.1" 200 OK
+2026-11-27 09:36:51,237 | INFO     | httpx2 | HTTP Request: POST https://azureclaimsopenai.openai.azure.com/openai/deployments/gpt-4.1-Knowledgeops-gw/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+2026-11-27 09:36:51,501 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/orchestrator_state/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:51,501 | INFO     | mcp.client.streamable_http | Received session ID: 5b72f13862d84601a15cd229189041d7
+2026-11-27 09:36:51,501 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-27 09:36:51,508 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/orchestrator_state/mcp "HTTP/1.1 202 Accepted"
+2026-11-27 09:36:51,651 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/orchestrator_state/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:51,656 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/orchestrator_state/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:51,661 | INFO     | httpx | HTTP Request: DELETE http://localhost:7900/api/v1/orchestrator_state/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:51,662 | INFO     | httpx | HTTP Request: GET http://localhost:7900/api/v1/orchestrator_state/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:51,662 | INFO     | mcp.client.streamable_http | GET stream disconnected, reconnecting in 1000ms...
+2026-11-27 09:36:52,338 | INFO     | httpx2 | HTTP Request: POST https://azureclaimsopenai.openai.azure.com/openai/deployments/gpt-4.1-Knowledgeops-gw/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+2026-11-27 09:36:56,606 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/l3_remediation_proposal/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:36:56,606 | INFO     | mcp.client.streamable_http | Received session ID: d458e283a89e4bb59faf87ed849098fb
+2026-11-27 09:36:56,606 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-27 09:36:56,612 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/l3_remediation_proposal/mcp "HTTP/1.1 202 Accepted"
+2026-11-27 09:37:03,584 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/l3_remediation_proposal/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:37:03,597 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/l3_remediation_proposal/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:37:03,605 | INFO     | httpx | HTTP Request: DELETE http://localhost:7900/api/v1/l3_remediation_proposal/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:37:04,760 | INFO     | httpx2 | HTTP Request: POST https://azureclaimsopenai.openai.azure.com/openai/deployments/gpt-4.1-Knowledgeops-gw/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
+2026-11-27 09:37:07,445 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/orchestrator_state/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:37:07,445 | INFO     | mcp.client.streamable_http | Received session ID: 6b693ea0a86b40b49eb745da5ff332e9
+2026-11-27 09:37:07,446 | INFO     | mcp.client.streamable_http | Negotiated protocol version: 2025-11-25
+2026-11-27 09:37:07,449 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/orchestrator_state/mcp "HTTP/1.1 202 Accepted"
+2026-11-27 09:37:07,995 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/orchestrator_state/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:37:08,001 | INFO     | httpx | HTTP Request: POST http://localhost:7900/api/v1/orchestrator_state/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:37:08,004 | INFO     | httpx | HTTP Request: DELETE http://localhost:7900/api/v1/orchestrator_state/mcp "HTTP/1.1 200 OK"
+2026-11-27 09:37:08,843 | INFO     | httpx2 | HTTP Request: POST https://azureclaimsopenai.openai.azure.com/openai/deployments/gpt-4.1-Knowledgeops-gw/chat/completions?api-version=2025-01-01-preview "HTTP/1.1 200 OK"
 
-3. Similar Incident Retrieval Agent
 
-Trigger: fires automatically, unconditionally, right after KB Matching — same "Run L1 Guide" click, regardless of whether KB Matching found a card.
-MCP tool: find_similar_incidents
-Input: ticket id, title, description, module, severity, created
-What it does: Hybrid BM25 + vector search over ticket_records (past resolved tickets, excluding the ticket itself), then an LLM reranks/explains the top matches.
-Output: new_ticket_assessment, matches[] (each with match_strength, why_similar, reusable_info, and the matched ticket's own detail), no_confident_match, suggested_next_step.
 
-4. L1 Information Collector Agent
 
-Trigger: same "Run L1 Guide" click, only if KB Matching found a card.
-MCP tool: collect_l1_info
-Input: ticket title, description
-What it does: Checks the matched KB card's info_to_collect checklist against the ticket's text only (never evidence/diagnosis).
-Output: items[] (each {item, answered, found}), missing_count, requester_reply (drafted message asking for whatever's missing), escalation text.
+JarvisClaims@JarvisClaims:~/Agent_Verse_Musadd
+ource vbaI$      s
+bash: vba: No such file or directory
+JarvisClaims@JarvisClaims:~/Agent_Verse_Musadd
+d NEW_AMS_     c
+END_TO_END/
+JarvisClaims@JarvisClaims:~/Agent_Verse_Musadd
+ique_GW_UI/NEW_AMS_END_TO_END$            rcevevn/bin
+/activate
+(vevn) JarvisClai
+(vevn) JarvisClaims@JarvisClaims:~
+/Agent_Verse_Musaddique_GW_UI/NEW_AMSuEND_TO_END$ u
+vicorn app.main:app --port 9000
+INFO:     Started server process [92762]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:9000 (Press CTRL+C to quit)
+^CINFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [92762]
+^C
+(vevn) JarvisClaims@JarvisClaims:~
+/Agent_Verse_Musaddique_GW_UI/NEW_AMS_END_TO_END$ ^C
+(vevn) JarvisClaims@JarvisClaims:~
+/Agent_Verse_Musaddique_GW_UI/NEW_AMS_END_TO_END$ u
+vicorn app.main:app --port 7000
+INFO:     Started server process [93788]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:7000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:59668 - "GET /api/tickets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:59682 - "GET /api/l0/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60336 - "GET /api/tickets HTTP/1.1" 200 OK
+INFO:     127.0.0.1:60322 - "GET /api/l0/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40038 - "GET /api/orchestrator/500782 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40040 - "POST /api/orchestrator/classify/osticket-33 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47682 - "GET /api/orchestrator/500782 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:47688 - "POST /api/orchestrator/similar/500782 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:35068 - "GET /api/orchestrator/500782 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57954 - "GET /api/orchestrator/500782 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57652 - "GET /api/orchestrator/500782 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36618 - "POST /api/orchestrator/500782/approve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52000 - "GET /api/orchestrator/500782 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50794 - "POST /api/orchestrator/500782/resolve HTTP/1.1" 200 OK
+INFO:     127.0.0.1:50798 - "GET /api/orchestrator/500782 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36866 - "GET /api/l0/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:36864 - "GET /api/tickets HTTP/1.1" 200 OK
 
-5. PolicyCenter Evidence Planner/Collector Agent
 
-Trigger: same "Run L1 Guide" click, right after L1 — all one chat call, then persisted together.
-MCP tool: collect_evidence
-Input: unit_id (the matched KB card's ID)
-What it does: Partially implemented — loads a static demo evidence fixture for that card (no live PolicyCenter connector yet).
-Output: policy_number, audit_job, checks[] (each with what it checked, the query, the result/facts).
 
-→ All four of the above (card, L1, evidence, similar) get persisted at the end of this one /chat call via save_l1_result (the Orchestrator Agent's own state tool) — this is what makes the results show up on GET /api/orchestrator/{ticket_id} afterward.
+JarvisClaims@JarvisClaims:~/Agent_Verse_Musadd
+d NEW_AMS_$      c
+END_TO_END/
+JarvisClaims@JarvisClaims:~/Agent_Verse_Musadd
+ique_GW_UI/NEW_AMS_END_TO_END$            rcevevn/bin
+/activate
+(vevn) JarvisClai
+(vevn) JarvisClaims@JarvisClaims:~
+/Agent_Verse_Musaddique_GW_UI/NEW_AMSpEND_TO_END$ p
+hp -S 127.0.0.1:8085 -t ~/osticket
+[Fri Nov 27 09:29:17 2026] PHP 8.2.35 Development Server (http://127.0.0.1:8085) started
+[Fri Nov 27 09:34:16 2026] 127.0.0.1:48598 Accepted
+[Fri Nov 27 09:34:20 2026] 127.0.0.1:48598 [200]: GET /open.php
+[Fri Nov 27 09:34:20 2026] 127.0.0.1:48598 Closing
+[Fri Nov 27 09:34:22 2026] 127.0.0.1:48762 Accepted
+[Fri Nov 27 09:34:22 2026] 127.0.0.1:48768 Accepted
+[Fri Nov 27 09:34:22 2026] 127.0.0.1:48770 Accepted
+[Fri Nov 27 09:34:22 2026] 127.0.0.1:48762 [200]: GET /css/osticket.css?8d38b06
+[Fri Nov 27 09:34:22 2026] 127.0.0.1:48762 Closing
+[Fri Nov 27 09:34:22 2026] 127.0.0.1:48768 [200]: GET /css/jquery-ui-timepicker-addon.css?8d38b06
+[Fri Nov 27 09:34:22 2026] 127.0.0.1:48768 Closing
+[Fri Nov 27 09:34:22 2026] 127.0.0.1:48770 [200]: GET /assets/default/css/theme.css?8d38b06
+[Fri Nov 27 09:34:22 2026] 127.0.0.1:48770 Closing
+[Fri Nov 27 09:34:22 2026] 127.0.0.1:48774 Accepted
+[Fri Nov 27 09:34:22 2026] 127.0.0.1:48774 [200]: GET /css/ui-lightness/jquery-ui-1.13.2.custom.min.css?8d38b06
+[Fri Nov 27 09:34:22 2026] 127.0.0.1:48774 Closing
+[Fri Nov 27 09:34:22 2026] 127.0.0.1:48776 Accepted
+[Fri Nov 27 09:34:22 2026] 127.0.0.1:48776 [200]: GET /css/typeahead.css?8d38b06
+[Fri Nov 27 09:34:22 2026] 127.0.0.1:48776 Closing
+[Fri Nov 27 09:34:22 2026] 127.0.0.1:48782 Accepted
+[Fri Nov 27 09:34:22 2026] 127.0.0.1:48782 [200]: GET /css/thread.css?8d38b06
+[Fri Nov 27 09:34:22 2026] 127.0.0.1:48782 Closing
+[Fri Nov 27 09:34:23 2026] 127.0.0.1:48796 Accepted
+[Fri Nov 27 09:34:23 2026] 127.0.0.1:48798 Accepted
+[Fri Nov 27 09:34:23 2026] 127.0.0.1:48804 Accepted
+[Fri Nov 27 09:34:23 2026] 127.0.0.1:48818 Accepted
+[Fri Nov 27 09:34:23 2026] 127.0.0.1:48822 Accepted
+[Fri Nov 27 09:34:23 2026] 127.0.0.1:48838 Accepted
+[Fri Nov 27 09:34:23 2026] 127.0.0.1:48796 [200]: GET /css/rtl.css?8d38b06
+[Fri Nov 27 09:34:23 2026] 127.0.0.1:48798 [200]: GET /css/redactor.css?8d38b06
+[Fri Nov 27 09:34:23 2026] 127.0.0.1:48796 Closing
+[Fri Nov 27 09:34:23 2026] 127.0.0.1:48804 [200]: GET /css/flags.css?8d38b06
+[Fri Nov 27 09:34:23 2026] 127.0.0.1:48818 [200]: GET /css/font-awesome.min.css?8d38b06
+[Fri Nov 27 09:34:23 2026] 127.0.0.1:48822 [200]: GET /js/jquery-3.7.0.min.js?8d38b06
+[Fri Nov 27 09:34:23 2026] 127.0.0.1:48798 Closing
+[Fri Nov 27 09:34:23 2026] 127.0.0.1:48838 [200]: GET /css/select2.min.css?8d38b06
+[Fri Nov 27 09:34:23 2026] 127.0.0.1:48804 Closing
+[Fri Nov 27 09:34:23 2026] 127.0.0.1:48818 Closing
+[Fri Nov 27 09:34:23 2026] 127.0.0.1:48822 Closing
+[Fri Nov 27 09:34:23 2026] 127.0.0.1:48838 Closing
+[Fri Nov 27 09:34:24 2026] 127.0.0.1:48854 Accepted
+[Fri Nov 27 09:34:24 2026] 127.0.0.1:48870 Accepted
+[Fri Nov 27 09:34:24 2026] 127.0.0.1:48872 Accepted
+[Fri Nov 27 09:34:24 2026] 127.0.0.1:48854 [200]: GET /js/jquery-ui-1.13.2.custom.min.js?8d38b06
+[Fri Nov 27 09:34:24 2026] 127.0.0.1:48870 [200]: GET /js/filedrop.field.js?8d38b06
+[Fri Nov 27 09:34:24 2026] 127.0.0.1:48872 [200]: GET /js/jquery-ui-timepicker-addon.js?8d38b06
+[Fri Nov 27 09:34:24 2026] 127.0.0.1:48854 Closing
+[Fri Nov 27 09:34:24 2026] 127.0.0.1:48870 Closing
+[Fri Nov 27 09:34:24 2026] 127.0.0.1:48872 Closing
+[Fri Nov 27 09:34:24 2026] 127.0.0.1:48876 Accepted
+[Fri Nov 27 09:34:24 2026] 127.0.0.1:48880 Accepted
+[Fri Nov 27 09:34:24 2026] 127.0.0.1:48876 [200]: GET /js/bootstrap-typeahead.js?8d38b06
+[Fri Nov 27 09:34:24 2026] 127.0.0.1:48880 [200]: GET /js/osticket.js?8d38b06
+[Fri Nov 27 09:34:24 2026] 127.0.0.1:48876 Closing
+[Fri Nov 27 09:34:24 2026] 127.0.0.1:48880 Closing
+[Fri Nov 27 09:34:25 2026] 127.0.0.1:48886 Accepted
+[Fri Nov 27 09:34:25 2026] 127.0.0.1:48886 [200]: GET /js/redactor.min.js?8d38b06
+[Fri Nov 27 09:34:25 2026] 127.0.0.1:48886 Closing
+[Fri Nov 27 09:34:26 2026] 127.0.0.1:48890 Accepted
+[Fri Nov 27 09:34:26 2026] 127.0.0.1:48902 Accepted
+[Fri Nov 27 09:34:26 2026] 127.0.0.1:48890 [200]: GET /js/redactor-plugins.js?8d38b06
+[Fri Nov 27 09:34:26 2026] 127.0.0.1:48902 [200]: GET /js/redactor-osticket.js?8d38b06
+[Fri Nov 27 09:34:26 2026] 127.0.0.1:48890 Closing
+[Fri Nov 27 09:34:26 2026] 127.0.0.1:48902 Closing
+[Fri Nov 27 09:34:26 2026] 127.0.0.1:48918 Accepted
+[Fri Nov 27 09:34:26 2026] 127.0.0.1:48918 [200]: GET /js/select2.min.js?8d38b06
+[Fri Nov 27 09:34:26 2026] 127.0.0.1:48918 Closing
+[Fri Nov 27 09:34:26 2026] 127.0.0.1:48920 Accepted
+[Fri Nov 27 09:34:26 2026] 127.0.0.1:48920 [200]: GET /assets/default/images/logo.png
+[Fri Nov 27 09:34:26 2026] 127.0.0.1:48920 Closing
+[Fri Nov 27 09:34:27 2026] 127.0.0.1:60228 Accepted
+[Fri Nov 27 09:34:27 2026] 127.0.0.1:60236 Accepted
+[Fri Nov 27 09:34:27 2026] 127.0.0.1:60238 Accepted
+[Fri Nov 27 09:34:27 2026] 127.0.0.1:60248 Accepted
+[Fri Nov 27 09:34:27 2026] 127.0.0.1:60250 Accepted
+[Fri Nov 27 09:34:27 2026] 127.0.0.1:60228 [200]: GET /assets/default/images/nav_bg.png
+[Fri Nov 27 09:34:27 2026] 127.0.0.1:60228 Closing
+[Fri Nov 27 09:34:27 2026] 127.0.0.1:60236 [200]: GET /assets/default/images/icons/new.png
+[Fri Nov 27 09:34:27 2026] 127.0.0.1:60236 Closing
+[Fri Nov 27 09:34:27 2026] 127.0.0.1:60238 [200]: GET /assets/default/images/icons/status.png
+[Fri Nov 27 09:34:27 2026] 127.0.0.1:60238 Closing
+[Fri Nov 27 09:34:27 2026] 127.0.0.1:60248 [200]: GET /assets/default/css/print.css?8d38b06
+[Fri Nov 27 09:34:27 2026] 127.0.0.1:60248 Closing
+[Fri Nov 27 09:34:27 2026] 127.0.0.1:60250 [200]: GET /assets/default/images/icons/home.png
+[Fri Nov 27 09:34:27 2026] 127.0.0.1:60250 Closing
+[Fri Nov 27 09:34:27 2026] 127.0.0.1:60264 Accepted
+[Fri Nov 27 09:34:27 2026] 127.0.0.1:60264 [200]: GET /assets/default/images/page_bg.png
+[Fri Nov 27 09:34:27 2026] 127.0.0.1:60264 Closing
+[Fri Nov 27 09:34:29 2026] 127.0.0.1:60268 Accepted
+[Fri Nov 27 09:34:29 2026] 127.0.0.1:60268 [200]: GET /assets/default/images/poweredby.png
+[Fri Nov 27 09:34:29 2026] 127.0.0.1:60268 Closing
+[Fri Nov 27 09:34:36 2026] 127.0.0.1:60270 Accepted
+[Fri Nov 27 09:34:36 2026] 127.0.0.1:60270 [200]: GET /ajax.php/form/help-topic/12
+[Fri Nov 27 09:34:36 2026] 127.0.0.1:60270 Closing
+[Fri Nov 27 09:34:38 2026] 127.0.0.1:38010 Accepted
+[Fri Nov 27 09:34:38 2026] 127.0.0.1:38018 Accepted
+[Fri Nov 27 09:34:38 2026] 127.0.0.1:38010 [200]: GET /assets/font/fontawesome-webfont.woff?v=3.2.1
+[Fri Nov 27 09:34:38 2026] 127.0.0.1:38018 [200]: GET /css/filedrop.css
+[Fri Nov 27 09:34:38 2026] 127.0.0.1:38010 Closing
+[Fri Nov 27 09:34:38 2026] 127.0.0.1:38018 Closing
+[Fri Nov 27 09:34:56 2026] 127.0.0.1:50106 Accepted
+sh: 1: /usr/sbin/sendmail: not found
+[Fri Nov 27 09:34:56 2026] 127.0.0.1:50106 [200]: POST /open.php
+[Fri Nov 27 09:34:56 2026] 127.0.0.1:50106 Closing
+[Fri Nov 27 09:34:56 2026] 127.0.0.1:50112 Accepted
+[Fri Nov 27 09:34:56 2026] 127.0.0.1:50112 [200]: GET /images/FhHRx-Spinner.gif
+[Fri Nov 27 09:34:56 2026] 127.0.0.1:50112 Closing
+[Fri Nov 27 09:34:57 2026] 127.0.0.1:51534 Accepted
+[Fri Nov 27 09:34:57 2026] 127.0.0.1:51550 Accepted
+[Fri Nov 27 09:34:57 2026] 127.0.0.1:51566 Accepted
+[Fri Nov 27 09:34:57 2026] 127.0.0.1:51574 Accepted
+[Fri Nov 27 09:34:57 2026] 127.0.0.1:51534 [200]: GET /css/ui-lightness/jquery-ui-1.13.2.custom.min.css?8d38b06
+[Fri Nov 27 09:34:57 2026] 127.0.0.1:51550 [200]: GET /css/typeahead.css?8d38b06
+[Fri Nov 27 09:34:57 2026] 127.0.0.1:51534 Closing
+[Fri Nov 27 09:34:57 2026] 127.0.0.1:51566 [200]: GET /assets/default/css/theme.css?8d38b06
+[Fri Nov 27 09:34:57 2026] 127.0.0.1:51550 Closing
+[Fri Nov 27 09:34:57 2026] 127.0.0.1:51580 Accepted
+[Fri Nov 27 09:34:57 2026] 127.0.0.1:51566 Closing
+[Fri Nov 27 09:34:57 2026] 127.0.0.1:51574 [200]: GET /css/jquery-ui-timepicker-addon.css?8d38b06
+[Fri Nov 27 09:34:57 2026] 127.0.0.1:51574 Closing
+[Fri Nov 27 09:34:57 2026] 127.0.0.1:51580 [200]: GET /css/osticket.css?8d38b06
+[Fri Nov 27 09:34:57 2026] 127.0.0.1:51580 Closing
+[Fri Nov 27 09:34:57 2026] 127.0.0.1:51586 Accepted
+[Fri Nov 27 09:34:57 2026] 127.0.0.1:51586 [200]: GET /css/thread.css?8d38b06
+[Fri Nov 27 09:34:57 2026] 127.0.0.1:51586 Closing
+[Fri Nov 27 09:34:58 2026] 127.0.0.1:51594 Accepted
+[Fri Nov 27 09:34:58 2026] 127.0.0.1:51596 Accepted
+[Fri Nov 27 09:34:58 2026] 127.0.0.1:51606 Accepted
+[Fri Nov 27 09:34:58 2026] 127.0.0.1:51616 Accepted
+[Fri Nov 27 09:34:58 2026] 127.0.0.1:51628 Accepted
+[Fri Nov 27 09:34:58 2026] 127.0.0.1:51594 [200]: GET /css/font-awesome.min.css?8d38b06
+[Fri Nov 27 09:34:58 2026] 127.0.0.1:51596 [200]: GET /css/select2.min.css?8d38b06
+[Fri Nov 27 09:34:58 2026] 127.0.0.1:51594 Closing
+[Fri Nov 27 09:34:58 2026] 127.0.0.1:51606 [200]: GET /css/rtl.css?8d38b06
+[Fri Nov 27 09:34:58 2026] 127.0.0.1:51616 [200]: GET /css/flags.css?8d38b06
+[Fri Nov 27 09:34:58 2026] 127.0.0.1:51596 Closing
+[Fri Nov 27 09:34:58 2026] 127.0.0.1:51606 Closing
+[Fri Nov 27 09:34:58 2026] 127.0.0.1:51616 Closing
+[Fri Nov 27 09:34:58 2026] 127.0.0.1:51628 [200]: GET /css/redactor.css?8d38b06
+[Fri Nov 27 09:34:58 2026] 127.0.0.1:51628 Closing
+[Fri Nov 27 09:34:59 2026] 127.0.0.1:51640 Accepted
+[Fri Nov 27 09:34:59 2026] 127.0.0.1:51640 [200]: GET /js/jquery-3.7.0.min.js?8d38b06
+[Fri Nov 27 09:34:59 2026] 127.0.0.1:51640 Closing
+[Fri Nov 27 09:35:00 2026] 127.0.0.1:51650 Accepted
+[Fri Nov 27 09:35:00 2026] 127.0.0.1:51662 Accepted
+[Fri Nov 27 09:35:00 2026] 127.0.0.1:51650 [200]: GET /js/osticket.js?8d38b06
+[Fri Nov 27 09:35:00 2026] 127.0.0.1:51662 [200]: GET /js/jquery-ui-timepicker-addon.js?8d38b06
+[Fri Nov 27 09:35:00 2026] 127.0.0.1:51650 Closing
+[Fri Nov 27 09:35:00 2026] 127.0.0.1:51662 Closing
+[Fri Nov 27 09:35:00 2026] 127.0.0.1:51674 Accepted
+[Fri Nov 27 09:35:00 2026] 127.0.0.1:51682 Accepted
+[Fri Nov 27 09:35:00 2026] 127.0.0.1:51684 Accepted
+[Fri Nov 27 09:35:00 2026] 127.0.0.1:51674 [200]: GET /js/filedrop.field.js?8d38b06
+[Fri Nov 27 09:35:00 2026] 127.0.0.1:51674 Closing
+[Fri Nov 27 09:35:00 2026] 127.0.0.1:51682 [200]: GET /js/jquery-ui-1.13.2.custom.min.js?8d38b06
+[Fri Nov 27 09:35:00 2026] 127.0.0.1:51682 Closing
+[Fri Nov 27 09:35:00 2026] 127.0.0.1:51684 [200]: GET /js/bootstrap-typeahead.js?8d38b06
+[Fri Nov 27 09:35:00 2026] 127.0.0.1:51684 Closing
+[Fri Nov 27 09:35:00 2026] 127.0.0.1:51690 Accepted
+[Fri Nov 27 09:35:00 2026] 127.0.0.1:51690 [200]: GET /js/redactor.min.js?8d38b06
+[Fri Nov 27 09:35:00 2026] 127.0.0.1:51690 Closing
+[Fri Nov 27 09:35:01 2026] 127.0.0.1:51706 Accepted
+[Fri Nov 27 09:35:01 2026] 127.0.0.1:51708 Accepted
+[Fri Nov 27 09:35:01 2026] 127.0.0.1:51712 Accepted
+[Fri Nov 27 09:35:01 2026] 127.0.0.1:51726 Accepted
+[Fri Nov 27 09:35:01 2026] 127.0.0.1:51706 [200]: GET /js/select2.min.js?8d38b06
+[Fri Nov 27 09:35:01 2026] 127.0.0.1:51706 Closing
+[Fri Nov 27 09:35:01 2026] 127.0.0.1:51708 [200]: GET /assets/default/images/logo.png
+[Fri Nov 27 09:35:01 2026] 127.0.0.1:51712 [200]: GET /js/redactor-osticket.js?8d38b06
+[Fri Nov 27 09:35:01 2026] 127.0.0.1:51708 Closing
+[Fri Nov 27 09:35:01 2026] 127.0.0.1:51712 Closing
+[Fri Nov 27 09:35:01 2026] 127.0.0.1:51726 [200]: GET /js/redactor-plugins.js?8d38b06
+[Fri Nov 27 09:35:01 2026] 127.0.0.1:51726 Closing
+[Fri Nov 27 09:35:03 2026] 127.0.0.1:51728 Accepted
+[Fri Nov 27 09:35:03 2026] 127.0.0.1:51744 Accepted
+[Fri Nov 27 09:35:03 2026] 127.0.0.1:51728 [200]: GET /assets/default/images/icons/new.png
+[Fri Nov 27 09:35:03 2026] 127.0.0.1:51754 Accepted
+[Fri Nov 27 09:35:03 2026] 127.0.0.1:51744 [200]: GET /assets/default/images/nav_bg.png
+[Fri Nov 27 09:35:03 2026] 127.0.0.1:51754 [200]: GET /assets/default/css/print.css?8d38b06
+[Fri Nov 27 09:35:03 2026] 127.0.0.1:51728 Closing
+[Fri Nov 27 09:35:03 2026] 127.0.0.1:51744 Closing
+[Fri Nov 27 09:35:03 2026] 127.0.0.1:51754 Closing
+[Fri Nov 27 09:35:03 2026] 127.0.0.1:51766 Accepted
+[Fri Nov 27 09:35:03 2026] 127.0.0.1:51770 Accepted
+[Fri Nov 27 09:35:03 2026] 127.0.0.1:51784 Accepted
+[Fri Nov 27 09:35:03 2026] 127.0.0.1:51766 [200]: GET /assets/default/images/icons/status.png
+[Fri Nov 27 09:35:03 2026] 127.0.0.1:51770 [200]: GET /assets/default/images/page_bg.png
+[Fri Nov 27 09:35:03 2026] 127.0.0.1:51766 Closing
+[Fri Nov 27 09:35:03 2026] 127.0.0.1:51784 [200]: GET /assets/default/images/icons/home.png
+[Fri Nov 27 09:35:03 2026] 127.0.0.1:51770 Closing
+[Fri Nov 27 09:35:03 2026] 127.0.0.1:51784 Closing
+[Fri Nov 27 09:35:04 2026] 127.0.0.1:51788 Accepted
+[Fri Nov 27 09:35:04 2026] 127.0.0.1:51790 Accepted
+[Fri Nov 27 09:35:04 2026] 127.0.0.1:51788 [200]: GET /assets/default/images/poweredby.png
+[Fri Nov 27 09:35:04 2026] 127.0.0.1:51790 [200]: GET /assets/default/images/icons/ok.png
+[Fri Nov 27 09:35:04 2026] 127.0.0.1:51788 Closing
+[Fri Nov 27 09:35:04 2026] 127.0.0.1:51790 Closing
 
-6. L2 Diagnostic Agent
 
-Trigger: "Continue to L2 Diagnosis" / "Run L2 Diagnosis" button (HITL) — its own separate /chat call.
-MCP tool: diagnose
-Input: title, description, card (from step 2, re-fetched via get_ticket_run), evidence (from step 5)
-What it does: Applies the KB card's diagnosis steps to the evidence.
-Output: checks[] (pass/fail per check), conclusion, needs_data_fix (true/false — the real gate for L3), confidence, evidence_label.
-→ Persisted via save_l2_result.
 
-7. L3 Remediation Proposal Agent
+(vevn) JarvisClaims@JarvisClaims:~/A
+gent_Verse_Musaddique_GW_UI/NEW_AMS_END_TO_END$      cd ui             cd uici
+npm cin build
+npm run build
+npm run dev
 
-Trigger: "Escalate to L3 data fix" button (HITL) — only runs if L2 found needs_data_fix=true.
-MCP tool: author_remediation
-Input: ticket_id, title, description, card, l2 (L2's result), evidence
-What it does: Drafts a Gosu script + change-requirement doc; runs it through gosu_guard's deterministic safety rules, with one automatic self-repair retry if it fails.
-Output: gosu (the script), explanation, expected_effect, guard ({passed, rules[]}), repairs (0 or 1), requirement (the change-control document).
-→ Persisted via save_l3_result (also records run_by, used next for self-approval blocking).
+added 303 packages, and audited 304 packages in 11s
 
-8. Human Approval Agent
+55 packages are looking for funding
+  run `npm fund` for details
 
-Trigger: "Approve for change control" / "Reject" buttons (HITL) — plain REST, no LLM.
-MCP tool: decide_approval
-Input: approve (bool), gosu (L3's script), guard_passed (L3's guard result), run_by (who ran L3), approver, change_id, note
-What it does: Deterministic rule checks — no AI: blocks self-approval, blocks approving a script that failed its safety guard, requires a change_id to approve.
-Output: status (approved/rejected), approver, change_id, note, script_sha256 (tamper-proof fingerprint of the exact script decided on).
+2 vulnerabilities (1 moderate, 1 high)
 
-9. Knowledge Ingestion & Curation Agent
+To address all issues (including breaking changes), run:
+  npm audit fix --force
 
-Trigger: "Close ticket and save to knowledge" button (HITL) — available at every stage, plain REST, no LLM.
-MCP tool: ingest_closed_ticket (new tool I added — not the batch run_ingestion)
-Input: ticket_id, resolution_type, notes
-What it does: Writes the resolution onto the real ticket_records row and embeds title+description+resolution so Similar Incident Retrieval can find it later.
-Output: ticket_store (bool), embedded (bool), embed_error (if embedding failed but the resolution still saved).
+Run `npm audit` for details.
 
-The Orchestrator Agent itself is the thing tying steps 2–7 together — one real running process (port 9021) that the UI's "Run L1 Guide"/"Continue to L2"/"Escalate to L3" clicks send a message to; its own LLM decides which of the above tools to call and in what order, per the sequence above, then persists via its own get_ticket_run/save_l1_result/save_l2_result/save_l3_result tools.
+> gw-agent-ui@1.0.0 build
+> vite build
+
+vite v5.4.21 building for production...
+✓ 1668 modules transformed.
+../dist/index.html                   0.41 kB │ gzip:   0.28 kB
+../dist/assets/index-rw-IGsud.css   24.46 kB │ gzip:   5.62 kB
+../dist/assets/index-CFwvR8DZ.js   314.56 kB │ gzip: 101.68 kB
+✓ built in 6.84s
+
+> gw-agent-ui@1.0.0 dev
+> vite
+
+
+  VITE v5.4.21  ready in 461 ms
+
+  ➜  Local:   http://localhost:7173/
+  ➜  Network: http://10.0.0.4:7173/
+  ➜  press h + enter to show help
+9:30:09 AM [vite] http proxy error: /api/tickets
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1122:18)
+    at afterConnectMultiple (node:net:1689:7)
+9:30:09 AM [vite] http proxy error: /api/l0/stats
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1122:18)
+    at afterConnectMultiple (node:net:1689:7)
+9:38:19 AM [vite] http proxy error: /chat
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1122:18)
+    at afterConnectMultiple (node:net:1689:7)
