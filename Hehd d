@@ -1,6 +1,75 @@
-git init
-git branch -M main
-git remote add origin <repo-url>
-git add .
-git commit -m "Initial commit"
-git push -u origin main
+1. Ticket Classification & Triage Agent
+
+Trigger: "Classify" button (HITL) — routes through /api/orchestrator/classify/{record_id} → real MCP call, no LLM decision needed.
+MCP tool: classify_ticket_record
+Input: record_id (the ticket's DB record ID)
+What it does: Fetches the ticket row from ticket_records, sends its title/description/priority/status/resolution_notes to Azure OpenAI against the fixed taxonomy, computes confidence, and persists the result.
+Output: category, severity, severity_source ("priority" or "model"), resolution_type (null unless the ticket is resolved/closed with notes), confidence, reasoning, summary, curation_status (AutoApproved if confidence ≥ threshold, else PendingReview).
+
+2. KB Matching Agent
+
+Trigger: "Run L1 Guide" button (HITL) — first step of the Orchestrator Agent's /chat call.
+MCP tool: match_kb_card
+Input: ticket title, description
+What it does: Ranks the ticket against the 13 SME-authored KB cards (BM25 + cosine similarity + RRF), then an LLM call confirms the top candidate or abstains.
+Output: matched (bool), unit (the full matched card content, or null), confidence, reason, missing_info[], candidates[] (ranked near-misses even on no-match).
+
+3. Similar Incident Retrieval Agent
+
+Trigger: fires automatically, unconditionally, right after KB Matching — same "Run L1 Guide" click, regardless of whether KB Matching found a card.
+MCP tool: find_similar_incidents
+Input: ticket id, title, description, module, severity, created
+What it does: Hybrid BM25 + vector search over ticket_records (past resolved tickets, excluding the ticket itself), then an LLM reranks/explains the top matches.
+Output: new_ticket_assessment, matches[] (each with match_strength, why_similar, reusable_info, and the matched ticket's own detail), no_confident_match, suggested_next_step.
+
+4. L1 Information Collector Agent
+
+Trigger: same "Run L1 Guide" click, only if KB Matching found a card.
+MCP tool: collect_l1_info
+Input: ticket title, description
+What it does: Checks the matched KB card's info_to_collect checklist against the ticket's text only (never evidence/diagnosis).
+Output: items[] (each {item, answered, found}), missing_count, requester_reply (drafted message asking for whatever's missing), escalation text.
+
+5. PolicyCenter Evidence Planner/Collector Agent
+
+Trigger: same "Run L1 Guide" click, right after L1 — all one chat call, then persisted together.
+MCP tool: collect_evidence
+Input: unit_id (the matched KB card's ID)
+What it does: Partially implemented — loads a static demo evidence fixture for that card (no live PolicyCenter connector yet).
+Output: policy_number, audit_job, checks[] (each with what it checked, the query, the result/facts).
+
+→ All four of the above (card, L1, evidence, similar) get persisted at the end of this one /chat call via save_l1_result (the Orchestrator Agent's own state tool) — this is what makes the results show up on GET /api/orchestrator/{ticket_id} afterward.
+
+6. L2 Diagnostic Agent
+
+Trigger: "Continue to L2 Diagnosis" / "Run L2 Diagnosis" button (HITL) — its own separate /chat call.
+MCP tool: diagnose
+Input: title, description, card (from step 2, re-fetched via get_ticket_run), evidence (from step 5)
+What it does: Applies the KB card's diagnosis steps to the evidence.
+Output: checks[] (pass/fail per check), conclusion, needs_data_fix (true/false — the real gate for L3), confidence, evidence_label.
+→ Persisted via save_l2_result.
+
+7. L3 Remediation Proposal Agent
+
+Trigger: "Escalate to L3 data fix" button (HITL) — only runs if L2 found needs_data_fix=true.
+MCP tool: author_remediation
+Input: ticket_id, title, description, card, l2 (L2's result), evidence
+What it does: Drafts a Gosu script + change-requirement doc; runs it through gosu_guard's deterministic safety rules, with one automatic self-repair retry if it fails.
+Output: gosu (the script), explanation, expected_effect, guard ({passed, rules[]}), repairs (0 or 1), requirement (the change-control document).
+→ Persisted via save_l3_result (also records run_by, used next for self-approval blocking).
+
+8. Human Approval Agent
+
+Trigger: "Approve for change control" / "Reject" buttons (HITL) — plain REST, no LLM.
+MCP tool: decide_approval
+Input: approve (bool), gosu (L3's script), guard_passed (L3's guard result), run_by (who ran L3), approver, change_id, note
+What it does: Deterministic rule checks — no AI: blocks self-approval, blocks approving a script that failed its safety guard, requires a change_id to approve.
+Output: status (approved/rejected), approver, change_id, note, script_sha256 (tamper-proof fingerprint of the exact script decided on).
+
+9. Knowledge Ingestion & Curation Agent
+
+Trigger: "Close ticket and save to knowledge" button (HITL) — available at every stage, plain REST, no LLM.
+MCP tool: ingest_closed_ticket (new tool I added — not the batch run_ingestion)
+Input: ticket_id, resolution_type, notes
+What it does: Writes the resolution onto the real ticket_records row and embeds title+description+resolution so Similar Incident Retrieval can find it later.
+Output: ticket_store (bool), embedded (bool), embed_error (if embedding failed but the resolution still saved).
